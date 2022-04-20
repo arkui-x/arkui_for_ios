@@ -1,0 +1,56 @@
+# Copyright (c) 2022 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import("//build/config/ios/rules.gni")
+import("//build/ohos.gni")
+import("//foundation/ace/ace_engine/ace_config.gni")
+
+dylib_name = "ace_ios"
+
+# Install packages
+group("ace_packages") {
+  deps = [
+    ":$dylib_name",
+    ":create_ios_framework",
+  ]
+}
+
+# combine framework and xcframework
+ohos_combine_darwin_framework("lib$dylib_name") {
+  deps = [ ":$dylib_name" ]
+
+  # exports headers
+  _export_framework_headers = [
+    "$ace_root/adapter/ios/Ace.h",
+    "$ace_root/adapter/ios/entrance/AceViewController.h",
+  ]
+
+  subsystem_name = "lib$dylib_name"
+  part_name = "ace_engine_cross"
+}
+
+# libace target
+ohos_shared_library(dylib_name) {
+  ldflags =
+      [ "-Wl,-install_name,@rpath/lib$dylib_name.framework/lib$dylib_name" ]
+
+  deps = [ "$ace_root/build:libace_static_ios" ]
+
+  cflags_cc = [
+    "-Wall",
+    "-frtti",
+  ]
+
+  part_name = "ace_engine_cross"
+  subsystem_name = "ace"
+}
