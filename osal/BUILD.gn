@@ -1,4 +1,4 @@
-# Copyright (c) 2021 Huawei Device Co., Ltd.
+# Copyright (c) 2022 Huawei Device Co., Ltd.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -21,15 +21,15 @@ template("ace_osal_ios_source_set") {
   ohos_source_set(target_name) {
     defines += invoker.defines
 
-    sources = [ 
-      "ios_trace.cpp",
+    sources = [
       "event_report.cpp",
+      "fetch_manager.cpp",
+      "ios_trace.cpp",
       "log_wrapper.cpp",
-      "system_properties.cpp", 
       "pixel_map_ios.cpp",
       "resource_adapter_impl.cpp",
-      "fetch_manager.cpp",
-      "response_data.cpp"
+      "response_data.cpp",
+      "system_properties.cpp",
     ]
 
     cflags_cc = [
@@ -37,24 +37,20 @@ template("ace_osal_ios_source_set") {
       "-Wno-inconsistent-dllimport",
     ]
 
-    include_dirs = [ 
+    include_dirs = [
       "//utils/native/base/include",
-      "$ace_root/adapter/ios/entrance/"
+      "$ace_root/adapter/ios/entrance/",
     ]
 
-    deps = [
-      "//third_party/curl:curl",
-    ]  
+    deps = [ "//third_party/curl:curl" ]
 
-    configs = [
-      "$ace_root:ace_config", 
-    ]
+    configs = [ "$ace_root:ace_config" ]
   }
 }
 
 foreach(item, ace_platforms) {
   platform = item.name
-  if (platform == "ios") { 
+  if (platform == "ios") {
     ace_osal_ios_source_set("ace_osal_" + item.name) {
       defines = []
       config = {

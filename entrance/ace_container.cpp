@@ -1,16 +1,24 @@
-//
-//  TestMinixContainer.cpp
-//  sources
-//
-//  Created by vail 王军平 on 2021/12/21.
-//
+/*
+ * Copyright (c) 2022 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 #include "adapter/ios/entrance/ace_container.h"
+
 #include "flutter/lib/ui/ui_dart_state.h"
-//#include "adapter/ios/osal/flutter_asset_manager.h"
+
 #include "adapter/ios/entrance/ace_application_info_impl.h"
 #include "adapter/ios/osal/dir_asset_provider.h"
-//#include "adapter/ios/entrance/flutter_task_executor.h"
 #include "core/common/flutter/flutter_asset_manager.h"
 #include "core/common/flutter/flutter_task_executor.h"
 #include "base/log/ace_trace.h"
@@ -35,7 +43,6 @@
 #include "frameworks/bridge/declarative_frontend/declarative_frontend.h"
 #include "frameworks/bridge/js_frontend/engine/common/js_engine_loader.h"
 #include "frameworks/bridge/js_frontend/js_frontend.h"
-//#include "frameworks/bridge/js_frontend/engine/quickjs/qjs_engine.h"
 
 const char *localJsFrameworkPath_;
 
