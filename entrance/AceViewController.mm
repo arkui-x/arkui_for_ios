@@ -27,14 +27,13 @@
 #include "flutter/fml/platform/darwin/scoped_nsobject.h"
 //#import "iOSTxtInputManager.h"
 
-#define ACE_INSTANCE_ID 0
-int32_t abilityId_ = 0;
 const std::string PAGE_URI = "url";
 std::map<std::string, std::string> params_;
 std::string remotePageUrl_;
 std::string remoteData_;
 const std::string CONTINUE_PARAMS_KEY = "__remoteData";
 const int32_t THEME_ID_DEFAULT = 117440515;
+int32_t CURRENT_INSTANCE_Id = 0;
 
 @interface AceViewController ()
 
@@ -45,6 +44,7 @@ const int32_t THEME_ID_DEFAULT = 117440515;
 @implementation AceViewController{
     OHOS::Ace::Platform::FlutterAceView *view_;
     flutter::ViewportMetrics _viewportMetrics;
+    int32_t aceInstanceId_;
 }
 
 - (void)viewDidLoad {
@@ -61,7 +61,8 @@ const int32_t THEME_ID_DEFAULT = 117440515;
         OHOS::Ace::Container::UpdateCurrent(OHOS::Ace::INSTANCE_ID_PLATFORM);
     });
 
-    view_ = new OHOS::Ace::Platform::FlutterAceView(0);
+    aceInstanceId_ = [AceViewController genterateInstanceId];
+    view_ = new OHOS::Ace::Platform::FlutterAceView(aceInstanceId_);
 
     FlutterViewController *controller = [[FlutterViewController alloc] init];
     controller.view.frame = self.view.bounds;
@@ -90,9 +91,9 @@ const int32_t THEME_ID_DEFAULT = 117440515;
     std::string argurl = assetsPath.UTF8String;
     std::string customurl = OHOS::Ace::Platform::AceContainer::GetCustomAssetPath(argurl);
     OHOS::Ace::FrontendType frontendType = OHOS::Ace::FrontendType::JS;
-    OHOS::Ace::Platform::AceContainer::CreateContainer(ACE_INSTANCE_ID,frontendType);
-    OHOS::Ace::Platform::AceContainer::AddAssetPath(ACE_INSTANCE_ID, "", {argurl, customurl.append(ASSET_PATH_SHARE)});
-    OHOS::Ace::Platform::AceContainer::SetResourcesPathAndThemeStyle(ACE_INSTANCE_ID, "", "", THEME_ID_DEFAULT, OHOS::Ace::ColorMode::LIGHT);
+    OHOS::Ace::Platform::AceContainer::CreateContainer(aceInstanceId_,frontendType);
+    OHOS::Ace::Platform::AceContainer::AddAssetPath(aceInstanceId_, "", {argurl, customurl.append(ASSET_PATH_SHARE)});
+    OHOS::Ace::Platform::AceContainer::SetResourcesPathAndThemeStyle(aceInstanceId_, "", "", THEME_ID_DEFAULT, OHOS::Ace::ColorMode::LIGHT);
     // Do any additional setup after loading the view.
 }
 
@@ -118,7 +119,7 @@ const int32_t THEME_ID_DEFAULT = 117440515;
 }
 
 -(void)runAcePage{
-    OHOS::Ace::Platform::AceContainer::RunPage(0, 1, "", "");
+    OHOS::Ace::Platform::AceContainer::RunPage(aceInstanceId_, 1, "", "");
 }
 
 - (void)updateViewportMetrics {
@@ -313,7 +314,7 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch* touch) 
 
 //   [_engine.get() dispatchPointerDataPacket:std::move(packet)];
 
-  auto container = OHOS::Ace::Platform::AceContainer::GetContainerInstance(ACE_INSTANCE_ID);
+  auto container = OHOS::Ace::Platform::AceContainer::GetContainerInstance(aceInstanceId_);
   if (!container) {
         LOGE("container is null");
         return;
@@ -360,7 +361,7 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch* touch) 
               //[[iOSTxtInputManager shareintance] hideTextInput];
           });
           
-          OHOS::Ace::Platform::AceContainer::OnBackPressed(ACE_INSTANCE_ID);
+          OHOS::Ace::Platform::AceContainer::OnBackPressed(aceInstanceId_);
        }
    }
 }
@@ -404,7 +405,7 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch* touch) 
 
 - (void)applicationBecameActive:(NSNotification*)notification {
     NSLog(@"vail applicationBecameActive");
-    OHOS::Ace::Platform::AceContainer::OnActive(ACE_INSTANCE_ID);
+    OHOS::Ace::Platform::AceContainer::OnActive(aceInstanceId_);
     //if (_viewportMetrics.physical_width)
     //[self surfaceUpdated:YES];
     //[[_engine.get() lifecycleChannel] sendMessage:@"AppLifecycleState.resumed"];
@@ -412,15 +413,15 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch* touch) 
 
 - (void)applicationWillResignActive:(NSNotification*)notification {
     NSLog(@"vail applicationWillResignActive");
-   OHOS::Ace::Platform::AceContainer::OnInactive(ACE_INSTANCE_ID);
+   OHOS::Ace::Platform::AceContainer::OnInactive(aceInstanceId_);
   //[self surfaceUpdated:NO];
   //[[_engine.get() lifecycleChannel] sendMessage:@"AppLifecycleState.inactive"];
 }
 
 - (void)applicationDidEnterBackground:(NSNotification*)notification {
   NSLog(@"vail applicationDidEnterBackground");
-  OHOS::Ace::Platform::AceContainer::OnHide(ACE_INSTANCE_ID);
-  std::string data = OHOS::Ace::Platform::AceContainer::OnSaveData(abilityId_);
+  OHOS::Ace::Platform::AceContainer::OnHide(aceInstanceId_);
+  std::string data = OHOS::Ace::Platform::AceContainer::OnSaveData(aceInstanceId_);
   if (data == "false") {
       printf("vail save data is null \n");
   }
@@ -446,7 +447,7 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch* touch) 
 
 - (void)applicationWillEnterForeground:(NSNotification*)notification {
     NSLog(@"vail applicationWillEnterForeground");
-    OHOS::Ace::Platform::AceContainer::OnShow(ACE_INSTANCE_ID);
+    OHOS::Ace::Platform::AceContainer::OnShow(aceInstanceId_);
     if(params_.count(PAGE_URI) > 0){
         remotePageUrl_ = params_[PAGE_URI];
     }
@@ -470,4 +471,8 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch* touch) 
   [self updateViewportMetrics];
 }
 
+#pragma mark - Helper
++(int32_t)genterateInstanceId{
+    return CURRENT_INSTANCE_Id++;
+}
 @end
