@@ -29,7 +29,6 @@ group("ace_packages") {
 ohos_combine_darwin_framework("lib$dylib_name") {
   deps = [ ":$dylib_name" ]
 
-  # 导出的头文件
   _export_framework_headers = [
     "$ace_root/adapter/ios/entrance/Ace.h",
     "$ace_root/adapter/ios/entrance/AceViewController.h",
