@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Huawei Device Co., Ltd.
+ * Copyright (c) 2022 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -12,19 +12,3 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-import("//build/ohos.gni")
-
-platforms = []
-
-if (!is_standard_system) {
-  ios_platform = {
-    name = "ios"
-    cross_platform_support = true
-    config = {
-      import("config.gni")
-    }
-  }
-
-  platforms += [ ios_platform ]
-}

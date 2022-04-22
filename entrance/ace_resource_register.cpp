@@ -12,6 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #include <vector>
 #include "adapter/ios/entrance/ace_resource_register.h"
 #include "frameworks/bridge/common/utils/utils.h"
