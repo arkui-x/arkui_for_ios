@@ -57,13 +57,12 @@ int32_t CURRENT_INSTANCE_Id = 0;
 @implementation AceViewController{
     OHOS::Ace::Platform::FlutterAceView *view_;
     flutter::ViewportMetrics _viewportMetrics;
-    AceResourceRegisterOC *_registerOC;
+    AceResourceRegisterOC *_registerOC;    
+    int32_t aceInstanceId_;
 }
 
 - (void)viewDidLoad 
 {
-    int32_t aceInstanceId_;
-    
     [super viewDidLoad];
     
     [self setupNotificationCenterObservers];
