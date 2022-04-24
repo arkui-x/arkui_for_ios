@@ -48,8 +48,6 @@ ohos_shared_library(dylib_name) {
 
   cflags_cc = [
     "-Wall",
-
-    # "-fPIC",
     "-frtti",
   ]
 

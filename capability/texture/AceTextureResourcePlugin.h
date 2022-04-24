@@ -16,7 +16,6 @@
 #import <Foundation/Foundation.h>
 #import "AceResourcePlugin.h"
 #import "FlutterTexture.h"
-// #import "AceResourceRegisterDelegate.h" 
 
 NS_ASSUME_NONNULL_BEGIN
 

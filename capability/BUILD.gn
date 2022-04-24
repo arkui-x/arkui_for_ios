@@ -22,15 +22,11 @@ config("capability_config") {
     "//third_party/flutter",
     "//third_party/flutter/engine",
     "//third_party/flutter/skia",
-
-    # "//third_party/icu/icu4c/source/common",
     "//third_party/flutter/engine/flutter/shell/platform/darwin/common/framework/Headers",
     "//third_party/flutter/engine/flutter/shell/platform/darwin/ios/framework/Headers",
     "//third_party/flutter/engine/flutter/shell/common",
     "//foundation/ace/ace_engine/frameworks",
     "//foundation/ace/ace_engine",
-
-    # "//foundation/ace/ace_engine/adapter/ios/entrance",
     "//foundation/ace/ace_engine/adapter/ios/entrance/resource",
     "//foundation/ace/ace_engine/adapter/ios/capability/texture",
     "//foundation/ace/ace_engine/adapter/ios/capability/video",
@@ -44,10 +40,7 @@ config("capability_config") {
 
 ohos_source_set("text_input") {
   configs = [ ":capability_config" ]
-  sources = [
-    #text_input
-    "$ace_root/adapter/ios/capability/editing/iOSTxtInputManager.mm",
-  ]
+  sources = [ "$ace_root/adapter/ios/capability/editing/iOSTxtInputManager.mm" ]
 }
 
 # build static

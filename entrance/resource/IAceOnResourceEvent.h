@@ -16,14 +16,6 @@
 #ifndef IAceOnResourceEvent_h
 #define IAceOnResourceEvent_h
 
-// #import <Foundation/Foundation.h>
-
 typedef void (^IAceOnResourceEvent)(NSString* eventId, NSString* param);
-
-// @protocol IAceOnResourceEvent <NSObject>
-
-// - (void)onEvent:(NSString *)eventId param:(NSString *)param;
-
-// @end
 
 #endif /* IAceOnResourceEvent_h */

@@ -24,9 +24,6 @@ NS_ASSUME_NONNULL_BEGIN
 @property(nonatomic, assign) id<iOSTextInputDelegate> textInputDelegate;
 @property (nonatomic, copy) updateEditingClientBlock textInputBlock;
 @property (nonatomic, copy) performActionBlock textPerformBlock;
-//@property (nonatomic, copy) insertTextBlock insertTextBlock;
-//@property (nonatomic, copy) deleteTextBlock deleteTextBlock;
-
 
 -(UIView<UITextInput>*)textInputView;
 - (void)showTextInput;

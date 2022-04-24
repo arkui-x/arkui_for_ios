@@ -31,12 +31,6 @@
 
 namespace OHOS::Ace {
 
-//class FlutterAssetProvider : public AssetProvider {
-//    DECLARE_ACE_TYPE(FlutterAssetProvider, AssetProvider);
-//
-//public:
-//    virtual std::unique_ptr<fml::Mapping> GetAsMapping(const std::string& assetName) const = 0;
-//};
 
 class ACE_EXPORT FileAssetProvider : public FlutterAssetProvider {
     DECLARE_ACE_TYPE(FileAssetProvider, FlutterAssetProvider);
