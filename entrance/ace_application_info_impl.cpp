@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2021 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -53,8 +53,7 @@ std::string AceApplicationInfoImpl::GetJsEngineParam(const std::string& key) con
 
 void AceApplicationInfoImpl::ChangeLocale(const std::string& language, const std::string& countryOrRegion)
 {
-   //todo:vailadapter 此处编译失败导致国际化无法设置
-   //icu::Locale locale(language.c_str(), countryOrRegion.c_str());
+   icu::Locale locale(language.c_str(), countryOrRegion.c_str());
 }
 
 void AceApplicationInfoImpl::SetLocale(const std::string& language, const std::string& countryOrRegion,
@@ -74,9 +73,8 @@ void AceApplicationInfoImpl::SetLocale(const std::string& language, const std::s
         localeTag_.append("-" + countryOrRegion_);
     }
 
-    //todo:vailadapter 此处编译失败导致国际化无法设置
-    //icu::Locale locale(language_.c_str(), countryOrRegion_.c_str());
-    //isRightToLeft_ = locale.isRightToLeft();
+    icu::Locale locale(language_.c_str(), countryOrRegion_.c_str());
+    isRightToLeft_ = locale.isRightToLeft();
     auto languageList = Localization::GetLanguageList(language_);
     if (languageList.size() == 1) {
         Localization::SetLocale(language_, countryOrRegion_, script_, languageList.front(), keywordsAndValues_);

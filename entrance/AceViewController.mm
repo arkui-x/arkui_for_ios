@@ -18,6 +18,8 @@
 #include "flutter/lib/ui/window/viewport_metrics.h"
 #include "ace_container.h"
 #include "flutter_ace_view.h"
+#include "ace_resource_register.h"
+
 #include "core/common/container.h"
 
 #include "core/event/mouse_event.h"
@@ -25,17 +27,28 @@
 
 #include "flutter/fml/memory/weak_ptr.h"
 #include "flutter/fml/platform/darwin/scoped_nsobject.h"
-//#import "iOSTxtInputManager.h"
+#include "adapter/ios/capability/editing/iOSTxtInputManager.h"
+#include "adapter/preview/entrance/ace_run_args.h"
+#include "frameworks/base/json/json_util.h"
+#include "adapter/ios/entrance/capability_registry.h"
 
+#import "AceResourceRegisterOC.h"
+#import "AceTextureResourcePlugin.h"
+#import "AceVideoResourcePlugin.h"
+#import "AceCameraResoucePlugin.h"
+
+
+int32_t abilityId_ = 0;
 const std::string PAGE_URI = "url";
 std::map<std::string, std::string> params_;
 std::string remotePageUrl_;
 std::string remoteData_;
 const std::string CONTINUE_PARAMS_KEY = "__remoteData";
 const int32_t THEME_ID_DEFAULT = 117440515;
+
 int32_t CURRENT_INSTANCE_Id = 0;
 
-@interface AceViewController ()
+@interface AceViewController ()<IAceOnCallEvent> 
 
 @property(strong, nonatomic, readonly) FlutterViewController* flutterVc;
 
@@ -44,35 +57,49 @@ int32_t CURRENT_INSTANCE_Id = 0;
 @implementation AceViewController{
     OHOS::Ace::Platform::FlutterAceView *view_;
     flutter::ViewportMetrics _viewportMetrics;
-    int32_t aceInstanceId_;
+    AceResourceRegisterOC *_registerOC;
 }
 
-- (void)viewDidLoad {
+- (void)viewDidLoad 
+{
+    int32_t aceInstanceId_;
+    
     [super viewDidLoad];
     
     [self setupNotificationCenterObservers];
     
     [self addSwipeRecognizer];
     
-    //[iOSTxtInputManager shareintance];
     static std::once_flag onceFlag;
     std::call_once(onceFlag, []() {
         LOGI("Initialize for current process.");
         OHOS::Ace::Container::UpdateCurrent(OHOS::Ace::INSTANCE_ID_PLATFORM);
+        OHOS::Ace::Platform::CapabilityRegistry::Register();
     });
 
     aceInstanceId_ = [AceViewController genterateInstanceId];
-    view_ = new OHOS::Ace::Platform::FlutterAceView(aceInstanceId_);
+    view_ = new OHOS::Ace::Platform::FlutterAceView(aceInstanceId_); 
 
     FlutterViewController *controller = [[FlutterViewController alloc] init];
     controller.view.frame = self.view.bounds;
     [self.view addSubview:controller.view];
     _flutterVc = controller;
     
+    _registerOC = [[AceResourceRegisterOC alloc] initWithParent:self];
+    auto aceResRegister = OHOS::Ace::Referenced::MakeRefPtr<OHOS::Ace::Platform::AceResourceRegister>(_registerOC);
+    view_->SetPlatformResRegister(aceResRegister);
+
+    // register with plugins
+    [_registerOC registerPlugin:[[AceVideoResourcePlugin alloc] init]];
+    [_registerOC registerPlugin:[[AceCameraResoucePlugin alloc] init]];
+    [_registerOC registerPlugin:[[AceTextureResourcePlugin alloc] initWithTextures:_flutterVc.engine]];
+    
     OHOS::Ace::Platform::FlutterAceView::IdleCallback idleNoticeCallback = [view = view_](int64_t deadline) { view->ProcessIdleEvent(deadline); };
     [controller setIdleCallBack:idleNoticeCallback];
 
     constexpr char ASSET_PATH_SHARE[] = "share";
+    OHOS::Ace::FrontendType frontendType = OHOS::Ace::FrontendType::JS;
+    OHOS::Ace::Platform::AceContainer::CreateContainer(aceInstanceId_, frontendType);
 
     /// 判断本地有没有文件
     NSString *path = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES).firstObject stringByAppendingPathComponent:@"jsdemo"];
@@ -90,8 +117,8 @@ int32_t CURRENT_INSTANCE_Id = 0;
 
     std::string argurl = assetsPath.UTF8String;
     std::string customurl = OHOS::Ace::Platform::AceContainer::GetCustomAssetPath(argurl);
-    OHOS::Ace::FrontendType frontendType = OHOS::Ace::FrontendType::JS;
-    OHOS::Ace::Platform::AceContainer::CreateContainer(aceInstanceId_,frontendType);
+    OHOS::Ace::Platform::AceContainer::CreateContainer(aceInstanceId_, frontendType);
+    OHOS::Ace::Platform::AceContainer::CreateContainer(aceInstanceId_, frontendType);
     OHOS::Ace::Platform::AceContainer::AddAssetPath(aceInstanceId_, "", {argurl, customurl.append(ASSET_PATH_SHARE)});
     OHOS::Ace::Platform::AceContainer::SetResourcesPathAndThemeStyle(aceInstanceId_, "", "", THEME_ID_DEFAULT, OHOS::Ace::ColorMode::LIGHT);
     // Do any additional setup after loading the view.
@@ -150,10 +177,6 @@ int32_t CURRENT_INSTANCE_Id = 0;
 - (void)viewDidLayoutSubviews{
     [super viewDidLayoutSubviews];
     printf("vail viewDidLayoutSubviews \n");
-}
-
--(void)timeOperateAction{
-   // [[iOSTxtInputManager shareintance] showTextInput];
 }
 
 - (void)touchesBegan:(NSSet*)touches withEvent:(UIEvent*)event {
@@ -358,9 +381,8 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch* touch) 
        CGPoint pos = [recognizer locationInView:self.view];
        if(pos.x < 20){
           dispatch_async(dispatch_get_main_queue(), ^{
-              //[[iOSTxtInputManager shareintance] hideTextInput];
+              [[iOSTxtInputManager shareintance] hideTextInput];
           });
-          
           OHOS::Ace::Platform::AceContainer::OnBackPressed(aceInstanceId_);
        }
    }
@@ -469,6 +491,11 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch* touch) 
 - (void)keyboardWillBeHidden:(NSNotification*)notification {
   _viewportMetrics.physical_view_inset_bottom = 0;
   [self updateViewportMetrics];
+}
+
+#pragma mark IAceOnCallEvent
+- (void)onEvent:(NSString *)eventId param:(NSString *)param{
+  view_->GetPlatformResRegister()->OnEvent([eventId UTF8String], [param UTF8String]);
 }
 
 #pragma mark - Helper

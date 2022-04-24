@@ -22,13 +22,18 @@ template("ace_osal_ios_source_set") {
     defines += invoker.defines
 
     sources = [
+      "drag_window.cpp",
       "event_report.cpp",
+      "fake_accessibility_manager.cpp",
       "fetch_manager.cpp",
+      "frame_report.cpp",
       "ios_trace.cpp",
       "log_wrapper.cpp",
       "pixel_map_ios.cpp",
       "resource_adapter_impl.cpp",
       "response_data.cpp",
+      "ressched_report.cpp",
+      "subwindow.cpp",
       "system_properties.cpp",
     ]
 

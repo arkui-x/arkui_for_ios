@@ -29,13 +29,13 @@ group("ace_packages") {
 ohos_combine_darwin_framework("lib$dylib_name") {
   deps = [ ":$dylib_name" ]
 
-  # exports headers
   _export_framework_headers = [
-    "$ace_root/adapter/ios/Ace.h",
+    "$ace_root/adapter/ios/entrance/Ace.h",
     "$ace_root/adapter/ios/entrance/AceViewController.h",
+    "$flutter_root/engine/flutter/shell/platform/darwin/ios/framework/Headers/FlutterPlugin.h",
   ]
 
-  subsystem_name = "lib$dylib_name"
+  subsystem_name = "ace"
   part_name = "ace_engine_cross"
 }
 

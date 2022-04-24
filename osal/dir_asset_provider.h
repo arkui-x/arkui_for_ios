@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2021 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -84,7 +84,7 @@ public:
             } while (FindNextFile(hFind, &fileInfo) != 0);
             FindClose(hFind);
         }
-#elif defined(MAC_PLATFORM)
+#elif defined(MAC_PLATFORM) || defined(IOS_PLATFORM)
         std::string dirPath = basePath_ + "/" + path;
         DIR* dp = nullptr;
         if (nullptr == (dp = opendir(dirPath.c_str()))) {

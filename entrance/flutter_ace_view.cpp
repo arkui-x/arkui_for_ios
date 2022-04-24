@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2021 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -57,6 +57,7 @@ void ConvertTouchEvent(const std::vector<uint8_t>& data, std::vector<TouchEvent>
         TimeStamp time(micros);
         TouchEvent point {
             static_cast<int32_t>(DEFAULT_ACTION_ID), static_cast<float>(current->physical_x),
+            static_cast<float>(current->physical_y), static_cast<float>(current->physical_x),
             static_cast<float>(current->physical_y), TouchType::UNKNOWN, time, current->size,
             static_cast<float>(current->pressure), static_cast<int64_t>(current->device)
         };
@@ -95,6 +96,12 @@ void FlutterAceView::RegisterTouchEventCallback(TouchEventCallback&& callback)
     touchEventCallback_ = std::move(callback);
 }
 
+void FlutterAceView::RegisterDragEventCallback(DragEventCallBack&& callback)
+{
+    ACE_DCHECK(callback);
+    dragEventCallback_ = std::move(callback);
+}
+
 void FlutterAceView::RegisterKeyEventCallback(KeyEventCallback&& callback)
 {
     ACE_DCHECK(callback);
@@ -118,6 +125,10 @@ void FlutterAceView::RegisterRotationEventCallback(RotationEventCallBack&& callb
     ACE_DCHECK(callback);
     rotationEventCallBack_ = std::move(callback);
 }
+
+//void FlutterAceView::RegisterViewDestroyCallback(ViewDestoryCallback&& callback) {
+//    ACE_DCHECK(callback);
+//}
 
 void FlutterAceView::Launch()
 {

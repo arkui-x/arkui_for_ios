@@ -18,6 +18,7 @@ platforms = []
 if (!is_standard_system) {
   ios_platform = {
     name = "ios"
+    cross_platform_support = true
     config = {
       import("config.gni")
     }

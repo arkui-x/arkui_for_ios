@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#ifndef FOUNDATION_ACE_ADAPTER_ANDROID_CAPABILITY_JAVA_JNI_CLIPBOARD_CLIPBOARD_PROXY_IMPL_H
-#define FOUNDATION_ACE_ADAPTER_ANDROID_CAPABILITY_JAVA_JNI_CLIPBOARD_CLIPBOARD_PROXY_IMPL_H
+#ifndef FOUNDATION_ACE_ADAPTER_IOS_CAPABILITY_CLIPBOARD_CLIPBOARD_PROXY_IMPL_H
+#define FOUNDATION_ACE_ADAPTER_IOS_CAPABILITY_CLIPBOARD_CLIPBOARD_PROXY_IMPL_H
 
 #include "core/common/clipboard/clipboard.h"
 
@@ -26,7 +26,7 @@ public:
     ~ClipboardImpl() override = default;
 
     void SetData(const std::string& data) override;
-    void GetData(const std::function<void(const std::string&)>& callback) override;
+    void GetData(const std::function<void(const std::string&)>& callback, bool syncMode = false) override;
     void Clear() override;
 private:
 
@@ -35,4 +35,4 @@ private:
 
 } // namespace OHOS::Ace::Platform
 
-#endif // FOUNDATION_ACE_ADAPTER_ANDROID_CAPABILITY_JAVA_JNI_CLIPBOARD_CLIPBOARD_PROXY_IMPL_H
+#endif // FOUNDATION_ACE_ADAPTER_IOS_CAPABILITY_CLIPBOARD_CLIPBOARD_PROXY_IMPL_H

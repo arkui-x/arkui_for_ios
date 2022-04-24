@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2021 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -34,6 +34,7 @@ public:
     ~FlutterAceView() override = default;
 
     void RegisterTouchEventCallback(TouchEventCallback&& callback) override;
+    void RegisterDragEventCallback(DragEventCallBack&& callback) override;
     void RegisterKeyEventCallback(KeyEventCallback&& callback) override;
     void RegisterMouseEventCallback(MouseEventCallback&& callback) override;
     void RegisterAxisEventCallback(AxisEventCallback&& callback) override;
@@ -75,10 +76,10 @@ public:
         }
     }
 
-    void RegisterSystemBarHeightChangeCallback(SystemBarHeightChangeCallbak&& callback) override
+    void RegisterSystemBarHeightChangeCallback(SystemBarHeightChangeCallback&& callback) override
     {
         if (callback) {
-            systemBarHeightChangeCallbak_ = std::move(callback);
+            systemBarHeightChangeCallback_ = std::move(callback);
         }
     }
 
@@ -94,6 +95,11 @@ public:
         if (callback) {
             idleCallback_ = std::move(callback);
         }
+    } 
+    
+    void SetPlatformResRegister(const RefPtr<PlatformResRegister>& resRegister)
+    {
+        resRegister_ = resRegister;
     }
 
     const RefPtr<PlatformResRegister>& GetPlatformResRegister() const override
@@ -105,12 +111,12 @@ public:
 
     void ProcessIdleEvent(int64_t deadline);
 
-    void NotifySurfaceChanged(int32_t width, int32_t height)
+    void NotifySurfaceChanged(int32_t width, int32_t height, WindowSizeChangeReason type)
     {
         width_ = width;
         height_ = height;
         if (viewChangeCallback_) {
-            viewChangeCallback_(width, height);
+            viewChangeCallback_(width, height, type);
         }
     }
 
@@ -123,8 +129,8 @@ public:
 
     void NotifySystemBarHeightChanged(double statusBar, double navigationBar) const
     {
-        if (systemBarHeightChangeCallbak_) {
-            systemBarHeightChangeCallbak_(statusBar, navigationBar);
+        if (systemBarHeightChangeCallback_) {
+            systemBarHeightChangeCallback_(statusBar, navigationBar);
         }
     }
 
@@ -152,7 +158,7 @@ public:
 
 private:
     int32_t instanceId_ = 0;
-    RefPtr<PlatformResRegister> resRegister_ = Referenced::MakeRefPtr<AceResourceRegister>();
+    RefPtr<PlatformResRegister> resRegister_;
 
     TouchEventCallback touchEventCallback_;
     MouseEventCallback mouseEventCallback_;
@@ -162,9 +168,10 @@ private:
     CardViewAccessibilityParamsCallback cardViewAccessibilityParamsCallback_;
     ViewChangeCallback viewChangeCallback_;
     DensityChangeCallback densityChangeCallback_;
-    SystemBarHeightChangeCallbak systemBarHeightChangeCallbak_;
+    SystemBarHeightChangeCallback systemBarHeightChangeCallback_;
     SurfaceDestroyCallback surfaceDestroyCallback_;
     IdleCallback idleCallback_;
+    DragEventCallBack dragEventCallback_;
     KeyEventCallback keyEventCallback_;
     KeyEventRecognizer keyEventRecognizer_;
 

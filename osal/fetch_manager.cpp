@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2021 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -24,10 +24,6 @@
 #include "base/log/log.h"
 #include "base/utils/singleton.h"
 
-#define ACE_CURL_EASY_SET_OPTION(handle, opt, data)                                                 \
-    do {                                                                                            \
-    } while (0)
-
 namespace OHOS::Ace {
 namespace {
 
@@ -38,7 +34,7 @@ class FetchManagerImpl final : public FetchManager, public Singleton<FetchManage
 public:
     bool Fetch(const RequestData requestData, const int32_t callbackId, ResponseData& responseData) override
     {
-        return false;
+        return true;
     }
 
 private:

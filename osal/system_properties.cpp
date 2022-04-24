@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2021 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -23,6 +23,7 @@ namespace {
 //Device type, same w/ java in AceView
 constexpr int32_t ORIENTATION_PORTRAIT = 1;
 constexpr int32_t ORIENTATION_LANDSCAPE = 2;
+constexpr char UNDEFINED_PARAM[] = "undefined parameter";
 
 } // namespace
 
@@ -48,6 +49,11 @@ ScreenShape SystemProperties::screenShape_ {ScreenShape::NOT_ROUND };
 LongScreenType SystemProperties::LongScreen_ { LongScreenType::NOT_LONG };
 bool SystemProperties::rosenBackendEnabled_ = false;
 bool SystemProperties::accessibilityEnabled_ = false;
+bool SystemProperties::windowAnimationEnabled_ = false;
+bool SystemProperties::debugEnabled_ = false;
+int32_t SystemProperties::windowPosX_ = 0;
+int32_t SystemProperties::windowPosY_ = 0;
+bool SystemProperties::debugBoundaryEnabled_ = false;
 
 void SystemProperties::InitDeviceType(DeviceType type) {
     // treat all other device type as phone
@@ -108,6 +114,23 @@ bool SystemProperties::GetDebugEnabled() {
     return false;
 }
 
+bool SystemProperties::IsSyscapExist(const char* cap)
+{
+#ifdef OHOS_STANDARD_SYSTEM
+    return HasSystemCapability(cap);
+#else
+    return false;
+#endif
+}
 
+std::string SystemProperties::GetLanguage()
+{
+    return UNDEFINED_PARAM;
+}
+
+std::string SystemProperties::GetRegion()
+{
+    return UNDEFINED_PARAM;
+}
 
 } // namespace OHOS::Ace

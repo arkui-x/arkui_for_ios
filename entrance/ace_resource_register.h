@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2021 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -17,16 +17,20 @@
 #define FOUNDATION_ACE_ADAPTER_PREVIEW_ACE_RESOURCE_REGISTER_H
 
 #include <string>
+#include <map>
 
 #include "core/common/platform_res_register.h"
 
 namespace OHOS::Ace::Platform {
-
+ 
 class AceResourceRegister final : public PlatformResRegister {
 public:
+    AceResourceRegister(void*);
     int64_t CreateResource(const std::string& resourceType, const std::string& param) override;
     bool ReleaseResource(const std::string& resourceHash) override;
     bool OnMethodCall(const std::string& method, const std::string& param, std::string& result) override;
+private: 
+    void * client_;  
 };
 
 } // namespace OHOS::Ace::Platform
