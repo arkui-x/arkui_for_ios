@@ -24,15 +24,6 @@
 #include "base/log/log.h"
 #include "base/utils/singleton.h"
 
-#define ACE_CURL_EASY_SET_OPTION(handle, opt, data)                                                 \
-    do {                                                                                            \
-//        CURLcode result = curl_easy_setopt(handle, opt, data);                                      \
-//        if (result != CURLE_OK) {                                                                   \
-//            LOGE("Failed to set option: %{public}s, %{public}s", #opt, curl_easy_strerror(result)); \
-//            return false;                                                                           \
-//        }                                                                                           \
-    } while (0)
-
 namespace OHOS::Ace {
 namespace {
 
