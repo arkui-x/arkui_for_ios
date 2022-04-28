@@ -64,8 +64,9 @@ namespace OHOS::Ace::Platform
         auto flutterTaskExecutor = Referenced::MakeRefPtr<FlutterTaskExecutor>();
         flutterTaskExecutor->InitPlatformThread();
 
-        if (type_ != FrontendType::DECLARATIVE_JS)
-        {
+        if (type_ == FrontendType::DECLARATIVE_JS) {
+            GetSettings().useUIAsJSThread = true;
+        } else {
             flutterTaskExecutor->InitJsThread();
         }
         taskExecutor_ = flutterTaskExecutor;
@@ -97,7 +98,9 @@ namespace OHOS::Ace::Platform
     {
         ContainerScope scope(instanceId_);
         printf("TestMinixContainer::Initialize\n");
-        InitializeFrontend();
+        if (type_ != FrontendType::DECLARATIVE_JS) {
+            InitializeFrontend();
+        }
     }
 
     void AceContainer::Destroy()
@@ -154,18 +157,33 @@ namespace OHOS::Ace::Platform
     void AceContainer::InitializeFrontend()
     {
         printf("TestMinixContainer::InitializeFrontend\n");
-        frontend_ = Frontend::Create();
-        auto jsFrontend = AceType::DynamicCast<JsFrontend>(frontend_);
+        if (type_ == FrontendType::JS) {
+            frontend_ = Frontend::Create();
+            auto jsFrontend = AceType::DynamicCast<JsFrontend>(frontend_);
 
-        // AceApplicationInfo::GetInstance().SetLocale("en",  "US", "", "");
-        AceApplicationInfo::GetInstance().SetLocale("zh", "CN", "", "");
-        //    auto qjsEngine = AceType::DynamicCast<OHOS::Ace::Framework::QjsEngine>(Framework::JsEngineLoader::Get().CreateJsEngine(GetInstanceId()));
-        auto jsEngine = Framework::JsEngineLoader::Get().CreateJsEngine(GetInstanceId());
-        jsFrontend->SetJsEngine(jsEngine);
-        jsFrontend->SetNeedDebugBreakPoint(AceApplicationInfo::GetInstance().IsNeedDebugBreakPoint());
-        jsFrontend->SetDebugVersion(AceApplicationInfo::GetInstance().IsDebugVersion());
+            // AceApplicationInfo::GetInstance().SetLocale("en",  "US", "", "");
+            AceApplicationInfo::GetInstance().SetLocale("zh", "CN", "", "");
+            //    auto qjsEngine = AceType::DynamicCast<OHOS::Ace::Framework::QjsEngine>(Framework::JsEngineLoader::Get().CreateJsEngine(GetInstanceId()));
+            auto jsEngine = Framework::JsEngineLoader::Get().CreateJsEngine(GetInstanceId());
+            jsFrontend->SetJsEngine(jsEngine);
+            jsFrontend->SetNeedDebugBreakPoint(AceApplicationInfo::GetInstance().IsNeedDebugBreakPoint());
+            jsFrontend->SetDebugVersion(AceApplicationInfo::GetInstance().IsDebugVersion());
+        } else if (type_ == FrontendType::DECLARATIVE_JS) {
+            frontend_ = AceType::MakeRefPtr<DeclarativeFrontend>();
+            auto declarativeFrontend = AceType::DynamicCast<DeclarativeFrontend>(frontend_);
+
+            AceApplicationInfo::GetInstance().SetLocale("zh", "CN", "", "");
+            auto& loader = Framework::JsEngineLoader::GetDeclarative(nullptr);
+            auto jsEngine = loader.CreateJsEngine(instanceId_);
+            declarativeFrontend->SetJsEngine(jsEngine);
+            declarativeFrontend->SetNeedDebugBreakPoint(AceApplicationInfo::GetInstance().IsNeedDebugBreakPoint());
+            declarativeFrontend->SetDebugVersion(AceApplicationInfo::GetInstance().IsDebugVersion());
+        }
         ACE_DCHECK(frontend_);
         frontend_->Initialize(type_, taskExecutor_);
+        if (assetManager_) {
+            frontend_->SetAssetManager(assetManager_);
+        }
     }
 
     void AceContainer::InitializeCallback()
@@ -408,8 +426,7 @@ namespace OHOS::Ace::Platform
             else
             {
                 flutterAssetManager = Referenced::MakeRefPtr<FlutterAssetManager>();
-                container->assetManager_ = flutterAssetManager;
-                container->frontend_->SetAssetManager(flutterAssetManager);
+                container->SetAssetManager(flutterAssetManager);
             }
             if (flutterAssetManager)
             {
@@ -475,6 +492,15 @@ namespace OHOS::Ace::Platform
         flutterTaskExecutor->InitOtherThreads(state->GetTaskRunners());
 
         ContainerScope scope(instanceId);
+        if (type_ == FrontendType::DECLARATIVE_JS) {
+            flutterTaskExecutor->InitJsThread(false);
+            LOGI("Initialize frontend");
+            InitializeFrontend();
+            auto front = GetFrontend();
+            if (front) {
+                front->UpdateState(Frontend::State::ON_CREATE);
+            }
+        }
 
         resRegister_ = aceView_->GetPlatformResRegister();
         pipelineContext_ = AceType::MakeRefPtr<PipelineContext>(

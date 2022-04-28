@@ -97,7 +97,7 @@ int32_t CURRENT_INSTANCE_Id = 0;
     [controller setIdleCallBack:idleNoticeCallback];
 
     constexpr char ASSET_PATH_SHARE[] = "share";
-    OHOS::Ace::FrontendType frontendType = OHOS::Ace::FrontendType::JS;
+    OHOS::Ace::FrontendType frontendType = OHOS::Ace::FrontendType::DECLARATIVE_JS;
     OHOS::Ace::Platform::AceContainer::CreateContainer(aceInstanceId_, frontendType);
 
     /// 判断本地有没有文件
@@ -116,8 +116,6 @@ int32_t CURRENT_INSTANCE_Id = 0;
 
     std::string argurl = assetsPath.UTF8String;
     std::string customurl = OHOS::Ace::Platform::AceContainer::GetCustomAssetPath(argurl);
-    OHOS::Ace::Platform::AceContainer::CreateContainer(aceInstanceId_, frontendType);
-    OHOS::Ace::Platform::AceContainer::CreateContainer(aceInstanceId_, frontendType);
     OHOS::Ace::Platform::AceContainer::AddAssetPath(aceInstanceId_, "", {argurl, customurl.append(ASSET_PATH_SHARE)});
     OHOS::Ace::Platform::AceContainer::SetResourcesPathAndThemeStyle(aceInstanceId_, "", "", THEME_ID_DEFAULT, OHOS::Ace::ColorMode::LIGHT);
     // Do any additional setup after loading the view.

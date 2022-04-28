@@ -82,6 +82,14 @@ namespace OHOS::Ace::Platform
             return taskExecutor_;
         }
 
+        void SetAssetManager(RefPtr<AssetManager> assetManager)
+        {
+            assetManager_ = assetManager;
+            if (frontend_) {
+                frontend_->SetAssetManager(assetManager);
+            }
+        }
+
         RefPtr<AssetManager> GetAssetManager() const override
         {
             return assetManager_;
