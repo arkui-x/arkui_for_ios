@@ -14,6 +14,7 @@
  */
 
 #include "base/log/ace_trace.h"
+#include "frameworks/base/log/trace_id.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -24,7 +25,16 @@
 
 namespace OHOS::Ace {
 
-std::string GetTraceTimeStamp()
+class TraceIdImpl : public TraceId {
+
+};
+
+TraceId* TraceId::CreateTraceId()
+{
+    return new TraceIdImpl();
+}
+
+    std::string GetTraceTimeStamp()
 {
     // time_t tt = time(nullptr);
     // struct timeval tv;
