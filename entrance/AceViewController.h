@@ -18,6 +18,9 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface AceViewController : UIViewController
 
+@property(nonatomic,assign) NSInteger version;
+@property(nonatomic,strong) NSString *instanceName;
+
 @end
 
 NS_ASSUME_NONNULL_END
