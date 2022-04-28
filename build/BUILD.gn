@@ -13,7 +13,7 @@
 
 import("//build/config/ios/rules.gni")
 import("//build/ohos.gni")
-import("//foundation/ace/ace_engine/ace_config.gni")
+import("//foundation/arkui/ace_engine/ace_config.gni")
 
 dylib_name = "ace_ios"
 
@@ -35,7 +35,7 @@ ohos_combine_darwin_framework("lib$dylib_name") {
     "$flutter_root/engine/flutter/shell/platform/darwin/ios/framework/Headers/FlutterPlugin.h",
   ]
 
-  subsystem_name = "ace"
+  subsystem_name = "arkui"
   part_name = "ace_engine_cross"
 }
 
@@ -52,5 +52,5 @@ ohos_shared_library(dylib_name) {
   ]
 
   part_name = "ace_engine_cross"
-  subsystem_name = "ace"
+  subsystem_name = "arkui"
 }
