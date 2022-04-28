@@ -45,7 +45,7 @@ const std::string CONTINUE_PARAMS_KEY = "__remoteData";
 const int32_t THEME_ID_DEFAULT = 117440515;
 int32_t CURRENT_INSTANCE_Id = 0;
 
-@interface AceViewController ()<IAceOnCallEvent> 
+@interface AceViewController ()<IAceOnCallEvent>
 
 @property(strong, nonatomic, readonly) FlutterViewController* flutterVc;
 
@@ -54,18 +54,21 @@ int32_t CURRENT_INSTANCE_Id = 0;
 @implementation AceViewController{
     OHOS::Ace::Platform::FlutterAceView *_aceView;
     flutter::ViewportMetrics _viewportMetrics;
-    AceResourceRegisterOC *_registerOC;    
+    AceResourceRegisterOC *_registerOC;
     int32_t _aceInstanceId;
 }
 
--(instancetype)init{
+-(instancetype)initWithVersion:(ACE_VERSION)version
+                  instanceName:(nullable NSString*)instanceName{
+    
     if(self = [super init]){
+        _version = version;
+        _instanceName = instanceName ? [instanceName copy] : nil;
         [self initAce];
     }
     return self;
 }
-
-- (void)viewDidLoad 
+- (void)viewDidLoad
 {
     [super viewDidLoad];
     
@@ -104,6 +107,11 @@ int32_t CURRENT_INSTANCE_Id = 0;
 
     constexpr char ASSET_PATH_SHARE[] = "share";
     OHOS::Ace::FrontendType frontendType = OHOS::Ace::FrontendType::DECLARATIVE_JS;
+    if (_version == ACE_VERSION_1) {
+        frontendType = OHOS::Ace::FrontendType::JS;
+    }else if (_version == ACE_VERSION_1){
+        frontendType = OHOS::Ace::FrontendType::DECLARATIVE_JS;
+    }
     OHOS::Ace::Platform::AceContainer::CreateContainer(_aceInstanceId, frontendType);
 
     NSString *path = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES).firstObject stringByAppendingPathComponent:@"jsdemo"];

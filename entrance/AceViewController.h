@@ -16,10 +16,27 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+typedef NS_ENUM(NSUInteger, ACE_VERSION) {
+    ACE_VERSION_1 = 1,   //default. Support JSCommand mode
+    ACE_VERSION_2 = 2,   //Support JSCommand,Declarative,Card
+};
+
 @interface AceViewController : UIViewController
 
-@property(nonatomic,assign) NSInteger version;
-@property(nonatomic,strong) NSString *instanceName;
+/**
+ * create AceViewController intance
+ *
+ * @param version  Ace version. Must be 1 or 2.
+ *                  1: support JS [default] mode
+ *                  2: support JS,Declarative,Card modes
+ * @param instanceName js bundle name. If is nil .It will load js bundle named 'default' in js/default directory
+ * @return AceViewController instance
+ */
+-(instancetype)initWithVersion:(ACE_VERSION)version
+                  instanceName:(nullable NSString*)instanceName;
+
+@property(nonatomic,readonly) ACE_VERSION version;
+@property(nonatomic,readonly) NSString *instanceName;
 
 @end
 
