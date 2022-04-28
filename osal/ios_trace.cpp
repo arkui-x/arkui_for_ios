@@ -21,8 +21,18 @@
 #include <cstdint>
 #include <string>
 #include "base/utils/time_util.h"
+#include "frameworks/base/log/trace_id.h"
 
 namespace OHOS::Ace {
+
+class TraceIdImpl : public TraceId {
+
+};
+
+TraceId* TraceId::CreateTraceId()
+{
+    return new TraceIdImpl();
+}
 
 std::string GetTraceTimeStamp()
 {
