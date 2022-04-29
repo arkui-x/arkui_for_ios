@@ -58,16 +58,17 @@ int32_t CURRENT_INSTANCE_Id = 0;
     int32_t _aceInstanceId;
 }
 
+
 -(instancetype)initWithVersion:(ACE_VERSION)version
-                  instanceName:(nullable NSString*)instanceName{
-    
+               bundleDirectory:(nonnull NSString*)bundleDirectory{
     if(self = [super init]){
         _version = version;
-        _instanceName = instanceName ? [instanceName copy] : nil;
+        _bundleDirectory = bundleDirectory;
         [self initAce];
     }
     return self;
 }
+
 - (void)viewDidLoad
 {
     [super viewDidLoad];
@@ -114,18 +115,15 @@ int32_t CURRENT_INSTANCE_Id = 0;
     }
     OHOS::Ace::Platform::AceContainer::CreateContainer(_aceInstanceId, frontendType);
 
-    NSString *path = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES).firstObject stringByAppendingPathComponent:@"jsdemo"];
-    BOOL exist = [[NSFileManager defaultManager] fileExistsAtPath:path];
-    NSString *assetsPath = [[NSBundle mainBundle] pathForResource:@"jsdemo" ofType:nil];
-    if (exist) {
-      assetsPath = path;
+    BOOL exist = [[NSFileManager defaultManager] fileExistsAtPath:_bundleDirectory];
+    if (!exist) {
+        NSAssert(exist, @"can not find the js bundle directory");
     }
 
-    std::string argurl = assetsPath.UTF8String;
+    std::string argurl = _bundleDirectory.UTF8String;
     std::string customurl = OHOS::Ace::Platform::AceContainer::GetCustomAssetPath(argurl);
     OHOS::Ace::Platform::AceContainer::AddAssetPath(_aceInstanceId, "", {argurl, customurl.append(ASSET_PATH_SHARE)});
     OHOS::Ace::Platform::AceContainer::SetResourcesPathAndThemeStyle(_aceInstanceId, "", "", THEME_ID_DEFAULT, OHOS::Ace::ColorMode::LIGHT);
-    // Do any additional setup after loading the view.
 }
 
 - (void)viewWillAppear:(BOOL)animated {

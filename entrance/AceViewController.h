@@ -29,14 +29,15 @@ typedef NS_ENUM(NSUInteger, ACE_VERSION) {
  * @param version  Ace version. Must be 1 or 2.
  *                  1: support JS [default] mode
  *                  2: support JS,Declarative,Card modes
- * @param instanceName js bundle name. If is nil .It will load js bundle named 'default' in js/default directory
+ * @param instanceDirectory js bundle directory.Can not be null
  * @return AceViewController instance
  */
 -(instancetype)initWithVersion:(ACE_VERSION)version
-                  instanceName:(nullable NSString*)instanceName;
+               bundleDirectory:(nonnull NSString*)bundleDirectory;
 
 @property(nonatomic,readonly) ACE_VERSION version;
-@property(nonatomic,readonly) NSString *instanceName;
+@property(nonatomic,readonly) NSString *bundleDirectory;
+//@property(nonatomic,readonly) NSString *instanceName;
 
 @end
 
