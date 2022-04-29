@@ -35,11 +35,11 @@ typedef NS_ENUM(NSUInteger, ACE_VERSION) {
 /**
  * Initializes this AceViewController with the specified instance name.
  *
- *  This is used for pure ace application. It will combine the Js/`instanceName` as the
+ *  This is used for pure ace application. It will combine the js/`instanceName` as the
  *  bundleDirectory.
  *
  * @param version  Ace version.
- * @param instanceName js bundle directory.Can not be null.
+ * @param instanceName instance name.
  */
 -(instancetype)initWithVersion:(ACE_VERSION)version
                   instanceName:(nonnull NSString*)instanceName;
