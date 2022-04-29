@@ -12,7 +12,7 @@
 # limitations under the License.
 
 import("//build/ohos.gni")
-import("//foundation/ace/ace_engine/ace_config.gni")
+import("//foundation/arkui/ace_engine/ace_config.gni")
 
 ohos_source_set("resource") {
   cflags_objc = [
@@ -31,8 +31,8 @@ ohos_source_set("resource") {
     "//third_party/flutter/engine/flutter/shell/platform/darwin/common/framework/Headers",
     "//third_party/flutter/engine/flutter/shell/platform/darwin/ios/framework/Headers",
     "//third_party/flutter/engine/flutter/shell/common",
-    "//foundation/ace/ace_engine/frameworks",
-    "//foundation/ace/ace_engine",
+    "$ace_root/frameworks",
+    "$ace_root",
   ]
 
   sources = [

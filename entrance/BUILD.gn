@@ -12,7 +12,7 @@
 # limitations under the License.
 
 import("//build/ohos.gni")
-import("//foundation/ace/ace_engine/ace_config.gni")
+import("//foundation/arkui/ace_engine/ace_config.gni")
 
 # build static
 template("ace_ios_standard_source_set") {
@@ -30,12 +30,12 @@ template("ace_ios_standard_source_set") {
       "//third_party/flutter/engine/flutter/shell/platform/darwin/common/framework/Headers",
       "//third_party/flutter/engine/flutter/shell/platform/darwin/ios/framework/Headers",
       "//third_party/flutter/engine/flutter/shell/common",
-      "//foundation/ace/ace_engine/frameworks",
-      "//foundation/ace/ace_engine",
-      "//foundation/ace/ace_engine/adapter/ios/entrance/resource",
-      "//foundation/ace/ace_engine/adapter/ios/capability/texture",
-      "//foundation/ace/ace_engine/adapter/ios/capability/video",
-      "//foundation/ace/ace_engine/adapter/ios/capability/camera",
+      "$ace_root/frameworks",
+      "$ace_root",
+      "$ace_root/adapter/ios/entrance/resource",
+      "$ace_root/adapter/ios/capability/texture",
+      "$ace_root/adapter/ios/capability/video",
+      "$ace_root/adapter/ios/capability/camera",
     ]
 
     sources = [

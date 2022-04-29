@@ -37,6 +37,6 @@ napi_support = false
 cflags_cc = [ "-std=c++17" ]
 
 platform_deps = [
-  "//foundation/ace/ace_engine/adapter/ios/entrance:ace_ios_entrance",
-  "//foundation/ace/ace_engine/adapter/ios/osal:ace_osal_ios",
+  "//foundation/arkui/ace_engine/adapter/ios/entrance:ace_ios_entrance",
+  "//foundation/arkui/ace_engine/adapter/ios/osal:ace_osal_ios",
 ]
