@@ -110,7 +110,7 @@ int32_t CURRENT_INSTANCE_Id = 0;
     OHOS::Ace::FrontendType frontendType = OHOS::Ace::FrontendType::DECLARATIVE_JS;
     if (_version == ACE_VERSION_1) {
         frontendType = OHOS::Ace::FrontendType::JS;
-    }else if (_version == ACE_VERSION_1){
+    }else if (_version == ACE_VERSION_2){
         frontendType = OHOS::Ace::FrontendType::DECLARATIVE_JS;
     }
     OHOS::Ace::Platform::AceContainer::CreateContainer(_aceInstanceId, frontendType);
