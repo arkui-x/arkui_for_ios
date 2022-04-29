@@ -16,7 +16,37 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+typedef NS_ENUM(NSUInteger, ACE_VERSION) {
+    ACE_VERSION_JS = 1,    // default. web like js app version
+    ACE_VERSION_ETS = 2,   // declarative ets app version
+};
+
 @interface AceViewController : UIViewController
+
+/**
+ * Initializes this AceViewController with the specified JS bundle directory.
+ *
+ * @param version  Ace version.
+ * @param bundleDirectory js bundle directory.
+ */
+-(instancetype)initWithVersion:(ACE_VERSION)version
+               bundleDirectory:(nonnull NSString*)bundleDirectory;
+
+/**
+ * Initializes this AceViewController with the specified instance name.
+ *
+ *  This is used for pure ace application. It will combine the js/`instanceName` as the
+ *  bundleDirectory.
+ *
+ * @param version  Ace version.
+ * @param instanceName instance name.
+ */
+-(instancetype)initWithVersion:(ACE_VERSION)version
+                  instanceName:(nonnull NSString*)instanceName;
+
+
+@property(nonatomic,readonly) ACE_VERSION version;
+@property(nonatomic,readonly) NSString *bundleDirectory;
 
 @end
 

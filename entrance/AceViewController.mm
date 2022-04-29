@@ -37,38 +37,55 @@
 #import "AceVideoResourcePlugin.h"
 #import "AceCameraResoucePlugin.h"
 
-
-int32_t abilityId_ = 0;
 const std::string PAGE_URI = "url";
 std::map<std::string, std::string> params_;
 std::string remotePageUrl_;
 std::string remoteData_;
 const std::string CONTINUE_PARAMS_KEY = "__remoteData";
 const int32_t THEME_ID_DEFAULT = 117440515;
-
 int32_t CURRENT_INSTANCE_Id = 0;
+#define ASSER_PATH @"js"
 
-@interface AceViewController ()<IAceOnCallEvent> 
+@interface AceViewController ()<IAceOnCallEvent>
 
 @property(strong, nonatomic, readonly) FlutterViewController* flutterVc;
 
 @end
 
 @implementation AceViewController{
-    OHOS::Ace::Platform::FlutterAceView *view_;
+    OHOS::Ace::Platform::FlutterAceView *_aceView;
     flutter::ViewportMetrics _viewportMetrics;
-    AceResourceRegisterOC *_registerOC;    
-    int32_t aceInstanceId_;
+    AceResourceRegisterOC *_registerOC;
+    int32_t _aceInstanceId;
 }
 
-- (void)viewDidLoad 
+-(instancetype)initWithVersion:(ACE_VERSION)version
+               bundleDirectory:(nonnull NSString*)bundleDirectory{
+    if(self = [super init]){
+        _version = version;
+        _bundleDirectory = bundleDirectory;
+        [self initAce];
+    }
+    return self;
+}
+
+-(instancetype)initWithVersion:(ACE_VERSION)version
+                  instanceName:(nonnull NSString*)instanceName{
+    NSString * bundleDirectory = [[NSBundle mainBundle] pathForResource:instanceName ofType:nil inDirectory:ASSER_PATH];
+    NSAssert(bundleDirectory!=nil, ([NSString stringWithFormat:@"Can not find the bundle named :%@",instanceName]));
+    return [self initWithVersion:version bundleDirectory:bundleDirectory];
+}
+
+- (void)viewDidLoad
 {
     [super viewDidLoad];
     
     [self setupNotificationCenterObservers];
     
     [self addSwipeRecognizer];
-    
+}
+
+-(void)initAce{
     static std::once_flag onceFlag;
     std::call_once(onceFlag, []() {
         LOGI("Initialize for current process.");
@@ -76,8 +93,8 @@ int32_t CURRENT_INSTANCE_Id = 0;
         OHOS::Ace::Platform::CapabilityRegistry::Register();
     });
 
-    aceInstanceId_ = [AceViewController genterateInstanceId];
-    view_ = new OHOS::Ace::Platform::FlutterAceView(aceInstanceId_); 
+    _aceInstanceId = [AceViewController genterateInstanceId];
+    _aceView = new OHOS::Ace::Platform::FlutterAceView(_aceInstanceId);
 
     FlutterViewController *controller = [[FlutterViewController alloc] init];
     controller.view.frame = self.view.bounds;
@@ -86,39 +103,29 @@ int32_t CURRENT_INSTANCE_Id = 0;
     
     _registerOC = [[AceResourceRegisterOC alloc] initWithParent:self];
     auto aceResRegister = OHOS::Ace::Referenced::MakeRefPtr<OHOS::Ace::Platform::AceResourceRegister>(_registerOC);
-    view_->SetPlatformResRegister(aceResRegister);
+    _aceView->SetPlatformResRegister(aceResRegister);
 
     // register with plugins
     [_registerOC registerPlugin:[[AceVideoResourcePlugin alloc] init]];
     [_registerOC registerPlugin:[[AceCameraResoucePlugin alloc] init]];
     [_registerOC registerPlugin:[[AceTextureResourcePlugin alloc] initWithTextures:_flutterVc.engine]];
     
-    OHOS::Ace::Platform::FlutterAceView::IdleCallback idleNoticeCallback = [view = view_](int64_t deadline) { view->ProcessIdleEvent(deadline); };
+    OHOS::Ace::Platform::FlutterAceView::IdleCallback idleNoticeCallback = [view = _aceView](int64_t deadline) { view->ProcessIdleEvent(deadline); };
     [controller setIdleCallBack:idleNoticeCallback];
 
     constexpr char ASSET_PATH_SHARE[] = "share";
     OHOS::Ace::FrontendType frontendType = OHOS::Ace::FrontendType::DECLARATIVE_JS;
-    OHOS::Ace::Platform::AceContainer::CreateContainer(aceInstanceId_, frontendType);
-
-    /// 判断本地有没有文件
-    NSString *path = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES).firstObject stringByAppendingPathComponent:@"jsdemo"];
-    BOOL exist = [[NSFileManager defaultManager] fileExistsAtPath:path];
-    NSString *assetsPath = [[NSBundle mainBundle] pathForResource:@"jsdemo" ofType:nil];
-    if (exist) {
-      assetsPath = path;
+    if (_version == ACE_VERSION_JS) {
+        frontendType = OHOS::Ace::FrontendType::JS;
+    }else if (_version == ACE_VERSION_ETS){
+        frontendType = OHOS::Ace::FrontendType::DECLARATIVE_JS;
     }
+    OHOS::Ace::Platform::AceContainer::CreateContainer(_aceInstanceId, frontendType);
 
-    NSString *js_framework = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES).firstObject stringByAppendingPathComponent:@"strip.native.min.js"];
-    exist = [[NSFileManager defaultManager] fileExistsAtPath:js_framework];
-    if (exist) {
-      OHOS::Ace::Platform::AceContainer::SetJsFrameworkLocalPath(js_framework.UTF8String);
-    }
-
-    std::string argurl = assetsPath.UTF8String;
+    std::string argurl = _bundleDirectory.UTF8String;
     std::string customurl = OHOS::Ace::Platform::AceContainer::GetCustomAssetPath(argurl);
-    OHOS::Ace::Platform::AceContainer::AddAssetPath(aceInstanceId_, "", {argurl, customurl.append(ASSET_PATH_SHARE)});
-    OHOS::Ace::Platform::AceContainer::SetResourcesPathAndThemeStyle(aceInstanceId_, "", "", THEME_ID_DEFAULT, OHOS::Ace::ColorMode::LIGHT);
-    // Do any additional setup after loading the view.
+    OHOS::Ace::Platform::AceContainer::AddAssetPath(_aceInstanceId, "", {argurl, customurl.append(ASSET_PATH_SHARE)});
+    OHOS::Ace::Platform::AceContainer::SetResourcesPathAndThemeStyle(_aceInstanceId, "", "", THEME_ID_DEFAULT, OHOS::Ace::ColorMode::LIGHT);
 }
 
 - (void)viewWillAppear:(BOOL)animated {
@@ -135,7 +142,7 @@ int32_t CURRENT_INSTANCE_Id = 0;
     CGFloat width = _viewportMetrics.physical_width;
     CGFloat height = _viewportMetrics.physical_height;
     CGFloat scale = _viewportMetrics.device_pixel_ratio;
-    OHOS::Ace::Platform::AceContainer::SetView(view_, scale, width*scale, height*scale);
+    OHOS::Ace::Platform::AceContainer::SetView(_aceView, scale, width*scale, height*scale);
     
     [self runAcePage];
     
@@ -143,7 +150,7 @@ int32_t CURRENT_INSTANCE_Id = 0;
 }
 
 -(void)runAcePage{
-    OHOS::Ace::Platform::AceContainer::RunPage(aceInstanceId_, 1, "", "");
+    OHOS::Ace::Platform::AceContainer::RunPage(_aceInstanceId, 1, "", "");
 }
 
 - (void)updateViewportMetrics {
@@ -334,7 +341,7 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch* touch) 
 
 //   [_engine.get() dispatchPointerDataPacket:std::move(packet)];
 
-  auto container = OHOS::Ace::Platform::AceContainer::GetContainerInstance(aceInstanceId_);
+  auto container = OHOS::Ace::Platform::AceContainer::GetContainerInstance(_aceInstanceId);
   if (!container) {
         LOGE("container is null");
         return;
@@ -380,7 +387,7 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch* touch) 
           dispatch_async(dispatch_get_main_queue(), ^{
               [[iOSTxtInputManager shareintance] hideTextInput];
           });
-          OHOS::Ace::Platform::AceContainer::OnBackPressed(aceInstanceId_);
+          OHOS::Ace::Platform::AceContainer::OnBackPressed(_aceInstanceId);
        }
    }
 }
@@ -424,7 +431,7 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch* touch) 
 
 - (void)applicationBecameActive:(NSNotification*)notification {
     NSLog(@"vail applicationBecameActive");
-    OHOS::Ace::Platform::AceContainer::OnActive(aceInstanceId_);
+    OHOS::Ace::Platform::AceContainer::OnActive(_aceInstanceId);
     //if (_viewportMetrics.physical_width)
     //[self surfaceUpdated:YES];
     //[[_engine.get() lifecycleChannel] sendMessage:@"AppLifecycleState.resumed"];
@@ -432,15 +439,15 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch* touch) 
 
 - (void)applicationWillResignActive:(NSNotification*)notification {
     NSLog(@"vail applicationWillResignActive");
-   OHOS::Ace::Platform::AceContainer::OnInactive(aceInstanceId_);
+   OHOS::Ace::Platform::AceContainer::OnInactive(_aceInstanceId);
   //[self surfaceUpdated:NO];
   //[[_engine.get() lifecycleChannel] sendMessage:@"AppLifecycleState.inactive"];
 }
 
 - (void)applicationDidEnterBackground:(NSNotification*)notification {
   NSLog(@"vail applicationDidEnterBackground");
-  OHOS::Ace::Platform::AceContainer::OnHide(aceInstanceId_);
-  std::string data = OHOS::Ace::Platform::AceContainer::OnSaveData(aceInstanceId_);
+  OHOS::Ace::Platform::AceContainer::OnHide(_aceInstanceId);
+  std::string data = OHOS::Ace::Platform::AceContainer::OnSaveData(_aceInstanceId);
   if (data == "false") {
       printf("vail save data is null \n");
   }
@@ -466,7 +473,7 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch* touch) 
 
 - (void)applicationWillEnterForeground:(NSNotification*)notification {
     NSLog(@"vail applicationWillEnterForeground");
-    OHOS::Ace::Platform::AceContainer::OnShow(aceInstanceId_);
+    OHOS::Ace::Platform::AceContainer::OnShow(_aceInstanceId);
     if(params_.count(PAGE_URI) > 0){
         remotePageUrl_ = params_[PAGE_URI];
     }
@@ -492,7 +499,7 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch* touch) 
 
 #pragma mark IAceOnCallEvent
 - (void)onEvent:(NSString *)eventId param:(NSString *)param{
-  view_->GetPlatformResRegister()->OnEvent([eventId UTF8String], [param UTF8String]);
+  _aceView->GetPlatformResRegister()->OnEvent([eventId UTF8String], [param UTF8String]);
 }
 
 #pragma mark - Helper
