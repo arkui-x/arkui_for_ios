@@ -108,9 +108,9 @@ int32_t CURRENT_INSTANCE_Id = 0;
 
     constexpr char ASSET_PATH_SHARE[] = "share";
     OHOS::Ace::FrontendType frontendType = OHOS::Ace::FrontendType::DECLARATIVE_JS;
-    if (_version == ACE_VERSION_1) {
+    if (_version == ACE_VERSION_JS) {
         frontendType = OHOS::Ace::FrontendType::JS;
-    }else if (_version == ACE_VERSION_2){
+    }else if (_version == ACE_VERSION_ETS){
         frontendType = OHOS::Ace::FrontendType::DECLARATIVE_JS;
     }
     OHOS::Ace::Platform::AceContainer::CreateContainer(_aceInstanceId, frontendType);

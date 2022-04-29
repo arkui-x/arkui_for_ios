@@ -17,19 +17,17 @@
 NS_ASSUME_NONNULL_BEGIN
 
 typedef NS_ENUM(NSUInteger, ACE_VERSION) {
-    ACE_VERSION_1 = 1,   //default. Support JSCommand mode
-    ACE_VERSION_2 = 2,   //Support JSCommand,Declarative,Card
+    ACE_VERSION_JS = 1,    // default. web like js app version
+    ACE_VERSION_ETS = 2,   // declarative ets app version
 };
 
 @interface AceViewController : UIViewController
 
 /**
- * create AceViewController intance
+ * create AceViewController instance
  *
- * @param version  Ace version. Must be 1 or 2.
- *                  1: support JS [default] mode
- *                  2: support JS,Declarative,Card modes
- * @param instanceDirectory js bundle directory.Can not be null
+ * @param version  Ace version.
+ * @param bundleDirectory js bundle directory.Can not be null
  * @return AceViewController instance
  */
 -(instancetype)initWithVersion:(ACE_VERSION)version
@@ -37,7 +35,6 @@ typedef NS_ENUM(NSUInteger, ACE_VERSION) {
 
 @property(nonatomic,readonly) ACE_VERSION version;
 @property(nonatomic,readonly) NSString *bundleDirectory;
-//@property(nonatomic,readonly) NSString *instanceName;
 
 @end
 
