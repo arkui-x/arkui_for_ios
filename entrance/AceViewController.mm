@@ -44,6 +44,7 @@ std::string remoteData_;
 const std::string CONTINUE_PARAMS_KEY = "__remoteData";
 const int32_t THEME_ID_DEFAULT = 117440515;
 int32_t CURRENT_INSTANCE_Id = 0;
+#define ASSER_PATH @"js"
 
 @interface AceViewController ()<IAceOnCallEvent>
 
@@ -58,7 +59,6 @@ int32_t CURRENT_INSTANCE_Id = 0;
     int32_t _aceInstanceId;
 }
 
-
 -(instancetype)initWithVersion:(ACE_VERSION)version
                bundleDirectory:(nonnull NSString*)bundleDirectory{
     if(self = [super init]){
@@ -67,6 +67,13 @@ int32_t CURRENT_INSTANCE_Id = 0;
         [self initAce];
     }
     return self;
+}
+
+-(instancetype)initWithVersion:(ACE_VERSION)version
+                  instanceName:(nonnull NSString*)instanceName{
+    NSString * bundleDirectory = [[NSBundle mainBundle] pathForResource:instanceName ofType:nil inDirectory:ASSER_PATH];
+    NSAssert(bundleDirectory!=nil, ([NSString stringWithFormat:@"Can not find the bundle named :%@",instanceName]));
+    return [self initWithVersion:version bundleDirectory:bundleDirectory];
 }
 
 - (void)viewDidLoad
@@ -114,11 +121,6 @@ int32_t CURRENT_INSTANCE_Id = 0;
         frontendType = OHOS::Ace::FrontendType::DECLARATIVE_JS;
     }
     OHOS::Ace::Platform::AceContainer::CreateContainer(_aceInstanceId, frontendType);
-
-    BOOL exist = [[NSFileManager defaultManager] fileExistsAtPath:_bundleDirectory];
-    if (!exist) {
-        NSAssert(exist, @"can not find the js bundle directory");
-    }
 
     std::string argurl = _bundleDirectory.UTF8String;
     std::string customurl = OHOS::Ace::Platform::AceContainer::GetCustomAssetPath(argurl);

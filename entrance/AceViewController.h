@@ -24,14 +24,26 @@ typedef NS_ENUM(NSUInteger, ACE_VERSION) {
 @interface AceViewController : UIViewController
 
 /**
- * create AceViewController instance
+ * Initializes this AceViewController with the specified JS bundle directory.
  *
  * @param version  Ace version.
- * @param bundleDirectory js bundle directory.Can not be null
- * @return AceViewController instance
+ * @param bundleDirectory js bundle directory.
  */
 -(instancetype)initWithVersion:(ACE_VERSION)version
                bundleDirectory:(nonnull NSString*)bundleDirectory;
+
+/**
+ * Initializes this AceViewController with the specified instance name.
+ *
+ *  This is used for pure ace application. It will combine the Js/`instanceName` as the
+ *  bundleDirectory.
+ *
+ * @param version  Ace version.
+ * @param instanceName js bundle directory.Can not be null.
+ */
+-(instancetype)initWithVersion:(ACE_VERSION)version
+                  instanceName:(nonnull NSString*)instanceName;
+
 
 @property(nonatomic,readonly) ACE_VERSION version;
 @property(nonatomic,readonly) NSString *bundleDirectory;
