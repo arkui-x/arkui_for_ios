@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Huawei Device Co., Ltd.
+ * Copyright (c) 2022 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -37,7 +37,7 @@ TouchPoint ConvertTouchPoint(flutter::PointerData* pointerItem)
 {
     TouchPoint touchPoint;
     // just get the max of width and height
-    touchPoint.size = pointerItem->size; 
+    touchPoint.size = pointerItem->size;
     touchPoint.id = pointerItem->device;
     touchPoint.force = pointerItem->pressure;
     touchPoint.x = pointerItem->physical_x;
@@ -55,12 +55,10 @@ void ConvertTouchEvent(const std::vector<uint8_t>& data, std::vector<TouchEvent>
     while (current < end) {
         std::chrono::microseconds micros(current->time_stamp);
         TimeStamp time(micros);
-        TouchEvent point {
-            static_cast<int32_t>(DEFAULT_ACTION_ID), static_cast<float>(current->physical_x),
+        TouchEvent point { static_cast<int32_t>(DEFAULT_ACTION_ID), static_cast<float>(current->physical_x),
             static_cast<float>(current->physical_y), static_cast<float>(current->physical_x),
             static_cast<float>(current->physical_y), TouchType::UNKNOWN, time, current->size,
-            static_cast<float>(current->pressure), static_cast<int64_t>(current->device)
-        };
+            static_cast<float>(current->pressure), static_cast<int64_t>(current->device) };
         point.pointers.emplace_back(ConvertTouchPoint(current));
         switch (current->change) {
             case flutter::PointerData::Change::kCancel:
@@ -88,7 +86,7 @@ void ConvertTouchEvent(const std::vector<uint8_t>& data, std::vector<TouchEvent>
     }
 }
 
-}
+} // namespace
 
 void FlutterAceView::RegisterTouchEventCallback(TouchEventCallback&& callback)
 {
@@ -126,13 +124,11 @@ void FlutterAceView::RegisterRotationEventCallback(RotationEventCallBack&& callb
     rotationEventCallBack_ = std::move(callback);
 }
 
-//void FlutterAceView::RegisterViewDestroyCallback(ViewDestoryCallback&& callback) {
+// void FlutterAceView::RegisterViewDestroyCallback(ViewDestoryCallback&& callback) {
 //    ACE_DCHECK(callback);
 //}
 
-void FlutterAceView::Launch()
-{
-}
+void FlutterAceView::Launch() {}
 
 bool FlutterAceView::Dump(const std::vector<std::string>& params)
 {
@@ -176,8 +172,8 @@ bool FlutterAceView::HandleTouchEvent(const TouchEvent& touchEvent)
         return false;
     }
 
-    LOGD("HandleTouchEvent touchEvent.x: %lf, touchEvent.y: %lf, touchEvent.size: %lf",
-        touchEvent.x, touchEvent.y, touchEvent.size);
+    LOGD("HandleTouchEvent touchEvent.x: %lf, touchEvent.y: %lf, touchEvent.size: %lf", touchEvent.x, touchEvent.y,
+        touchEvent.size);
     if (touchEventCallback_) {
         touchEventCallback_(touchEvent);
     }

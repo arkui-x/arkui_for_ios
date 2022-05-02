@@ -16,6 +16,7 @@
 #import "AceCameraResoucePlugin.h"
 #import "AceTexture.h"
 #import "AceCamera.h"
+
 #define KEY_CAMERA_TEXTURE @"texture"
 
 

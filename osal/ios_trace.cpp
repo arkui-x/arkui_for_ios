@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Huawei Device Co., Ltd.
+ * Copyright (c) 2022 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -13,21 +13,19 @@
  * limitations under the License.
  */
 
-#include "base/log/ace_trace.h"
-
-#include <stdio.h>
-#include <stdlib.h>
 #include <cstdarg>
 #include <cstdint>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string>
+
+#include "base/log/ace_trace.h"
 #include "base/utils/time_util.h"
 #include "frameworks/base/log/trace_id.h"
 
 namespace OHOS::Ace {
 
-class TraceIdImpl : public TraceId {
-
-};
+class TraceIdImpl : public TraceId {};
 
 TraceId* TraceId::CreateTraceId()
 {
@@ -36,12 +34,6 @@ TraceId* TraceId::CreateTraceId()
 
 std::string GetTraceTimeStamp()
 {
-    // time_t tt = time(nullptr);
-    // struct timeval tv;
-    // struct timezone tz;
-    // gettimeofday(&tv, &tz);
-
-    // tm* t = localtime(&tv.tv_sec);
     char time[32];
 
     if (snprintf(time, 32, " %ld", GetSysTimestamp()) < 0) {

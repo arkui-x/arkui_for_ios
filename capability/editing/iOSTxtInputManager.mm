@@ -14,8 +14,10 @@
  */
 
 #import "iOSTxtInputManager.h"
+
 #include <Foundation/Foundation.h>
 #include <UIKit/UIKit.h>
+
 #include "flutter/fml/platform/darwin/string_range_sanitization.h"
 
 static const char _kTextAffinityDownstream[] = "TextAffinity.downstream";

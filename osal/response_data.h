@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Huawei Device Co., Ltd.
+ * Copyright (c) 2022 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#ifndef FOUNDATION_ACE_ADAPTER_PREVIEW_RESPONSEDATA_H
-#define FOUNDATION_ACE_ADAPTER_PREVIEW_RESPONSEDATA_H
+#ifndef FOUNDATION_ACE_ADAPTER_IOS_OSAL_RESPONSEDATA_H
+#define FOUNDATION_ACE_ADAPTER_IOS_OSAL_RESPONSEDATA_H
 
 #include <unordered_map>
 #include <string>
@@ -69,4 +69,4 @@ private:
 };
 } // namespace OHOS::Ace
 
-#endif // #ifndef FOUNDATION_ACE_ADAPTER_PREVIEW_RESPONSEDATA_H
+#endif // FOUNDATION_ACE_ADAPTER_IOS_OSAL_RESPONSEDATA_H

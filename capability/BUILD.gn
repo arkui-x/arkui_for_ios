@@ -65,7 +65,7 @@ template("ace_capability_ios_source_set") {
     cflags_objcc = cflags_objc
 
     sources = [
-      #camera
+      # camera
       "$ace_root/adapter/ios/capability/camera/AceCamera.m",
       "$ace_root/adapter/ios/capability/camera/AceCameraResoucePlugin.m",
 
@@ -73,29 +73,29 @@ template("ace_capability_ios_source_set") {
       "$ace_root/adapter/ios/capability/editing/text_input_client_handler.cpp",
       "$ace_root/adapter/ios/capability/editing/text_input_connection_impl.mm",
       "$ace_root/adapter/ios/capability/editing/text_input_plugin.cpp",
-      "$ace_root/adapter/ios/capability/environment/environment_impl.mm",
 
-      #clipboard
+      # clipboard
       "$ace_root/adapter/ios/capability/clipboard/clipboard_impl.mm",
       "$ace_root/adapter/ios/capability/clipboard/clipboard_proxy_impl.cpp",
 
-      #environment
+      # environment
+      "$ace_root/adapter/ios/capability/environment/environment_impl.mm",
       "$ace_root/adapter/ios/capability/environment/environment_proxy_impl.cpp",
 
-      #storage
+      # storage
       "$ace_root/adapter/ios/capability/storage/storage_impl.mm",
       "$ace_root/adapter/ios/capability/storage/storage_proxy_impl.cpp",
 
-      #texture
+      # texture
       "$ace_root/adapter/ios/capability/texture/AceTexture.m",
       "$ace_root/adapter/ios/capability/texture/AceTextureResourcePlugin.m",
-      "$ace_root/adapter/ios/capability/vibrator/iOSVibratorManager.m",
 
-      #vibrator
+      # vibrator
+      "$ace_root/adapter/ios/capability/vibrator/iOSVibratorManager.m",
       "$ace_root/adapter/ios/capability/vibrator/vibrator_impl.mm",
       "$ace_root/adapter/ios/capability/vibrator/vibrator_proxy_impl.cpp",
 
-      #video
+      # video
       "$ace_root/adapter/ios/capability/video/AceVideo.m",
       "$ace_root/adapter/ios/capability/video/AceVideoResourcePlugin.m",
     ]

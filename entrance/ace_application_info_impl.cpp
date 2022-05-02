@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Huawei Device Co., Ltd.
+ * Copyright (c) 2022 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -15,19 +15,20 @@
 
 #include "adapter/ios/entrance/ace_application_info_impl.h"
 
+#include <cstring>
 #include <dirent.h>
 #include <iostream>
 #include <sys/stat.h>
-#include <cstring>
 
+#include "contrib/minizip/unzip.h"
 #include "unicode/locid.h"
+
 #include "base/i18n/localization.h"
 #include "base/log/ace_trace.h"
 #include "base/log/event_report.h"
 #include "base/log/log.h"
 #include "base/resource/ace_res_config.h"
 #include "base/resource/ace_res_data_struct.h"
-#include "contrib/minizip/unzip.h"
 #include "core/common/ace_engine.h"
 
 namespace OHOS::Ace::Platform {
@@ -53,7 +54,7 @@ std::string AceApplicationInfoImpl::GetJsEngineParam(const std::string& key) con
 
 void AceApplicationInfoImpl::ChangeLocale(const std::string& language, const std::string& countryOrRegion)
 {
-   icu::Locale locale(language.c_str(), countryOrRegion.c_str());
+    icu::Locale locale(language.c_str(), countryOrRegion.c_str());
 }
 
 void AceApplicationInfoImpl::SetLocale(const std::string& language, const std::string& countryOrRegion,

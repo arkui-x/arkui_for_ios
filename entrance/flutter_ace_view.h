@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Huawei Device Co., Ltd.
+ * Copyright (c) 2022 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -13,16 +13,17 @@
  * limitations under the License.
  */
 
-#ifndef FOUNDATION_ACE_ADAPTER_PREVIEW_FLUTTER_ACE_VIEW_H
-#define FOUNDATION_ACE_ADAPTER_PREVIEW_FLUTTER_ACE_VIEW_H
+#ifndef FOUNDATION_ACE_ACE_ENGINE_ADAPTER_IOS_ENTRANCE_FLUTTER_ACE_VIEW_H
+#define FOUNDATION_ACE_ACE_ENGINE_ADAPTER_IOS_ENTRANCE_FLUTTER_ACE_VIEW_H
 
 #include <memory>
+
+#include "flutter/lib/ui/window/pointer_data_packet.h"
 
 #include "adapter/ios/entrance/ace_resource_register.h"
 #include "base/utils/noncopyable.h"
 #include "core/common/ace_view.h"
 #include "core/event/key_event_recognizer.h"
-#include "flutter/lib/ui/window/pointer_data_packet.h"
 
 namespace OHOS::Ace::Platform {
 
@@ -39,7 +40,7 @@ public:
     void RegisterMouseEventCallback(MouseEventCallback&& callback) override;
     void RegisterAxisEventCallback(AxisEventCallback&& callback) override;
     void RegisterRotationEventCallback(RotationEventCallBack&& callback) override;
-//    void RegisterViewDestroyCallback(ViewDestoryCallback&& callback) override;
+
     static uint32_t GetBackgroundColor();
     void Launch() override;
 
@@ -95,8 +96,8 @@ public:
         if (callback) {
             idleCallback_ = std::move(callback);
         }
-    } 
-    
+    }
+
     void SetPlatformResRegister(const RefPtr<PlatformResRegister>& resRegister)
     {
         resRegister_ = resRegister;
@@ -180,4 +181,4 @@ private:
 
 } // namespace OHOS::Ace::Platform
 
-#endif // FOUNDATION_ACE_ADAPTER_PREVIEW_FLUTTER_ACE_VIEW_H
+#endif // FOUNDATION_ACE_ACE_ENGINE_ADAPTER_IOS_ENTRANCE_FLUTTER_ACE_VIEW_H

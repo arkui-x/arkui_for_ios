@@ -13,11 +13,14 @@
  * limitations under the License.
  */
 
+#ifndef FOUNDATION_ACE_ADAPTER_IOS_OSAL_HTTP_ASSET_PROVIDER_H
+#define FOUNDATION_ACE_ADAPTER_IOS_OSAL_HTTP_ASSET_PROVIDER_H
+
 #include <memory>
 #include <string>
 
-#include "frameworks/base/network/download_manager.h"
 #include "frameworks/base/json/json_util.h"
+#include "frameworks/base/network/download_manager.h"
 
 namespace OHOS::Ace {
 
@@ -25,7 +28,7 @@ class ACE_EXPORT HttpAssetProvider : public FlutterAssetProvider {
     DECLARE_ACE_TYPE(HttpAssetProvider, FlutterAssetProvider);
 
 public:
-    HttpAssetProvider(const std::string& basePath): basePath_(basePath) {}
+    HttpAssetProvider(const std::string& basePath) : basePath_(basePath) {}
     ~HttpAssetProvider() override = default;
 
     std::unique_ptr<fml::Mapping> GetAsMapping(const std::string& assetName) const override
@@ -60,7 +63,7 @@ public:
     std::string GetAssetPath(const std::string& assetName) override
     {
         std::string filePath;
-        if (assetName.find("/",0, 1) == std::string::npos) {
+        if (assetName.find("/", 0, 1) == std::string::npos) {
             filePath = basePath_ + assetName;
         } else {
             filePath = basePath_ + "/" + assetName;
@@ -68,7 +71,7 @@ public:
         return filePath;
     }
 
-    /// 远端获取文件夹下的子文件路径
+    // Get remote directory structure
     void GetAssetList(const std::string& path, std::vector<std::string>& assetList) override
     {
         std::string remoteDirPath = basePath_ + "/directory.json";
@@ -79,13 +82,13 @@ public:
         };
 
         std::unique_ptr<JsonValue> json = OHOS::Ace::JsonUtil::ParseJsonString(jsonStr);
-        
-        if (path.find("/", path.length()-1) != std::string::npos) {
-            std::string sub_file_path = path.substr(0, path.length()-1);
+
+        if (path.find("/", path.length() - 1) != std::string::npos) {
+            std::string sub_file_path = path.substr(0, path.length() - 1);
             bool contain = json->Contains(sub_file_path);
             if (contain) {
                 auto subs = json->GetValue(sub_file_path);
-                for (int32_t i=0; i<subs->GetArraySize(); i++) {
+                for (int32_t i = 0; i < subs->GetArraySize(); i++) {
                     auto sub = subs->GetArrayItem(i);
                     assetList.push_back(sub->GetString());
                 }
@@ -94,7 +97,7 @@ public:
             bool contain = json->Contains(path);
             if (contain) {
                 auto subs = json->GetValue(path);
-                for (int32_t i=0; i<subs->GetArraySize(); i++) {
+                for (int32_t i = 0; i < subs->GetArraySize(); i++) {
                     auto sub = subs->GetArrayItem(i);
                     assetList.push_back(sub->GetString());
                 }
@@ -104,6 +107,7 @@ public:
 
 private:
     std::string basePath_;
-
 };
-} //namespace OHOS::Ace
+} // namespace OHOS::Ace
+
+#endif // FOUNDATION_ACE_ADAPTER_IOS_OSAL_HTTP_ASSET_PROVIDER_H

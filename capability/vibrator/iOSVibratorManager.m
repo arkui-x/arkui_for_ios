@@ -14,6 +14,7 @@
  */
 
 #import "iOSVibratorManager.h"
+
 #import <AudioToolbox/AudioToolbox.h>
 
 @implementation iOSVibratorManager
