@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Huawei Device Co., Ltd.
+ * Copyright (c) 2022 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -14,16 +14,17 @@
  */
 
 #include "adapter/ios/entrance/capability_registry.h"
-#include "core/common/clipboard/clipboard_proxy.h"
+
 #include "adapter/ios/capability/clipboard/clipboard_proxy_impl.h"
-#include "core/common/ime/text_input_proxy.h"
 #include "adapter/ios/capability/editing/text_input_plugin.h"
-#include "core/common/environment/environment_proxy.h"
 #include "adapter/ios/capability/environment/environment_proxy_impl.h"
-#include "core/common/storage/storage_proxy.h"
 #include "adapter/ios/capability/storage/storage_proxy_impl.h"
-#include "core/common/vibrator/vibrator_proxy.h"
 #include "adapter/ios/capability/vibrator/vibrator_proxy_impl.h"
+#include "core/common/clipboard/clipboard_proxy.h"
+#include "core/common/environment/environment_proxy.h"
+#include "core/common/ime/text_input_proxy.h"
+#include "core/common/storage/storage_proxy.h"
+#include "core/common/vibrator/vibrator_proxy.h"
 
 namespace OHOS::Ace::Platform {
 

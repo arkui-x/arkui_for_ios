@@ -14,28 +14,26 @@
  */
 
 #import "adapter/ios/entrance/AceViewController.h"
-#include "flutter/shell/platform/darwin/ios/framework/Headers/FlutterViewController.h"
-#include "flutter/lib/ui/window/viewport_metrics.h"
-#include "ace_container.h"
-#include "flutter_ace_view.h"
-#include "ace_resource_register.h"
 
-#include "core/common/container.h"
-
-#include "core/event/mouse_event.h"
-#include "core/event/touch_event.h"
-
-#include "flutter/fml/memory/weak_ptr.h"
-#include "flutter/fml/platform/darwin/scoped_nsobject.h"
-#include "adapter/ios/capability/editing/iOSTxtInputManager.h"
-#include "adapter/preview/entrance/ace_run_args.h"
-#include "frameworks/base/json/json_util.h"
-#include "adapter/ios/entrance/capability_registry.h"
-
+#import "AceCameraResoucePlugin.h"
 #import "AceResourceRegisterOC.h"
 #import "AceTextureResourcePlugin.h"
 #import "AceVideoResourcePlugin.h"
-#import "AceCameraResoucePlugin.h"
+
+#include "flutter/fml/memory/weak_ptr.h"
+#include "flutter/fml/platform/darwin/scoped_nsobject.h"
+#include "flutter/lib/ui/window/viewport_metrics.h"
+#include "flutter/shell/platform/darwin/ios/framework/Headers/FlutterViewController.h"
+
+#include "adapter/ios/capability/editing/iOSTxtInputManager.h"
+#include "adapter/ios/entrance/ace_container.h"
+#include "adapter/ios/entrance/ace_resource_register.h"
+#include "adapter/ios/entrance/flutter_ace_view.h"
+#include "adapter/ios/entrance/capability_registry.h"
+#include "adapter/preview/entrance/ace_run_args.h"
+#include "core/common/container.h"
+#include "core/event/mouse_event.h"
+#include "core/event/touch_event.h"
 
 const std::string PAGE_URI = "url";
 std::map<std::string, std::string> params_;
@@ -339,8 +337,6 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch* touch) 
     packet->SetPointerData(pointer_index++, pointer_data);
   }
 
-//   [_engine.get() dispatchPointerDataPacket:std::move(packet)];
-
   auto container = OHOS::Ace::Platform::AceContainer::GetContainerInstance(_aceInstanceId);
   if (!container) {
         LOGE("container is null");
@@ -353,16 +349,7 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch* touch) 
         return;
     }
 
-    std::promise<bool> touchPromise;
-    std::future<bool> touchFuture = touchPromise.get_future();
-    //container->GetTaskExecutor()->PostTask([aceView, &packet, &touchPromise]() {
-         bool isHandled = aceView->HandleTouchEvent(packet->data());
-         touchPromise.set_value(isHandled);
-    //}, OHOS::Ace::TaskExecutor::TaskType::PLATFORM);
-    
-    touchFuture.get();
-    
-    //aceView->HandleTouchEvent(std::move(packet));
+    aceView->HandleTouchEvent(packet->data());
 }
 
 - (void)addSwipeRecognizer{
@@ -432,16 +419,11 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch* touch) 
 - (void)applicationBecameActive:(NSNotification*)notification {
     NSLog(@"vail applicationBecameActive");
     OHOS::Ace::Platform::AceContainer::OnActive(_aceInstanceId);
-    //if (_viewportMetrics.physical_width)
-    //[self surfaceUpdated:YES];
-    //[[_engine.get() lifecycleChannel] sendMessage:@"AppLifecycleState.resumed"];
 }
 
 - (void)applicationWillResignActive:(NSNotification*)notification {
     NSLog(@"vail applicationWillResignActive");
    OHOS::Ace::Platform::AceContainer::OnInactive(_aceInstanceId);
-  //[self surfaceUpdated:NO];
-  //[[_engine.get() lifecycleChannel] sendMessage:@"AppLifecycleState.inactive"];
 }
 
 - (void)applicationDidEnterBackground:(NSNotification*)notification {
@@ -467,8 +449,6 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch* touch) 
      std::string params = json->GetObject(CONTINUE_PARAMS_KEY)->ToString();
      params_[CONTINUE_PARAMS_KEY] = params;
   }
-    
-  //[[_engine.get() lifecycleChannel] sendMessage:@"AppLifecycleState.paused"];
 }
 
 - (void)applicationWillEnterForeground:(NSNotification*)notification {
@@ -481,7 +461,6 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch* touch) 
     if(params_.count(CONTINUE_PARAMS_KEY)>0){
         remoteData_ = params_[CONTINUE_PARAMS_KEY];
     }
-    //[[_engine.get() lifecycleChannel] sendMessage:@"AppLifecycleState.inactive"];
 }
 
 - (void)keyboardWillChangeFrame:(NSNotification*)notification {

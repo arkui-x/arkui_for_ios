@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Huawei Device Co., Ltd.
+ * Copyright (c) 2022 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -14,6 +14,7 @@
  */
 
 #include "adapter/ios/capability/editing/text_input_plugin.h"
+
 #include "adapter/ios/capability/editing/text_input_client_handler.h"
 #include "adapter/ios/capability/editing/text_input_connection_impl.h"
 #include "base/log/log.h"
@@ -21,12 +22,12 @@
 namespace OHOS::Ace::Platform {
 
 RefPtr<TextInputConnection> TextInputPlugin::Attach(const WeakPtr<TextInputClient>& client,
-                                                const TextInputConfiguration& config, const RefPtr<TaskExecutor>& taskExecutor, int32_t instanceId){
+    const TextInputConfiguration& config, const RefPtr<TaskExecutor>& taskExecutor, int32_t instanceId)
+{
     LOGE("vail->iOSTxtInput::Attach");
-    auto connection = AceType::MakeRefPtr<TextInputConnectionImpl>(client,taskExecutor,config);
+    auto connection = AceType::MakeRefPtr<TextInputConnectionImpl>(client, taskExecutor, config);
     TextInputClientHandler::GetInstance().SetCurrentConnection(connection);
     return connection;
 }
 
-}
-// namespace OHOS::Ace::Platform
+} // namespace OHOS::Ace::Platform

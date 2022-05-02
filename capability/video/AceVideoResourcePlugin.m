@@ -14,7 +14,9 @@
  */
 
 #import "AceVideoResourcePlugin.h"
+
 #import  "AceTexture.h"
+
 #define KEY_TEXTURE @"texture"
 
 @interface AceVideoResourcePlugin()

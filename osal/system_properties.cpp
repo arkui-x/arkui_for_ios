@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Huawei Device Co., Ltd.
+ * Copyright (c) 2022 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -14,13 +14,13 @@
  */
 
 #include "base/utils/system_properties.h"
-#include "base/log/log.h"
 
+#include "base/log/log.h"
 
 namespace OHOS::Ace {
 namespace {
 
-//Device type, same w/ java in AceView
+// Device type, same w/ java in AceView
 constexpr int32_t ORIENTATION_PORTRAIT = 1;
 constexpr int32_t ORIENTATION_LANDSCAPE = 2;
 constexpr char UNDEFINED_PARAM[] = "undefined parameter";
@@ -45,7 +45,7 @@ std::string SystemProperties::paramDeviceType_ = INVALID_PARAM;
 int32_t SystemProperties::mcc_ = MCC_UNDEFINED;
 int32_t SystemProperties::mnc_ = MNC_UNDEFINED;
 ColorMode SystemProperties::colorMode_ { ColorMode::LIGHT };
-ScreenShape SystemProperties::screenShape_ {ScreenShape::NOT_ROUND };
+ScreenShape SystemProperties::screenShape_ { ScreenShape::NOT_ROUND };
 LongScreenType SystemProperties::LongScreen_ { LongScreenType::NOT_LONG };
 bool SystemProperties::rosenBackendEnabled_ = false;
 bool SystemProperties::accessibilityEnabled_ = false;
@@ -55,17 +55,20 @@ int32_t SystemProperties::windowPosX_ = 0;
 int32_t SystemProperties::windowPosY_ = 0;
 bool SystemProperties::debugBoundaryEnabled_ = false;
 
-void SystemProperties::InitDeviceType(DeviceType type) {
+void SystemProperties::InitDeviceType(DeviceType type)
+{
     // treat all other device type as phone
     if (type == DeviceType::TV)
-        deviceType_ = type;    
+        deviceType_ = type;
 }
 
-DeviceType SystemProperties::GetDeviceType() {
+DeviceType SystemProperties::GetDeviceType()
+{
     return deviceType_;
 }
-void SystemProperties::InitDeviceInfo(int32_t deviceWidth, int32_t deviceHeight, int32_t orientation,
-                                      double resolution, bool isRound) {
+void SystemProperties::InitDeviceInfo(
+    int32_t deviceWidth, int32_t deviceHeight, int32_t orientation, double resolution, bool isRound)
+{
     // SetDeviceOrientation should be earlier than deviceWidth/Height's initialization
     SetDeviceOrientation(orientation);
 
@@ -73,14 +76,14 @@ void SystemProperties::InitDeviceInfo(int32_t deviceWidth, int32_t deviceHeight,
     resolution_ = resolution;
     deviceWidth_ = deviceWidth;
     deviceHeight_ = deviceHeight;
-    if (isRound_) 
+    if (isRound_)
         screenShape_ = ScreenShape::ROUND;
     else
         screenShape_ = ScreenShape::NOT_ROUND;
 }
 
-
-void SystemProperties::SetDeviceOrientation(int32_t orientation) {
+void SystemProperties::SetDeviceOrientation(int32_t orientation)
+{
     if (orientation == ORIENTATION_PORTRAIT && orientation_ != DeviceOrientation::PORTRAIT) {
         std::swap(deviceWidth_, deviceHeight_);
         orientation_ = DeviceOrientation::PORTRAIT;
@@ -92,25 +95,30 @@ void SystemProperties::SetDeviceOrientation(int32_t orientation) {
     }
 }
 
-void SystemProperties::InitDeviceTypeBySystemProperty() {
+void SystemProperties::InitDeviceTypeBySystemProperty()
+{
     // empty.  Android doesn't use this function
 }
 
-float SystemProperties::GetFontWeightScale() {
+float SystemProperties::GetFontWeightScale()
+{
     // To Be Done
     return 1.0f;
 }
 
-void SystemProperties::InitMccMnc(int32_t mcc, int32_t mnc) {
+void SystemProperties::InitMccMnc(int32_t mcc, int32_t mnc)
+{
     mcc_ = mcc;
     mnc_ = mnc;
 }
 
-bool SystemProperties::IsScoringEnabled(const std::string& name) {
+bool SystemProperties::IsScoringEnabled(const std::string& name)
+{
     return false;
 }
 
-bool SystemProperties::GetDebugEnabled() {
+bool SystemProperties::GetDebugEnabled()
+{
     return false;
 }
 

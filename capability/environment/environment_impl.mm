@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Huawei Device Co., Ltd.
+ * Copyright (c) 2022 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -14,6 +14,7 @@
  */
 
 #include "adapter/ios/capability/environment/environment_impl.h"
+
 #import <UIKit/UIKit.h>
 
 namespace OHOS::Ace::Platform {
@@ -26,7 +27,7 @@ std::string EnvironmentImpl::GetAccessibilityEnabled()
     if (taskExecutor_) {
         taskExecutor_->PostSyncTask([&result] { 
           result = "false";
-          //辅助功能->旁白、切换控制
+          // 辅助功能->旁白、切换控制
           bool enabled = UIAccessibilityIsVoiceOverRunning() || UIAccessibilityIsSwitchControlRunning();
           if(enabled){
             result = "true";

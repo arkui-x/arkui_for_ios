@@ -14,6 +14,7 @@
  */
 
 #import "AceTextureResourcePlugin.h"
+
 #import "AceTexture.h"
 
 #define KEY_TEXTURE @"texture"

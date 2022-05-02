@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Huawei Device Co., Ltd.
+ * Copyright (c) 2022 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -43,14 +43,15 @@ void EventReport::SendFormException(FormExcepType type) {}
 
 void EventReport::JsEventReport(int32_t eventType, const std::string& jsonStr) {}
 
-void EventReport::JsErrReport(const std::string& packageName,
-    const std::string& reason, const std::string& summary) {}
+void EventReport::JsErrReport(const std::string& packageName, const std::string& reason, const std::string& summary) {}
 
 void EventReport::ANRRawReport(RawEventType type, int32_t uid, const std::string& packageName,
-                               const std::string& processName, const std::string& msg) {}
+    const std::string& processName, const std::string& msg)
+{}
 
-void EventReport::ANRShowDialog(int32_t uid, const std::string& packageName,
-                                const std::string& processName, const std::string& msg) {}
+void EventReport::ANRShowDialog(
+    int32_t uid, const std::string& packageName, const std::string& processName, const std::string& msg)
+{}
 
 void EventReport::SendEventInner(const EventInfo& eventInfo) {}
 

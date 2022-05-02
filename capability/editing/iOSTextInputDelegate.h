@@ -53,6 +53,4 @@ typedef void (^performActionBlock)(int action, int client);
 
 @end
 
-
-
 #endif /* iOSTextInputDelegate_h */

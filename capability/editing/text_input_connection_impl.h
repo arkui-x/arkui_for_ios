@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Huawei Device Co., Ltd.
+ * Copyright (c) 2022 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -17,22 +17,23 @@
 #define FOUNDATION_ACE_ADAPTER_IOS_CAPABILITY_EDITING_TEXT_INPUT_CONNECTION_IMPL_H
 
 #include "core/common/ime/text_input_client.h"
-#include "core/common/ime/text_input_connection.h"
 #include "core/common/ime/text_input_configuration.h"
+#include "core/common/ime/text_input_connection.h"
 
 namespace OHOS::Ace::Platform {
 
 class TextInputConnectionImpl : public TextInputConnection {
 public:
-    explicit TextInputConnectionImpl(const WeakPtr<TextInputClient>& client,const RefPtr<TaskExecutor>& taskExecutor);
-    TextInputConnectionImpl(const WeakPtr<TextInputClient>& client, const RefPtr<TaskExecutor>& taskExecutor,const TextInputConfiguration& config);
+    explicit TextInputConnectionImpl(const WeakPtr<TextInputClient>& client, const RefPtr<TaskExecutor>& taskExecutor);
+    TextInputConnectionImpl(const WeakPtr<TextInputClient>& client, const RefPtr<TaskExecutor>& taskExecutor,
+        const TextInputConfiguration& config);
     ~TextInputConnectionImpl() override = default;
 
     // Implement TextInputConnection
     void Show(bool isFocusViewChanged, int32_t instanceId) override;
     void SetEditingState(const TextEditingValue& value, int32_t instanceId, bool needFireChangeEvent) override;
     void Close(int32_t instanceId) override;
-    
+
 private:
     TextInputConnectionImpl() = delete;
     bool Attached();

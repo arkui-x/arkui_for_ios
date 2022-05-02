@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Huawei Device Co., Ltd.
+ * Copyright (c) 2022 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -24,9 +24,7 @@
 
 namespace OHOS::Ace {
 
-FileAssetProvider::~FileAssetProvider()
-{
-}
+FileAssetProvider::~FileAssetProvider() {}
 
 bool FileAssetProvider::Initialize(const std::string& packagePath, const std::vector<std::string>& assetBasePaths)
 {
@@ -72,7 +70,7 @@ std::unique_ptr<fml::Mapping> FileAssetProvider::GetAsMapping(const std::string&
     LOGD("assert name is: %{public}s", assetName.c_str());
     std::lock_guard<std::mutex> lock(mutex_);
 
-    for (const auto& basePath: assetBasePaths_) {
+    for (const auto& basePath : assetBasePaths_) {
         std::string fileName = packagePath_ + basePath + assetName;
         std::FILE* fp = std::fopen(fileName.c_str(), "r");
         if (fp == nullptr) {
@@ -110,7 +108,7 @@ std::unique_ptr<fml::Mapping> FileAssetProvider::GetAsMapping(const std::string&
 
 std::string FileAssetProvider::GetAssetPath(const std::string& assetName)
 {
-    for (const auto& basePath: assetBasePaths_) {
+    for (const auto& basePath : assetBasePaths_) {
         std::string assetBasePath = packagePath_ + basePath;
         std::string fileName = assetBasePath + assetName;
         std::FILE* fp = std::fopen(fileName.c_str(), "r");

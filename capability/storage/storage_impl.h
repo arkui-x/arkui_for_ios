@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Huawei Device Co., Ltd.
+ * Copyright (c) 2022 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -30,7 +30,7 @@ public:
     void SetDouble(const std::string& key, const double value) override;
     bool GetDouble(const std::string& key, double& value) override;
     void SetBoolean(const std::string& key, const bool value) override;
-    bool GetBoolean(const std::string& key, bool& value) override; 
+    bool GetBoolean(const std::string& key, bool& value) override;
     void Clear() override;
     void Delete(const std::string& key) override;
 };

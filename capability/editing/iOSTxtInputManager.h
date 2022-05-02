@@ -14,6 +14,7 @@
  */
 
 #import <UIKit/UIKit.h>
+
 #include "iOSTextInputDelegate.h"
 
 NS_ASSUME_NONNULL_BEGIN
@@ -49,6 +50,5 @@ NS_ASSUME_NONNULL_BEGIN
 + (instancetype)rangeWithNSRange:(NSRange)range;
 
 @end
-
 
 NS_ASSUME_NONNULL_END
