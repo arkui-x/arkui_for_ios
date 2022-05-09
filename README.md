@@ -47,7 +47,7 @@ ArkUI开发框架的源代码结构参见 [代码工程结构及构建说明](ht
 
 ## 使用说明<a name="section171384529150"></a>
 
-参考 [ArkUI跨平台应用构建工具使用指南](https://gitee.com/arkui-crossplatform/doc/blob/master/application-dev/quick-start/how-to-use-ace-tools.md) 可以创建出对应ios平台的项目工程。
+参考 [ArkUI跨平台应用构建工具使用指南](https://gitee.com/arkui-crossplatform/doc/blob/master/application-dev/quick-start/how-to-use-ace-tools.md) 可以创建出对应iOS平台的项目工程。
 
 使用AceViewController两种构造函数之一，传入开发范式以及ArkUI模块实例名称或JSBundle具体路径，即可使用，具体如下：
 
