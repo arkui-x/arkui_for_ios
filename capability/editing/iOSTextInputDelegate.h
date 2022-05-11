@@ -40,8 +40,6 @@ typedef NS_ENUM(NSInteger, iOSFloatingCursorDragState) {
 
 typedef void (^updateEditingClientBlock)(int client, NSDictionary *state);
 typedef void (^performActionBlock)(int action, int client);
-//typedef void (^insertTextBlock)(NSString *text);
-//typedef void (^deleteTextBlock)();
 
 @protocol iOSTextInputDelegate <NSObject>
 

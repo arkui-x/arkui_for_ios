@@ -19,6 +19,8 @@
 #include <stdlib.h>
 #include <string>
 
+#include "securec.h"
+
 #include "base/log/ace_trace.h"
 #include "base/utils/time_util.h"
 #include "frameworks/base/log/trace_id.h"
@@ -36,7 +38,7 @@ std::string GetTraceTimeStamp()
 {
     char time[32];
 
-    if (snprintf(time, 32, " %ld", GetSysTimestamp()) < 0) {
+    if (snprintf_s(time, sizeof(time), sizeof(time) - 1, " %ld", GetSysTimestamp()) < 0) {
         return std::string();
     }
     return std::string(time);
