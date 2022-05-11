@@ -41,8 +41,11 @@ ohos_combine_darwin_framework("lib$dylib_name") {
 
 # libace target
 ohos_shared_library(dylib_name) {
-  ldflags =
-      [ "-Wl","-install_name","@rpath/lib$dylib_name.framework/lib$dylib_name" ]
+  ldflags = [
+    "-Wl",
+    "-install_name",
+    "@rpath/lib$dylib_name.framework/lib$dylib_name",
+  ]
 
   deps = [ "$ace_root/build:libace_static_ios" ]
 
