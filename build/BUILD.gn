@@ -14,6 +14,7 @@
 import("//build/config/ios/rules.gni")
 import("//build/ohos.gni")
 import("//foundation/arkui/ace_engine/ace_config.gni")
+import("//foundation/arkui/ace_engine/interfaces/napi/kits/napi_lib.gni")
 
 dylib_name = "ace_ios"
 
@@ -39,6 +40,13 @@ ohos_combine_darwin_framework("lib$dylib_name") {
   part_name = "ace_engine_cross"
 }
 
+common_napi_modules = []
+
+foreach(module, common_napi_libs) {
+  common_napi_modules +=
+      [ "$ace_root/interfaces/napi/kits/$module:${module}_static_ios" ]
+}
+
 # libace target
 ohos_shared_library(dylib_name) {
   ldflags = [
@@ -48,6 +56,7 @@ ohos_shared_library(dylib_name) {
   ]
 
   deps = [ "$ace_root/build:libace_static_ios" ]
+  deps += common_napi_modules
 
   cflags_cc = [
     "-Wall",
