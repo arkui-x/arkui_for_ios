@@ -30,11 +30,13 @@ namespace {
 constexpr uint32_t MAX_BUFFER_SIZE = 4000; // MAX_BUFFER_SIZE same with hilog
 constexpr uint32_t MAX_TIME_SIZE = 32;
 const char* const LOGLEVELNAME[] = { "DEBUG", "INFO", "WARNING", "ERROR", "FATAL" };
-#ifdef ACE_PRIVATE_LOG
-const bool ENABLE_SEC_LOG = false;
-#else
-       const bool ENABLE_SEC_LOG = true;
-#endif
+
+static void StripFormatString(const std::string& prefix, std::string& str)
+{
+    for (auto pos = str.find(prefix, 0); pos != std::string::npos; pos = str.find(prefix, pos)) {
+        str.erase(pos, prefix.size());
+    }
+}
 
 const char* LOG_TAGS[] = {
     "Ace",
@@ -75,9 +77,11 @@ std::string GetTimeStamp()
 void LogWrapper::PrintLog(LogDomain domain, LogLevel level, const char* fmt, va_list args)
 {
     std::string newFmt(fmt);
+    StripFormatString("{public}", newFmt);
+    StripFormatString("{private}", newFmt);
 
     char buf[MAX_BUFFER_SIZE];
-    if (vsnprintfp_s(buf, sizeof(buf), sizeof(buf) - 1, ENABLE_SEC_LOG, newFmt.c_str(), args) < 0 && errno == EINVAL) {
+    if (vsnprintf_s(buf, sizeof(buf), sizeof(buf) - 1, newFmt.c_str(), args) < 0 && errno == EINVAL) {
         return;
     }
 
