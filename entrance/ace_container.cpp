@@ -44,6 +44,7 @@
 #include "core/pipeline/base/element.h"
 #include "core/pipeline/pipeline_context.h"
 #include "frameworks/bridge/card_frontend/card_frontend.h"
+#include "frameworks/bridge/common/utils/engine_helper.h"
 #include "frameworks/bridge/declarative_frontend/declarative_frontend.h"
 #include "frameworks/bridge/js_frontend/engine/common/js_engine_loader.h"
 #include "frameworks/bridge/js_frontend/engine/quickjs/qjs_utils.h"
@@ -103,6 +104,7 @@ void AceContainer::Initialize()
 void AceContainer::Destroy()
 {
     ContainerScope scope(instanceId_);
+    EngineHelper::RemoveEngine(instanceId_);
 }
 
 bool AceContainer::RunPage(int32_t instanceId, int32_t pageId, const std::string& url, const std::string& params)
@@ -149,6 +151,7 @@ void AceContainer::InitializeFrontend()
         AceApplicationInfo::GetInstance().SetLocale("zh", "CN", "", "");
         auto jsEngine = Framework::JsEngineLoader::Get().CreateJsEngine(GetInstanceId());
         jsFrontend->SetJsEngine(jsEngine);
+        EngineHelper::AddEngine(instanceId_, jsEngine);
         jsFrontend->SetNeedDebugBreakPoint(AceApplicationInfo::GetInstance().IsNeedDebugBreakPoint());
         jsFrontend->SetDebugVersion(AceApplicationInfo::GetInstance().IsDebugVersion());
     } else if (type_ == FrontendType::DECLARATIVE_JS) {
@@ -159,6 +162,7 @@ void AceContainer::InitializeFrontend()
         auto& loader = Framework::JsEngineLoader::GetDeclarative(nullptr);
         auto jsEngine = loader.CreateJsEngine(instanceId_);
         declarativeFrontend->SetJsEngine(jsEngine);
+        EngineHelper::AddEngine(instanceId_, jsEngine);
         declarativeFrontend->SetNeedDebugBreakPoint(AceApplicationInfo::GetInstance().IsNeedDebugBreakPoint());
         declarativeFrontend->SetDebugVersion(AceApplicationInfo::GetInstance().IsDebugVersion());
     }
