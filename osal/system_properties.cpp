@@ -51,8 +51,6 @@ bool SystemProperties::rosenBackendEnabled_ = false;
 bool SystemProperties::accessibilityEnabled_ = false;
 bool SystemProperties::windowAnimationEnabled_ = false;
 bool SystemProperties::debugEnabled_ = false;
-int32_t SystemProperties::windowPosX_ = 0;
-int32_t SystemProperties::windowPosY_ = 0;
 bool SystemProperties::debugBoundaryEnabled_ = false;
 
 void SystemProperties::InitDeviceType(DeviceType type)

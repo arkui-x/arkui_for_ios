@@ -59,4 +59,8 @@ void AceTraceEnd()
     printf(">>>>> trace end! %s\n", GetTraceTimeStamp().c_str());
 }
 
+void AceAsyncTraceBegin(int32_t taskId, const char* name) {}
+
+void AceAsyncTraceEnd(int32_t taskId, const char* name) {}
+
 } // namespace OHOS::Ace
