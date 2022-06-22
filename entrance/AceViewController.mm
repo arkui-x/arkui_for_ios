@@ -339,17 +339,17 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch* touch) 
 
   auto container = OHOS::Ace::Platform::AceContainer::GetContainerInstance(_aceInstanceId);
   if (!container) {
-        LOGE("container is null");
-        return;
-    }
+      LOGE("container is null");
+      return;
+  }
 
-    auto aceView = container->GetAceView();
-    if (!aceView) {
-        LOGE("aceView is null");
-        return;
-    }
+  OHOS::Ace::Platform::FlutterAceView* aceView = static_cast<OHOS::Ace::Platform::FlutterAceView*>(container->GetAceView());
+  if (!aceView) {
+      LOGE("aceView is null");
+      return;
+  }
 
-    aceView->HandleTouchEvent(packet->data());
+  aceView->HandleTouchEvent(packet->data());
 }
 
 - (void)addSwipeRecognizer{
