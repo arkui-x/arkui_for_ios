@@ -18,7 +18,7 @@
 #include <cstring>
 #include <string>
 
-#include "flutter/lib/ui/ui_dart_state.h"
+#import "third_party/flutter/build/lib/ui/ui_javascript_state.h"
 #include "third_party/quickjs/cutils.h"
 
 #include "adapter/ios/entrance/ace_application_info_impl.h"
@@ -381,7 +381,7 @@ void AceContainer::AttachView(
 {
     aceView_ = view;
     auto instanceId = aceView_->GetInstanceId();
-    auto state = flutter::UIDartState::Current()->GetStateById(instanceId);
+    auto state = flutter::UIJavaScriptState::Current()->GetStateById(instanceId);
     ACE_DCHECK(state != nullptr);
 
     auto flutterTaskExecutor = AceType::DynamicCast<FlutterTaskExecutor>(taskExecutor_);

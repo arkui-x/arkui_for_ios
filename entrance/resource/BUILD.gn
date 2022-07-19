@@ -26,7 +26,7 @@ ohos_source_set("resource") {
     "//third_party/",
     "//third_party/flutter",
     "//third_party/flutter/engine",
-    "//third_party/flutter/skia",
+    "//third_party/flutter/third_party/skia",
     "//third_party/flutter/engine/flutter/shell/platform/darwin/common/framework/Headers",
     "//third_party/flutter/engine/flutter/shell/platform/darwin/ios/framework/Headers",
     "//third_party/flutter/engine/flutter/shell/common",
