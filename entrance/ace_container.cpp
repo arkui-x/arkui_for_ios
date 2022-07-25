@@ -177,7 +177,8 @@ void AceContainer::InitializeCallback()
 {
     ACE_FUNCTION_TRACE();
     auto weak = AceType::WeakClaim(AceType::RawPtr(pipelineContext_));
-    auto&& touchEventCallback = [weak, id = instanceId_](const TouchEvent& event) {
+    auto&& touchEventCallback = [weak, id = instanceId_](
+                                    const TouchEvent& event, const std::function<void()>& markProcess) {
         ContainerScope scope(id);
         auto context = weak.Upgrade();
         if (context == nullptr) {
@@ -203,7 +204,8 @@ void AceContainer::InitializeCallback()
     };
     aceView_->RegisterKeyEventCallback(keyEventCallback);
 
-    auto&& mouseEventCallback = [weak, id = instanceId_](const MouseEvent& event) {
+    auto&& mouseEventCallback = [weak, id = instanceId_](
+                                    const MouseEvent& event, const std::function<void()>& markProcess) {
         ContainerScope scope(id);
         auto context = weak.Upgrade();
         if (context == nullptr) {
@@ -215,7 +217,8 @@ void AceContainer::InitializeCallback()
     };
     aceView_->RegisterMouseEventCallback(mouseEventCallback);
 
-    auto&& axisEventCallback = [weak, id = instanceId_](const AxisEvent& event) {
+    auto&& axisEventCallback = [weak, id = instanceId_](
+                                   const AxisEvent& event, const std::function<void()>& markProcess) {
         ContainerScope scope(id);
         auto context = weak.Upgrade();
         if (context == nullptr) {
@@ -240,32 +243,6 @@ void AceContainer::InitializeCallback()
         return result;
     };
     aceView_->RegisterRotationEventCallback(rotationEventCallback);
-
-    auto&& cardViewPositionCallback = [weak, instanceId = instanceId_](int id, float offsetX, float offsetY) {
-        ContainerScope scope(instanceId);
-        auto context = weak.Upgrade();
-        if (context == nullptr) {
-            LOGE("context is nullptr");
-            return;
-        }
-        context->GetTaskExecutor()->PostSyncTask(
-            [context, id, offsetX, offsetY]() { context->SetCardViewPosition(id, offsetX, offsetY); },
-            TaskExecutor::TaskType::UI);
-    };
-    aceView_->RegisterCardViewPositionCallback(cardViewPositionCallback);
-
-    auto&& cardViewParamsCallback = [weak, id = instanceId_](const std::string& key, bool focus) {
-        ContainerScope scope(id);
-        auto context = weak.Upgrade();
-        if (context == nullptr) {
-            LOGE("context is nullptr");
-            return;
-        }
-        context->GetTaskExecutor()->PostSyncTask(
-            [context, key, focus]() { context->SetCardViewAccessibilityParams(key, focus); },
-            TaskExecutor::TaskType::UI);
-    };
-    aceView_->RegisterCardViewAccessibilityParamsCallback(cardViewParamsCallback);
 
     auto&& viewChangeCallback = [weak, id = instanceId_](int32_t width, int32_t height, WindowSizeChangeReason type) {
         ContainerScope scope(id);
@@ -422,13 +399,14 @@ void AceContainer::AttachView(
     }
 
     resRegister_ = aceView_->GetPlatformResRegister();
-    pipelineContext_ = AceType::MakeRefPtr<PipelineContext>(
+    auto pipelineContext = AceType::MakeRefPtr<PipelineContext>(
         std::move(window), taskExecutor_, assetManager_, resRegister_, frontend_, instanceId);
+    pipelineContext_ = pipelineContext;
     pipelineContext_->SetRootSize(density, width, height);
     pipelineContext_->SetTextFieldManager(AceType::MakeRefPtr<TextFieldManager>());
     pipelineContext_->SetIsRightToLeft(AceApplicationInfo::GetInstance().IsRightToLeft());
-    pipelineContext_->SetDrawDelegate(aceView_->GetDrawDelegate());
     pipelineContext_->SetIsJsCard(type_ == FrontendType::JS_CARD);
+    pipelineContext->SetDrawDelegate(aceView_->GetDrawDelegate());
     InitializeCallback();
 
     // Only init global resource here, construct theme in UI thread
@@ -468,9 +446,7 @@ void AceContainer::AttachView(
     AceEngine::Get().RegisterToWatchDog(instanceId, taskExecutor_);
 }
 
-void AceContainer::RequestFrame()
-{
-}
+void AceContainer::RequestFrame() {}
 
 std::string AceContainer::GetCustomAssetPath(std::string assetPath)
 {
