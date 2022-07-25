@@ -158,7 +158,7 @@ bool FlutterAceView::HandleTouchEvent(const std::vector<uint8_t>& data)
             continue;
         }
         if (touchEventCallback_) {
-            touchEventCallback_(point);
+            touchEventCallback_(point, nullptr);
         }
     }
 
@@ -175,7 +175,7 @@ bool FlutterAceView::HandleTouchEvent(const TouchEvent& touchEvent)
     LOGD("HandleTouchEvent touchEvent.x: %lf, touchEvent.y: %lf, touchEvent.size: %lf", touchEvent.x, touchEvent.y,
         touchEvent.size);
     if (touchEventCallback_) {
-        touchEventCallback_(touchEvent);
+        touchEventCallback_(touchEvent, nullptr);
     }
 
     return true;
