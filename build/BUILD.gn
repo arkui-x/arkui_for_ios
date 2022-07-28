@@ -24,9 +24,6 @@ group("ace_packages") {
     ":ace_ios",
     ":create_ios_framework",
   ]
-  if (enable_ng_build) {
-    deps += [ "$ace_flutter_engine_root_new:libace_dev" ]
-  }
 }
 
 # combine framework and xcframework
