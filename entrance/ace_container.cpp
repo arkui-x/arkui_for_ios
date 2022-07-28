@@ -18,7 +18,11 @@
 #include <cstring>
 #include <string>
 
-#import "third_party/flutter/build/lib/ui/ui_javascript_state.h"
+#ifdef NG_BUILD
+#include "ace_shell/shell/common/window_manager.h"
+#else
+#include "third_party/flutter/build/lib/ui/ui_javascript_state.h"
+#endif
 #include "third_party/quickjs/cutils.h"
 
 #include "adapter/ios/entrance/ace_application_info_impl.h"
@@ -42,7 +46,11 @@
 #include "core/components/theme/theme_constants.h"
 #include "core/components/theme/theme_manager.h"
 #include "core/pipeline/base/element.h"
+#ifdef NG_BUILD
+#include "core/pipeline_ng/pipeline_context.h"
+#else
 #include "core/pipeline/pipeline_context.h"
+#endif
 #include "frameworks/bridge/card_frontend/card_frontend.h"
 #include "frameworks/bridge/common/utils/engine_helper.h"
 #include "frameworks/bridge/declarative_frontend/declarative_frontend.h"
@@ -61,6 +69,10 @@ constexpr char DELIMITER[] = "/";
 AceContainer::AceContainer(int32_t instanceId, FrontendType type) : instanceId_(instanceId), type_(type)
 {
     LOGI("AceContainer::AceContainer");
+#ifdef NG_BUILD
+        LOGD("AceContainer created use new pipeline");
+    SetUseNewPipeline();
+#endif
     auto flutterTaskExecutor = Referenced::MakeRefPtr<FlutterTaskExecutor>();
     flutterTaskExecutor->InitPlatformThread();
 
@@ -144,6 +156,9 @@ void AceContainer::InitializeFrontend()
 {
     LOGI("AceContainer::InitializeFrontend");
     if (type_ == FrontendType::JS) {
+#ifdef NG_BUILD
+        LOGE("NG veriosn not support js frontend yet!");
+#else
         frontend_ = Frontend::Create();
         auto jsFrontend = AceType::DynamicCast<JsFrontend>(frontend_);
 
@@ -154,6 +169,7 @@ void AceContainer::InitializeFrontend()
         EngineHelper::AddEngine(instanceId_, jsEngine);
         jsFrontend->SetNeedDebugBreakPoint(AceApplicationInfo::GetInstance().IsNeedDebugBreakPoint());
         jsFrontend->SetDebugVersion(AceApplicationInfo::GetInstance().IsDebugVersion());
+#endif
     } else if (type_ == FrontendType::DECLARATIVE_JS) {
         frontend_ = AceType::MakeRefPtr<DeclarativeFrontend>();
         auto declarativeFrontend = AceType::DynamicCast<DeclarativeFrontend>(frontend_);
@@ -333,9 +349,15 @@ void AceContainer::AddAssetPath(
         }
         if (flutterAssetManager) {
             LOGD("Current path is: %s", path.c_str());
+#ifdef NG_BUILD
+            auto dirAssetProvider = AceType::MakeRefPtr<DirAssetProvider>(
+                    path, std::make_unique<flutter::DirectoryAssetBundle>(
+                            fml::OpenDirectory(path.c_str(), false, fml::FilePermission::kRead),true));
+#else
             auto dirAssetProvider = AceType::MakeRefPtr<DirAssetProvider>(
                 path, std::make_unique<flutter::DirectoryAssetBundle>(
                           fml::OpenDirectory(path.c_str(), false, fml::FilePermission::kRead)));
+#endif
             flutterAssetManager->PushBack(std::move(dirAssetProvider));
         }
     }
@@ -381,9 +403,12 @@ void AceContainer::AttachView(
 {
     aceView_ = view;
     auto instanceId = aceView_->GetInstanceId();
+#ifdef NG_BUILD
+    auto state = flutter::ace::WindowManager::GetWindow(instanceId);
+#else
     auto state = flutter::UIJavaScriptState::Current()->GetStateById(instanceId);
     ACE_DCHECK(state != nullptr);
-
+#endif
     auto flutterTaskExecutor = AceType::DynamicCast<FlutterTaskExecutor>(taskExecutor_);
     flutterTaskExecutor->InitOtherThreads(state->GetTaskRunners());
 
@@ -401,12 +426,23 @@ void AceContainer::AttachView(
     resRegister_ = aceView_->GetPlatformResRegister();
     auto pipelineContext = AceType::MakeRefPtr<PipelineContext>(
         std::move(window), taskExecutor_, assetManager_, resRegister_, frontend_, instanceId);
+    
+#ifdef NG_BUILD
+    LOGI("New pipeline version creating...");
+    auto pipelineContext = AceType::MakeRefPtr<NG::PipelineContext>(
+        std::move(window), taskExecutor_, assetManager_, resRegister_, frontend_, instanceId);
+#else
+    auto pipelineContext = AceType::MakeRefPtr<PipelineContext>(
+        std::move(window), taskExecutor_, assetManager_, resRegister_, frontend_, instanceId);
+#endif
     pipelineContext_ = pipelineContext;
     pipelineContext_->SetRootSize(density, width, height);
     pipelineContext_->SetTextFieldManager(AceType::MakeRefPtr<TextFieldManager>());
     pipelineContext_->SetIsRightToLeft(AceApplicationInfo::GetInstance().IsRightToLeft());
-    pipelineContext_->SetIsJsCard(type_ == FrontendType::JS_CARD);
+#ifndef NG_BUILD
     pipelineContext->SetDrawDelegate(aceView_->GetDrawDelegate());
+#endif
+    pipelineContext_->SetIsJsCard(type_ == FrontendType::JS_CARD);
     InitializeCallback();
 
     // Only init global resource here, construct theme in UI thread

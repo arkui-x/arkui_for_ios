@@ -16,7 +16,6 @@
 #import <Foundation/Foundation.h>
 
 #import "AceResourcePlugin.h"
-#import "FlutterEngine.h"
 #import "IAceOnCallResourceMethod.h"
 #import "IAceOnResourceEvent.h"
 

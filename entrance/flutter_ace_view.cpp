@@ -26,13 +26,15 @@
 #include "core/event/mouse_event.h"
 #include "core/event/touch_event.h"
 #include "core/image/image_cache.h"
+#ifndef NG_BUILD
 #include "core/pipeline/layers/flutter_scene_builder.h"
-
+#endif
 namespace OHOS::Ace::Platform {
 namespace {
 
 constexpr int32_t DEFAULT_ACTION_ID = 0;
 
+//TODO: 替换foundation/arkui/ace_engine/frameworks/core/event/event_convertor.cpp的实现
 TouchPoint ConvertTouchPoint(flutter::PointerData* pointerItem)
 {
     TouchPoint touchPoint;
@@ -189,6 +191,7 @@ std::unique_ptr<DrawDelegate> FlutterAceView::GetDrawDelegate()
         if (!layer) {
             return;
         }
+#ifndef NG_BUILD
         RefPtr<Flutter::FlutterSceneBuilder> flutterSceneBuilder = AceType::MakeRefPtr<Flutter::FlutterSceneBuilder>();
         layer->AddToScene(*flutterSceneBuilder, 0.0, 0.0);
         auto scene_ = flutterSceneBuilder->Build();
@@ -200,6 +203,7 @@ std::unique_ptr<DrawDelegate> FlutterAceView::GetDrawDelegate()
         if (window != nullptr && window->client() != nullptr) {
             window->client()->Render(scene_.get());
         }
+#endif
     });
 
     return darwDelegate;

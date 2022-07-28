@@ -24,12 +24,6 @@ template("ace_ios_standard_source_set") {
 
     include_dirs = [
       "//third_party/",
-      "//third_party/flutter",
-      "//third_party/flutter/engine",
-      "//third_party/flutter/third_party/skia",
-      "//third_party/flutter/engine/flutter/shell/platform/darwin/common/framework/Headers",
-      "//third_party/flutter/engine/flutter/shell/platform/darwin/ios/framework/Headers",
-      "//third_party/flutter/engine/flutter/shell/common",
       "$ace_root/frameworks",
       "$ace_root",
       "$ace_root/adapter/ios/entrance/resource",
@@ -37,6 +31,24 @@ template("ace_ios_standard_source_set") {
       "$ace_root/adapter/ios/capability/video",
       "$ace_root/adapter/ios/capability/camera",
     ]
+
+    if(enable_ng_build){
+      include_dirs += [
+        "//third_party/flutter_ace_shell",
+        "//third_party/flutter_ace_shell/engine",
+        "//third_party/flutter_ace_shell/third_party/skia",
+        "//third_party/flutter_ace_shell/engine/flutter/third_party/txt/src"
+      ]
+    }else{
+      include_dirs += [
+        "//third_party/flutter",
+        "//third_party/flutter/engine",
+        "//third_party/flutter/third_party/skia",
+        "//third_party/flutter/engine/flutter/shell/platform/darwin/common/framework/Headers",
+        "//third_party/flutter/engine/flutter/shell/platform/darwin/ios/framework/Headers",
+        "//third_party/flutter/engine/flutter/shell/common",
+      ]
+    }
 
     sources = [
       "AceViewController.mm",
@@ -52,6 +64,10 @@ template("ace_ios_standard_source_set") {
       defines += [ "_ARM64_" ]
     }
 
+    defines += [
+      "BUILD_FOR_ARKUI"
+    ]
+
     configs = [ "$ace_root:ace_config" ]
 
     cflags_objc = [ "-fvisibility=default" ]
@@ -59,12 +75,22 @@ template("ace_ios_standard_source_set") {
     cflags_objcc = cflags_objc
 
     deps = [
-      "$ace_flutter_engine_root:third_party_flutter_engine_$platform",
-      "$ace_flutter_engine_root/third_party/skia:ace_skia_$platform",
       "$ace_root/adapter/ios/capability:ace_capability_ios",
       "$ace_root/adapter/ios/entrance/resource:resource",
       "$ace_root/frameworks/core/components/theme:build_theme_code",
     ]
+
+    if(enable_ng_build){
+      deps += [
+          "$ace_flutter_engine_root_new:third_party_flutter_engine_dev_$platform",
+          "$ace_flutter_engine_root_new/skia:ace_skia_dev_$platform",
+      ]
+    }else{
+      deps += [
+          "$ace_flutter_engine_root:third_party_flutter_engine_$platform",
+          "$ace_flutter_engine_root/third_party/skia:ace_skia_$platform",
+      ]
+    }
   }
 }
 

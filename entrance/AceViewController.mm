@@ -14,15 +14,13 @@
  */
 
 #import "adapter/ios/entrance/AceViewController.h"
-#include "flutter/lib/ui/window/viewport_metrics.h"
 
-//#import "third_party/flutter/build/shell/platform/ohos-ace/darwin/ios/framework/Headers/AceFlutterViewController.h"
+#ifndef NG_BUILD
+#include "flutter/lib/ui/window/viewport_metrics.h"
 #import "third_party/flutter/build/shell/platform/ohos-ace/darwin/ios/framework/Source/AceFlutterView.h"
 #import "third_party/flutter/build/shell/platform/ohos-ace/darwin/ios/framework/Source/AceFlutterEngine_Internal.h"
 #import "third_party/flutter/build/shell/platform/ohos-ace/darwin/ios/framework/Source/AceFlutterPlatformViews_Internal.h"
 #import "third_party/flutter/build/shell/platform/ohos-ace/darwin/ios/framework/Headers/AceFlutterEngine.h"
-
-//#import "flutter/shell/platform/darwin/ios/framework/Source/AceFlutterEngine_Internal.h"
 
 #include "ace_container.h"
 #include "flutter_ace_view.h"
@@ -52,12 +50,19 @@ std::string remoteData_;
 const std::string CONTINUE_PARAMS_KEY = "__remoteData";
 const int32_t THEME_ID_DEFAULT = 117440515;
 int32_t CURRENT_INSTANCE_Id = 0;
+#endif
+
 #define ASSER_PATH @"js"
 
-@interface AceViewController () <IAceOnCallEvent>
+#ifndef NG_BUILD
+@interface AceViewController ()<IAceOnCallEvent>
+#else
+@interface AceViewController () //<IAceOnCallEvent>
+#endif
 @end
 
 @implementation AceViewController {
+#ifndef NG_BUILD
     OHOS::Ace::Platform::FlutterAceView *_aceView;
     flutter::ViewportMetrics _viewportMetrics;
     AceResourceRegisterOC *_registerOC;
@@ -68,15 +73,18 @@ int32_t CURRENT_INSTANCE_Id = 0;
     // setup a shell along with its platform view before the view has to appear.
     fml::scoped_nsobject <AceFlutterView> _flutterView;
     BOOL _hasLaunch;
+#endif
 }
 
 - (instancetype)initWithVersion:(ACE_VERSION)version
                 bundleDirectory:(nonnull NSString*)bundleDirectory{
     if (self = [super init]) {
+#ifndef NG_BUILD
         _version = version;
         _bundleDirectory = bundleDirectory;
         _hasLaunch = NO;
         [self initAce];
+#endif
     }
     return self;
 }
@@ -88,6 +96,7 @@ int32_t CURRENT_INSTANCE_Id = 0;
     return [self initWithVersion:version bundleDirectory:bundleDirectory];
 }
 
+#ifndef NG_BUILD
 #pragma mark - UIViewController lifecycle notifications
 
 - (void)viewDidLoad {
@@ -626,4 +635,6 @@ pointerDataChangeOverride:(flutter::PointerData::Change *)overridden_change {
 //- (id <FlutterPluginRegistry>)pluginRegistry {
 //    return _engine;
 //}
+
+#endif
 @end
