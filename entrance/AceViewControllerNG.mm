@@ -14,18 +14,18 @@
  */
 
 #import "adapter/ios/entrance/AceViewController.h"
-#include "flutter/lib/ui/window/viewport_metrics.h"
 
-//#import "third_party/flutter/build/shell/platform/ohos-ace/darwin/ios/framework/Headers/AceFlutterViewController.h"
+#include "flutter/lib/ui/window/viewport_metrics.h"
+#include "flutter_ace_view.h"
+#include "ace_container.h"
+#include "adapter/ios/capability/editing/iOSTxtInputManager.h"
+
+#ifndef NG_BUILD
 #import "third_party/flutter/build/shell/platform/ohos-ace/darwin/ios/framework/Source/AceFlutterView.h"
 #import "third_party/flutter/build/shell/platform/ohos-ace/darwin/ios/framework/Source/AceFlutterEngine_Internal.h"
 #import "third_party/flutter/build/shell/platform/ohos-ace/darwin/ios/framework/Source/AceFlutterPlatformViews_Internal.h"
 #import "third_party/flutter/build/shell/platform/ohos-ace/darwin/ios/framework/Headers/AceFlutterEngine.h"
 
-//#import "flutter/shell/platform/darwin/ios/framework/Source/AceFlutterEngine_Internal.h"
-
-#include "ace_container.h"
-#include "flutter_ace_view.h"
 #include "ace_resource_register.h"
 
 #include "core/common/container.h"
@@ -35,7 +35,6 @@
 
 #include "flutter/fml/memory/weak_ptr.h"
 #include "flutter/fml/platform/darwin/scoped_nsobject.h"
-#include "adapter/ios/capability/editing/iOSTxtInputManager.h"
 #include "adapter/preview/entrance/ace_run_args.h"
 #include "frameworks/base/json/json_util.h"
 #include "adapter/ios/entrance/capability_registry.h"
@@ -44,6 +43,7 @@
 #import "AceTextureResourcePlugin.h"
 #import "AceVideoResourcePlugin.h"
 #import "AceCameraResoucePlugin.h"
+#endif
 
 const std::string PAGE_URI = "url";
 std::map <std::string, std::string> params_;
@@ -52,22 +52,28 @@ std::string remoteData_;
 const std::string CONTINUE_PARAMS_KEY = "__remoteData";
 const int32_t THEME_ID_DEFAULT = 117440515;
 int32_t CURRENT_INSTANCE_Id = 0;
-#define ASSER_PATH @"js"
+NSString * ASSER_PATH  = @"js";
 
-@interface AceViewController () <IAceOnCallEvent>
+#ifndef NG_BUILD
+@interface AceViewController ()<IAceOnCallEvent>
+#else
+@interface AceViewController () //<IAceOnCallEvent>
+#endif
 @end
 
 @implementation AceViewController {
     OHOS::Ace::Platform::FlutterAceView *_aceView;
     flutter::ViewportMetrics _viewportMetrics;
-    AceResourceRegisterOC *_registerOC;
+    BOOL _hasLaunch;
     int32_t _aceInstanceId;
+#ifndef NG_BUILD
+    AceResourceRegisterOC *_registerOC;
     std::unique_ptr <fml::WeakPtrFactory<AceViewController>> _weakFactory;
     fml::scoped_nsobject <AceFlutterEngine> _engine;
     // We keep a separate reference to this and create it ahead of time because we want to be able to
     // setup a shell along with its platform view before the view has to appear.
     fml::scoped_nsobject <AceFlutterView> _flutterView;
-    BOOL _hasLaunch;
+#endif
 }
 
 - (instancetype)initWithVersion:(ACE_VERSION)version
@@ -76,7 +82,9 @@ int32_t CURRENT_INSTANCE_Id = 0;
         _version = version;
         _bundleDirectory = bundleDirectory;
         _hasLaunch = NO;
+#ifndef NG_BUILD
         [self initAce];
+#endif
     }
     return self;
 }
@@ -98,6 +106,194 @@ int32_t CURRENT_INSTANCE_Id = 0;
     [self addSwipeRecognizer];
 }
 
+- (void)viewDidLayoutSubviews {
+    [self updateViewSizeChanged];
+}
+
+- (void)dealloc {
+#ifndef NG_BUILD
+  [_engine.get() notifyViewControllerDeallocated];
+#endif
+  [[NSNotificationCenter defaultCenter] removeObserver:self];
+  [super dealloc];
+}
+
+#pragma mark - Handle view resizing
+
+- (void)updateViewportMetrics {
+#ifndef NG_BUILD
+    [_engine.get() updateViewportMetrics:_viewportMetrics];
+#endif
+}
+
+- (void)updateViewportPadding {
+    CGFloat scale = [UIScreen mainScreen].scale;
+    if (@available(iOS 11, *)) {
+        _viewportMetrics.physical_padding_top = self.view.safeAreaInsets.top * scale;
+        _viewportMetrics.physical_padding_left = self.view.safeAreaInsets.left * scale;
+        _viewportMetrics.physical_padding_right = self.view.safeAreaInsets.right * scale;
+        _viewportMetrics.physical_padding_bottom = self.view.safeAreaInsets.bottom * scale;
+    } else {
+        _viewportMetrics.physical_padding_top = [self statusBarPadding] * scale;
+    }
+}
+
+- (void)updateViewSizeChanged {
+    CGSize viewSize = self.view.bounds.size;
+    CGFloat scale = [UIScreen mainScreen].scale;
+
+    _viewportMetrics.device_pixel_ratio = scale;
+    _viewportMetrics.physical_width = viewSize.width * scale;
+    _viewportMetrics.physical_height = viewSize.height * scale;
+
+    [self updateViewportPadding];
+    [self updateViewportMetrics];
+}
+
+- (CGFloat)statusBarPadding {
+    UIScreen *screen = self.view.window.screen;
+    CGRect statusFrame = [UIApplication sharedApplication].statusBarFrame;
+    CGRect viewFrame = [self.view convertRect:self.view.bounds
+                            toCoordinateSpace:screen.coordinateSpace];
+    CGRect intersection = CGRectIntersection(statusFrame, viewFrame);
+    return CGRectIsNull(intersection) ? 0.0 : intersection.size.height;
+}
+
+#pragma mark - Helper
++ (int32_t)genterateInstanceId {
+    return CURRENT_INSTANCE_Id++;
+}
+#pragma mark - Application lifecycle notifications
+
+- (void)applicationBecameActive:(NSNotification *)notification {
+    NSLog(@"vail applicationBecameActive");
+    OHOS::Ace::Platform::AceContainer::OnActive(_aceInstanceId);
+}
+
+- (void)applicationWillResignActive:(NSNotification *)notification {
+    NSLog(@"vail applicationWillResignActive");
+    OHOS::Ace::Platform::AceContainer::OnInactive(_aceInstanceId);
+}
+
+- (void)applicationDidEnterBackground:(NSNotification *)notification {
+    NSLog(@"vail applicationDidEnterBackground");
+    OHOS::Ace::Platform::AceContainer::OnHide(_aceInstanceId);
+    std::string data = OHOS::Ace::Platform::AceContainer::OnSaveData(_aceInstanceId);
+    if (data == "false") {
+        printf("vail save data is null \n");
+    }
+
+    auto json = OHOS::Ace::JsonUtil::ParseJsonString(data);
+    if (!json) {
+        printf("vail parseJson is null \n");
+    }
+
+    params_.clear();
+    if (json->Contains(PAGE_URI)) {
+        std::string param = json->GetString(PAGE_URI);
+        params_[PAGE_URI] = param;
+    }
+
+    if (json->Contains(CONTINUE_PARAMS_KEY)) {
+        std::string params = json->GetObject(CONTINUE_PARAMS_KEY)->ToString();
+        params_[CONTINUE_PARAMS_KEY] = params;
+    }
+
+    //[[_engine.get() lifecycleChannel] sendMessage:@"AppLifecycleState.paused"];
+}
+
+- (void)applicationWillEnterForeground:(NSNotification *)notification {
+    NSLog(@"vail applicationWillEnterForeground");
+    OHOS::Ace::Platform::AceContainer::OnShow(_aceInstanceId);
+    if (params_.count(PAGE_URI) > 0) {
+        remotePageUrl_ = params_[PAGE_URI];
+    }
+
+    if (params_.count(CONTINUE_PARAMS_KEY) > 0) {
+        remoteData_ = params_[CONTINUE_PARAMS_KEY];
+    }
+}
+
+- (void)keyboardWillChangeFrame:(NSNotification *)notification {
+    NSDictionary *info = [notification userInfo];
+    CGFloat bottom = CGRectGetHeight([[info objectForKey:UIKeyboardFrameEndUserInfoKey] CGRectValue]);
+    CGFloat scale = [UIScreen mainScreen].scale;
+    _viewportMetrics.physical_view_inset_bottom = bottom * scale;
+    [self updateViewportMetrics];
+}
+
+- (void)keyboardWillBeHidden:(NSNotification *)notification {
+    _viewportMetrics.physical_view_inset_bottom = 0;
+    [self updateViewportMetrics];
+}
+
+#pragma mark - Touches and gestures
+- (void)addSwipeRecognizer {
+    UISwipeGestureRecognizer *recognizer = [[UISwipeGestureRecognizer alloc] initWithTarget:self action:@selector(handleSwipeFrom:)];
+    [recognizer setDirection:(UISwipeGestureRecognizerDirectionRight)];
+    [self.view addGestureRecognizer:recognizer];
+}
+
+- (void)handleSwipeFrom:(UISwipeGestureRecognizer *)recognizer {
+    if (recognizer.direction == UISwipeGestureRecognizerDirectionDown) {
+        NSLog(@"swipe down");
+    }
+    if (recognizer.direction == UISwipeGestureRecognizerDirectionUp) {
+        NSLog(@"swipe up");
+    }
+    if (recognizer.direction == UISwipeGestureRecognizerDirectionLeft) {
+        NSLog(@"swipe left");
+    }
+    if (recognizer.direction == UISwipeGestureRecognizerDirectionRight) {
+        CGPoint pos = [recognizer locationInView:self.view];
+        if (pos.x < 20) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [[iOSTxtInputManager shareintance] hideTextInput];
+            });
+            OHOS::Ace::Platform::AceContainer::OnBackPressed(_aceInstanceId);
+        }
+    }
+}
+
+- (void)setupNotificationCenterObservers {
+    NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
+    [center addObserver:self
+               selector:@selector(applicationBecameActive:)
+                   name:UIApplicationDidBecomeActiveNotification
+                 object:nil];
+
+    [center addObserver:self
+               selector:@selector(applicationWillResignActive:)
+                   name:UIApplicationWillResignActiveNotification
+                 object:nil];
+
+    [center addObserver:self
+               selector:@selector(applicationDidEnterBackground:)
+                   name:UIApplicationDidEnterBackgroundNotification
+                 object:nil];
+
+    [center addObserver:self
+               selector:@selector(applicationWillEnterForeground:)
+                   name:UIApplicationWillEnterForegroundNotification
+                 object:nil];
+
+    [center addObserver:self
+               selector:@selector(keyboardWillChangeFrame:)
+                   name:UIKeyboardWillChangeFrameNotification
+                 object:nil];
+
+    [center addObserver:self
+               selector:@selector(keyboardWillBeHidden:)
+                   name:UIKeyboardWillHideNotification
+                 object:nil];
+
+
+}
+
+
+
+
+#ifndef NG_BUILD
 - (void)viewWillAppear:(BOOL)animated {
     [super viewWillAppear:animated];
     if (_hasLaunch == NO) {
@@ -107,12 +303,6 @@ int32_t CURRENT_INSTANCE_Id = 0;
         [self runAcePage];
         _hasLaunch = YES;
     }
-}
-
-- (void)dealloc {
-  [_engine.get() notifyViewControllerDeallocated];
-  [[NSNotificationCenter defaultCenter] removeObserver:self];
-  [super dealloc];
 }
 
 #pragma mark - Ace Methods
@@ -165,48 +355,6 @@ int32_t CURRENT_INSTANCE_Id = 0;
     OHOS::Ace::Platform::AceContainer::RunPage(_aceInstanceId, 1, "", "");
 }
 
-#pragma mark - Handle view resizing
-
-- (void)updateViewportMetrics {
-    [_engine.get() updateViewportMetrics:_viewportMetrics];
-}
-
-- (void)updateViewportPadding {
-    CGFloat scale = [UIScreen mainScreen].scale;
-    if (@available(iOS 11, *)) {
-        _viewportMetrics.physical_padding_top = self.view.safeAreaInsets.top * scale;
-        _viewportMetrics.physical_padding_left = self.view.safeAreaInsets.left * scale;
-        _viewportMetrics.physical_padding_right = self.view.safeAreaInsets.right * scale;
-        _viewportMetrics.physical_padding_bottom = self.view.safeAreaInsets.bottom * scale;
-    } else {
-        _viewportMetrics.physical_padding_top = [self statusBarPadding] * scale;
-    }
-}
-
-- (void)updateViewSizeChanged {
-    CGSize viewSize = self.view.bounds.size;
-    CGFloat scale = [UIScreen mainScreen].scale;
-
-    _viewportMetrics.device_pixel_ratio = scale;
-    _viewportMetrics.physical_width = viewSize.width * scale;
-    _viewportMetrics.physical_height = viewSize.height * scale;
-
-    [self updateViewportPadding];
-    [self updateViewportMetrics];
-}
-
-- (CGFloat)statusBarPadding {
-    UIScreen *screen = self.view.window.screen;
-    CGRect statusFrame = [UIApplication sharedApplication].statusBarFrame;
-    CGRect viewFrame = [self.view convertRect:self.view.bounds
-                            toCoordinateSpace:screen.coordinateSpace];
-    CGRect intersection = CGRectIntersection(statusFrame, viewFrame);
-    return CGRectIsNull(intersection) ? 0.0 : intersection.size.height;
-}
-
-- (void)viewDidLayoutSubviews {
-    [self updateViewSizeChanged];
-}
 
 #pragma mark - Touch event handling
 
@@ -261,7 +409,7 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
     return flutter::PointerData::DeviceKind::kTouch;
 }
 
-- (void)  dispatchTouches:(NSSet *)touches
+- (void) dispatchTouches:(NSSet *)touches
 pointerDataChangeOverride:(flutter::PointerData::Change *)overridden_change {
     const CGFloat scale = [UIScreen mainScreen].scale;
     std::unique_ptr <flutter::PointerDataPacket> packet = std::make_unique<flutter::PointerDataPacket>(touches.count);
@@ -367,146 +515,31 @@ pointerDataChangeOverride:(flutter::PointerData::Change *)overridden_change {
 
 //   [_engine.get() dispatchPointerDataPacket:std::move(packet)];
 
-  auto container = OHOS::Ace::Platform::AceContainer::GetContainerInstance(_aceInstanceId);
-  if (!container) {
-      LOGE("container is null");
-      return;
-  }
-
-  auto aceView = static_cast<OHOS::Ace::Platform::FlutterAceView*>(container->GetAceView());
-  if (!aceView) {
-      LOGE("aceView is null");
-      return;
-  }
-
-  aceView->HandleTouchEvent(packet->data());
-}
-
-- (void)addSwipeRecognizer {
-    UISwipeGestureRecognizer *recognizer = [[UISwipeGestureRecognizer alloc] initWithTarget:self action:@selector(handleSwipeFrom:)];
-    [recognizer setDirection:(UISwipeGestureRecognizerDirectionRight)];
-    [self.view addGestureRecognizer:recognizer];
-}
-
-- (void)handleSwipeFrom:(UISwipeGestureRecognizer *)recognizer {
-    if (recognizer.direction == UISwipeGestureRecognizerDirectionDown) {
-        NSLog(@"swipe down");
-    }
-    if (recognizer.direction == UISwipeGestureRecognizerDirectionUp) {
-        NSLog(@"swipe up");
-    }
-    if (recognizer.direction == UISwipeGestureRecognizerDirectionLeft) {
-        NSLog(@"swipe left");
-    }
-    if (recognizer.direction == UISwipeGestureRecognizerDirectionRight) {
-        CGPoint pos = [recognizer locationInView:self.view];
-        if (pos.x < 20) {
-            dispatch_async(dispatch_get_main_queue(), ^{
-                [[iOSTxtInputManager shareintance] hideTextInput];
-            });
-            OHOS::Ace::Platform::AceContainer::OnBackPressed(_aceInstanceId);
-        }
-    }
-}
-
-- (void)setupNotificationCenterObservers {
-    NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
-    [center addObserver:self
-               selector:@selector(applicationBecameActive:)
-                   name:UIApplicationDidBecomeActiveNotification
-                 object:nil];
-
-    [center addObserver:self
-               selector:@selector(applicationWillResignActive:)
-                   name:UIApplicationWillResignActiveNotification
-                 object:nil];
-
-    [center addObserver:self
-               selector:@selector(applicationDidEnterBackground:)
-                   name:UIApplicationDidEnterBackgroundNotification
-                 object:nil];
-
-    [center addObserver:self
-               selector:@selector(applicationWillEnterForeground:)
-                   name:UIApplicationWillEnterForegroundNotification
-                 object:nil];
-
-    [center addObserver:self
-               selector:@selector(keyboardWillChangeFrame:)
-                   name:UIKeyboardWillChangeFrameNotification
-                 object:nil];
-
-    [center addObserver:self
-               selector:@selector(keyboardWillBeHidden:)
-                   name:UIKeyboardWillHideNotification
-                 object:nil];
-
-
-}
-
-#pragma mark - Application lifecycle notifications
-
-- (void)applicationBecameActive:(NSNotification *)notification {
-    NSLog(@"vail applicationBecameActive");
-    OHOS::Ace::Platform::AceContainer::OnActive(_aceInstanceId);
-}
-
-- (void)applicationWillResignActive:(NSNotification *)notification {
-    NSLog(@"vail applicationWillResignActive");
-    OHOS::Ace::Platform::AceContainer::OnInactive(_aceInstanceId);
-}
-
-- (void)applicationDidEnterBackground:(NSNotification *)notification {
-    NSLog(@"vail applicationDidEnterBackground");
-    OHOS::Ace::Platform::AceContainer::OnHide(_aceInstanceId);
-    std::string data = OHOS::Ace::Platform::AceContainer::OnSaveData(_aceInstanceId);
-    if (data == "false") {
-        printf("vail save data is null \n");
+    auto container = OHOS::Ace::Platform::AceContainer::GetContainerInstance(_aceInstanceId);
+    if (!container) {
+        LOGE("container is null");
+        return;
     }
 
-    auto json = OHOS::Ace::JsonUtil::ParseJsonString(data);
-    if (!json) {
-        printf("vail parseJson is null \n");
+    auto aceView = container->GetAceView();
+    if (!aceView) {
+        LOGE("aceView is null");
+        return;
     }
 
-    params_.clear();
-    if (json->Contains(PAGE_URI)) {
-        std::string param = json->GetString(PAGE_URI);
-        params_[PAGE_URI] = param;
-    }
+    std::promise<bool> touchPromise;
+    std::future<bool> touchFuture = touchPromise.get_future();
+    //container->GetTaskExecutor()->PostTask([aceView, &packet, &touchPromise]() {
+    bool isHandled = aceView->HandleTouchEvent(packet->data());
+    touchPromise.set_value(isHandled);
+    //}, OHOS::Ace::TaskExecutor::TaskType::PLATFORM);
 
-    if (json->Contains(CONTINUE_PARAMS_KEY)) {
-        std::string params = json->GetObject(CONTINUE_PARAMS_KEY)->ToString();
-        params_[CONTINUE_PARAMS_KEY] = params;
-    }
+    touchFuture.get();
 
-    //[[_engine.get() lifecycleChannel] sendMessage:@"AppLifecycleState.paused"];
+    //aceView->HandleTouchEvent(std::move(packet));
 }
 
-- (void)applicationWillEnterForeground:(NSNotification *)notification {
-    NSLog(@"vail applicationWillEnterForeground");
-    OHOS::Ace::Platform::AceContainer::OnShow(_aceInstanceId);
-    if (params_.count(PAGE_URI) > 0) {
-        remotePageUrl_ = params_[PAGE_URI];
-    }
 
-    if (params_.count(CONTINUE_PARAMS_KEY) > 0) {
-        remoteData_ = params_[CONTINUE_PARAMS_KEY];
-    }
-}
-
-- (void)keyboardWillChangeFrame:(NSNotification *)notification {
-    NSDictionary *info = [notification userInfo];
-    CGFloat bottom = CGRectGetHeight([[info objectForKey:UIKeyboardFrameEndUserInfoKey] CGRectValue]);
-    CGFloat scale = [UIScreen mainScreen].scale;
-    _viewportMetrics.physical_view_inset_bottom = bottom * scale;
-    [self updateViewportMetrics];
-}
-
-- (void)keyboardWillBeHidden:(NSNotification *)notification {
-    _viewportMetrics.physical_view_inset_bottom = 0;
-    [self updateViewportMetrics];
-}
 
 #pragma mark IAceOnCallEvent
 
@@ -514,11 +547,6 @@ pointerDataChangeOverride:(flutter::PointerData::Change *)overridden_change {
     _aceView->GetPlatformResRegister()->OnEvent([eventId UTF8String], [param UTF8String]);
 }
 
-#pragma mark - Helper
-
-+ (int32_t)genterateInstanceId {
-    return CURRENT_INSTANCE_Id++;
-}
 
 #pragma mark - FlutterViewController
 
@@ -568,9 +596,6 @@ pointerDataChangeOverride:(flutter::PointerData::Change *)overridden_change {
     }
 }
 
-//- (AceFlutterEngine *)engine {
-//    return _engine.get();
-//}
 
 //提供给外部使用的弱引用
 - (fml::WeakPtr <AceViewController>)getWeakPtr {
@@ -623,7 +648,5 @@ pointerDataChangeOverride:(flutter::PointerData::Change *)overridden_change {
     return [_engine.get() platformViewsController];
 }
 
-//- (id <FlutterPluginRegistry>)pluginRegistry {
-//    return _engine;
-//}
+#endif
 @end
