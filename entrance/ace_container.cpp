@@ -405,6 +405,7 @@ void AceContainer::AttachView(
     auto instanceId = aceView_->GetInstanceId();
 #ifdef NG_BUILD
     auto state = flutter::ace::WindowManager::GetWindow(instanceId);
+    ACE_DCHECK(state != nullptr);
 #else
     auto state = flutter::UIJavaScriptState::Current()->GetStateById(instanceId);
     ACE_DCHECK(state != nullptr);

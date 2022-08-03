@@ -66,7 +66,8 @@ template("ace_ios_standard_source_set") {
         "//third_party/flutter_ace_shell",
         "//third_party/flutter_ace_shell/engine",
         "//third_party/flutter_ace_shell/third_party/skia",
-        "//third_party/flutter_ace_shell/engine/flutter/third_party/txt/src"
+        "//third_party/flutter_ace_shell/engine/flutter/third_party/txt/src",
+        "//third_party/flutter_ace_shell/engine/flutter/shell/platform/darwin/common/framework/Headers"
       ]
 
       sources += [ "AceViewControllerNG.mm"]
