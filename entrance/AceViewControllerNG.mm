@@ -15,38 +15,26 @@
 
 #import "adapter/ios/entrance/AceViewController.h"
 
-#include "flutter/lib/ui/window/viewport_metrics.h"
+#include "flutter/fml/memory/weak_ptr.h"
+#include "flutter/fml/message_loop.h"
+#include "flutter/fml/platform/darwin/platform_version.h"
+#include "flutter/fml/platform/darwin/scoped_nsobject.h"
+#include "flutter/runtime/ptrace_check.h"
+#include "flutter/shell/common/thread_host.h"
+
 #include "flutter_ace_view.h"
 #include "ace_container.h"
 #include "adapter/ios/capability/editing/iOSTxtInputManager.h"
 #include "adapter/ios/entrance/capability_registry.h"
+
 #include "ace_shell/shell/platform/darwin/ios/framework/Headers/FlutterEngine.h"
 #include "ace_shell/shell/platform/darwin/ios/framework/Source/FlutterEngine_Internal.h"
-//third_party/flutter_ace_shell/engine/ace_shell/shell/platform/darwin/ios/framework/Source/FlutterPlatformViews_Internal.mm
 #include "ace_shell/shell/platform/darwin/ios/framework/Source/FlutterView.h"
-#include "flutter/fml/memory/weak_ptr.h"
 
-//#ifndef NG_BUILD
-//#import "third_party/flutter/build/shell/platform/ohos-ace/darwin/ios/framework/Source/AceFlutterEngine_Internal.h"
-//#import "third_party/flutter/build/shell/platform/ohos-ace/darwin/ios/framework/Source/AceFlutterPlatformViews_Internal.h"
-//#import "third_party/flutter/build/shell/platform/ohos-ace/darwin/ios/framework/Headers/AceFlutterEngine.h"
-//
-//#include "ace_resource_register.h"
-//
-//#include "core/common/container.h"
-//
-//#include "core/event/mouse_event.h"
-//#include "core/event/touch_event.h"
-//
-//#include "flutter/fml/platform/darwin/scoped_nsobject.h"
-//#include "adapter/preview/entrance/ace_run_args.h"
-//#include "frameworks/base/json/json_util.h"
-//
-//#import "AceResourceRegisterOC.h"
-//#import "AceTextureResourcePlugin.h"
-//#import "AceVideoResourcePlugin.h"
-//#import "AceCameraResoucePlugin.h"
-//#endif
+#import "AceResourceRegisterOC.h"
+#import "AceTextureResourcePlugin.h"
+#import "AceVideoResourcePlugin.h"
+#import "AceCameraResoucePlugin.h"
 
 const std::string PAGE_URI = "url";
 std::map <std::string, std::string> params_;
@@ -57,7 +45,7 @@ const int32_t THEME_ID_DEFAULT = 117440515;
 int32_t CURRENT_INSTANCE_Id = 0;
 NSString * ASSER_PATH  = @"js";
 
-@interface AceViewController () //<IAceOnCallEvent>
+@interface AceViewController () <IAceOnCallEvent>
 @end
 
 @implementation AceViewController {
@@ -68,11 +56,7 @@ NSString * ASSER_PATH  = @"js";
     std::unique_ptr <fml::WeakPtrFactory<AceViewController>> _weakFactory;
     fml::scoped_nsobject <FlutterEngine> _engine;
     fml::scoped_nsobject <FlutterView> _flutterView;
-//#ifndef NG_BUILD
-//    AceResourceRegisterOC *_registerOC;
-//    // We keep a separate reference to this and create it ahead of time because we want to be able to
-//    // setup a shell along with its platform view before the view has to appear.
-//#endif
+    AceResourceRegisterOC *_registerOC;
 }
 
 - (instancetype)initWithVersion:(ACE_VERSION)version
@@ -126,7 +110,7 @@ NSString * ASSER_PATH  = @"js";
 
 - (void)dealloc {
 //#ifndef NG_BUILD
-//  [_engine.get() notifyViewControllerDeallocated];
+  [_engine.get() notifyViewControllerDeallocated];
 //#endif
   [[NSNotificationCenter defaultCenter] removeObserver:self];
   [super dealloc];
@@ -173,7 +157,7 @@ NSString * ASSER_PATH  = @"js";
 }
 
 #pragma mark - Helper
-+ (int32_t)genterateInstanceId {
++ (int32_t)generateInstanceId {
     return CURRENT_INSTANCE_Id++;
 }
 #pragma mark - Application lifecycle notifications
@@ -297,8 +281,6 @@ NSString * ASSER_PATH  = @"js";
                selector:@selector(keyboardWillBeHidden:)
                    name:UIKeyboardWillHideNotification
                  object:nil];
-
-
 }
 
 
@@ -312,26 +294,26 @@ NSString * ASSER_PATH  = @"js";
         OHOS::Ace::Platform::CapabilityRegistry::Register();
     });
 
-    _aceInstanceId = [AceViewController genterateInstanceId];
+    _aceInstanceId = [AceViewController generateInstanceId];
     _aceView = new OHOS::Ace::Platform::FlutterAceView(_aceInstanceId);
 
     [self initFlutterEngine:_aceInstanceId];
 
-//    _registerOC = [[AceResourceRegisterOC alloc] initWithParent:self];
-//    auto aceResRegister = OHOS::Ace::Referenced::MakeRefPtr<OHOS::Ace::Platform::AceResourceRegister>(_registerOC);
-//    _aceView->SetPlatformResRegister(aceResRegister);
-//
-//    // register with plugins
-//    [_registerOC registerPlugin:[[AceVideoResourcePlugin alloc] init]];
-//    [_registerOC registerPlugin:[[AceCameraResoucePlugin alloc] init]];
-//    [_registerOC registerPlugin:[[AceTextureResourcePlugin alloc] initWithTextures:_engine.get()]];
-//
-//    OHOS::Ace::Platform::FlutterAceView::IdleCallback idleNoticeCallback = [view = _aceView](int64_t deadline) {
-//        view->ProcessIdleEvent(deadline);
-//
-//    };
-//    [self setIdleCallBack:idleNoticeCallback];
-//
+    _registerOC = [[AceResourceRegisterOC alloc] initWithParent:self];
+    auto aceResRegister = OHOS::Ace::Referenced::MakeRefPtr<OHOS::Ace::Platform::AceResourceRegister>(_registerOC);
+    _aceView->SetPlatformResRegister(aceResRegister);
+
+    // register with plugins
+    [_registerOC registerPlugin:[[AceVideoResourcePlugin alloc] init]];
+    [_registerOC registerPlugin:[[AceCameraResoucePlugin alloc] init]];
+    [_registerOC registerPlugin:[[AceTextureResourcePlugin alloc] initWithTextures:_engine.get()]];
+
+    OHOS::Ace::Platform::FlutterAceView::IdleCallback idleNoticeCallback = [view = _aceView](int64_t deadline) {
+        view->ProcessIdleEvent(deadline);
+
+    };
+    [self setIdleCallBack:idleNoticeCallback];
+
     constexpr char ASSET_PATH_SHARE[] = "share";
     OHOS::Ace::FrontendType frontendType = OHOS::Ace::FrontendType::DECLARATIVE_JS;
     if (_version == ACE_VERSION_JS) {
@@ -558,12 +540,9 @@ NSString * ASSER_PATH  = @"js";
 
 - (void)initFlutterEngine:(int32_t)instanceId {
     _weakFactory = std::make_unique < fml::WeakPtrFactory < AceViewController >> (self);
-//
-//    //1.Create engine
-//    //TODO: Create different engine.
+
     _engine.reset([[FlutterEngine alloc] initWithName:@"io.flutter"
                                allowHeadlessExecution:NO]);
-//    //TODO: Create View
     _flutterView.reset([[FlutterView alloc] initWithDelegate:_engine opaque:YES]);
     [_engine.get() createShell:nil libraryURI:nil instanceId:instanceId];
 
@@ -600,22 +579,29 @@ NSString * ASSER_PATH  = @"js";
 }
 
 - (void)installFirstFrameCallback {
-//    fml::WeakPtr <flutter::AcePlatformViewIOS> weakPlatformView = [_engine.get() platformView];
-//    if (!weakPlatformView) {
-//        return;
-//    }
-//
-//    // Start on the platform thread.
-//    weakPlatformView->SetNextFrameCallback([weakSelf = [self getWeakPtr],
-//                                                   platformTaskRunner = [_engine.get() platformTaskRunner],
-//                                                   gpuTaskRunner = [_engine.get() GPUTaskRunner]]() {
-//        FML_DCHECK(gpuTaskRunner->RunsTasksOnCurrentThread());
-//        // Get callback on GPU thread and jump back to platform thread.
-//        platformTaskRunner->PostTask([weakSelf]() {
-//            fml::scoped_nsobject <AceViewController> flutterViewController(
-//                    [(AceViewController *) weakSelf.get() retain]);
-//        });
-//    });
+    if (!_engine) {
+        return;
+    }
+
+    fml::WeakPtr<flutter::ace::PlatformViewIOS> weakPlatformView = [_engine.get() platformView];
+    if (!weakPlatformView) {
+        return;
+    }
+
+    // Start on the platform thread.
+    weakPlatformView->SetNextFrameCallback([weakSelf = [self getWeakPtr],
+                                                   platformTaskRunner = [_engine.get() platformTaskRunner],
+                                                   RasterTaskRunner = [_engine.get() RasterTaskRunner]]() {
+        FML_DCHECK(RasterTaskRunner->RunsTasksOnCurrentThread());
+        // Get callback on raster thread and jump back to platform thread.
+        platformTaskRunner->PostTask([weakSelf]() {
+            fml::scoped_nsobject<AceViewController> aceViewController(
+                    [(AceViewController*)weakSelf.get() retain]);
+            if (aceViewController) {
+                [aceViewController callViewRenderedCallback];
+            }
+        });
+    });
 }
 
 //- (FlutterView *)flutterView {
@@ -623,7 +609,6 @@ NSString * ASSER_PATH  = @"js";
 //}
 
 - (void)surfaceUpdated:(BOOL)appeared {
-    //TODO:补齐
     if (appeared) {
         [self installFirstFrameCallback];
         [_engine.get() platformViewsController]->SetFlutterView(_flutterView.get());
@@ -637,8 +622,21 @@ NSString * ASSER_PATH  = @"js";
 }
 
 
-//- (flutter::AceFlutterPlatformViewsController *)platformViewsController {
-//    return [_engine.get() platformViewsController];
-//}
+- (flutter::ace::FlutterPlatformViewsController *)platformViewsController {
+    return [_engine.get() platformViewsController];
+}
 
+#pragma mark - Properties
+
+- (void)setFlutterViewDidRenderCallback:(void (^)(void))callback {
+//    _flutterViewRenderedCallback.reset(callback, fml::OwnershipPolicy::Retain);
+}
+#pragma mark - Managing launch views
+
+- (void)callViewRenderedCallback {
+//    if (_flutterViewRenderedCallback != nil) {
+//        _flutterViewRenderedCallback.get()();
+//        _flutterViewRenderedCallback.reset();
+//    }
+}
 @end

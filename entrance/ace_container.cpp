@@ -20,6 +20,7 @@
 
 #ifdef NG_BUILD
 #include "ace_shell/shell/common/window_manager.h"
+#include "core/components_ng/render/adapter/flutter_window.h"
 #else
 #include "third_party/flutter/build/lib/ui/ui_javascript_state.h"
 #endif
@@ -388,13 +389,17 @@ void AceContainer::SetView(FlutterAceView* view, double density, int32_t width, 
     if (!container) {
         return;
     }
+#ifdef NG_BUILD
+    auto instanceId = view->GetInstanceId();
+    std::unique_ptr<Window> window = std::make_unique<NG::FlutterWindow>(container->GetTaskExecutor(), instanceId);
+#else
     auto platformWindow = PlatformWindow::Create(view);
     if (!platformWindow) {
         LOGE("Create PlatformWindow failed!");
         return;
     }
-
     std::unique_ptr<Window> window = std::make_unique<Window>(std::move(platformWindow));
+#endif
     container->AttachView(std::move(window), view, density, width, height);
 }
 
