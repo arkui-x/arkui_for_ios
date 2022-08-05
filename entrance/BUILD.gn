@@ -91,7 +91,7 @@ template("ace_ios_standard_source_set") {
 
       deps += [
           "$ace_flutter_engine_root:third_party_flutter_engine_$platform",
-          "$ace_flutter_engine_root/third_party/skia:ace_skia_$platform",
+          "$ace_flutter_engine_root/skia:ace_skia_$platform",
       ]
     }
   }

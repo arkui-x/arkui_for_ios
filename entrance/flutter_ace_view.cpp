@@ -34,7 +34,6 @@ namespace {
 
 constexpr int32_t DEFAULT_ACTION_ID = 0;
 
-//TODO: 替换foundation/arkui/ace_engine/frameworks/core/event/event_convertor.cpp的实现
 TouchPoint ConvertTouchPoint(flutter::PointerData* pointerItem)
 {
     TouchPoint touchPoint;
@@ -195,11 +194,11 @@ std::unique_ptr<DrawDelegate> FlutterAceView::GetDrawDelegate()
         RefPtr<Flutter::FlutterSceneBuilder> flutterSceneBuilder = AceType::MakeRefPtr<Flutter::FlutterSceneBuilder>();
         layer->AddToScene(*flutterSceneBuilder, 0.0, 0.0);
         auto scene_ = flutterSceneBuilder->Build();
-        if (!flutter::UIJavaScriptState::Current()) {
+        if (!flutter::UIDartState::Current()) {
             LOGE("uiDartState is nullptr");
             return;
         }
-        auto window = flutter::UIJavaScriptState::Current()->window();
+        auto window = flutter::UIDartState::Current()->window();
         if (window != nullptr && window->client() != nullptr) {
             window->client()->Render(scene_.get());
         }

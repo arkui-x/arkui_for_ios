@@ -22,7 +22,7 @@
 #include "ace_shell/shell/common/window_manager.h"
 #include "core/components_ng/render/adapter/flutter_window.h"
 #else
-#include "third_party/flutter/build/lib/ui/ui_javascript_state.h"
+#include "flutter/lib/ui/ui_dart_state.h"
 #endif
 #include "third_party/quickjs/cutils.h"
 
@@ -412,7 +412,7 @@ void AceContainer::AttachView(
     auto state = flutter::ace::WindowManager::GetWindow(instanceId);
     ACE_DCHECK(state != nullptr);
 #else
-    auto state = flutter::UIJavaScriptState::Current()->GetStateById(instanceId);
+    auto state = flutter::UIDartState::Current()->GetStateById(instanceId);
     ACE_DCHECK(state != nullptr);
 #endif
     auto flutterTaskExecutor = AceType::DynamicCast<FlutterTaskExecutor>(taskExecutor_);
