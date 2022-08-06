@@ -54,7 +54,11 @@
 #endif
 #include "frameworks/bridge/card_frontend/card_frontend.h"
 #include "frameworks/bridge/common/utils/engine_helper.h"
+#ifdef NG_BUILD
+#include "frameworks/bridge/declarative_frontend/ng/declarative_frontend_ng.h"
+#else
 #include "frameworks/bridge/declarative_frontend/declarative_frontend.h"
+#endif
 #include "frameworks/bridge/js_frontend/engine/common/js_engine_loader.h"
 #include "frameworks/bridge/js_frontend/engine/quickjs/qjs_utils.h"
 #include "frameworks/bridge/js_frontend/js_frontend.h"
@@ -172,8 +176,13 @@ void AceContainer::InitializeFrontend()
         jsFrontend->SetDebugVersion(AceApplicationInfo::GetInstance().IsDebugVersion());
 #endif
     } else if (type_ == FrontendType::DECLARATIVE_JS) {
+#ifdef NG_BUILD
+        frontend_ = AceType::MakeRefPtr<DeclarativeFrontendNG>();
+        auto declarativeFrontend = AceType::DynamicCast<DeclarativeFrontendNG>(frontend_);
+#else
         frontend_ = AceType::MakeRefPtr<DeclarativeFrontend>();
         auto declarativeFrontend = AceType::DynamicCast<DeclarativeFrontend>(frontend_);
+#endif
         // TODO: set locale in ViewController when get system locale info
         AceApplicationInfo::GetInstance().SetLocale("zh", "CN", "", "");
         auto& loader = Framework::JsEngineLoader::GetDeclarative(nullptr);
@@ -430,9 +439,7 @@ void AceContainer::AttachView(
     }
 
     resRegister_ = aceView_->GetPlatformResRegister();
-    auto pipelineContext = AceType::MakeRefPtr<PipelineContext>(
-        std::move(window), taskExecutor_, assetManager_, resRegister_, frontend_, instanceId);
-    
+
 #ifdef NG_BUILD
     LOGI("New pipeline version creating...");
     auto pipelineContext = AceType::MakeRefPtr<NG::PipelineContext>(
