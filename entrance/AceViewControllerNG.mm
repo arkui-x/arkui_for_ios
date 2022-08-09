@@ -338,185 +338,176 @@ NSString * ASSER_PATH  = @"js";
 #pragma mark - Touch event handling
 
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event {
-//    [self dispatchTouches:touches pointerDataChangeOverride:nullptr];
+   [self dispatchTouches:touches pointerDataChangeOverride:nullptr];
 }
 
 - (void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event {
-//    [self dispatchTouches:touches pointerDataChangeOverride:nullptr];
+   [self dispatchTouches:touches pointerDataChangeOverride:nullptr];
 }
 
 - (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event {
-//    [self dispatchTouches:touches pointerDataChangeOverride:nullptr];
+   [self dispatchTouches:touches pointerDataChangeOverride:nullptr];
 }
 
 - (void)touchesCancelled:(NSSet *)touches withEvent:(UIEvent *)event {
-//    [self dispatchTouches:touches pointerDataChangeOverride:nullptr];
+   [self dispatchTouches:touches pointerDataChangeOverride:nullptr];
 }
 
 // 触摸时间待恢复
-//static flutter::PointerData::Change PointerDataChangeFromUITouchPhase(UITouchPhase phase) {
-//    switch (phase) {
-//        case UITouchPhaseBegan:
-//            return flutter::PointerData::Change::kDown;
-//        case UITouchPhaseMoved:
-//        case UITouchPhaseStationary:
-//            // There is no EVENT_TYPE_POINTER_STATIONARY. So we just pass a move type
-//            // with the same coordinates
-//            return flutter::PointerData::Change::kMove;
-//        case UITouchPhaseEnded:
-//            return flutter::PointerData::Change::kUp;
-//        case UITouchPhaseCancelled:
-//            return flutter::PointerData::Change::kCancel;
-//    }
-//
-//    return flutter::PointerData::Change::kCancel;
-//}
+static flutter::PointerData::Change PointerDataChangeFromUITouchPhase(UITouchPhase phase) {
+   switch (phase) {
+       case UITouchPhaseBegan:
+           return flutter::PointerData::Change::kDown;
+       case UITouchPhaseMoved:
+       case UITouchPhaseStationary:
+           // There is no EVENT_TYPE_POINTER_STATIONARY. So we just pass a move type
+           // with the same coordinates
+           return flutter::PointerData::Change::kMove;
+       case UITouchPhaseEnded:
+           return flutter::PointerData::Change::kUp;
+       case UITouchPhaseCancelled:
+           return flutter::PointerData::Change::kCancel;
+   }
 
-//static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) {
-//    if (@available(iOS 9, *)) {
-//        switch (touch.type) {
-//            case UITouchTypeDirect:
-//            case UITouchTypeIndirect:
-//                return flutter::PointerData::DeviceKind::kTouch;
-//            case UITouchTypeStylus:
-//                return flutter::PointerData::DeviceKind::kStylus;
-//        }
-//    } else {
-//        return flutter::PointerData::DeviceKind::kTouch;
-//    }
-//
-//    return flutter::PointerData::DeviceKind::kTouch;
-//}
-//
-//- (void) dispatchTouches:(NSSet *)touches
-//pointerDataChangeOverride:(flutter::PointerData::Change *)overridden_change {
-//    const CGFloat scale = [UIScreen mainScreen].scale;
-//    std::unique_ptr <flutter::PointerDataPacket> packet = std::make_unique<flutter::PointerDataPacket>(touches.count);
-//
-//    size_t pointer_index = 0;
-//
-//    for (UITouch *touch in touches) {
-//        CGPoint windowCoordinates = [touch locationInView:self.view];
-//
-//        flutter::PointerData pointer_data;
-//        pointer_data.Clear();
-//
-//        constexpr int kMicrosecondsPerSecond = 1000 * 1000;
-//        pointer_data.time_stamp = touch.timestamp * kMicrosecondsPerSecond;
-//
-//        pointer_data.change = overridden_change != nullptr
-//                              ? *overridden_change
-//                              : PointerDataChangeFromUITouchPhase(touch.phase);
-//
-//        pointer_data.kind = DeviceKindFromTouchType(touch);
-//
-//        pointer_data.device = reinterpret_cast<int64_t>(touch);
-//
-//        pointer_data.physical_x = windowCoordinates.x * scale;
-//        pointer_data.physical_y = windowCoordinates.y * scale;
-//
-//        NSNumber *deviceKey = [NSNumber numberWithLongLong:pointer_data.device];
-//        // Track touches that began and not yet stopped so we can flush them
-//        // if the view controller goes away.
-//        // switch (pointer_data.change) {
-//        //   case flutter::PointerData::Change::kDown:
-//        //     [_ongoingTouches addObject:deviceKey];
-//        //     break;
-//        //   case flutter::PointerData::Change::kCancel:
-//        //   case flutter::PointerData::Change::kUp:
-//        //     [_ongoingTouches removeObject:deviceKey];
-//        //     break;
-//        //   case flutter::PointerData::Change::kHover:
-//        //   case flutter::PointerData::Change::kMove:
-//        //     // We're only tracking starts and stops.
-//        //     break;
-//        //   case flutter::PointerData::Change::kAdd:
-//        //   case flutter::PointerData::Change::kRemove:
-//        //     // We don't use kAdd/kRemove.
-//        //     break;
-//        // }
-//
-//        // pressure_min is always 0.0
-//        if (@available(iOS 9, *)) {
-//            // These properties were introduced in iOS 9.0.
-//            pointer_data.pressure = touch.force;
-//            pointer_data.pressure_max = touch.maximumPossibleForce;
-//        } else {
-//            pointer_data.pressure = 1.0;
-//            pointer_data.pressure_max = 1.0;
-//        }
-//
-//        // These properties were introduced in iOS 8.0
-//        pointer_data.radius_major = touch.majorRadius;
-//        pointer_data.radius_min = touch.majorRadius - touch.majorRadiusTolerance;
-//        pointer_data.radius_max = touch.majorRadius + touch.majorRadiusTolerance;
-//
-//        // These properties were introduced in iOS 9.1
-//        if (@available(iOS 9.1, *)) {
-//            // iOS Documentation: altitudeAngle
-//            // A value of 0 radians indicates that the stylus is parallel to the surface. The value of
-//            // this property is Pi/2 when the stylus is perpendicular to the surface.
-//            //
-//            // PointerData Documentation: tilt
-//            // The angle of the stylus, in radians in the range:
-//            //    0 <= tilt <= pi/2
-//            // giving the angle of the axis of the stylus, relative to the axis perpendicular to the input
-//            // surface (thus 0.0 indicates the stylus is orthogonal to the plane of the input surface,
-//            // while pi/2 indicates that the stylus is flat on that surface).
-//            //
-//            // Discussion:
-//            // The ranges are the same. Origins are swapped.
-//            pointer_data.tilt = M_PI_2 - touch.altitudeAngle;
-//
-//            // iOS Documentation: azimuthAngleInView:
-//            // With the tip of the stylus touching the screen, the value of this property is 0 radians
-//            // when the cap end of the stylus (that is, the end opposite of the tip) points along the
-//            // positive x axis of the device's screen. The azimuth angle increases as the user swings the
-//            // cap end of the stylus in a clockwise direction around the tip.
-//            //
-//            // PointerData Documentation: orientation
-//            // The angle of the stylus, in radians in the range:
-//            //    -pi < orientation <= pi
-//            // giving the angle of the axis of the stylus projected onto the input surface, relative to
-//            // the positive y-axis of that surface (thus 0.0 indicates the stylus, if projected onto that
-//            // surface, would go from the contact point vertically up in the positive y-axis direction, pi
-//            // would indicate that the stylus would go down in the negative y-axis direction; pi/4 would
-//            // indicate that the stylus goes up and to the right, -pi/2 would indicate that the stylus
-//            // goes to the left, etc).
-//            //
-//            // Discussion:
-//            // Sweep direction is the same. Phase of M_PI_2.
-//            pointer_data.orientation = [touch azimuthAngleInView:nil] - M_PI_2;
-//        }
-//
-//        packet->SetPointerData(pointer_index++, pointer_data);
-//    }
-//
-////   [_engine.get() dispatchPointerDataPacket:std::move(packet)];
-//
-//    auto container = OHOS::Ace::Platform::AceContainer::GetContainerInstance(_aceInstanceId);
-//    if (!container) {
-//        LOGE("container is null");
-//        return;
-//    }
-//
-//    auto aceView = container->GetAceView();
-//    if (!aceView) {
-//        LOGE("aceView is null");
-//        return;
-//    }
-//
-//    std::promise<bool> touchPromise;
-//    std::future<bool> touchFuture = touchPromise.get_future();
-//    //container->GetTaskExecutor()->PostTask([aceView, &packet, &touchPromise]() {
-//    bool isHandled = aceView->HandleTouchEvent(packet->data());
-//    touchPromise.set_value(isHandled);
-//    //}, OHOS::Ace::TaskExecutor::TaskType::PLATFORM);
-//
-//    touchFuture.get();
-//
-//    //aceView->HandleTouchEvent(std::move(packet));
-//}
+   return flutter::PointerData::Change::kCancel;
+}
+
+static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) {
+   if (@available(iOS 9, *)) {
+       switch (touch.type) {
+           case UITouchTypeDirect:
+           case UITouchTypeIndirect:
+               return flutter::PointerData::DeviceKind::kTouch;
+           case UITouchTypeStylus:
+               return flutter::PointerData::DeviceKind::kStylus;
+       }
+   } else {
+       return flutter::PointerData::DeviceKind::kTouch;
+   }
+
+   return flutter::PointerData::DeviceKind::kTouch;
+}
+
+- (void) dispatchTouches:(NSSet *)touches
+pointerDataChangeOverride:(flutter::PointerData::Change *)overridden_change {
+   const CGFloat scale = [UIScreen mainScreen].scale;
+   std::unique_ptr <flutter::PointerDataPacket> packet = std::make_unique<flutter::PointerDataPacket>(touches.count);
+
+   size_t pointer_index = 0;
+
+   for (UITouch *touch in touches) {
+       CGPoint windowCoordinates = [touch locationInView:self.view];
+
+       flutter::PointerData pointer_data;
+       pointer_data.Clear();
+
+       constexpr int kMicrosecondsPerSecond = 1000 * 1000;
+       pointer_data.time_stamp = touch.timestamp * kMicrosecondsPerSecond;
+
+       pointer_data.change = overridden_change != nullptr
+                             ? *overridden_change
+                             : PointerDataChangeFromUITouchPhase(touch.phase);
+
+       pointer_data.kind = DeviceKindFromTouchType(touch);
+
+       pointer_data.device = reinterpret_cast<int64_t>(touch);
+
+       pointer_data.physical_x = windowCoordinates.x * scale;
+       pointer_data.physical_y = windowCoordinates.y * scale;
+
+       NSNumber *deviceKey = [NSNumber numberWithLongLong:pointer_data.device];
+       // Track touches that began and not yet stopped so we can flush them
+       // if the view controller goes away.
+       // switch (pointer_data.change) {
+       //   case flutter::PointerData::Change::kDown:
+       //     [_ongoingTouches addObject:deviceKey];
+       //     break;
+       //   case flutter::PointerData::Change::kCancel:
+       //   case flutter::PointerData::Change::kUp:
+       //     [_ongoingTouches removeObject:deviceKey];
+       //     break;
+       //   case flutter::PointerData::Change::kHover:
+       //   case flutter::PointerData::Change::kMove:
+       //     // We're only tracking starts and stops.
+       //     break;
+       //   case flutter::PointerData::Change::kAdd:
+       //   case flutter::PointerData::Change::kRemove:
+       //     // We don't use kAdd/kRemove.
+       //     break;
+       // }
+
+       // pressure_min is always 0.0
+       if (@available(iOS 9, *)) {
+           // These properties were introduced in iOS 9.0.
+           pointer_data.pressure = touch.force;
+           pointer_data.pressure_max = touch.maximumPossibleForce;
+       } else {
+           pointer_data.pressure = 1.0;
+           pointer_data.pressure_max = 1.0;
+       }
+
+       // These properties were introduced in iOS 8.0
+       pointer_data.radius_major = touch.majorRadius;
+       pointer_data.radius_min = touch.majorRadius - touch.majorRadiusTolerance;
+       pointer_data.radius_max = touch.majorRadius + touch.majorRadiusTolerance;
+
+       // These properties were introduced in iOS 9.1
+       if (@available(iOS 9.1, *)) {
+           // iOS Documentation: altitudeAngle
+           // A value of 0 radians indicates that the stylus is parallel to the surface. The value of
+           // this property is Pi/2 when the stylus is perpendicular to the surface.
+           //
+           // PointerData Documentation: tilt
+           // The angle of the stylus, in radians in the range:
+           //    0 <= tilt <= pi/2
+           // giving the angle of the axis of the stylus, relative to the axis perpendicular to the input
+           // surface (thus 0.0 indicates the stylus is orthogonal to the plane of the input surface,
+           // while pi/2 indicates that the stylus is flat on that surface).
+           //
+           // Discussion:
+           // The ranges are the same. Origins are swapped.
+           pointer_data.tilt = M_PI_2 - touch.altitudeAngle;
+
+           // iOS Documentation: azimuthAngleInView:
+           // With the tip of the stylus touching the screen, the value of this property is 0 radians
+           // when the cap end of the stylus (that is, the end opposite of the tip) points along the
+           // positive x axis of the device's screen. The azimuth angle increases as the user swings the
+           // cap end of the stylus in a clockwise direction around the tip.
+           //
+           // PointerData Documentation: orientation
+           // The angle of the stylus, in radians in the range:
+           //    -pi < orientation <= pi
+           // giving the angle of the axis of the stylus projected onto the input surface, relative to
+           // the positive y-axis of that surface (thus 0.0 indicates the stylus, if projected onto that
+           // surface, would go from the contact point vertically up in the positive y-axis direction, pi
+           // would indicate that the stylus would go down in the negative y-axis direction; pi/4 would
+           // indicate that the stylus goes up and to the right, -pi/2 would indicate that the stylus
+           // goes to the left, etc).
+           //
+           // Discussion:
+           // Sweep direction is the same. Phase of M_PI_2.
+           pointer_data.orientation = [touch azimuthAngleInView:nil] - M_PI_2;
+       }
+
+       packet->SetPointerData(pointer_index++, pointer_data);
+   }
+
+//   [_engine.get() dispatchPointerDataPacket:std::move(packet)];
+
+    auto container = OHOS::Ace::Platform::AceContainer::GetContainerInstance(_aceInstanceId);
+    if (!container) {
+        LOGE("container is null");
+        return;
+    }
+
+    auto aceView = static_cast<OHOS::Ace::Platform::FlutterAceView*>(container->GetAceView());
+    if (!aceView) {
+        LOGE("aceView is null");
+        return;
+    }
+
+    aceView->HandleTouchEvent(packet->data());
+}
 
 
 
