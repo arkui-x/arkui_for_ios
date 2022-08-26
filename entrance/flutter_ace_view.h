@@ -98,6 +98,8 @@ public:
         }
     }
 
+    void RegisterViewPositionChangeCallback(ViewPositionChangeCallback&& callback) override {}
+
     void SetPlatformResRegister(const RefPtr<PlatformResRegister>& resRegister)
     {
         resRegister_ = resRegister;
