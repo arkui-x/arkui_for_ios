@@ -16,19 +16,17 @@ import("//build/ohos.gni")
 import("//foundation/arkui/ace_engine/ace_config.gni")
 import("//foundation/arkui/ace_engine/interfaces/napi/kits/napi_lib.gni")
 
-dylib_name = "ace_ios"
-
 # Install packages
 group("ace_packages") {
   deps = [
-    ":$dylib_name",
+    ":ace_ios",
     ":create_ios_framework",
   ]
 }
 
 # combine framework and xcframework
-ohos_combine_darwin_framework("lib$dylib_name") {
-  deps = [ ":$dylib_name" ]
+ohos_combine_darwin_framework("libace_ios") {
+  deps = [ ":ace_ios" ]
 
   _export_framework_headers = [
     "$ace_root/adapter/ios/entrance/Ace.h",
@@ -48,11 +46,11 @@ foreach(module, common_napi_libs) {
 }
 
 # libace target
-ohos_shared_library(dylib_name) {
+ohos_shared_library("ace_ios") {
   ldflags = [
     "-Wl",
     "-install_name",
-    "@rpath/lib$dylib_name.framework/lib$dylib_name",
+    "@rpath/libace_ios.framework/libace_ios",
   ]
 
   deps = [ "$ace_root/build:libace_static_ios" ]
