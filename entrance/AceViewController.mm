@@ -343,7 +343,7 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch* touch) 
       return;
   }
 
-  OHOS::Ace::Platform::FlutterAceView* aceView = static_cast<OHOS::Ace::Platform::FlutterAceView*>(container->GetAceView());
+  auto aceView = static_cast<OHOS::Ace::Platform::FlutterAceView*>(container->GetAceView());
   if (!aceView) {
       LOGE("aceView is null");
       return;
