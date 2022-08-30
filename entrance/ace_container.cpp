@@ -20,6 +20,7 @@
 
 #ifdef NG_BUILD
 #include "ace_shell/shell/common/window_manager.h"
+
 #include "core/components_ng/render/adapter/flutter_window.h"
 #else
 #include "flutter/lib/ui/ui_dart_state.h"
@@ -43,10 +44,10 @@
 #include "core/common/text_field_manager.h"
 #include "core/common/watch_dog.h"
 #include "core/common/window.h"
+#include "core/components/font/flutter_font_collection.h"
 #include "core/components/theme/app_theme.h"
 #include "core/components/theme/theme_constants.h"
 #include "core/components/theme/theme_manager.h"
-#include "core/components/font/flutter_font_collection.h"
 #include "core/pipeline/base/element.h"
 #ifdef NG_BUILD
 #include "core/pipeline_ng/pipeline_context.h"
@@ -76,7 +77,7 @@ AceContainer::AceContainer(int32_t instanceId, FrontendType type) : instanceId_(
 {
     LOGI("AceContainer::AceContainer");
 #ifdef NG_BUILD
-        LOGD("AceContainer created use new pipeline");
+    LOGD("AceContainer created use new pipeline");
     SetUseNewPipeline();
 #endif
     auto flutterTaskExecutor = Referenced::MakeRefPtr<FlutterTaskExecutor>();
@@ -177,7 +178,7 @@ void AceContainer::Destroy()
             TaskExecutor::TaskType::JS);
     }
 
-    // 3. Clear the data of this container 
+    // 3. Clear the data of this container
     resRegister_.Reset();
     assetManager_.Reset();
     pipelineContext_.Reset();
@@ -236,7 +237,7 @@ void AceContainer::InitializeFrontend()
         auto jsFrontend = AceType::DynamicCast<JsFrontend>(frontend_);
 
         // TODO: set locale in ViewController when get system locale info
-        
+
         auto jsEngine = Framework::JsEngineLoader::Get().CreateJsEngine(GetInstanceId());
         jsFrontend->SetJsEngine(jsEngine);
         EngineHelper::AddEngine(instanceId_, jsEngine);
@@ -267,7 +268,8 @@ void AceContainer::InitializeFrontend()
     }
 }
 
-void AceContainer::SetLocale(const std::string& language, const std::string& countryOrRegion, const std::string& script, const std::string& keywordsAndValues)
+void AceContainer::SetLocale(const std::string& language, const std::string& countryOrRegion, const std::string& script,
+    const std::string& keywordsAndValues)
 {
     AceApplicationInfo::GetInstance().SetLocale(language, countryOrRegion, script, keywordsAndValues);
 }

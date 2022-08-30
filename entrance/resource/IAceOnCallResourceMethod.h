@@ -16,6 +16,6 @@
 #ifndef IAceOnCallResourceMethod_h
 #define IAceOnCallResourceMethod_h
 
-typedef NSString* (^IAceOnCallSyncResourceMethod)(NSDictionary * param); 
+typedef NSString* (^IAceOnCallSyncResourceMethod)(NSDictionary * param);
 
 #endif /* IAceOnCallResourceMethod_h */

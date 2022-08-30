@@ -131,10 +131,6 @@ void FlutterAceView::RegisterRotationEventCallback(RotationEventCallBack&& callb
     rotationEventCallBack_ = std::move(callback);
 }
 
-// void FlutterAceView::RegisterViewDestroyCallback(ViewDestoryCallback&& callback) {
-//    ACE_DCHECK(callback);
-//}
-
 void FlutterAceView::Launch()
 {
     LOGD("Launch shell holder");

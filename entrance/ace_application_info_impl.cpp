@@ -54,10 +54,7 @@ std::string AceApplicationInfoImpl::GetJsEngineParam(const std::string& key) con
     return value;
 }
 
-void AceApplicationInfoImpl::ChangeLocale(const std::string& language, const std::string& countryOrRegion)
-{
-    // TODO: call changeLocale callback to AceViewController
-}
+void AceApplicationInfoImpl::ChangeLocale(const std::string& language, const std::string& countryOrRegion) {}
 
 void AceApplicationInfoImpl::SetLocale(const std::string& language, const std::string& countryOrRegion,
     const std::string& script, const std::string& keywordsAndValues)

@@ -146,8 +146,8 @@ public:
     static bool RunPage(int32_t instanceId, int32_t pageId, const std::string& url, const std::string& params);
     static void SetJsFrameworkLocalPath(const char*);
 
-
-    static void SetLocale(const std::string& language, const std::string& countryOrRegion, const std::string& script, const std::string& keywordsAndValues);
+    static void SetLocale(const std::string& language, const std::string& countryOrRegion, const std::string& script,
+        const std::string& keywordsAndValues);
 
 private:
     void InitializeFrontend();
