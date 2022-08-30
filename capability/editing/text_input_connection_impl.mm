@@ -202,6 +202,7 @@ void TextInputConnectionImpl::Close(int32_t instanceId){
     LOGE("vail->iOSTxtInput::Close");
     dispatch_async(dispatch_get_main_queue(), ^{
         [[iOSTxtInputManager shareintance] clearTextInputClient];
+        [[iOSTxtInputManager shareintance] hideTextInput];
     });
 }
 
