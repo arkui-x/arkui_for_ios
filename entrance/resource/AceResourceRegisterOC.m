@@ -21,8 +21,8 @@
 
 @interface AceResourceRegisterOC () <AceResourceRegisterDelegate>
 
-@property (nonatomic, strong) NSDictionary<NSString*, AceResourcePlugin *> *pluginMap;
-@property (nonatomic, strong) NSDictionary<NSString*, IAceOnCallResourceMethod> *callMethodMap;
+@property (nonatomic, strong) NSMapTable<NSString*, AceResourcePlugin *> *pluginMap;
+@property (nonatomic, strong) NSMutableDictionary<NSString*, IAceOnCallSyncResourceMethod> *callSyncMethodMap;
 
 @end
 
@@ -30,35 +30,32 @@
 - (instancetype)initWithParent:(id<IAceOnCallEvent>)parent{
     if (self = [super init]) {
         self.parent = parent;
-        self.pluginMap = [NSDictionary new];
-        self.callMethodMap = [NSDictionary new];
+        self.pluginMap = [NSMapTable mapTableWithKeyOptions:NSMapTableCopyIn valueOptions:NSMapTableWeakMemory];
+       	self.callSyncMethodMap = [NSMutableDictionary dictionary];
  
         __weak AceResourceRegisterOC *weakSelf = self;
         self.callbackHandler = ^(NSString* eventId, NSString* param){
             __strong AceResourceRegisterOC *strongSelf = weakSelf;
-            [strongSelf.parent onEvent:eventId param:param];
+            if (strongSelf.parent) {
+                [strongSelf.parent onEvent:eventId param:param];
+            }
         };
     }
     
     return self;
 }
 
-- (void)registerCallMethod:(NSString *)methodId
-                callMethod:(IAceOnCallResourceMethod)callMethod {
-    NSMutableDictionary *callMethodMap = [[NSMutableDictionary alloc]
-                                          initWithDictionary:self.callMethodMap];
-    [callMethodMap setObject:callMethod forKey:methodId];
-    self.callMethodMap = callMethodMap.copy;
+- (void)registerSyncCallMethod:(NSString *)methodId
+                callMethod:(IAceOnCallSyncResourceMethod)callMethod {
+    [self.callSyncMethodMap setObject:callMethod forKey:methodId];
 }
 
-- (void)unregisterCallMethod:(NSString *)methodId {
-     NSMutableDictionary *callMethodMap = [[NSMutableDictionary alloc]
-                                           initWithDictionary:self.callMethodMap];
-     [callMethodMap removeObjectForKey:methodId];
-     self.callMethodMap = callMethodMap.copy;
+- (void)unregisterSyncCallMethod:(NSString *)methodId {
+     [self.callSyncMethodMap removeObjectForKey:methodId];
 }
 
-// show time
+
+
 - (void)registerPlugin:(AceResourcePlugin *)plugin{
     if (plugin == NULL) {
         return;
@@ -71,14 +68,11 @@
         }
     }
     
-    NSMutableDictionary *pluginMap = [[NSMutableDictionary alloc] initWithDictionary:self.pluginMap];
-    [pluginMap setObject:plugin forKey:plugin.tag];
-    self.pluginMap = pluginMap.copy;
     [plugin setEventCallback:self.callbackHandler];
+    [self.pluginMap setObject:plugin forKey:plugin.tag];
 }
 
 - (int64_t)createResource:(NSString *)resourceType param:(NSString *)param{
-    NSLog(@"vailcamera->RegisterOC createResource:%@", resourceType);
     AceResourcePlugin *plugin = [self.pluginMap objectForKey:resourceType];
     if (plugin) {
         __weak __typeof(&*self) weakSelf = self;
@@ -119,13 +113,13 @@
 }
 
 - (NSString *)onCallMethod:(NSString *)methodId param:(NSString *)param{
-    IAceOnCallResourceMethod resourceMethod = [self.callMethodMap objectForKey:methodId];
+    IAceOnCallSyncResourceMethod resourceMethod = [self.callSyncMethodMap objectForKey:methodId];
     if (resourceMethod) {
         return resourceMethod([self buildParamMap:param]);
     }
 
     return @"no method found";
-} 
+}
 
 - (BOOL)releaseObject:(NSString *)resourceHash {
     NSArray <NSString *> *split = [resourceHash componentsSeparatedByString:PARAM_AT];
@@ -138,4 +132,19 @@
     return NO;
 }
 
+- (BOOL)releaseObject
+{
+    NSEnumerator *plugins = [self.pluginMap objectEnumerator];
+    AceResourcePlugin *plugin;
+    while ((plugin = [plugins nextObject])) {
+        if (plugin) {
+            [plugin releaseObject];
+        }
+    }
+    return YES;
+}
+
+- (void)dealloc{
+    NSLog(@"AceResourceRegisterOC dealloc");
+}
 @end

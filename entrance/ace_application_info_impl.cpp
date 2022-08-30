@@ -31,6 +31,8 @@
 #include "base/resource/ace_res_data_struct.h"
 #include "core/common/ace_engine.h"
 
+using namespace icu;
+
 namespace OHOS::Ace::Platform {
 
 AceApplicationInfoImpl::AceApplicationInfoImpl() {}
@@ -54,7 +56,7 @@ std::string AceApplicationInfoImpl::GetJsEngineParam(const std::string& key) con
 
 void AceApplicationInfoImpl::ChangeLocale(const std::string& language, const std::string& countryOrRegion)
 {
-    icu::Locale locale(language.c_str(), countryOrRegion.c_str());
+    // TODO: call changeLocale callback to AceViewController
 }
 
 void AceApplicationInfoImpl::SetLocale(const std::string& language, const std::string& countryOrRegion,
@@ -74,7 +76,10 @@ void AceApplicationInfoImpl::SetLocale(const std::string& language, const std::s
         localeTag_.append("-" + countryOrRegion_);
     }
 
-    icu::Locale locale(language_.c_str(), countryOrRegion_.c_str());
+    Locale locale(language_.c_str(), countryOrRegion_.c_str());
+    UErrorCode status = U_ZERO_ERROR;
+    Locale::setDefault(locale, status);
+    
     isRightToLeft_ = locale.isRightToLeft();
     auto languageList = Localization::GetLanguageList(language_);
     if (languageList.size() == 1) {

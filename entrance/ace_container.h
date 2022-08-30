@@ -50,6 +50,7 @@ public:
     ~AceContainer() override = default;
     void Initialize() override;
     static void CreateContainer(int32_t instanceId, FrontendType type);
+    static void RemoveContainer(int32_t instanceId);
     static std::string GetCustomAssetPath(std::string assetPath);
     static void RequestFrame();
 
@@ -144,6 +145,9 @@ public:
 
     static bool RunPage(int32_t instanceId, int32_t pageId, const std::string& url, const std::string& params);
     static void SetJsFrameworkLocalPath(const char*);
+
+
+    static void SetLocale(const std::string& language, const std::string& countryOrRegion, const std::string& script, const std::string& keywordsAndValues);
 
 private:
     void InitializeFrontend();

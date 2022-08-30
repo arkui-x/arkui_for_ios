@@ -14,7 +14,6 @@
  */
 
 #import <Foundation/Foundation.h>
-
 #import "IAceOnCallResourceMethod.h"
 
 #ifndef AceResourceRegisterDelegate_h
@@ -24,10 +23,12 @@
 
 - (id)getObject:(NSString *)resourceType incId:(int64_t)incId;
 
-- (void)registerCallMethod:(NSString *)methodId
-                callMethod:(IAceOnCallResourceMethod)callMethod;
+// register sync method
+- (void)registerSyncCallMethod:(NSString *)methodId
+                callMethod:(IAceOnCallSyncResourceMethod)callMethod;
 
-- (void)unregisterCallMethod:(NSString *)methodId;
+// unregister sync method
+- (void)unregisterSyncCallMethod:(NSString *)methodId;
 
 @end
 
