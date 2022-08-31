@@ -343,7 +343,7 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch* touch) 
       return;
   }
 
-  OHOS::Ace::Platform::FlutterAceView* aceView = static_cast<OHOS::Ace::Platform::FlutterAceView*>(container->GetAceView());
+  auto aceView = static_cast<OHOS::Ace::Platform::FlutterAceView*>(container->GetAceView());
   if (!aceView) {
       LOGE("aceView is null");
       return;
@@ -464,16 +464,11 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch* touch) 
 }
 
 - (void)keyboardWillChangeFrame:(NSNotification*)notification {
-  NSDictionary* info = [notification userInfo];
-  CGFloat bottom = CGRectGetHeight([[info objectForKey:UIKeyboardFrameEndUserInfoKey] CGRectValue]);
-  CGFloat scale = [UIScreen mainScreen].scale;
-  _viewportMetrics.physical_view_inset_bottom = bottom * scale;
-  [self updateViewportMetrics];
+  // adjust viewport metrics for keyboard change
 }
 
 - (void)keyboardWillBeHidden:(NSNotification*)notification {
-  _viewportMetrics.physical_view_inset_bottom = 0;
-  [self updateViewportMetrics];
+  // adjust viewport metrics for keyboard change
 }
 
 #pragma mark IAceOnCallEvent
