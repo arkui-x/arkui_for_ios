@@ -183,14 +183,6 @@ void AceContainer::Destroy()
     assetManager_.Reset();
     pipelineContext_.Reset();
     aceView_ = nullptr;
-
-    // 销毁时卸载字体 by Logan --- start
-    FlutterFontCollection::GetInstance().UnloadFont();
-    // 销毁时卸载字体 by Logan --- end
-
-    if (emitterDestroyCallback_) {
-        emitterDestroyCallback_(instanceId_);
-    }
 }
 
 bool AceContainer::RunPage(int32_t instanceId, int32_t pageId, const std::string& url, const std::string& params)

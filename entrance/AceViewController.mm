@@ -83,7 +83,6 @@ int32_t CURRENT_INSTANCE_Id = 0;
     [self setupNotificationCenterObservers];
     
     [self addSwipeRecognizer];
-    [self setAssetPath:self.bundleDirectory];
     [self initAce];
     
     UIScreen *screen = [UIScreen mainScreen];
@@ -162,15 +161,12 @@ int32_t CURRENT_INSTANCE_Id = 0;
 }
 
 - (void)dealloc {
-    
-    /// 当页面全部退出时，需要手动把 resRegister 持有的对象全部释放  -- add by wuhl start
+
     [_registerOC release];
-    /// 当页面全部退出时，需要手动把 resRegister 持有的对象全部释放  -- add by wuhl start
-    
+
     [_videoResourcePlugin release];
     [_cameraResourcePlugin release];
     [_textureResourcePlugin release];
-    [_crossViewResourcePlugin release];
     
     [[NSNotificationCenter defaultCenter] removeObserver:self];
     OHOS::Ace::Platform::AceContainer::RemoveContainer(_aceInstanceId);
@@ -180,18 +176,11 @@ int32_t CURRENT_INSTANCE_Id = 0;
     [_flutterVc removeFromParentViewController];
     [_flutterVc release];
     
-    // minix_file_directory.release();
-    minix_file_directory.reset(nullptr);
-    
     [super dealloc];
 }
 
 -(void)runAcePage{
     OHOS::Ace::Platform::AceContainer::RunPage(_aceInstanceId, 1, "", "");
-}
-
-- (void)updateViewportMetrics {
-    [self.flutterVc.engine updateViewportMetrics:_viewportMetrics];
 }
 
 
@@ -356,7 +345,7 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
         return;
     }
     
-    auto aceView = container->GetAceView();
+    auto aceView = static_cast<OHOS::Ace::Platform::FlutterAceView*>(container->GetAceView());
     if (!aceView) {
         LOGE("aceView is null");
         return;
@@ -448,91 +437,6 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
 
     OHOS::Ace::Platform::AceContainer::SetLocale(languageCode, countryCode, scriptCode, "");
 }
-
-#pragma mark--- 资源加载
-- (void)setAssetPath:(NSString *)assetPath {
-    /// 初始化参数
-    UIScreen *screen = [UIScreen mainScreen];
-    CGFloat width = screen.bounds.size.width;
-    CGFloat height = screen.bounds.size.height;
-    
-    /// 先取传值的，然后本地沙盒的，最后取bundle的
-    NSString *path = nil;
-    if (assetPath.length) {
-        path = assetPath;
-    } else {
-        NSString *document_path =
-        [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory,
-                                             NSUserDomainMask, YES)
-             .firstObject stringByAppendingPathComponent:FOLDER_NAME];
-        BOOL exist =
-        [[NSFileManager defaultManager] fileExistsAtPath:document_path];
-        if (exist) {
-            path = document_path;
-        } else {
-            path = [[NSBundle bundleForClass:AceViewController.class] pathForResource:FOLDER_NAME ofType:nil];
-            if (!path && path.length == 0) {
-                path = [[NSBundle mainBundle] pathForResource:FOLDER_NAME ofType:nil];
-            }
-        }
-        if (!path) {
-            path = @"";
-        }
-    }
-    
-    std::string assetPathCStr = std::string(path.UTF8String);
-    
-    // 获取顶部状态栏高度
-    CGFloat statusBarHeight = 0;
-    if (@available(iOS 13.0, *)) {
-        UIStatusBarManager *statusBarManager = [UIApplication sharedApplication].windows.firstObject.windowScene.statusBarManager;
-        statusBarHeight = statusBarManager.statusBarFrame.size.height;
-    } else {
-        statusBarHeight = [UIApplication sharedApplication].statusBarFrame.size.height;
-    }
-    NSDictionary *infoDictionary = [[NSBundle mainBundle] infoDictionary];//获取app版本信息
-    
-    
-    self.runArgs = {
-        .assetPath = assetPathCStr,
-        .themeId = OHOS::Ace::Platform::THEME_ID_LIGHT,
-        .deviceConfig = {
-            .orientation = OHOS::Ace::DeviceOrientation::PORTRAIT,
-            .density = screen.scale,
-            .deviceType = OHOS::Ace::DeviceType::PHONE,
-            .colorMode = OHOS::Ace::ColorMode::LIGHT,
-            
-            /* 添加global.config兼容 无需提交到ArkUI -- start */
-            .platform = OHOS::Ace::DeviceOS::ios,
-            .minixVersion = "1.0",
-            .appName = [[infoDictionary objectForKey:@"CFBundleDisplayName"] UTF8String],
-            .appVersion = [[infoDictionary objectForKey:@"CFBundleShortVersionString"] UTF8String],
-            .osName = OHOS::Ace::DeviceOS::ios,
-            .osVersion = [[[UIDevice currentDevice] systemVersion] UTF8String],
-            .deviceModel = [[[UIDevice currentDevice] model] UTF8String],
-            .deviceWidth = (int64_t)width,
-            .deviceHeight = (int64_t)height,
-            .statusBarHeight = statusBarHeight,
-            .safeAreaTop = [UIApplication sharedApplication].keyWindow.safeAreaInsets.top,
-            .safeAreaBottom = [UIApplication sharedApplication].keyWindow.safeAreaInsets.bottom
-            /* 添加global.config兼容 无需提交到ArkUI -- end */
-        },
-            .url = "",
-            .windowTitle = "MINIX DEMO",
-            .isRound = false,
-            .deviceWidth = width,
-            .deviceHeight = height,
-            .viewWidth = width,
-            .viewHeight = height,
-            .language = "zh",
-            .region = "CN",
-            .script = "",
-            .configChanges = "",
-            .aceVersion = OHOS::Ace::Platform::AceVersion::ACE_1_0,
-            .formsEnabled = false,
-    };
-}
-
 
 #pragma mark IAceOnCallEvent
 - (void)onEvent:(NSString *)eventId param:(NSString *)param {
