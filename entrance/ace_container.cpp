@@ -260,12 +260,6 @@ void AceContainer::InitializeFrontend()
     }
 }
 
-void AceContainer::SetLocale(const std::string& language, const std::string& countryOrRegion, const std::string& script,
-    const std::string& keywordsAndValues)
-{
-    AceApplicationInfo::GetInstance().SetLocale(language, countryOrRegion, script, keywordsAndValues);
-}
-
 void AceContainer::InitializeCallback()
 {
     ACE_FUNCTION_TRACE();

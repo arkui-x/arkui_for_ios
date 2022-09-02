@@ -13,7 +13,6 @@
  * limitations under the License.
  */
 #import <UIKit/UIKit.h>
-#include "flutter/shell/platform/darwin/ios/framework/Headers/FlutterViewController.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -51,7 +50,6 @@ typedef NS_ENUM(NSUInteger, ACE_VERSION) {
 
 @property(nonatomic,readonly) ACE_VERSION version;
 @property(nonatomic,readonly) NSString *bundleDirectory;
-@property(retain, nonatomic, readonly) FlutterViewController* flutterVc;
 
 @end
 

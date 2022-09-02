@@ -21,6 +21,7 @@
 #import "AceVideoResourcePlugin.h"
 #import "core/common/ace_engine.h"
 
+#include "adapter/ios/entrance/ace_application_info_impl.h"
 #include "flutter/fml/memory/weak_ptr.h"
 #include "flutter/fml/platform/darwin/scoped_nsobject.h"
 #include "flutter/lib/ui/window/viewport_metrics.h"
@@ -42,7 +43,8 @@ int32_t CURRENT_INSTANCE_Id = 0;
 
 @interface AceViewController ()<IAceOnCallEvent>
 
-@property(nonatomic, retain) AceResourceRegisterOC *registerOC;
+@property (retain, nonatomic, readonly) FlutterViewController* flutterVc;
+@property (nonatomic, retain) AceResourceRegisterOC *registerOC;
 /// plugin
 @property (nonatomic, retain) AceVideoResourcePlugin *videoResourcePlugin;
 @property (nonatomic, retain) AceCameraResoucePlugin *cameraResourcePlugin;
@@ -435,7 +437,7 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
     const char* countryCode = [locale countryCode] == nullptr ? "" : [locale countryCode].UTF8String;
     const char* scriptCode = [locale scriptCode] == nullptr ? "" : [locale scriptCode].UTF8String;
 
-    OHOS::Ace::Platform::AceContainer::SetLocale(languageCode, countryCode, scriptCode, "");
+    OHOS::Ace::AceApplicationInfo::GetInstance().SetLocale(languageCode, countryCode, scriptCode, "");
 }
 
 #pragma mark IAceOnCallEvent
