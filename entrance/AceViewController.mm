@@ -19,7 +19,6 @@
 #import "AceResourceRegisterOC.h"
 #import "AceTextureResourcePlugin.h"
 #import "AceVideoResourcePlugin.h"
-#import "core/common/ace_engine.h"
 
 #include "adapter/ios/entrance/ace_application_info_impl.h"
 #include "flutter/fml/memory/weak_ptr.h"
@@ -33,6 +32,7 @@
 #include "adapter/ios/entrance/flutter_ace_view.h"
 #include "adapter/ios/entrance/capability_registry.h"
 #include "adapter/preview/entrance/ace_run_args.h"
+#include "core/common/ace_engine.h"
 #include "core/common/container.h"
 #include "core/event/mouse_event.h"
 #include "core/event/touch_event.h"
@@ -62,7 +62,6 @@ int32_t CURRENT_INSTANCE_Id = 0;
     if (self = [super init]) {
         _version = version;
         _bundleDirectory = [bundleDirectory copy];
-        // [self initAce];
     }
     return self;
 }
