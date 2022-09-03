@@ -23,7 +23,7 @@ namespace OHOS::Ace::Platform {
 
 ClipboardImpl::ClipboardImpl(const RefPtr<TaskExecutor>& taskExecutor) : Clipboard(taskExecutor) {}
 
-void ClipboardImpl::SetData(const std::string& data)
+void ClipboardImpl::SetData(const std::string& data, CopyOptions copyOption)
 {
     if (taskExecutor_) {
         taskExecutor_->PostTask([weak = AceType::WeakClaim(RawPtr(taskExecutor_)),data]{
