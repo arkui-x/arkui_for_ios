@@ -20,12 +20,12 @@
 #import "AceTextureResourcePlugin.h"
 #import "AceVideoResourcePlugin.h"
 
-#include "adapter/ios/entrance/ace_application_info_impl.h"
 #include "flutter/fml/memory/weak_ptr.h"
 #include "flutter/fml/platform/darwin/scoped_nsobject.h"
 #include "flutter/lib/ui/window/viewport_metrics.h"
 #include "flutter/shell/platform/darwin/ios/framework/Headers/FlutterViewController.h"
 
+#include "adapter/ios/entrance/ace_application_info_impl.h"
 #include "adapter/ios/capability/editing/iOSTxtInputManager.h"
 #include "adapter/ios/entrance/ace_container.h"
 #include "adapter/ios/entrance/ace_resource_register.h"
