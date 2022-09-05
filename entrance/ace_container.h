@@ -50,6 +50,7 @@ public:
     ~AceContainer() override = default;
     void Initialize() override;
     static void CreateContainer(int32_t instanceId, FrontendType type);
+    static void RemoveContainer(int32_t instanceId);
     static std::string GetCustomAssetPath(std::string assetPath);
     static void RequestFrame();
 

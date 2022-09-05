@@ -38,30 +38,30 @@
 }
 
 
- - (void)setEventCallback:(IAceOnResourceEvent)callback {
-     self.callback = callback;
- }
+- (void)setEventCallback:(IAceOnResourceEvent)callback {
+    self.callback = callback;
+}
 
 - (IAceOnResourceEvent)getEventCallback{
     return self.callback;
 }
 
-- (void)registerCallMethod:(NSDictionary<NSString *, IAceOnCallResourceMethod> *)methodMap{
-    if (self.resRegister == nil) {
+- (void)registerSyncCallMethod:(NSDictionary<NSString *, IAceOnCallSyncResourceMethod> *)methodMap{
+    if (self.resRegister == nil || methodMap == nil || methodMap.allValues.count == 0) {
         return;
     }
     
-    [methodMap enumerateKeysAndObjectsUsingBlock:^(NSString * _Nonnull key, IAceOnCallResourceMethod  _Nonnull callback, BOOL * _Nonnull stop) {
-        [self.resRegister registerCallMethod:key callMethod:callback];
+    [methodMap enumerateKeysAndObjectsUsingBlock:^(NSString * _Nonnull key, IAceOnCallSyncResourceMethod  _Nonnull callback, BOOL * _Nonnull stop) {
+        [self.resRegister registerSyncCallMethod:key callMethod:callback];
     }];
 }
 
-- (void)unregisterCallMethod:(NSString *)method{
+- (void)unregisterSyncCallMethod:(NSString *)method{
     if (self.resRegister == nil) {
         return;
     }
     
-    [self.resRegister unregisterCallMethod:method];
+    [self.resRegister unregisterSyncCallMethod:method];
 }
 
 @end

@@ -21,7 +21,7 @@
 
 
 @interface AceCameraResoucePlugin()
-@property (nonatomic, strong) NSMutableDictionary<AceCamera *, NSString*> *objectMap;
+@property (nonatomic, strong) NSMutableDictionary<NSString*, AceCamera*> *objectMap;
 @end
 
 @implementation AceCameraResoucePlugin
@@ -36,7 +36,7 @@
 
 - (void)addResource:(int64_t)incId video:(AceCamera *)camera{
     [self.objectMap setObject:camera forKey:[NSString stringWithFormat:@"%lld", incId]];
-    [self registerCallMethod:[camera getCallMethod]];
+    [self registerSyncCallMethod:[camera getSyncCallMethod]];
 }
 
 - (int64_t)create:(NSDictionary<NSString *,NSString *> *)param{
@@ -64,7 +64,7 @@
 - (BOOL)release:(NSString *)incId {
     AceCamera *camera = [self.objectMap objectForKey:incId];
     if (camera) {
-        [self unregisterCallMethod:[camera getCallMethod]];
+        [self unregisterSyncCallMethod:[camera getSyncCallMethod]];
         [camera releaseObject];
         [self.objectMap removeObjectForKey:incId];
         return YES;
@@ -73,7 +73,7 @@
 }
 
 - (void)releaseObject{
-    [self.objectMap enumerateKeysAndObjectsUsingBlock:^(AceCamera * _Nonnull camera, id  _Nonnull obj, BOOL * _Nonnull stop) {
+    [self.objectMap enumerateKeysAndObjectsUsingBlock:^(NSString*  _Nonnull key, AceCamera * _Nonnull camera, BOOL * _Nonnull stop) {
         [camera releaseObject];
     }];
     [self.objectMap removeAllObjects];

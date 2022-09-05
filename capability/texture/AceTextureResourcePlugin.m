@@ -14,16 +14,15 @@
  */
 
 #import "AceTextureResourcePlugin.h"
-
 #import "AceTexture.h"
 
 #define KEY_TEXTURE @"texture"
 
 @interface AceTextureResourcePlugin()
 
-@property (nonatomic, strong) NSMutableDictionary<AceTexture *, NSString*> *objectMap;
+@property (nonatomic, strong) NSMutableDictionary<NSString*, AceTexture*> *objectMap;
 
-@property (nonatomic, strong) NSObject<FlutterTextureRegistry> *_textures;
+@property (nonatomic, weak) NSObject<FlutterTextureRegistry> *_textures;
 @end
 
 @implementation AceTextureResourcePlugin
@@ -40,10 +39,14 @@
 
 - (int64_t)create:(NSDictionary<NSString *, NSString *> *)param{
     AceTexture *texture = [[AceTexture alloc] initWithRegister:self._textures onEvent:[self getEventCallback]];
-    int64_t textureId = [self._textures registerTexture:(NSObject<FlutterTexture> *)texture];
-    texture.incId = textureId;
-    [self.objectMap setObject:texture forKey:[NSString stringWithFormat:@"%lld", textureId]];
-    return textureId;
+    if (self._textures) {
+        int64_t textureId = [self._textures registerTexture:(NSObject<FlutterTexture> *)texture];
+        texture.incId = textureId;
+        [self.objectMap setObject:texture forKey:[NSString stringWithFormat:@"%lld", textureId]];
+        return textureId;
+    }
+    
+    return -1;
 }
 
 - (id)getObject:(NSString *)incId{
@@ -61,7 +64,7 @@
 }
 
 - (void)releaseObject{
-    [self.objectMap enumerateKeysAndObjectsUsingBlock:^(AceTexture * _Nonnull texture, id  _Nonnull obj, BOOL * _Nonnull stop) {
+    [self.objectMap enumerateKeysAndObjectsUsingBlock:^(NSString * _Nonnull key, AceTexture *_Nonnull texture, BOOL * _Nonnull stop) {
         [texture releaseObject];
     }];
     [self.objectMap removeAllObjects];

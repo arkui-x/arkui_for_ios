@@ -20,6 +20,7 @@
 
 #ifdef NG_BUILD
 #include "ace_shell/shell/common/window_manager.h"
+
 #include "core/components_ng/render/adapter/flutter_window.h"
 #else
 #include "flutter/lib/ui/ui_dart_state.h"
@@ -43,6 +44,7 @@
 #include "core/common/text_field_manager.h"
 #include "core/common/watch_dog.h"
 #include "core/common/window.h"
+#include "core/components/font/flutter_font_collection.h"
 #include "core/components/theme/app_theme.h"
 #include "core/components/theme/theme_constants.h"
 #include "core/components/theme/theme_manager.h"
@@ -75,7 +77,7 @@ AceContainer::AceContainer(int32_t instanceId, FrontendType type) : instanceId_(
 {
     LOGI("AceContainer::AceContainer");
 #ifdef NG_BUILD
-        LOGD("AceContainer created use new pipeline");
+    LOGD("AceContainer created use new pipeline");
     SetUseNewPipeline();
 #endif
     auto flutterTaskExecutor = Referenced::MakeRefPtr<FlutterTaskExecutor>();
@@ -109,6 +111,26 @@ void AceContainer::CreateContainer(int32_t instanceId, FrontendType type)
     }
 }
 
+void AceContainer::RemoveContainer(int32_t instanceId)
+{
+    auto container = AceType::DynamicCast<AceContainer>(AceEngine::Get().GetContainer(instanceId));
+    if (!container) {
+        LOGE("no this AceContainer %{public}d in AceEngine", instanceId);
+        return;
+    }
+    LOGI("DestroyContainer begin");
+    container->Destroy();
+    // Wait for the async tasks in UI/JS, then remove the container
+    auto tastExecutor = container->GetTaskExecutor();
+    if (tastExecutor) {
+        tastExecutor->PostSyncTask([] { LOGI("Wait UI thread..."); }, TaskExecutor::TaskType::UI);
+        tastExecutor->PostSyncTask([] { LOGI("Wait JS thread..."); }, TaskExecutor::TaskType::JS);
+    }
+    AceEngine::Get().RemoveContainer(instanceId);
+    AceEngine::Get().UnRegisterFromWatchDog(instanceId);
+    LOGI("DestroyContainer end");
+}
+
 void AceContainer::Initialize()
 {
     ContainerScope scope(instanceId_);
@@ -120,8 +142,47 @@ void AceContainer::Initialize()
 
 void AceContainer::Destroy()
 {
+    if (!pipelineContext_) {
+        LOGE("no context found in %{private}d container", instanceId_);
+        return;
+    }
+
+    if (!taskExecutor_) {
+        LOGE("no taskExecutor found in %{private}d container", instanceId_);
+        return;
+    }
+
     ContainerScope scope(instanceId_);
     EngineHelper::RemoveEngine(instanceId_);
+    // 1. Destroy Pipeline on UI Thread
+    auto weak = AceType::WeakClaim(AceType::RawPtr(pipelineContext_));
+    taskExecutor_->PostTask(
+        [weak, taskExecutor = taskExecutor_]() {
+            auto context = weak.Upgrade();
+            if (context == nullptr) {
+                LOGE("context is null");
+                return;
+            }
+            context->Destroy();
+        },
+        TaskExecutor::TaskType::UI);
+    // 2.Destroy Frontend on JS Thread
+    RefPtr<Frontend> frontend;
+    frontend_.Swap(frontend);
+    if (frontend) {
+        taskExecutor_->PostTask(
+            [frontend]() {
+                frontend->UpdateState(Frontend::State::ON_DESTROY);
+                frontend->Destroy();
+            },
+            TaskExecutor::TaskType::JS);
+    }
+
+    // 3. Clear the data of this container
+    resRegister_.Reset();
+    assetManager_.Reset();
+    pipelineContext_.Reset();
+    aceView_ = nullptr;
 }
 
 bool AceContainer::RunPage(int32_t instanceId, int32_t pageId, const std::string& url, const std::string& params)
@@ -168,7 +229,7 @@ void AceContainer::InitializeFrontend()
         auto jsFrontend = AceType::DynamicCast<JsFrontend>(frontend_);
 
         // TODO: set locale in ViewController when get system locale info
-        AceApplicationInfo::GetInstance().SetLocale("zh", "CN", "", "");
+
         auto jsEngine = Framework::JsEngineLoader::Get().CreateJsEngine(GetInstanceId());
         jsFrontend->SetJsEngine(jsEngine);
         EngineHelper::AddEngine(instanceId_, jsEngine);
@@ -184,7 +245,7 @@ void AceContainer::InitializeFrontend()
         auto declarativeFrontend = AceType::DynamicCast<DeclarativeFrontend>(frontend_);
 #endif
         // TODO: set locale in ViewController when get system locale info
-        AceApplicationInfo::GetInstance().SetLocale("zh", "CN", "", "");
+
         auto& loader = Framework::JsEngineLoader::GetDeclarative(nullptr);
         auto jsEngine = loader.CreateJsEngine(instanceId_);
         declarativeFrontend->SetJsEngine(jsEngine);

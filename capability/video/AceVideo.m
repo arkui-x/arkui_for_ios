@@ -14,7 +14,6 @@
  */
 
 #import "AceVideo.h"
-
 #import <AVFoundation/AVFoundation.h>
 #import <UIKit/UIKit.h>
 #import <GLKit/GLKit.h>
@@ -43,7 +42,7 @@
 @property(nonatomic, strong) NSString *url;
 @property(nonatomic, assign) float speed;
 
-@property(nonatomic, strong) NSDictionary<NSString *, IAceOnCallResourceMethod> *callMethodMap;
+@property(nonatomic, strong) NSDictionary<NSString *, IAceOnCallSyncResourceMethod> *callSyncMethodMap;
 
 
 @property (nonatomic, strong) AVPlayer *player_;
@@ -68,47 +67,52 @@
         self.isAutoPlay = false;
 
         // init callback
-        NSMutableDictionary *callMethodMap = [NSMutableDictionary dictionary];
+        NSMutableDictionary *callSyncMethodMap = [NSMutableDictionary dictionary];
         NSString *init_method_hash = [NSString stringWithFormat:@"%@%lld%@%@%@%@", VIDEO_FLAG, self.incId, METHOD, PARAM_EQUALS, @"init", PARAM_BEGIN];
-        NSLog(@"vailcamera->AceVideo init init_method_hash:%@",init_method_hash);
-        IAceOnCallResourceMethod init_callback = ^NSString *(NSDictionary * param){
+        IAceOnCallSyncResourceMethod init_callback = ^NSString *(NSDictionary * param){
             return [self initMideaPlayer:param] ? SUCCESS : FAIL;
         };
-        [callMethodMap setObject:init_callback forKey:init_method_hash];
+        [callSyncMethodMap setObject:init_callback forKey:init_method_hash];
 
 
         // start callback
-        IAceOnCallResourceMethod start_callback = ^NSString *(NSDictionary * param){
+        IAceOnCallSyncResourceMethod start_callback = ^NSString *(NSDictionary * param){
             [self startPlay];
             return SUCCESS;
         };
 
         NSString *start_method_hash = [NSString stringWithFormat:@"%@%lld%@%@%@%@", VIDEO_FLAG, self.incId, METHOD, PARAM_EQUALS, @"start", PARAM_BEGIN];
-        [callMethodMap setObject:start_callback forKey:start_method_hash];
+        [callSyncMethodMap setObject:start_callback forKey:start_method_hash];
 
 
         // pause callback
         NSString *pause_method_hash = [NSString stringWithFormat:@"%@%lld%@%@%@%@", VIDEO_FLAG, self.incId, METHOD, PARAM_EQUALS, @"pause", PARAM_BEGIN];
-        IAceOnCallResourceMethod pause_callback = ^NSString *(NSDictionary * param){
+        IAceOnCallSyncResourceMethod pause_callback = ^NSString *(NSDictionary * param){
             [self pause:true];
             return SUCCESS;
         };
-        [callMethodMap setObject:pause_callback forKey:pause_method_hash];
+        [callSyncMethodMap setObject:pause_callback forKey:pause_method_hash];
 
 
         // getposition callback
         NSString *getposition_method_hash = [NSString stringWithFormat:@"%@%lld%@%@%@%@", VIDEO_FLAG, self.incId, METHOD, PARAM_EQUALS, @"getposition", PARAM_BEGIN];
-        IAceOnCallResourceMethod getposition_callback = ^NSString *(NSDictionary * param){
+        IAceOnCallSyncResourceMethod getposition_callback = ^NSString *(NSDictionary * param){
             int64_t position = [self getPosition];
+            
+            NSString *ongetcurrenttime_method_hash = [NSString stringWithFormat:@"%@%lld%@%@%@%@", VIDEO_FLAG, self.incId, EVENT, PARAM_EQUALS, @"ongetcurrenttime", PARAM_BEGIN];
+            if (self.onEvent) {
+                self.onEvent(ongetcurrenttime_method_hash, [NSString stringWithFormat:@"currentpos=%lld", position]);
+            }
+            
             return [NSString stringWithFormat:@"%@%lld",@"currentpos=", position];
         };
         
-        [callMethodMap setObject:getposition_callback forKey:getposition_method_hash];
+        [callSyncMethodMap setObject:getposition_callback forKey:getposition_method_hash];
 
 
         // seekto callback
         NSString *seekto_method_hash = [NSString stringWithFormat:@"%@%lld%@%@%@%@", VIDEO_FLAG, self.incId, METHOD, PARAM_EQUALS, @"seekto", PARAM_BEGIN];
-        IAceOnCallResourceMethod seekto_callback = ^NSString *(NSDictionary * param){
+        IAceOnCallSyncResourceMethod seekto_callback = ^NSString *(NSDictionary * param){
             if (!param) {
                 return FAIL;
             }
@@ -118,12 +122,12 @@
             [self seekTo:time];
             return SUCCESS;
         };
-        [callMethodMap setObject:seekto_callback forKey:seekto_method_hash];
+        [callSyncMethodMap setObject:seekto_callback forKey:seekto_method_hash];
 
 
         // setvolume callback
         NSString *setvolume_method_hash = [NSString stringWithFormat:@"%@%lld%@%@%@%@", VIDEO_FLAG, self.incId, METHOD, PARAM_EQUALS, @"setvolume", PARAM_BEGIN];
-        IAceOnCallResourceMethod setvolume_callback = ^NSString *(NSDictionary * param){
+        IAceOnCallSyncResourceMethod setvolume_callback = ^NSString *(NSDictionary * param){
             if (!param) {
                 return FAIL;
             }
@@ -132,12 +136,12 @@
             [self setVolume:volumn];
             return SUCCESS;
         };
-        [callMethodMap setObject:setvolume_callback forKey:setvolume_method_hash];
+        [callSyncMethodMap setObject:setvolume_callback forKey:setvolume_method_hash];
 
 
         // enablelooping callback
         NSString *enablelooping_method_hash = [NSString stringWithFormat:@"%@%lld%@%@%@%@", VIDEO_FLAG, self.incId, METHOD, PARAM_EQUALS, @"enablelooping", PARAM_BEGIN];
-        IAceOnCallResourceMethod enablelooping_callback = ^NSString *(NSDictionary * param){
+        IAceOnCallSyncResourceMethod enablelooping_callback = ^NSString *(NSDictionary * param){
             if (!param) {
                 return FAIL;
             }
@@ -146,12 +150,12 @@
             [self enableLooping:loop];
             return SUCCESS;
         };
-        [callMethodMap setObject:enablelooping_callback forKey:enablelooping_method_hash];
+        [callSyncMethodMap setObject:enablelooping_callback forKey:enablelooping_method_hash];
 
 
         // setspeed callback
         NSString *setspeed_method_hash = [NSString stringWithFormat:@"%@%lld%@%@%@%@", VIDEO_FLAG, self.incId, METHOD, PARAM_EQUALS, @"setspeed", PARAM_BEGIN];
-        IAceOnCallResourceMethod setspeed_callback = ^NSString *(NSDictionary * param){
+        IAceOnCallSyncResourceMethod setspeed_callback = ^NSString *(NSDictionary * param){
             if (!param) {
                 return FAIL;
             }
@@ -160,33 +164,41 @@
             self.speed = speed;
             return SUCCESS;
         };
-        [callMethodMap setObject:setspeed_callback forKey:setspeed_method_hash];
+        [callSyncMethodMap setObject:setspeed_callback forKey:setspeed_method_hash];
 
 
         // setdirection callback
         NSString *setdirection_method_hash = [NSString stringWithFormat:@"%@%lld%@%@%@%@", VIDEO_FLAG, self.incId, METHOD, PARAM_EQUALS, @"setdirection", PARAM_BEGIN];
-        IAceOnCallResourceMethod setdirection_callback = ^NSString *(NSDictionary * param){
+        IAceOnCallSyncResourceMethod setdirection_callback = ^NSString *(NSDictionary * param){
             return SUCCESS;
         };
-        [callMethodMap setObject:setdirection_callback forKey:setdirection_method_hash];
+        [callSyncMethodMap setObject:setdirection_callback forKey:setdirection_method_hash];
 
 
         // start callback
         NSString *setlandscape_method_hash = [NSString stringWithFormat:@"%@%lld%@%@%@%@", VIDEO_FLAG, self.incId, METHOD, PARAM_EQUALS, @"setlandscape", PARAM_BEGIN];
-        IAceOnCallResourceMethod setlandscape_callback = ^NSString *(NSDictionary * param){
+        IAceOnCallSyncResourceMethod setlandscape_callback = ^NSString *(NSDictionary * param){
             return SUCCESS;
         };
-        [callMethodMap setObject:setlandscape_callback forKey:setlandscape_method_hash];
+        [callSyncMethodMap setObject:setlandscape_callback forKey:setlandscape_method_hash];
 
         
-        self.callMethodMap = callMethodMap.copy;
+        self.callSyncMethodMap = callSyncMethodMap.copy;
     }
     
     return self;
 }
 
-- (NSDictionary<NSString *, IAceOnCallResourceMethod> *)getCallMethod{
-    return self.callMethodMap;
+- (NSDictionary<NSString *, IAceOnCallSyncResourceMethod> *)getSyncCallMethod{
+    return self.callSyncMethodMap;
+}
+
+- (void)dealloc
+{
+    if (_displayLink) {
+        _displayLink.paused = YES;
+        _displayLink = nil;
+    }
 }
 
 - (void)releaseObject{
@@ -195,6 +207,7 @@
     self.displayLink = nil;
     [self.player_ pause];
     self.player_ = nil;
+    self.callSyncMethodMap = nil;
 }
 
 
@@ -338,8 +351,9 @@
                 int isPlaying = (self.player_.timeControlStatus == AVPlayerTimeControlStatusPlaying || self.isAutoPlay) ? 1 : 0;
                 NSString *param = [NSString stringWithFormat:@"width=%f&height=%f&duration=%lld&isplaying=%d&needRefreshForce=%d", width, height, duration, isPlaying, 1];
                 NSString *prepared_method_hash = [NSString stringWithFormat:@"%@%lld%@%@%@%@", VIDEO_FLAG, self.incId, EVENT, PARAM_EQUALS, @"prepared", PARAM_BEGIN];
-                
-                self.onEvent(prepared_method_hash, param);
+                if (self.onEvent) {
+                    self.onEvent(prepared_method_hash, param);
+                }
             }
             break;
             default:

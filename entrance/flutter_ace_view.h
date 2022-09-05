@@ -32,7 +32,7 @@ using ReleaseCallback = std::function<void()>;
 class FlutterAceView : public AceView, public Referenced {
 public:
     explicit FlutterAceView(int32_t instanceId) : instanceId_(instanceId) {}
-    ~FlutterAceView() override = default;
+    ~FlutterAceView() override;
 
     void RegisterTouchEventCallback(TouchEventCallback&& callback) override;
     void RegisterDragEventCallback(DragEventCallBack&& callback) override;
@@ -153,6 +153,11 @@ public:
         return AceView::ViewType::SURFACE_VIEW;
     }
 
+    bool IsViewLaunched()
+    {
+        return viewLaunched_;
+    }
+
     std::unique_ptr<DrawDelegate> GetDrawDelegate() override;
     std::unique_ptr<PlatformWindow> GetPlatformWindow() override;
     const void* GetNativeWindowById(uint64_t textureId) override;
@@ -175,6 +180,7 @@ private:
     DragEventCallBack dragEventCallback_;
     KeyEventCallback keyEventCallback_;
     KeyEventRecognizer keyEventRecognizer_;
+    bool viewLaunched_ = false;
 
     ACE_DISALLOW_COPY_AND_MOVE(FlutterAceView);
 };
