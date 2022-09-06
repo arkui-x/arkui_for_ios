@@ -49,6 +49,8 @@ template("ace_osal_ios_source_set") {
 
     deps = [ "//third_party/curl:curl" ]
 
+    deps += [ "$ace_root/frameworks/core/components/theme:build_theme_code" ]
+
     configs = [ "$ace_root:ace_config" ]
   }
 }
