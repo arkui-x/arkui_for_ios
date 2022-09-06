@@ -29,18 +29,17 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface AceResourceRegisterOC : NSObject
 
-@property (nonatomic, assign) id<IAceOnCallEvent> parent;
+@property (nonatomic, weak) id<IAceOnCallEvent> parent;
 @property (nonatomic, strong) IAceOnResourceEvent callbackHandler;
 
 - (instancetype)initWithParent:(id<IAceOnCallEvent>)parent;
 
-- (void)registerCallMethod:(NSString *)methodId
-                callMethod:(IAceOnCallResourceMethod)callMethod;
+- (void)registerSyncCallMethod:(NSString *)methodId
+                callMethod:(IAceOnCallSyncResourceMethod)callMethod;
 
-- (void)unregisterCallMethod:(NSString *)methodId;
+- (void)unregisterSyncCallMethod:(NSString *)methodId;
 
 
-// show time
 - (void)registerPlugin:(AceResourcePlugin *)plugin;
 
 - (int64_t)createResource:(NSString *)resourceType
@@ -53,6 +52,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (NSString *)onCallMethod:(NSString *)methodId param:(NSString *)param;
 
 - (BOOL)releaseObject:(NSString *)resourceHash;
+
+- (BOOL)releaseObject;
 
 @end
 

@@ -56,10 +56,11 @@ void ConvertTouchEvent(const std::vector<uint8_t>& data, std::vector<TouchEvent>
     while (current < end) {
         std::chrono::microseconds micros(current->time_stamp);
         TimeStamp time(micros);
-        TouchEvent point { static_cast<int32_t>(DEFAULT_ACTION_ID), static_cast<float>(current->physical_x),
+        TouchEvent point { static_cast<int32_t>(current->device), static_cast<float>(current->physical_x),
             static_cast<float>(current->physical_y), static_cast<float>(current->physical_x),
             static_cast<float>(current->physical_y), TouchType::UNKNOWN, time, current->size,
             static_cast<float>(current->pressure), static_cast<int64_t>(current->device) };
+        point.sourceType = SourceType::TOUCH;
         point.pointers.emplace_back(ConvertTouchPoint(current));
         switch (current->change) {
             case flutter::PointerData::Change::kCancel:
@@ -88,6 +89,11 @@ void ConvertTouchEvent(const std::vector<uint8_t>& data, std::vector<TouchEvent>
 }
 
 } // namespace
+
+FlutterAceView::~FlutterAceView()
+{
+    idleCallback_ = nullptr;
+}
 
 void FlutterAceView::RegisterTouchEventCallback(TouchEventCallback&& callback)
 {
@@ -125,11 +131,13 @@ void FlutterAceView::RegisterRotationEventCallback(RotationEventCallBack&& callb
     rotationEventCallBack_ = std::move(callback);
 }
 
-// void FlutterAceView::RegisterViewDestroyCallback(ViewDestoryCallback&& callback) {
-//    ACE_DCHECK(callback);
-//}
-
-void FlutterAceView::Launch() {}
+void FlutterAceView::Launch()
+{
+    LOGD("Launch shell holder");
+    if (!viewLaunched_) {
+        viewLaunched_ = true;
+    }
+}
 
 bool FlutterAceView::Dump(const std::vector<std::string>& params)
 {

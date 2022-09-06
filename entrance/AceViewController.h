@@ -23,6 +23,10 @@ typedef NS_ENUM(NSUInteger, ACE_VERSION) {
 
 @interface AceViewController : UIViewController
 
+- (instancetype)init NS_UNAVAILABLE;
+- (instancetype)initWithCoder:(NSCoder *)coder NS_UNAVAILABLE;
+- (instancetype)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil NS_UNAVAILABLE;
+
 /**
  * Initializes this AceViewController with the specified JS bundle directory.
  *
@@ -30,7 +34,7 @@ typedef NS_ENUM(NSUInteger, ACE_VERSION) {
  * @param bundleDirectory js bundle directory.
  */
 -(instancetype)initWithVersion:(ACE_VERSION)version
-               bundleDirectory:(nonnull NSString*)bundleDirectory;
+               bundleDirectory:(nonnull NSString*)bundleDirectory NS_DESIGNATED_INITIALIZER;
 
 /**
  * Initializes this AceViewController with the specified instance name.
@@ -42,8 +46,7 @@ typedef NS_ENUM(NSUInteger, ACE_VERSION) {
  * @param instanceName instance name.
  */
 -(instancetype)initWithVersion:(ACE_VERSION)version
-                  instanceName:(nonnull NSString*)instanceName;
-
+                  instanceName:(nonnull NSString*)instanceName NS_DESIGNATED_INITIALIZER;
 
 @property(nonatomic,readonly) ACE_VERSION version;
 @property(nonatomic,readonly) NSString *bundleDirectory;

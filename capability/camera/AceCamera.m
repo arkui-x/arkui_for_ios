@@ -30,9 +30,9 @@
 
 @interface AceCamera()<AceTextureDelegate>
 
-@property(nonatomic, assign) int64_t incId;
+@property (nonatomic, assign) int64_t incId;
 @property (nonatomic, strong) AceTexture *renderTexture;
-@property(nonatomic, strong) NSDictionary<NSString *, IAceOnCallResourceMethod> *callMethodMap;
+@property (nonatomic, strong) NSDictionary<NSString *, IAceOnCallSyncResourceMethod> *callSyncMethodMap;
 @property(nonatomic, copy) IAceOnResourceEvent onEvent;
 
 #pragma mark - AvCaptureSession
@@ -54,34 +54,34 @@ FourCharCode const videoFormat = kCVPixelFormatType_32BGRA;
         self.incId = incId;
         self.onEvent = callback;
         self.renderTexture = texture;
-        self.callMethodMap = [NSMutableDictionary dictionary];
+        self.callSyncMethodMap = [NSMutableDictionary dictionary];
         self.renderTexture.delegate = self;
         
         // init callback
-        NSMutableDictionary *callMethodMap = [NSMutableDictionary dictionary];
+        NSMutableDictionary *callSyncMethodMap = [NSMutableDictionary dictionary];
         NSString *init_method_hash = [NSString stringWithFormat:@"%@%lld%@%@%@%@", CAMERA_FLAG, self.incId, METHOD, PARAM_EQUALS, @"openCamera", PARAM_BEGIN];
-        IAceOnCallResourceMethod init_callback = ^NSString *(NSDictionary * param){
+        IAceOnCallSyncResourceMethod init_callback = ^NSString *(NSDictionary * param){
             NSLog(@"vailcamera->AceCamera init->openCamera %@", param);
             [self setupCapture];
             return SUCCESS;
         };
-        [callMethodMap setObject:init_callback forKey:init_method_hash];
+        [callSyncMethodMap setObject:init_callback forKey:init_method_hash];
         
         // setPreViewSize callback
         NSString *previewsize_method_hash = [NSString stringWithFormat:@"%@%lld%@%@%@%@", CAMERA_FLAG, self.incId, METHOD, PARAM_EQUALS, @"setPreViewSize", PARAM_BEGIN];
-        IAceOnCallResourceMethod previewsize_callback = ^NSString *(NSDictionary * param){
+        IAceOnCallSyncResourceMethod previewsize_callback = ^NSString *(NSDictionary * param){
             NSString *restr = [NSString stringWithFormat:@"preViewSizeWidth=%fpreViewSizeHeight=%f",_previewSize.width,_previewSize.height];
             NSLog(@"vailcamera->AceCamera setPreViewSize->restr %@",restr);
             return restr;
         };
-        [callMethodMap setObject:previewsize_callback forKey:previewsize_method_hash];
-        self.callMethodMap = [callMethodMap copy];
+        [callSyncMethodMap setObject:previewsize_callback forKey:previewsize_method_hash];
+        self.callSyncMethodMap = [callSyncMethodMap copy];
     }
     return self;
 }
 
-- (NSDictionary<NSString *, IAceOnCallResourceMethod> *)getCallMethod{
-    return self.callMethodMap;
+- (NSDictionary<NSString *, IAceOnCallSyncResourceMethod> *)getSyncCallMethod{
+    return self.callSyncMethodMap;
 }
 
 - (void)releaseObject{

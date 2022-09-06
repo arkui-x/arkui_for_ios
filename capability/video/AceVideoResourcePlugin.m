@@ -14,14 +14,14 @@
  */
 
 #import "AceVideoResourcePlugin.h"
-
+#include "AceVideo.h"
 #import  "AceTexture.h"
 
 #define KEY_TEXTURE @"texture"
 
 @interface AceVideoResourcePlugin()
 
-@property (nonatomic, strong) NSMutableDictionary<AceVideo *, NSString*> *objectMap;
+@property (nonatomic, strong) NSMutableDictionary<NSString*, AceVideo*> *objectMap;
 
 @end
 
@@ -39,7 +39,7 @@
 
 - (void)addResource:(int64_t)incId video:(AceVideo *)video{
     [self.objectMap setObject:video forKey:[NSString stringWithFormat:@"%lld", incId]];
-    [self registerCallMethod:[video getCallMethod]];
+    [self registerSyncCallMethod:[video getSyncCallMethod]];
 }
 
 - (int64_t)create:(NSDictionary<NSString *,NSString *> *)param{
@@ -68,7 +68,7 @@
 - (BOOL)release:(NSString *)incId {
     AceVideo *video = [self.objectMap objectForKey:incId];
     if (video) {
-        [self unregisterCallMethod:[video getCallMethod]];
+        [self unregisterSyncCallMethod:[video getSyncCallMethod]];
         [video releaseObject];
         [self.objectMap removeObjectForKey:incId];
         return YES;
@@ -77,7 +77,7 @@
 }
 
 - (void)releaseObject{
-    [self.objectMap enumerateKeysAndObjectsUsingBlock:^(AceVideo * _Nonnull video, id  _Nonnull obj, BOOL * _Nonnull stop) {
+    [self.objectMap enumerateKeysAndObjectsUsingBlock:^(NSString * _Nonnull key, AceVideo * _Nonnull video, BOOL * _Nonnull stop) {
         [video releaseObject];
     }];
     [self.objectMap removeAllObjects];

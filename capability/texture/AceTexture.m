@@ -58,14 +58,21 @@
 }
 
 - (void)releaseObject{
-    [self.textures_ unregisterTexture:self.incId];
+    if (self.textures_) {
+        [self.textures_ unregisterTexture:self.incId];
+    }
+    
     self.textureRef = nil;
 }
 
 - (void)markTextureFrameAvailable{
-    NSString *param = @"";
-    NSString *prepared_method_hash = [NSString stringWithFormat:@"%@%lld%@%@%@%@", TEXTURE_FLAG, self.incId, EVENT, PARAM_EQUALS, @"markTextureFrameAvailable", PARAM_BEGIN];
-    self.onEvent(prepared_method_hash, param);
+    
+    if (self.onEvent) {
+        NSString *param = @"";
+        NSString *prepared_method_hash = [NSString stringWithFormat:@"%@%lld%@%@%@%@", TEXTURE_FLAG, self.incId, EVENT, PARAM_EQUALS, @"markTextureFrameAvailable", PARAM_BEGIN];
+        self.onEvent(prepared_method_hash, param);
+    }
+    
     [self.textures_ textureFrameAvailable:self.incId];
 }
 

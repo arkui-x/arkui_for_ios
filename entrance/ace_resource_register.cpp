@@ -31,7 +31,6 @@ namespace OHOS::Ace::Platform {
 
 AceResourceRegister::AceResourceRegister(void* object) : client_(object)
 {
-    CallOCMethod(client_);
 }
 
 bool AceResourceRegister::OnMethodCall(const std::string& method, const std::string& param, std::string& result)
