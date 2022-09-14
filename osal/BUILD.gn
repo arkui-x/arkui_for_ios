@@ -29,6 +29,7 @@ template("ace_osal_ios_source_set") {
       "frame_report.cpp",
       "ios_trace.cpp",
       "log_wrapper.cpp",
+      "mouse_style_ios.cpp",
       "pixel_map_ios.cpp",
       "resource_adapter_impl.cpp",
       "response_data.cpp",
