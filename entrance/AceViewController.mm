@@ -408,7 +408,16 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
                selector:@selector(onLocaleUpdated:)
                    name:NSCurrentLocaleDidChangeNotification
                  object:nil];
-    
+
+    [center addObserver:self
+               selector:@selector(keyboardWillChangeFrame:)
+                   name:UIKeyboardWillChangeFrameNotification
+                 object:nil];
+
+    [center addObserver:self
+               selector:@selector(keyboardWillBeHidden:)
+                   name:UIKeyboardWillHideNotification
+                 object:nil];           
 }
 
 #pragma mark - Application lifecycle notifications
@@ -427,6 +436,36 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
 
 - (void)applicationWillEnterForeground:(NSNotification *)notification {
     OHOS::Ace::Platform::AceContainer::OnShow(_aceInstanceId);
+}
+
+- (void)keyboardWillChangeFrame:(NSNotification*)notification{
+    NSDictionary* info = [notification userInfo];
+    CGFloat keyboardY = [info[UIKeyboardFrameEndUserInfoKey] CGRectValue].origin.y;
+
+    CGRect screenRect = [[UIScreen mainScreen] bounds];
+    CGFloat screenHeight = screenRect.size.height;
+    CGFloat scale = [UIScreen mainScreen].scale;
+
+    double duration = [info[UIKeyboardAnimationDurationUserInfoKey] doubleValue];
+    bool isEts = [iOSTxtInputManager shareintance].isDeclarative;
+    CGFloat inputBoxHeight = [iOSTxtInputManager shareintance].inputBoxY -
+                             [iOSTxtInputManager shareintance].inputBoxTopY;
+    CGFloat ty = keyboardY - [iOSTxtInputManager shareintance].inputBoxTopY -inputBoxHeight;
+    if (isEts) {
+        ty = keyboardY - inputBoxHeight - [iOSTxtInputManager shareintance].inputBoxTopY/scale;
+    }
+    [UIView animateWithDuration:duration animations:^{
+        if (ty < 0) {
+            self.view.transform = CGAffineTransformMakeTranslation(0, ty);
+        }
+    }];
+}
+
+- (void)keyboardWillBeHidden:(NSNotification*)notification{
+    double duration = [notification.userInfo[UIKeyboardAnimationDurationUserInfoKey] doubleValue];
+    [UIView animateWithDuration:duration animations:^{
+        self.view.transform = CGAffineTransformMakeTranslation(0, 0);
+    }];
 }
 
 - (void)onLocaleUpdated:(NSNotification*)notification {
