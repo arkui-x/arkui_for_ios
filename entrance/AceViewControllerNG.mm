@@ -95,6 +95,7 @@ NSString * ASSER_PATH  = @"js";
     [super viewWillAppear:animated];
     if (_hasLaunch == NO) {
         [self updateViewSizeChanged];
+        [self onLocaleUpdated:nil];
         OHOS::Ace::Platform::AceContainer::SetView(_aceView, _viewportMetrics.device_pixel_ratio,
                                                    _viewportMetrics.physical_width, _viewportMetrics.physical_height);
         [self runAcePage];
@@ -109,9 +110,7 @@ NSString * ASSER_PATH  = @"js";
 }
 
 - (void)dealloc {
-//#ifndef NG_BUILD
   [_engine.get() notifyViewControllerDeallocated];
-//#endif
   [[NSNotificationCenter defaultCenter] removeObserver:self];
   [super dealloc];
 }
@@ -222,6 +221,16 @@ NSString * ASSER_PATH  = @"js";
     [self updateViewportMetrics];
 }
 
+- (void)onLocaleUpdated:(NSNotification*)notification {
+
+    NSLocale *locale = [NSLocale currentLocale];
+    const char* languageCode = [locale languageCode] == nullptr ? "" : [locale languageCode].UTF8String;
+    const char* countryCode = [locale countryCode] == nullptr ? "" : [locale countryCode].UTF8String;
+    const char* scriptCode = [locale scriptCode] == nullptr ? "" : [locale scriptCode].UTF8String;
+
+    OHOS::Ace::AceApplicationInfo::GetInstance().SetLocale(languageCode, countryCode, scriptCode, "");
+}
+
 #pragma mark - Touches and gestures
 - (void)addSwipeRecognizer {
     UISwipeGestureRecognizer *recognizer = [[UISwipeGestureRecognizer alloc] initWithTarget:self action:@selector(handleSwipeFrom:)];
@@ -280,6 +289,10 @@ NSString * ASSER_PATH  = @"js";
     [center addObserver:self
                selector:@selector(keyboardWillBeHidden:)
                    name:UIKeyboardWillHideNotification
+                 object:nil];
+    [center addObserver:self
+               selector:@selector(onLocaleUpdated:)
+                   name:NSCurrentLocaleDidChangeNotification
                  object:nil];
 }
 
