@@ -15,6 +15,7 @@ import("//build/config/ios/rules.gni")
 import("//build/ohos.gni")
 import("//foundation/arkui/ace_engine/ace_config.gni")
 import("//foundation/arkui/ace_engine/interfaces/napi/kits/napi_lib.gni")
+import("//plugins/plugin_lib.gni")
 
 # Install packages
 group("ace_packages") {
@@ -45,6 +46,16 @@ foreach(module, common_napi_libs) {
       [ "$ace_root/interfaces/napi/kits/$module:${module}_static_ios" ]
 }
 
+common_plugin_modules = []
+
+foreach(module, common_plugin_libs) {
+  plugin_lib(module) {
+    platform = "ios"
+  }
+  module_name = string_replace(module, "_", "")
+  common_plugin_modules += [ ":$module_name" ]
+}
+
 # libace target
 ohos_shared_library("ace_ios") {
   ldflags = [
@@ -55,6 +66,7 @@ ohos_shared_library("ace_ios") {
 
   deps = [ "$ace_root/build:libace_static_ios" ]
   deps += common_napi_modules
+  deps += common_plugin_modules
 
   cflags_cc = [
     "-Wall",
