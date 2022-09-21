@@ -433,21 +433,78 @@ void AceContainer::AddAssetPath(
     }
 }
 
-void AceContainer::SetResourcesPathAndThemeStyle(int32_t instanceId, const std::string& systemResourcesPath,
-    const std::string& appResourcesPath, const int32_t& themeId, const ColorMode& colorMode)
+void AceContainer::UpdateColorMode(ColorMode colorMode)
 {
-    auto container = AceType::DynamicCast<AceContainer>(AceEngine::Get().GetContainer(instanceId));
-    if (!container) {
+    auto resConfig = resourceInfo_.GetResourceConfiguration();
+    ContainerScope scope(instanceId_);
+    SystemProperties::SetColorMode(colorMode);
+    if (resConfig.GetColorMode() == colorMode) {
         return;
     }
-    ContainerScope scope(instanceId);
-    auto resConfig = container->resourceInfo_.GetResourceConfiguration();
-    resConfig.SetColorMode(static_cast<OHOS::Ace::ColorMode>(colorMode));
-    container->resourceInfo_.SetResourceConfiguration(resConfig);
-    container->resourceInfo_.SetPackagePath(appResourcesPath);
-    container->resourceInfo_.SetThemeId(themeId);
+    resConfig.SetColorMode(colorMode);
+    resourceInfo_.SetResourceConfiguration(resConfig);
+    if (!pipelineContext_) {
+        return;
+    }
+    auto themeManager = pipelineContext_->GetThemeManager();
+    if (!themeManager) {
+        return;
+    }
+    themeManager->UpdateConfig(resConfig);
+    taskExecutor_->PostTask(
+        [weakThemeManager = WeakPtr<ThemeManager>(themeManager), colorScheme = colorScheme_,
+            weakContext = WeakPtr<PipelineBase>(pipelineContext_)]() {
+            auto themeManager = weakThemeManager.Upgrade();
+            auto context = weakContext.Upgrade();
+            if (!themeManager || !context) {
+                return;
+            }
+            themeManager->LoadResourceThemes();
+            themeManager->ParseSystemTheme();
+            themeManager->SetColorScheme(colorScheme);
+            context->RefreshRootBgColor();
+        },
+        TaskExecutor::TaskType::UI);
+    if (frontend_) {
+        frontend_->SetColorMode(colorMode);
+        frontend_->RebuildAllPages();
+    }
 }
 
+void AceContainer::initResourceManager(std::string pkgPath, int32_t themeId)
+{
+    SetThemeResourceInfo(pkgPath, themeId);
+}
+
+void AceContainer::SetThemeResourceInfo(const std::string& path, int32_t themeId)
+{
+    ACE_FUNCTION_TRACE();
+    ContainerScope scope(instanceId_);
+    resourceInfo_.SetThemeId(themeId);
+    resourceInfo_.SetPackagePath(path);
+    ThemeConstants::InitDeviceType();
+    themeManager_ = AceType::MakeRefPtr<ThemeManager>();
+    if (themeManager_) {
+        // init resource, load theme map , do not parse yet
+        themeManager_->InitResource(resourceInfo_);
+        themeManager_->LoadSystemTheme(resourceInfo_.GetThemeId());
+        auto weakTheme = AceType::WeakClaim(AceType::RawPtr(themeManager_));
+        themeLatch_ = std::make_shared<fml::ManualResetWaitableEvent>();
+        taskExecutor_->PostTask(
+            [weakTheme, latch = themeLatch_]() {
+                ACE_SCOPED_TRACE("ParseSystemTheme");
+                auto themeManager = weakTheme.Upgrade();
+                if (themeManager == nullptr) {
+                    LOGE("themeManager is null");
+                    latch->Signal();
+                    return;
+                }
+                themeManager->ParseSystemTheme();
+                latch->Signal();
+            },
+            TaskExecutor::TaskType::BACKGROUND);
+    }
+}
 void AceContainer::SetView(FlutterAceView* view, double density, int32_t width, int32_t height)
 {
     if (view == nullptr) {
@@ -467,9 +524,41 @@ void AceContainer::SetView(FlutterAceView* view, double density, int32_t width, 
         LOGE("Create PlatformWindow failed!");
         return;
     }
+    
+    if (view && view->IsViewLaunched()) {
+        LOGW("aceView has launched");
+        return;
+    }
+
     std::unique_ptr<Window> window = std::make_unique<Window>(std::move(platformWindow));
 #endif
     container->AttachView(std::move(window), view, density, width, height);
+}
+
+void AceContainer::InitThemeManager()
+{
+    LOGI("Init theme manager");
+    ContainerScope scope(instanceId_);
+    // only init global resource here
+    if (pipelineContext_ && !pipelineContext_->GetThemeManager() && themeManager_) {
+        pipelineContext_->SetThemeManager(themeManager_);
+        auto weakTheme = AceType::WeakClaim(AceType::RawPtr(themeManager_));
+        auto weakAsset = AceType::WeakClaim(AceType::RawPtr(assetManager_));
+        taskExecutor_->PostTask(
+            [weakTheme, weakAsset, colorScheme = colorScheme_, aceView = aceView_, latch = themeLatch_]() {
+                auto themeManager = weakTheme.Upgrade();
+                if (themeManager == nullptr || aceView == nullptr) {
+                    LOGE("themeManager or aceView is null");
+                    return;
+                }
+                latch->Wait();
+                themeManager->SetColorScheme(colorScheme);
+                themeManager->LoadCustomTheme(weakAsset.Upgrade());
+                // get background color
+                aceView->SetBackgroundColor(themeManager->GetBackgroundColor());
+            },
+            TaskExecutor::TaskType::UI);
+    }
 }
 
 void AceContainer::AttachView(

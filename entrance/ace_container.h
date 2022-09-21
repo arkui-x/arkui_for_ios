@@ -32,6 +32,8 @@
 #include "core/common/platform_bridge.h"
 #include "frameworks/bridge/js_frontend/engine/common/js_engine.h"
 
+#include "flutter/fml/synchronization/waitable_event.h"
+
 namespace OHOS::Ace::Platform {
 
 namespace {
@@ -44,8 +46,6 @@ class AceContainer : public Container, public JsMessageDispatcher {
 public:
     AceContainer(int32_t instanceId, FrontendType type);
     static void AddAssetPath(int32_t instanceId, const std::string& packagePath, const std::vector<std::string>& paths);
-    static void SetResourcesPathAndThemeStyle(int32_t instanceId, const std::string& systemResourcesPath,
-        const std::string& appResourcesPath, const int32_t& themeId, const ColorMode& colorMode);
     static void SetView(FlutterAceView* view, double density, int32_t width, int32_t height);
     ~AceContainer() override = default;
     void Initialize() override;
@@ -55,6 +55,8 @@ public:
     static void RequestFrame();
 
     static RefPtr<AceContainer> GetContainerInstance(int32_t instanceId);
+
+    void UpdateColorMode(ColorMode colorMode);
 
     int32_t GetInstanceId() const override
     {
@@ -145,10 +147,13 @@ public:
 
     static bool RunPage(int32_t instanceId, int32_t pageId, const std::string& url, const std::string& params);
     static void SetJsFrameworkLocalPath(const char*);
+    void initResourceManager(std::string pkgPath, int32_t themeId);
 
 private:
     void InitializeFrontend();
     void InitializeCallback();
+    void SetThemeResourceInfo(const std::string& path, int32_t themeId);
+    void InitThemeManager();
     void AttachView(
         std::unique_ptr<Window> window, FlutterAceView* view, double density, int32_t width, int32_t height);
 
@@ -163,6 +168,8 @@ private:
     ColorScheme colorScheme_ { ColorScheme::SCHEME_LIGHT };
     ResourceInfo resourceInfo_;
     static std::once_flag onceFlag_;
+    RefPtr<ThemeManager> themeManager_;
+    std::shared_ptr<fml::ManualResetWaitableEvent> themeLatch_;
     ACE_DISALLOW_COPY_AND_MOVE(AceContainer);
 };
 
