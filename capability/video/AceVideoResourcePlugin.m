@@ -14,23 +14,25 @@
  */
 
 #import "AceVideoResourcePlugin.h"
-#include "AceVideo.h"
-#import  "AceTexture.h"
+#import "AceVideo.h"
+#import "AceTexture.h"
 
 #define KEY_TEXTURE @"texture"
 
 @interface AceVideoResourcePlugin()
 
 @property (nonatomic, strong) NSMutableDictionary<NSString*, AceVideo*> *objectMap;
+@property (nonatomic, weak) NSString* bundleDirectory;
 
 @end
 
 @implementation AceVideoResourcePlugin
 
-- (instancetype)init{
+- (instancetype)initWithBundleDirectory:(NSString *)bundleDirectory{
     self = [super init:@"video" version:1];
 
     if (self) {
+        self.bundleDirectory = bundleDirectory;
         self.objectMap = [NSMutableDictionary dictionary];
     }
 
@@ -55,7 +57,7 @@
  
     int64_t incId = [self getAtomicId];
     AceTexture *texture = (AceTexture*)obj;
-    AceVideo *aceVide = [[AceVideo alloc] init:incId onEvent:[self getEventCallback] texture:texture]; 
+    AceVideo *aceVide = [[AceVideo alloc] init:incId bundleDirectory:self.bundleDirectory onEvent:[self getEventCallback] texture:texture]; 
     [self addResource:incId video:aceVide];
     
     return incId;
