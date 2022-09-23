@@ -21,6 +21,8 @@
 NS_ASSUME_NONNULL_BEGIN
 
 @interface AceVideoResourcePlugin : AceResourcePlugin
+
+- (instancetype)initWithBundleDirectory:(NSString *)bundleDirectory;
 - (id)getObject:(NSString *)id;
 - (int64_t)create:(NSDictionary <NSString *, NSString *> *)param;
 - (BOOL)release:(NSString *)id;

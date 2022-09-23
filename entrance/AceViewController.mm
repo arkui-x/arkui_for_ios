@@ -131,7 +131,7 @@ int32_t CURRENT_INSTANCE_Id = 0;
     _aceView->SetPlatformResRegister(aceResRegister);
 
     // register with plugins
-    _videoResourcePlugin = [[AceVideoResourcePlugin alloc] init];
+    _videoResourcePlugin = [[AceVideoResourcePlugin alloc] initWithBundleDirectory:self.bundleDirectory];
     _cameraResourcePlugin = [[AceCameraResoucePlugin alloc] init];
     _textureResourcePlugin = [[AceTextureResourcePlugin alloc] initWithTextures:_flutterVc.engine];
     
