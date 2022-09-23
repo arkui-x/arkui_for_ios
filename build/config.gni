@@ -34,7 +34,10 @@ connect_server_support = false
 
 napi_support = false
 
-cflags_cc = [ "-std=c++17" ]
+cflags_cc = [
+  "-std=c++17",
+  "-Wno-thread-safety-attributes",
+]
 
 platform_deps = [
   "//foundation/arkui/ace_engine/adapter/ios/entrance:ace_ios_entrance",
