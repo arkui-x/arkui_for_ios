@@ -32,6 +32,8 @@ template("ace_osal_ios_source_set") {
       "mouse_style_ios.cpp",
       "pixel_map_ios.cpp",
       "resource_adapter_impl.cpp",
+      "resource_convertor.cpp",
+      "resource_theme_style.cpp",
       "response_data.cpp",
       "ressched_report.cpp",
       "subwindow.cpp",
@@ -50,7 +52,10 @@ template("ace_osal_ios_source_set") {
 
     deps = [ "//third_party/curl:curl" ]
 
-    deps += [ "$ace_root/frameworks/core/components/theme:build_theme_code" ]
+    deps += [
+      "$ace_root/adapter/ios/dependence/resmgr:global_resmgr_source_set",
+      "$ace_root/frameworks/core/components/theme:build_theme_code",
+    ]
 
     configs = [ "$ace_root:ace_config" ]
   }

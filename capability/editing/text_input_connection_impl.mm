@@ -163,10 +163,16 @@ void TextInputConnectionImpl::Show(bool isFocusViewChanged, int32_t instanceId){
                 if(action == iOSTextInputActionDone){
                     dispatch_async(dispatch_get_main_queue(), ^{
                         [[iOSTxtInputManager shareintance] hideTextInput];
+                        [iOSTxtInputManager shareintance].inputBoxY = 0.0;
+                        [iOSTxtInputManager shareintance].inputBoxTopY = 0.0;
+                        [iOSTxtInputManager shareintance].isDeclarative = false;
                     });
                 }
             }
         };
+        [iOSTxtInputManager shareintance].inputBoxY = renderTextField->GetEditingBoxY();
+        [iOSTxtInputManager shareintance].inputBoxTopY = renderTextField->GetEditingBoxTopY();
+        [iOSTxtInputManager shareintance].isDeclarative = renderTextField->GetEditingBoxModel();
         [[iOSTxtInputManager shareintance] setTextInputClient:clientId withConfiguration:configure];
         [[iOSTxtInputManager shareintance] setTextInputEditingState:stateDict];
         [[iOSTxtInputManager shareintance] showTextInput];
@@ -203,6 +209,9 @@ void TextInputConnectionImpl::Close(int32_t instanceId){
     dispatch_async(dispatch_get_main_queue(), ^{
         [[iOSTxtInputManager shareintance] clearTextInputClient];
         [[iOSTxtInputManager shareintance] hideTextInput];
+        [iOSTxtInputManager shareintance].inputBoxY = 0.0;
+        [iOSTxtInputManager shareintance].inputBoxTopY = 0.0;
+        [iOSTxtInputManager shareintance].isDeclarative = false;
     });
 }
 

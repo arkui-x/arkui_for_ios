@@ -35,32 +35,33 @@
 
 @interface AceVideo()<AceTextureDelegate>
 
-@property(nonatomic, assign) int64_t incId;
-@property(nonatomic, copy) IAceOnResourceEvent onEvent;
-@property(nonatomic, assign) BOOL isAutoPlay;
-@property(nonatomic, assign) BOOL isMute;
-@property(nonatomic, strong) NSString *url;
-@property(nonatomic, assign) float speed;
+@property (nonatomic, assign) int64_t incId;
+@property (nonatomic, copy) IAceOnResourceEvent onEvent;
+@property (nonatomic, assign) BOOL isAutoPlay;
+@property (nonatomic, assign) BOOL isMute;
+@property (nonatomic, assign) float speed;
+@property (nonatomic, strong) NSString *url;
 
-@property(nonatomic, strong) NSDictionary<NSString *, IAceOnCallSyncResourceMethod> *callSyncMethodMap;
-
+@property (nonatomic, weak) NSString *bundleDirectory;
+@property (nonatomic, strong) NSDictionary<NSString *, IAceOnCallSyncResourceMethod> *callSyncMethodMap;
 
 @property (nonatomic, strong) AVPlayer *player_;
 @property (nonatomic, strong) AVPlayerItem *playerItem_;
 @property (nonatomic, strong) AVPlayerItemVideoOutput *videoOutput_;
 
 @property (nonatomic, strong) AceTexture *renderTexture;
-
 @property (nonatomic, strong) CADisplayLink *displayLink;
+
 @end
 
 @implementation AceVideo
-- (instancetype)init:(int64_t)incId onEvent:(IAceOnResourceEvent)callback texture:(AceTexture *)texture{
+- (instancetype)init:(int64_t)incId bundleDirectory:(NSString*)bundleDirectory onEvent:(IAceOnResourceEvent)callback texture:(AceTexture *)texture{
     if (self = [super init]) {
         self.incId = incId;
         self.onEvent = callback;
         self.renderTexture = texture;
         self.renderTexture.delegate = self;
+        self.bundleDirectory = bundleDirectory;
         
         self.speed = 1.0f;
         self.isMute = false;
@@ -70,7 +71,7 @@
         NSMutableDictionary *callSyncMethodMap = [NSMutableDictionary dictionary];
         NSString *init_method_hash = [NSString stringWithFormat:@"%@%lld%@%@%@%@", VIDEO_FLAG, self.incId, METHOD, PARAM_EQUALS, @"init", PARAM_BEGIN];
         IAceOnCallSyncResourceMethod init_callback = ^NSString *(NSDictionary * param){
-            return [self initMideaPlayer:param] ? SUCCESS : FAIL;
+            return [self initMediaPlayer:param] ? SUCCESS : FAIL;
         };
         [callSyncMethodMap setObject:init_callback forKey:init_method_hash];
 
@@ -265,14 +266,21 @@
 }
 
 
-- (BOOL)initMideaPlayer:(NSDictionary * )param {
+- (BOOL)initMediaPlayer:(NSDictionary * )param {
     
     NSString *src = [param objectForKey:@"src"];
     if (![src isKindOfClass:[NSString class]] || src.length == 0 || [src isKindOfClass:[NSNull class]]) {
         return NO;
     }
 
-    self.url = [src stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]];
+    src = [src stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]];
+    NSURL *url_ = [NSURL URLWithString:src];
+    if (url_.scheme == nil || url_.scheme.length == 0) {
+        self.url = [self.bundleDirectory stringByAppendingPathComponent:src];
+    } else {
+       self.url = src;
+    }
+    
     if (!self.url || self.url.length == 0) {
         return NO;
     }

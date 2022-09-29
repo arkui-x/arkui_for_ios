@@ -13,20 +13,11 @@
  * limitations under the License.
  */
 
-#import <Foundation/Foundation.h>
+#ifndef IOSXCTest_IOS_IOSXCTest_APPDELEGATE_H
+#define IOSXCTest_IOS_IOSXCTest_APPDELEGATE_H
+#import <UIKit/UIKit.h>
+@interface AppDelegate : UIResponder <UIApplicationDelegate>
 
-#import "AceResourcePlugin.h"
-#import "AceVideo.h"
-
-NS_ASSUME_NONNULL_BEGIN
-
-@interface AceVideoResourcePlugin : AceResourcePlugin
-
-- (instancetype)initWithBundleDirectory:(NSString *)bundleDirectory;
-- (id)getObject:(NSString *)id;
-- (int64_t)create:(NSDictionary <NSString *, NSString *> *)param;
-- (BOOL)release:(NSString *)id;
-- (void)releaseObject;
 @end
+#endif /* IOSXCTest_IOS_IOSXCTest_APPDELEGATE_H */
 
-NS_ASSUME_NONNULL_END

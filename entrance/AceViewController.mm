@@ -40,7 +40,8 @@
 const int32_t THEME_ID_DEFAULT = 117440515;
 int32_t CURRENT_INSTANCE_Id = 0;
 #define ASSER_PATH @"js"
-
+#define K_THEME_ID_LIGHT 125829967
+#define K_THEME_ID_DARK 125829966
 @interface AceViewController ()<IAceOnCallEvent>
 
 @property (retain, nonatomic, readonly) FlutterViewController* flutterVc;
@@ -130,7 +131,7 @@ int32_t CURRENT_INSTANCE_Id = 0;
     _aceView->SetPlatformResRegister(aceResRegister);
 
     // register with plugins
-    _videoResourcePlugin = [[AceVideoResourcePlugin alloc] init];
+    _videoResourcePlugin = [[AceVideoResourcePlugin alloc] initWithBundleDirectory:self.bundleDirectory];
     _cameraResourcePlugin = [[AceCameraResoucePlugin alloc] init];
     _textureResourcePlugin = [[AceTextureResourcePlugin alloc] initWithTextures:_flutterVc.engine];
     
@@ -149,11 +150,42 @@ int32_t CURRENT_INSTANCE_Id = 0;
         frontendType = OHOS::Ace::FrontendType::DECLARATIVE_JS;
     }
     OHOS::Ace::Platform::AceContainer::CreateContainer(_aceInstanceId, frontendType);
+    [self initTheme];
 
     std::string argurl = _bundleDirectory.UTF8String;
     std::string customurl = OHOS::Ace::Platform::AceContainer::GetCustomAssetPath(argurl);
     OHOS::Ace::Platform::AceContainer::AddAssetPath(_aceInstanceId, "", {argurl, customurl.append(ASSET_PATH_SHARE)});
-    OHOS::Ace::Platform::AceContainer::SetResourcesPathAndThemeStyle(_aceInstanceId, "", "", THEME_ID_DEFAULT, OHOS::Ace::ColorMode::LIGHT);
+}
+
+- (void)initTheme{
+    auto container = OHOS::Ace::AceType::DynamicCast<OHOS::Ace::Platform::AceContainer>(OHOS::Ace::AceEngine::Get().GetContainer(_aceInstanceId));
+    if (container) {
+        BOOL isDark = [self isDarkMode];
+
+        NSInteger themeId = isDark ? K_THEME_ID_DARK : K_THEME_ID_LIGHT;
+        std::string assetPathCStr = std::string([self.bundleDirectory stringByAppendingPathComponent:@"resources"].UTF8String);
+        container->UpdateColorMode(isDark ? OHOS::Ace::ColorMode::DARK : OHOS::Ace::ColorMode::LIGHT);
+        container->initResourceManager(assetPathCStr, themeId);
+    }
+}
+
+- (BOOL)isDarkMode{
+    __block BOOL isDark = NO;
+    if (@available(iOS 13.0, *)) {
+        UIColor *color = [UIColor colorWithDynamicProvider:^UIColor * _Nonnull(UITraitCollection * _Nonnull traitCollection) {
+            if (@available(iOS 12.0, *)) {
+                if (traitCollection.userInterfaceStyle == UIUserInterfaceStyleDark){
+                    isDark = YES;
+                    return UIColor.blackColor;
+                }else {
+                    return UIColor.whiteColor;
+                }
+            }
+            return UIColor.whiteColor;
+        }];
+        self.view.backgroundColor = color;
+    }
+    return isDark;
 }
 
 - (void)viewWillAppear:(BOOL)animated {
@@ -408,7 +440,16 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
                selector:@selector(onLocaleUpdated:)
                    name:NSCurrentLocaleDidChangeNotification
                  object:nil];
-    
+
+    [center addObserver:self
+               selector:@selector(keyboardWillChangeFrame:)
+                   name:UIKeyboardWillChangeFrameNotification
+                 object:nil];
+
+    [center addObserver:self
+               selector:@selector(keyboardWillBeHidden:)
+                   name:UIKeyboardWillHideNotification
+                 object:nil];           
 }
 
 #pragma mark - Application lifecycle notifications
@@ -427,6 +468,36 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
 
 - (void)applicationWillEnterForeground:(NSNotification *)notification {
     OHOS::Ace::Platform::AceContainer::OnShow(_aceInstanceId);
+}
+
+- (void)keyboardWillChangeFrame:(NSNotification*)notification{
+    NSDictionary* info = [notification userInfo];
+    CGFloat keyboardY = [info[UIKeyboardFrameEndUserInfoKey] CGRectValue].origin.y;
+
+    CGRect screenRect = [[UIScreen mainScreen] bounds];
+    CGFloat screenHeight = screenRect.size.height;
+    CGFloat scale = [UIScreen mainScreen].scale;
+
+    double duration = [info[UIKeyboardAnimationDurationUserInfoKey] doubleValue];
+    bool isEts = [iOSTxtInputManager shareintance].isDeclarative;
+    CGFloat inputBoxHeight = [iOSTxtInputManager shareintance].inputBoxY -
+                             [iOSTxtInputManager shareintance].inputBoxTopY;
+    CGFloat ty = keyboardY - [iOSTxtInputManager shareintance].inputBoxTopY -inputBoxHeight;
+    if (isEts) {
+        ty = keyboardY - inputBoxHeight - [iOSTxtInputManager shareintance].inputBoxTopY/scale;
+    }
+    [UIView animateWithDuration:duration animations:^{
+        if (ty < 0) {
+            self.view.transform = CGAffineTransformMakeTranslation(0, ty);
+        }
+    }];
+}
+
+- (void)keyboardWillBeHidden:(NSNotification*)notification{
+    double duration = [notification.userInfo[UIKeyboardAnimationDurationUserInfoKey] doubleValue];
+    [UIView animateWithDuration:duration animations:^{
+        self.view.transform = CGAffineTransformMakeTranslation(0, 0);
+    }];
 }
 
 - (void)onLocaleUpdated:(NSNotification*)notification {

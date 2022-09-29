@@ -13,20 +13,14 @@
  * limitations under the License.
  */
 
-#import <Foundation/Foundation.h>
+#import <UIKit/UIKit.h>
+#import "AppDelegate.h"
 
-#import "AceResourcePlugin.h"
-#import "AceVideo.h"
-
-NS_ASSUME_NONNULL_BEGIN
-
-@interface AceVideoResourcePlugin : AceResourcePlugin
-
-- (instancetype)initWithBundleDirectory:(NSString *)bundleDirectory;
-- (id)getObject:(NSString *)id;
-- (int64_t)create:(NSDictionary <NSString *, NSString *> *)param;
-- (BOOL)release:(NSString *)id;
-- (void)releaseObject;
-@end
-
-NS_ASSUME_NONNULL_END
+int main(int argc, char * argv[]) {
+    NSString * appDelegateClassName;
+    @autoreleasepool {
+        // Setup code that might create autoreleased objects goes here.
+        appDelegateClassName = NSStringFromClass([AppDelegate class]);
+    }
+    return UIApplicationMain(argc, argv, nil, appDelegateClassName);
+}
