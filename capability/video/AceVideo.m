@@ -39,6 +39,7 @@
 @property (nonatomic, copy) IAceOnResourceEvent onEvent;
 @property (nonatomic, assign) BOOL isAutoPlay;
 @property (nonatomic, assign) BOOL isMute;
+@property (nonatomic, assign) BOOL isLoop;
 @property (nonatomic, assign) float speed;
 @property (nonatomic, strong) NSString *url;
 
@@ -66,7 +67,8 @@
         self.speed = 1.0f;
         self.isMute = false;
         self.isAutoPlay = false;
-
+        self.isLoop = false;
+        
         // init callback
         NSMutableDictionary *callSyncMethodMap = [NSMutableDictionary dictionary];
         NSString *init_method_hash = [NSString stringWithFormat:@"%@%lld%@%@%@%@", VIDEO_FLAG, self.incId, METHOD, PARAM_EQUALS, @"init", PARAM_BEGIN];
@@ -74,7 +76,6 @@
             return [self initMediaPlayer:param] ? SUCCESS : FAIL;
         };
         [callSyncMethodMap setObject:init_callback forKey:init_method_hash];
-
 
         // start callback
         IAceOnCallSyncResourceMethod start_callback = ^NSString *(NSDictionary * param){
@@ -85,7 +86,6 @@
         NSString *start_method_hash = [NSString stringWithFormat:@"%@%lld%@%@%@%@", VIDEO_FLAG, self.incId, METHOD, PARAM_EQUALS, @"start", PARAM_BEGIN];
         [callSyncMethodMap setObject:start_callback forKey:start_method_hash];
 
-
         // pause callback
         NSString *pause_method_hash = [NSString stringWithFormat:@"%@%lld%@%@%@%@", VIDEO_FLAG, self.incId, METHOD, PARAM_EQUALS, @"pause", PARAM_BEGIN];
         IAceOnCallSyncResourceMethod pause_callback = ^NSString *(NSDictionary * param){
@@ -94,22 +94,15 @@
         };
         [callSyncMethodMap setObject:pause_callback forKey:pause_method_hash];
 
-
         // getposition callback
         NSString *getposition_method_hash = [NSString stringWithFormat:@"%@%lld%@%@%@%@", VIDEO_FLAG, self.incId, METHOD, PARAM_EQUALS, @"getposition", PARAM_BEGIN];
         IAceOnCallSyncResourceMethod getposition_callback = ^NSString *(NSDictionary * param){
             int64_t position = [self getPosition];
-            
-            NSString *ongetcurrenttime_method_hash = [NSString stringWithFormat:@"%@%lld%@%@%@%@", VIDEO_FLAG, self.incId, EVENT, PARAM_EQUALS, @"ongetcurrenttime", PARAM_BEGIN];
-            if (self.onEvent) {
-                self.onEvent(ongetcurrenttime_method_hash, [NSString stringWithFormat:@"currentpos=%lld", position]);
-            }
-            
+            [self fireCallback:@"ongetcurrenttime" params:[NSString stringWithFormat:@"currentpos=%lld", position]];
             return [NSString stringWithFormat:@"%@%lld",@"currentpos=", position];
         };
         
         [callSyncMethodMap setObject:getposition_callback forKey:getposition_method_hash];
-
 
         // seekto callback
         NSString *seekto_method_hash = [NSString stringWithFormat:@"%@%lld%@%@%@%@", VIDEO_FLAG, self.incId, METHOD, PARAM_EQUALS, @"seekto", PARAM_BEGIN];
@@ -125,7 +118,6 @@
         };
         [callSyncMethodMap setObject:seekto_callback forKey:seekto_method_hash];
 
-
         // setvolume callback
         NSString *setvolume_method_hash = [NSString stringWithFormat:@"%@%lld%@%@%@%@", VIDEO_FLAG, self.incId, METHOD, PARAM_EQUALS, @"setvolume", PARAM_BEGIN];
         IAceOnCallSyncResourceMethod setvolume_callback = ^NSString *(NSDictionary * param){
@@ -138,7 +130,6 @@
             return SUCCESS;
         };
         [callSyncMethodMap setObject:setvolume_callback forKey:setvolume_method_hash];
-
 
         // enablelooping callback
         NSString *enablelooping_method_hash = [NSString stringWithFormat:@"%@%lld%@%@%@%@", VIDEO_FLAG, self.incId, METHOD, PARAM_EQUALS, @"enablelooping", PARAM_BEGIN];
@@ -153,7 +144,6 @@
         };
         [callSyncMethodMap setObject:enablelooping_callback forKey:enablelooping_method_hash];
 
-
         // setspeed callback
         NSString *setspeed_method_hash = [NSString stringWithFormat:@"%@%lld%@%@%@%@", VIDEO_FLAG, self.incId, METHOD, PARAM_EQUALS, @"setspeed", PARAM_BEGIN];
         IAceOnCallSyncResourceMethod setspeed_callback = ^NSString *(NSDictionary * param){
@@ -167,14 +157,12 @@
         };
         [callSyncMethodMap setObject:setspeed_callback forKey:setspeed_method_hash];
 
-
         // setdirection callback
         NSString *setdirection_method_hash = [NSString stringWithFormat:@"%@%lld%@%@%@%@", VIDEO_FLAG, self.incId, METHOD, PARAM_EQUALS, @"setdirection", PARAM_BEGIN];
         IAceOnCallSyncResourceMethod setdirection_callback = ^NSString *(NSDictionary * param){
             return SUCCESS;
         };
         [callSyncMethodMap setObject:setdirection_callback forKey:setdirection_method_hash];
-
 
         // start callback
         NSString *setlandscape_method_hash = [NSString stringWithFormat:@"%@%lld%@%@%@%@", VIDEO_FLAG, self.incId, METHOD, PARAM_EQUALS, @"setlandscape", PARAM_BEGIN];
@@ -183,7 +171,6 @@
         };
         [callSyncMethodMap setObject:setlandscape_callback forKey:setlandscape_method_hash];
 
-        
         self.callSyncMethodMap = callSyncMethodMap.copy;
     }
     
@@ -211,17 +198,20 @@
     self.callSyncMethodMap = nil;
 }
 
-
 - (void)startPlay{
     if (self.player_) {
-        NSLog(@"%f", self.speed);
-        [self.player_ setRate:self.speed];
+        CMTime currentTime = self.player_.currentTime;
+        CMTime time = CMTimeMake(currentTime.value / currentTime.timescale, 1);
+        [self seekTo:time];
+        [self.player_ play];
     }
 }
 
 - (void)pause:(BOOL)isMute{
     if (self.player_) {
         [self.player_ pause];
+        NSString *param = [NSString stringWithFormat:@"isplaying=%d", 0];
+        [self fireCallback:@"onplaystatus" params:param];
     }
 }
 
@@ -229,6 +219,8 @@
     if (self.player_) {
         [self.player_ seekToTime:time];
     }
+    NSString *param = [NSString stringWithFormat:@"currentpos=%f", (float)time.value];
+    [self fireCallback:@"seekcomplete" params:param];
 }
 
 - (int64_t)getPosition{
@@ -246,10 +238,9 @@
     }
 }
 
-
 - (void)enableLooping:(BOOL)enable{
     if (self.player_) {
-        self.isAutoPlay = enable;
+        self.isLoop = enable;
     }
 }
 
@@ -265,7 +256,6 @@
     }
 }
 
-
 - (BOOL)initMediaPlayer:(NSDictionary * )param {
     
     NSString *src = [param objectForKey:@"src"];
@@ -278,7 +268,7 @@
     if (url_.scheme == nil || url_.scheme.length == 0) {
         self.url = [self.bundleDirectory stringByAppendingPathComponent:src];
     } else {
-       self.url = src;
+        self.url = src;
     }
     
     if (!self.url || self.url.length == 0) {
@@ -287,6 +277,7 @@
     
     self.isAutoPlay = [[param objectForKey:@"autoplay"] boolValue];
     self.isMute = [[param objectForKey:@"mute"] boolValue];
+    self.isLoop = [[param objectForKey:@"loop"] boolValue];
     
     NSURL *assetUrl = [NSURL URLWithString:self.url];
     if (!assetUrl) {
@@ -299,19 +290,19 @@
     [self.player_ setMuted:self.isMute];
     
     NSDictionary* pixBuffAttributes = @{
-      (id)kCVPixelBufferPixelFormatTypeKey : @(kCVPixelFormatType_32BGRA),
-      (id)kCVPixelBufferIOSurfacePropertiesKey : @{}
+        (id)kCVPixelBufferPixelFormatTypeKey : @(kCVPixelFormatType_32BGRA),
+        (id)kCVPixelBufferIOSurfacePropertiesKey : @{}
     };
     self.videoOutput_ = [[AVPlayerItemVideoOutput alloc] initWithPixelBufferAttributes:pixBuffAttributes];
 
     [self.playerItem_ addObserver:self forKeyPath:@"status" options:NSKeyValueObservingOptionNew context:nil];
+    [self.playerItem_ addObserver:self forKeyPath:@"loadedTimeRanges"options:NSKeyValueObservingOptionNew context:nil];
     
     [[NSNotificationCenter defaultCenter] removeObserver:self];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(playDidEndNotification:) name:AVPlayerItemDidPlayToEndTimeNotification object:nil];
 
     return YES;
 }
-
 
 - (CVPixelBufferRef _Nullable)getPixelBuffer{
     CMTime outputItemTime = [self.videoOutput_ itemTimeForHostTime:CACurrentMediaTime()];
@@ -323,18 +314,41 @@
 }
 
 - (void)playDidEndNotification:(NSNotification *)notification{
-    if (self.player_ && self.isAutoPlay) {
-        [self.player_ seekToTime:kCMTimeZero];
+    [self fireCallback:@"completion" params:@""];
+    if (self.player_ && self.isLoop) {
+        CMTime time = CMTimeMake(0, 1);
+        [self seekTo:time];
         [self startPlay];
     }
 }
 
 - (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary<NSKeyValueChangeKey,id> *)change context:(void *)context{
-    if ([keyPath isEqualToString:@"status"]) {
+    AVPlayerItem *playerItem = object;
+    if([keyPath isEqualToString:@"loadedTimeRanges"]) {
+        NSArray *loadedTimeRanges = [[self.player_ currentItem] loadedTimeRanges];
+        CMTimeRange timeRange = [loadedTimeRanges.firstObject CMTimeRangeValue];// 获取缓冲区域
+        float startSeconds = CMTimeGetSeconds(timeRange.start);
+        float durationSeconds = CMTimeGetSeconds(timeRange.duration);
+        NSTimeInterval timeInterval = startSeconds + durationSeconds;// 计算缓冲总进度
+        CMTime duration = playerItem.duration;
+        CGFloat totalDuration = CMTimeGetSeconds(duration);
+        if (isnan(timeInterval)) {
+            timeInterval = 0;
+        }
+        if (isnan(totalDuration)) {
+            totalDuration = 0;
+        }
+        if (totalDuration > 0) {
+            CGFloat percent = timeInterval / totalDuration;
+            NSString *param = [NSString stringWithFormat:@"percent=%f", percent];
+            [self fireCallback:@"bufferingupdate" params:param];
+        }
+    } else if ([keyPath isEqualToString:@"status"]) {
         AVPlayerItemStatus status = self.playerItem_.status;
         switch (status) {
             case AVPlayerItemStatusFailed:{
                 NSLog(@"AVPlayerItemStatusFailed");
+                [self fireCallback:@"error" params:@""];
             } break;
             case AVPlayerItemStatusReadyToPlay:
             {
@@ -353,19 +367,16 @@
                 
                 AVPlayerItem* item = (AVPlayerItem*)object;
                 [item addOutput:self.videoOutput_];
-            
+
                 [self.displayLink addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSRunLoopCommonModes];
                 
                 int isPlaying = (self.player_.timeControlStatus == AVPlayerTimeControlStatusPlaying || self.isAutoPlay) ? 1 : 0;
                 NSString *param = [NSString stringWithFormat:@"width=%f&height=%f&duration=%lld&isplaying=%d&needRefreshForce=%d", width, height, duration, isPlaying, 1];
-                NSString *prepared_method_hash = [NSString stringWithFormat:@"%@%lld%@%@%@%@", VIDEO_FLAG, self.incId, EVENT, PARAM_EQUALS, @"prepared", PARAM_BEGIN];
-                if (self.onEvent) {
-                    self.onEvent(prepared_method_hash, param);
-                }
+                [self fireCallback:@"prepared" params:param];
             }
-            break;
+                break;
             default:
-            break;
+                break;
         }
     }
 }
@@ -381,13 +392,23 @@
     [self.renderTexture markTextureFrameAvailable];
 }
 
+#pragma mark - fireCallback
+
+- (void)fireCallback:(NSString *)method params:(NSString *)params
+{
+    NSString *method_hash = [NSString stringWithFormat:@"%@%lld%@%@%@%@", VIDEO_FLAG, self.incId, EVENT, PARAM_EQUALS, method, PARAM_BEGIN];
+    if (self.onEvent) {
+        self.onEvent(method_hash, params);
+    }
+}
+
 const int64_t TIME_UNSET = -9223372036854775807;
 static inline int64_t FLTCMTimeToMillis(CMTime time) {
-  // When CMTIME_IS_INDEFINITE return a value that matches TIME_UNSET from ExoPlayer2 on Android.
-  // Fixes https://github.com/flutter/flutter/issues/48670
-  if (CMTIME_IS_INDEFINITE(time)) return TIME_UNSET;
-  if (time.timescale == 0) return 0;
-  return time.value * 1000 / time.timescale;
+    // When CMTIME_IS_INDEFINITE return a value that matches TIME_UNSET from ExoPlayer2 on Android.
+    // Fixes https://github.com/flutter/flutter/issues/48670
+    if (CMTIME_IS_INDEFINITE(time)) return TIME_UNSET;
+    if (time.timescale == 0) return 0;
+    return time.value * 1000 / time.timescale;
 }
 
 @end
