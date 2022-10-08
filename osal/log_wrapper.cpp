@@ -15,7 +15,6 @@
 
 #include "base/log/log_wrapper.h"
 
-#include <securec_p.h>
 #include <thread>
 
 #include "securec.h"

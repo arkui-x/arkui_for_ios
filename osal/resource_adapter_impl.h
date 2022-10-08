@@ -16,6 +16,41 @@
 #ifndef FOUNDATION_ACE_ADAPTER_IOS_OSAL_RESOURCE_ADAPTER_IMPL_H
 #define FOUNDATION_ACE_ADAPTER_IOS_OSAL_RESOURCE_ADAPTER_IMPL_H
 
+#include "resource_manager.h"
 #include "core/components/theme/resource_adapter.h"
+
+namespace OHOS::Ace {
+
+class ResourceAdapterImpl : public ResourceAdapter { 
+    DECLARE_ACE_TYPE(ResourceAdapterImpl, ResourceAdapter);
+
+public:
+    ResourceAdapterImpl() = default;
+    ~ResourceAdapterImpl() override = default;
+
+    void Init(const ResourceInfo& resourceInfo) override;
+    void UpdateConfig(const ResourceConfiguration& config) override;
+
+    RefPtr<ThemeStyle> GetTheme(int32_t themeId) override;
+
+    Color GetColor(uint32_t resId) override;
+    Dimension GetDimension(uint32_t resId) override;
+    std::string GetString(uint32_t resId) override;
+    std::string GetPluralString(uint32_t resId, int quantity) override;
+    std::vector<std::string> GetStringArray(uint32_t resId) const override;
+    double GetDouble(uint32_t resId) override;
+    int32_t GetInt(uint32_t resId) override;
+    std::vector<uint32_t> GetIntArray(uint32_t resId) const override;
+    bool GetBoolean(uint32_t resId) const override;
+    std::string GetMediaPath(uint32_t resId) override;
+    std::string GetRawfile(const std::string& fileName) override;
+    void UpdateResourceManager(const std::string& bundleName, const std::string& moduleName) override;
+
+private:
+    std::shared_ptr<Global::Resource::ResourceManager> resourceManager_;
+    std::string packagePathStr_;
+    ACE_DISALLOW_COPY_AND_MOVE(ResourceAdapterImpl);
+};
+} // namespace OHOS::Ace
 
 #endif //FOUNDATION_ACE_ADAPTER_IOS_OSAL_RESOURCE_ADAPTER_IMPL_H

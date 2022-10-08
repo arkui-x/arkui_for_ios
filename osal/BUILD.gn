@@ -46,7 +46,7 @@ template("ace_osal_ios_source_set") {
     ]
 
     include_dirs = [
-      "//utils/native/base/include",
+      "//commonlibrary/c_utils/base/include",
       "$ace_root/adapter/ios/entrance/",
     ]
 

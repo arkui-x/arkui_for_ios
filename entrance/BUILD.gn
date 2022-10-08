@@ -72,7 +72,7 @@ template("ace_ios_standard_source_set") {
 
       deps += [
         "$ace_flutter_engine_root_new:third_party_flutter_engine_dev_$platform",
-        "$ace_flutter_engine_root_new/skia:ace_skia_dev_$platform",
+        "$ace_flutter_engine_root_new/third_party/skia:ace_skia_dev_$platform",
       ]
     } else {
       include_dirs += [

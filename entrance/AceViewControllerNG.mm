@@ -83,8 +83,6 @@ NSString * ASSER_PATH  = @"js";
     [super viewDidLoad];
 
     [self setupNotificationCenterObservers];
-
-    [self addSwipeRecognizer];
 }
 
 - (void)viewDidLayoutSubviews {
@@ -231,34 +229,6 @@ NSString * ASSER_PATH  = @"js";
     OHOS::Ace::AceApplicationInfo::GetInstance().SetLocale(languageCode, countryCode, scriptCode, "");
 }
 
-#pragma mark - Touches and gestures
-- (void)addSwipeRecognizer {
-    UISwipeGestureRecognizer *recognizer = [[UISwipeGestureRecognizer alloc] initWithTarget:self action:@selector(handleSwipeFrom:)];
-    [recognizer setDirection:(UISwipeGestureRecognizerDirectionRight)];
-    [self.view addGestureRecognizer:recognizer];
-}
-
-- (void)handleSwipeFrom:(UISwipeGestureRecognizer *)recognizer {
-    if (recognizer.direction == UISwipeGestureRecognizerDirectionDown) {
-        NSLog(@"swipe down");
-    }
-    if (recognizer.direction == UISwipeGestureRecognizerDirectionUp) {
-        NSLog(@"swipe up");
-    }
-    if (recognizer.direction == UISwipeGestureRecognizerDirectionLeft) {
-        NSLog(@"swipe left");
-    }
-    if (recognizer.direction == UISwipeGestureRecognizerDirectionRight) {
-        CGPoint pos = [recognizer locationInView:self.view];
-        if (pos.x < 20) {
-            dispatch_async(dispatch_get_main_queue(), ^{
-                [[iOSTxtInputManager shareintance] hideTextInput];
-            });
-            OHOS::Ace::Platform::AceContainer::OnBackPressed(_aceInstanceId);
-        }
-    }
-}
-
 - (void)setupNotificationCenterObservers {
     NSNotificationCenter *center = [NSNotificationCenter defaultCenter];
     [center addObserver:self
@@ -339,8 +309,6 @@ NSString * ASSER_PATH  = @"js";
     std::string argurl = _bundleDirectory.UTF8String;
     std::string customurl = OHOS::Ace::Platform::AceContainer::GetCustomAssetPath(argurl);
     OHOS::Ace::Platform::AceContainer::AddAssetPath(_aceInstanceId, "", {argurl, customurl.append(ASSET_PATH_SHARE)});
-    OHOS::Ace::Platform::AceContainer::SetResourcesPathAndThemeStyle(_aceInstanceId, "", "", THEME_ID_DEFAULT,
-                                                                     OHOS::Ace::ColorMode::LIGHT);
 }
 
 - (void)runAcePage {
