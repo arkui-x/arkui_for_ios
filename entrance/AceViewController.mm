@@ -83,16 +83,17 @@ int32_t CURRENT_INSTANCE_Id = 0;
     [super viewDidLoad];
     
     [self setupNotificationCenterObservers];
-    
-    [self addSwipeRecognizer];
+
     [self initAce];
     
     UIScreen *screen = [UIScreen mainScreen];
     CGFloat scale = screen.scale;
+    int32_t width = static_cast<int32_t>(self.view.bounds.size.width * scale);
+    int32_t height = static_cast<int32_t>(self.view.bounds.size.height * scale);
     
     [self onLocaleUpdated:nil];
-    OHOS::Ace::Platform::AceContainer::SetView(_aceView, scale, screen.bounds.size.width * scale,
-                                               screen.bounds.size.height * scale);
+    OHOS::Ace::Platform::AceContainer::SetView(_aceView, scale, width, height);
+    _aceView->NotifySurfaceChanged(width, height, OHOS::Ace::WindowSizeChangeReason::RESIZE);
 }
 
 - (void)viewWillDisappear:(BOOL)animated {
@@ -163,8 +164,11 @@ int32_t CURRENT_INSTANCE_Id = 0;
         BOOL isDark = [self isDarkMode];
 
         NSInteger themeId = isDark ? K_THEME_ID_DARK : K_THEME_ID_LIGHT;
-        std::string assetPathCStr = std::string([self.bundleDirectory stringByAppendingPathComponent:@"resources"].UTF8String);
-        container->UpdateColorMode(isDark ? OHOS::Ace::ColorMode::DARK : OHOS::Ace::ColorMode::LIGHT);
+        NSString *resDirectory =
+            [[NSBundle mainBundle] pathForResource:@"res" ofType:nil];
+        std::string assetPathCStr = std::string([resDirectory UTF8String]);
+        container->UpdateColorMode(isDark ? OHOS::Ace::ColorMode::DARK
+                                          : OHOS::Ace::ColorMode::LIGHT);
         container->initResourceManager(assetPathCStr, themeId);
     }
 }
@@ -385,33 +389,6 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
     }
     
     aceView->HandleTouchEvent(packet->data());
-}
-
-- (void)addSwipeRecognizer{
-     UISwipeGestureRecognizer *recognizer = [[UISwipeGestureRecognizer alloc]initWithTarget:self action:@selector(handleSwipeFrom:)];
-     [recognizer setDirection:(UISwipeGestureRecognizerDirectionRight)];
-     [self.view addGestureRecognizer:recognizer];
-}
-
-- (void)handleSwipeFrom:(UISwipeGestureRecognizer *)recognizer{
-   if(recognizer.direction == UISwipeGestureRecognizerDirectionDown) {
-       NSLog(@"swipe down");
-   }
-   if(recognizer.direction == UISwipeGestureRecognizerDirectionUp) {
-       NSLog(@"swipe up");
-   }
-   if(recognizer.direction == UISwipeGestureRecognizerDirectionLeft) {
-       NSLog(@"swipe left");
-   }
-   if(recognizer.direction == UISwipeGestureRecognizerDirectionRight) {
-       CGPoint pos = [recognizer locationInView:self.view];
-       if(pos.x < 20){
-          dispatch_async(dispatch_get_main_queue(), ^{
-              [[iOSTxtInputManager shareintance] hideTextInput];
-          });
-          OHOS::Ace::Platform::AceContainer::OnBackPressed(_aceInstanceId);
-       }
-   }
 }
 
 - (void)setupNotificationCenterObservers {
