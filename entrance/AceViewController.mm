@@ -88,10 +88,12 @@ int32_t CURRENT_INSTANCE_Id = 0;
     
     UIScreen *screen = [UIScreen mainScreen];
     CGFloat scale = screen.scale;
+    int32_t width = static_cast<int32_t>(self.view.bounds.size.width * scale);
+    int32_t height = static_cast<int32_t>(self.view.bounds.size.height * scale);
     
     [self onLocaleUpdated:nil];
-    OHOS::Ace::Platform::AceContainer::SetView(_aceView, scale, screen.bounds.size.width * scale,
-                                               screen.bounds.size.height * scale);
+    OHOS::Ace::Platform::AceContainer::SetView(_aceView, scale, width, height);
+    _aceView->NotifySurfaceChanged(width, height, OHOS::Ace::WindowSizeChangeReason::RESIZE);
 }
 
 - (void)viewWillDisappear:(BOOL)animated {
