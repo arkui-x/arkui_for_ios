@@ -66,6 +66,7 @@ template("ace_ios_standard_source_set") {
         "//third_party/flutter_ace_shell/third_party/skia",
         "//third_party/flutter_ace_shell/engine/flutter/third_party/txt/src",
         "//third_party/flutter_ace_shell/engine/flutter/shell/platform/darwin/common/framework/Headers",
+        "//base/global/resource_management/interfaces/inner_api/include",
       ]
 
       sources += [ "AceViewControllerNG.mm" ]
@@ -82,6 +83,7 @@ template("ace_ios_standard_source_set") {
         "//third_party/flutter/engine/flutter/shell/platform/darwin/common/framework/Headers",
         "//third_party/flutter/engine/flutter/shell/platform/darwin/ios/framework/Headers",
         "//third_party/flutter/engine/flutter/shell/common",
+        "//base/global/resource_management/interfaces/inner_api/include",
       ]
 
       sources += [ "AceViewController.mm" ]
