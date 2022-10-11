@@ -17,6 +17,7 @@
 #include "adapter/ios/osal/resource_convertor.h"
 #include "adapter/ios/osal/resource_theme_style.h"
 #include "core/components/theme/theme_attributes.h"
+#include "adapter/ios/entrance/ace_application_info_impl.h"
 
 namespace OHOS::Ace {
 
@@ -105,6 +106,7 @@ void ResourceAdapterImpl::Init(const ResourceInfo& resourceInfo)
         resConfig->GetDeviceType());
     resourceManager_ = newResMgr;
     packagePathStr_ = packagePath;
+    Platform::AceApplicationInfoImpl::GetInstance().SetResourceManager(newResMgr);
 }
 
 void ResourceAdapterImpl::UpdateConfig(const ResourceConfiguration& config)
