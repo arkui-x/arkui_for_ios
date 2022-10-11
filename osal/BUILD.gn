@@ -28,6 +28,7 @@ template("ace_osal_ios_source_set") {
       "fetch_manager.cpp",
       "frame_report.cpp",
       "ios_trace.cpp",
+      "layout_inspector.cpp",
       "log_wrapper.cpp",
       "mouse_style_ios.cpp",
       "pixel_map_ios.cpp",
