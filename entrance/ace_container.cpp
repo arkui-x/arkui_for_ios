@@ -789,5 +789,4 @@ void AceContainer::SetJsFrameworkLocalPath(const char* path)
 {
     localJsFrameworkPath_ = path;
 }
-
 } // namespace OHOS::Ace::Platform
