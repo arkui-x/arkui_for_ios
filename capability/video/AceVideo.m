@@ -41,7 +41,7 @@
 @property (nonatomic, assign) BOOL isMute;
 @property (nonatomic, assign) BOOL isLoop;
 @property (nonatomic, assign) float speed;
-@property (nonatomic, strong) NSString *url;
+@property (nonatomic, strong) NSURL *url;
 
 @property (nonatomic, weak) NSString *bundleDirectory;
 @property (nonatomic, strong) NSDictionary<NSString *, IAceOnCallSyncResourceMethod> *callSyncMethodMap;
@@ -110,7 +110,6 @@
             if (!param) {
                 return FAIL;
             }
-            
             int64_t msec = [[param objectForKey:KEY_VALUE] longLongValue];
             CMTime time = CMTimeMake(msec, 1);
             [self seekTo:time];
@@ -204,6 +203,8 @@
         CMTime time = CMTimeMake(currentTime.value / currentTime.timescale, 1);
         [self seekTo:time];
         [self.player_ play];
+        NSString *param = [NSString stringWithFormat:@"isplaying=%d", 1];
+        [self fireCallback:@"onplaystatus" params:param];
     }
 }
 
@@ -266,25 +267,20 @@
     src = [src stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]];
     NSURL *url_ = [NSURL URLWithString:src];
     if (url_.scheme == nil || url_.scheme.length == 0) {
-        self.url = [self.bundleDirectory stringByAppendingPathComponent:src];
+        self.url = [NSURL fileURLWithPath:[self.bundleDirectory stringByAppendingPathComponent:src]];
     } else {
-        self.url = src;
+        self.url = [NSURL URLWithString:src];
     }
     
-    if (!self.url || self.url.length == 0) {
+    if (!self.url) {
         return NO;
     }
     
     self.isAutoPlay = [[param objectForKey:@"autoplay"] boolValue];
     self.isMute = [[param objectForKey:@"mute"] boolValue];
     self.isLoop = [[param objectForKey:@"loop"] boolValue];
-    
-    NSURL *assetUrl = [NSURL URLWithString:self.url];
-    if (!assetUrl) {
-        return NO;
-    }
-    
-    self.playerItem_ = [[AVPlayerItem alloc] initWithURL:assetUrl];
+
+    self.playerItem_ = [[AVPlayerItem alloc] initWithURL:self.url];
     self.player_ = [[AVPlayer alloc] initWithPlayerItem:self.playerItem_];
 
     [self.player_ setMuted:self.isMute];

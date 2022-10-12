@@ -166,7 +166,10 @@ int32_t CURRENT_INSTANCE_Id = 0;
         NSInteger themeId = isDark ? K_THEME_ID_DARK : K_THEME_ID_LIGHT;
         NSString *resDirectory =
             [[NSBundle mainBundle] pathForResource:@"res" ofType:nil];
-        std::string assetPathCStr = std::string([resDirectory UTF8String]);
+        std::string assetPathCStr;
+        if (resDirectory != nil && resDirectory.length > 0) {
+            assetPathCStr = std::string([resDirectory UTF8String]);
+        }
         container->UpdateColorMode(isDark ? OHOS::Ace::ColorMode::DARK
                                           : OHOS::Ace::ColorMode::LIGHT);
         container->initResourceManager(assetPathCStr, themeId);

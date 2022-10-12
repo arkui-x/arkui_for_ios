@@ -23,10 +23,11 @@
 
 #include "base/utils/noncopyable.h"
 #include "core/common/ace_application_info.h"
+#include "resource_manager.h"
 
 namespace OHOS::Ace::Platform {
 
-class AceApplicationInfoImpl : public AceApplicationInfo {
+class ACE_FORCE_EXPORT AceApplicationInfoImpl : public AceApplicationInfo {
 public:
     AceApplicationInfoImpl();
     ~AceApplicationInfoImpl() override;
@@ -53,8 +54,19 @@ public:
         AceApplicationInfoImpl::GetInstance().needDebugBreakpoint_ = needDebugBreakpoint;
     }
 
+    std::shared_ptr<Global::Resource::ResourceManager> GetResourceManager()
+    {
+        return resMgr_;
+    }
+
+    void SetResourceManager(std::shared_ptr<Global::Resource::ResourceManager> resMgr)
+    {
+        resMgr_ = resMgr;
+    }
+
 private:
     std::map<std::string, std::string> jsEngineParams_;
+    std::shared_ptr<Global::Resource::ResourceManager> resMgr_;
 };
 } // namespace OHOS::Ace::Platform
 

@@ -123,6 +123,23 @@ public:
         return aceView_ ? aceView_->GetHeight() : 0;
     }
 
+    int32_t GetViewPosX() const override
+    {
+        return aceView_ ? aceView_->GetPosX() : 0;
+    }
+
+    int32_t GetViewPosY() const override
+    {
+        return aceView_ ? aceView_->GetPosY() : 0;
+    }
+
+    uint32_t GetWindowId() const override
+    {
+        return 0;
+    }
+
+    void SetWindowId(uint32_t windowId) override {}
+
     void* GetView() const override
     {
         return static_cast<void*>(aceView_);
