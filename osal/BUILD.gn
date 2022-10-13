@@ -22,6 +22,7 @@ template("ace_osal_ios_source_set") {
     defines += invoker.defines
 
     sources = [
+      "ace_engine_ext.cpp",
       "drag_window.cpp",
       "event_report.cpp",
       "fake_accessibility_manager.cpp",
