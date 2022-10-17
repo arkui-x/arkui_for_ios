@@ -25,6 +25,7 @@ template("ace_osal_ios_source_set") {
       "ace_engine_ext.cpp",
       "drag_window.cpp",
       "event_report.cpp",
+      "exception_handler.cpp",
       "fake_accessibility_manager.cpp",
       "fetch_manager.cpp",
       "frame_report.cpp",
