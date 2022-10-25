@@ -19,10 +19,10 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface iOSVibratorManager : NSObject
 
-+(instancetype)shareintance;
++ (instancetype)shareintance;
 @property(nonatomic,assign) NSInteger duration;
--(void)addVibrate:(NSInteger)duration;
--(void)addVibrateSingle;
+- (void)addVibrate:(NSInteger)duration;
+- (void)addVibrateSingle;
 
 @end
 

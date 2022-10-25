@@ -115,10 +115,7 @@ NSString * ASSER_PATH  = @"js";
 
 #pragma mark - Handle view resizing
 
-- (void)updateViewportMetrics {
-    //TODO:engine updateViewportMetrics
-//    [_engine.get() updateViewportMetrics:_viewportMetrics];
-}
+- (void)updateViewportMetrics {}
 
 - (void)updateViewportPadding {
     CGFloat scale = [UIScreen mainScreen].scale;
@@ -334,7 +331,7 @@ NSString * ASSER_PATH  = @"js";
    [self dispatchTouches:touches pointerDataChangeOverride:nullptr];
 }
 
-// 触摸时间待恢复
+// Touch time to be recovered
 static flutter::PointerData::Change PointerDataChangeFromUITouchPhase(UITouchPhase phase) {
    switch (phase) {
        case UITouchPhaseBegan:
@@ -397,25 +394,6 @@ pointerDataChangeOverride:(flutter::PointerData::Change *)overridden_change {
        pointer_data.physical_y = windowCoordinates.y * scale;
 
        NSNumber *deviceKey = [NSNumber numberWithLongLong:pointer_data.device];
-       // Track touches that began and not yet stopped so we can flush them
-       // if the view controller goes away.
-       // switch (pointer_data.change) {
-       //   case flutter::PointerData::Change::kDown:
-       //     [_ongoingTouches addObject:deviceKey];
-       //     break;
-       //   case flutter::PointerData::Change::kCancel:
-       //   case flutter::PointerData::Change::kUp:
-       //     [_ongoingTouches removeObject:deviceKey];
-       //     break;
-       //   case flutter::PointerData::Change::kHover:
-       //   case flutter::PointerData::Change::kMove:
-       //     // We're only tracking starts and stops.
-       //     break;
-       //   case flutter::PointerData::Change::kAdd:
-       //   case flutter::PointerData::Change::kRemove:
-       //     // We don't use kAdd/kRemove.
-       //     break;
-       // }
 
        // pressure_min is always 0.0
        if (@available(iOS 9, *)) {
@@ -473,8 +451,6 @@ pointerDataChangeOverride:(flutter::PointerData::Change *)overridden_change {
        packet->SetPointerData(pointer_index++, pointer_data);
    }
 
-//   [_engine.get() dispatchPointerDataPacket:std::move(packet)];
-
     auto container = OHOS::Ace::Platform::AceContainer::GetContainerInstance(_aceInstanceId);
     if (!container) {
         LOGE("container is null");
@@ -507,7 +483,6 @@ pointerDataChangeOverride:(flutter::PointerData::Change *)overridden_change {
     if (!platform_view) {
         return;
     }
-//    platform_view->SetIdleNotificationCallback(std::move(idleCallback));
 }
 
 - (void)initFlutterEngine:(int32_t)instanceId {
@@ -523,10 +498,8 @@ pointerDataChangeOverride:(flutter::PointerData::Change *)overridden_change {
     self.view.multipleTouchEnabled = YES;
     self.view.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
 
-    ///TODO: Launch different engine(ARK or Flutter)
     [_engine.get() launchEngine:nil libraryURI:nil];
-    //5.viewcontrolle + engine绑定起来
-    ///TODO: Modify static_cast to FlutterViewController
+
     [_engine.get() setViewController:self];
 
     [self surfaceUpdated:YES];
@@ -545,7 +518,7 @@ pointerDataChangeOverride:(flutter::PointerData::Change *)overridden_change {
 }
 
 
-//提供给外部使用的弱引用
+// Weak references provided for external use
 - (fml::WeakPtr <AceViewController>)getWeakPtr {
     return _weakFactory->GetWeakPtr();
 }
@@ -576,10 +549,6 @@ pointerDataChangeOverride:(flutter::PointerData::Change *)overridden_change {
     });
 }
 
-//- (FlutterView *)flutterView {
-//    return _flutterView;
-//}
-
 - (void)surfaceUpdated:(BOOL)appeared {
     if (appeared) {
         [self installFirstFrameCallback];
@@ -600,15 +569,8 @@ pointerDataChangeOverride:(flutter::PointerData::Change *)overridden_change {
 
 #pragma mark - Properties
 
-- (void)setFlutterViewDidRenderCallback:(void (^)(void))callback {
-//    _flutterViewRenderedCallback.reset(callback, fml::OwnershipPolicy::Retain);
-}
+- (void)setFlutterViewDidRenderCallback:(void (^)(void))callback {}
 #pragma mark - Managing launch views
 
-- (void)callViewRenderedCallback {
-//    if (_flutterViewRenderedCallback != nil) {
-//        _flutterViewRenderedCallback.get()();
-//        _flutterViewRenderedCallback.reset();
-//    }
-}
+- (void)callViewRenderedCallback {}
 @end
