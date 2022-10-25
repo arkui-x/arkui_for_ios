@@ -226,9 +226,6 @@ void AceContainer::InitializeFrontend()
 #else
         frontend_ = Frontend::Create();
         auto jsFrontend = AceType::DynamicCast<JsFrontend>(frontend_);
-
-        // TODO: set locale in ViewController when get system locale info
-
         auto jsEngine = Framework::JsEngineLoader::Get().CreateJsEngine(GetInstanceId());
         jsFrontend->SetJsEngine(jsEngine);
         EngineHelper::AddEngine(instanceId_, jsEngine);
@@ -243,8 +240,6 @@ void AceContainer::InitializeFrontend()
         frontend_ = AceType::MakeRefPtr<DeclarativeFrontend>();
         auto declarativeFrontend = AceType::DynamicCast<DeclarativeFrontend>(frontend_);
 #endif
-        // TODO: set locale in ViewController when get system locale info
-
         auto& loader = Framework::JsEngineLoader::GetDeclarative(nullptr);
         auto jsEngine = loader.CreateJsEngine(instanceId_);
         declarativeFrontend->SetJsEngine(jsEngine);

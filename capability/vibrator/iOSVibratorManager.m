@@ -28,11 +28,11 @@
     return instance;
 }
 
--(void)addVibrateSingle{
+- (void)addVibrateSingle{
     AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
 }
 
--(void)addVibrate:(NSInteger)duration{
+- (void)addVibrate:(NSInteger)duration{
    self.duration = duration;
    AudioServicesAddSystemSoundCompletion(kSystemSoundID_Vibrate, NULL, NULL, vibrateCallback, NULL);
    AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
@@ -43,11 +43,11 @@ void vibrateCallback(SystemSoundID sound,void * clientData) {
   [[iOSVibratorManager shareintance] removeSoundID_Vibrate];
 }
 
--(void)removeSoundID_Vibrate{
+- (void)removeSoundID_Vibrate{
    [self performSelector:@selector(stopVibrate) withObject:nil afterDelay:self.duration];
 }
 
--(void)stopVibrate {
+- (void)stopVibrate {
   [NSObject cancelPreviousPerformRequestsWithTarget:self selector:@selector(stopVibrateSound) object:nil];
   AudioServicesRemoveSystemSoundCompletion(kSystemSoundID_Vibrate);
 }

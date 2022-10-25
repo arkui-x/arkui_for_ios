@@ -63,7 +63,7 @@ ArkUI开发框架的源代码结构参见 [代码工程结构及构建说明](ht
  * @param version  Ace version.
  * @param instanceName instance name.
  */
--(instancetype)initWithVersion:(ACE_VERSION)version
+- (instancetype)initWithVersion:(ACE_VERSION)version
                   instanceName:(nonnull NSString*)instanceName;
 ```
 
@@ -83,7 +83,7 @@ AceViewController *controller = [[AceViewController alloc] initWithVersion:(ACE_
  * @param version  Ace version.
  * @param bundleDirectory js bundle directory.
  */
--(instancetype)initWithVersion:(ACE_VERSION)version
+- (instancetype)initWithVersion:(ACE_VERSION)version
                bundleDirectory:(nonnull NSString*)bundleDirectory;
 ```
 

@@ -33,7 +33,7 @@ typedef NS_ENUM(NSUInteger, ACE_VERSION) {
  * @param version  Ace version.
  * @param bundleDirectory js bundle directory.
  */
--(instancetype)initWithVersion:(ACE_VERSION)version
+- (instancetype)initWithVersion:(ACE_VERSION)version
                bundleDirectory:(nonnull NSString*)bundleDirectory NS_DESIGNATED_INITIALIZER;
 
 /**
@@ -45,7 +45,7 @@ typedef NS_ENUM(NSUInteger, ACE_VERSION) {
  * @param version  Ace version.
  * @param instanceName instance name.
  */
--(instancetype)initWithVersion:(ACE_VERSION)version
+- (instancetype)initWithVersion:(ACE_VERSION)version
                   instanceName:(nonnull NSString*)instanceName NS_DESIGNATED_INITIALIZER;
 
 @property(nonatomic,readonly) ACE_VERSION version;

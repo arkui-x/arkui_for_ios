@@ -219,7 +219,7 @@ int32_t CURRENT_INSTANCE_Id = 0;
     [super dealloc];
 }
 
--(void)runAcePage{
+- (void)runAcePage{
     OHOS::Ace::Platform::AceContainer::RunPage(_aceInstanceId, 1, "", "");
 }
 
