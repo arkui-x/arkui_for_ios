@@ -310,11 +310,12 @@
 }
 
 - (void)playDidEndNotification:(NSNotification *)notification{
-    [self fireCallback:@"completion" params:@""];
     if (self.player_ && self.isLoop) {
         CMTime time = CMTimeMake(0, 1);
         [self seekTo:time];
         [self startPlay];
+    } else {
+        [self fireCallback:@"completion" params:@""];
     }
 }
 
