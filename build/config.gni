@@ -19,6 +19,7 @@ declare_args() {
 defines = [
   "IOS_PLATFORM",
   "SK_BUILD_FOR_IOS",
+  "PANDA_TARGET_IOS",
 ]
 
 js_engines = []
