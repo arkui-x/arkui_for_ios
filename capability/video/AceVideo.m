@@ -200,8 +200,12 @@
 - (void)startPlay{
     if (self.player_) {
         CMTime currentTime = self.player_.currentTime;
-        CMTime time = CMTimeMake(currentTime.value / currentTime.timescale, 1);
-        [self seekTo:time];
+        int64_t duration = FLTCMTimeToMillis([[self.player_ currentItem] duration]);
+        if (currentTime.value == duration) {
+            CMTime time = CMTimeMake(0, currentTime.timescale);
+            [self seekTo:time];
+        }
+
         [self.player_ play];
         NSString *param = [NSString stringWithFormat:@"isplaying=%d", 1];
         [self fireCallback:@"onplaystatus" params:param];
