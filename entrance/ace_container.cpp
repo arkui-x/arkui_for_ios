@@ -25,7 +25,6 @@
 #else
 #include "flutter/lib/ui/ui_dart_state.h"
 #endif
-#include "third_party/quickjs/cutils.h"
 
 #include "adapter/ios/entrance/ace_application_info_impl.h"
 #include "adapter/ios/osal/dir_asset_provider.h"
@@ -61,7 +60,6 @@
 #include "frameworks/bridge/declarative_frontend/declarative_frontend.h"
 #endif
 #include "frameworks/bridge/js_frontend/engine/common/js_engine_loader.h"
-#include "frameworks/bridge/js_frontend/engine/quickjs/qjs_utils.h"
 #include "frameworks/bridge/js_frontend/js_frontend.h"
 
 const char* localJsFrameworkPath_;
@@ -226,9 +224,6 @@ void AceContainer::InitializeFrontend()
 #else
         frontend_ = Frontend::Create();
         auto jsFrontend = AceType::DynamicCast<JsFrontend>(frontend_);
-
-        // TODO: set locale in ViewController when get system locale info
-
         auto jsEngine = Framework::JsEngineLoader::Get().CreateJsEngine(GetInstanceId());
         jsFrontend->SetJsEngine(jsEngine);
         EngineHelper::AddEngine(instanceId_, jsEngine);
@@ -243,8 +238,6 @@ void AceContainer::InitializeFrontend()
         frontend_ = AceType::MakeRefPtr<DeclarativeFrontend>();
         auto declarativeFrontend = AceType::DynamicCast<DeclarativeFrontend>(frontend_);
 #endif
-        // TODO: set locale in ViewController when get system locale info
-
         auto& loader = Framework::JsEngineLoader::GetDeclarative(nullptr);
         auto jsEngine = loader.CreateJsEngine(instanceId_);
         declarativeFrontend->SetJsEngine(jsEngine);

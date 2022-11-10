@@ -169,7 +169,6 @@ static UIReturnKeyType ToUIReturnKeyType(NSString* inputType) {
 @property(nonatomic) UIReturnKeyType returnKeyType;
 @property(nonatomic, getter=isSecureTextEntry) BOOL secureTextEntry;
 
-//@property(nonatomic, assign) id<iOSTextInputDelegate> textInputDelegate;
 @property (nonatomic, copy) updateEditingClientBlock textInputBlock;
 @property (nonatomic, copy) performActionBlock textPerformBlock;
 
@@ -231,7 +230,6 @@ static UIReturnKeyType ToUIReturnKeyType(NSString* inputType) {
     NSString *newText = state[@"text"];
     BOOL textChanged = ![self.text isEqualToString:newText];
     if (textChanged) {
-        //[self.inputDelegate textWillChange:self];
         [self.text setString:newText];
     }
     
@@ -240,19 +238,11 @@ static UIReturnKeyType ToUIReturnKeyType(NSString* inputType) {
     NSRange selectedRange = [self clampSelection:NSMakeRange(MIN(selectionBase, selectionExtent), ABS(selectionBase - selectionExtent)) forText:self.text];
     NSRange oldSelectedRange = [(iOSTextRange*)self.selectedTextRange range];
     if (selectedRange.location != oldSelectedRange.location || selectedRange.length != oldSelectedRange.length) {
-        //[self.inputDelegate selectionWillChange:self];
         [self setSelectedTextRange:[iOSTextRange rangeWithNSRange:selectedRange] updateEditingState:NO];
         _selectionAffinity = _kTextAffinityDownstream;
         if ([state[@"selectionAffinity"] isEqualToString:@(_kTextAffinityUpstream)]){
            _selectionAffinity = _kTextAffinityUpstream;
         }
-        //[self.inputDelegate selectionDidChange:self];
-    }
-    
-    if (textChanged) {
-        //[self.inputDelegate textDidChange:self];
-        // For consistency with Android behavior, send an update to the framework.
-        //[self updateEditingState];
     }
 }
 
@@ -338,7 +328,6 @@ static UIReturnKeyType ToUIReturnKeyType(NSString* inputType) {
 
 - (BOOL)shouldChangeTextInRange:(UITextRange*)range replacementText:(NSString*)text {
     if (self.returnKeyType == UIReturnKeyDefault && [text isEqualToString:@"\n"]) {
-        //[_textInputDelegate performAction:iOSTextInputActionNewline withClient:_textInputClient];
         if(self.textPerformBlock){
             self.textPerformBlock(iOSTextInputActionNewline,_textInputClient);
         }
@@ -382,7 +371,6 @@ static UIReturnKeyType ToUIReturnKeyType(NSString* inputType) {
                 break;
         }
         
-        //[_textInputDelegate performAction:action withClient:_textInputClient];
         if(self.textPerformBlock){
             self.textPerformBlock(action,_textInputClient);
         }
@@ -461,7 +449,6 @@ static UIReturnKeyType ToUIReturnKeyType(NSString* inputType) {
 - (UITextPosition*)positionFromPosition:(UITextPosition*)position
                             inDirection:(UITextLayoutDirection)direction
                                  offset:(NSInteger)offset {
-    // TODO(cbracken) Add RTL handling.
     switch (direction) {
         case UITextLayoutDirectionLeft:
         case UITextLayoutDirectionUp:
@@ -534,14 +521,11 @@ static UIReturnKeyType ToUIReturnKeyType(NSString* inputType) {
 
 - (UITextWritingDirection)baseWritingDirectionForPosition:(UITextPosition*)position
                                               inDirection:(UITextStorageDirection)direction {
-    // TODO(cbracken) Add RTL handling.
     return UITextWritingDirectionNatural;
 }
 
 - (void)setBaseWritingDirection:(UITextWritingDirection)writingDirection
-                       forRange:(UITextRange*)range {
-    // TODO(cbracken) Add RTL handling.
-}
+                       forRange:(UITextRange*)range {}
 
 #pragma mark - UITextInput cursor, selection rect handling
 
@@ -551,54 +535,36 @@ static UIReturnKeyType ToUIReturnKeyType(NSString* inputType) {
 // physical keyboard.
 
 - (CGRect)firstRectForRange:(UITextRange*)range {
-    // TODO(cbracken) Implement.
     return CGRectZero;
 }
 
 - (CGRect)caretRectForPosition:(UITextPosition*)position {
-    // TODO(cbracken) Implement.
     return CGRectZero;
 }
 
 - (UITextPosition*)closestPositionToPoint:(CGPoint)point {
-    // TODO(cbracken) Implement.
     NSUInteger currentIndex = ((iOSTextPosition*)_selectedTextRange.start).index;
     return [iOSTextPosition positionWithIndex:currentIndex];
 }
 
 - (NSArray*)selectionRectsForRange:(UITextRange*)range {
-    // TODO(cbracken) Implement.
     return @[];
 }
 
 - (UITextPosition*)closestPositionToPoint:(CGPoint)point withinRange:(UITextRange*)range {
-    // TODO(cbracken) Implement.
     return range.start;
 }
 
 - (UITextRange*)characterRangeAtPoint:(CGPoint)point {
-    // TODO(cbracken) Implement.
     NSUInteger currentIndex = ((iOSTextPosition*)_selectedTextRange.start).index;
     return [iOSTextRange rangeWithNSRange:fml::RangeForCharacterAtIndex(self.text, currentIndex)];
 }
 
-- (void)beginFloatingCursorAtPoint:(CGPoint)point {
-//    [_textInputDelegate updateFloatingCursor:iOSFloatingCursorDragStateStart
-//                                  withClient:_textInputClient
-//                                withPosition:@{@"X" : @(point.x), @"Y" : @(point.y)}];
-}
+- (void)beginFloatingCursorAtPoint:(CGPoint)point {}
 
-- (void)updateFloatingCursorAtPoint:(CGPoint)point {
-//    [_textInputDelegate updateFloatingCursor:iOSFloatingCursorDragStateUpdate
-//                                  withClient:_textInputClient
-//                                withPosition:@{@"X" : @(point.x), @"Y" : @(point.y)}];
-}
+- (void)updateFloatingCursorAtPoint:(CGPoint)point {}
 
-- (void)endFloatingCursor {
-//    [_textInputDelegate updateFloatingCursor:iOSFloatingCursorDragStateEnd
-//                                  withClient:_textInputClient
-//                                withPosition:@{@"X" : @(0), @"Y" : @(0)}];
-}
+- (void)endFloatingCursor {}
 
 #pragma mark - UIKeyInput Overrides
 
@@ -623,8 +589,6 @@ static UIReturnKeyType ToUIReturnKeyType(NSString* inputType) {
         @"composingExtent" : @(composingExtent),
         @"text" : [NSString stringWithString:self.text],
     };
-    
-    //[_textInputDelegate updateEditingClient:_textInputClient withState:dict];
     
     if(self.textInputBlock){
         self.textInputBlock(_textInputClient,dict);
@@ -680,7 +644,6 @@ static UIReturnKeyType ToUIReturnKeyType(NSString* inputType) {
     iOSTextInputViewAccessibilityHider* _inputHider;
 }
 
-//@synthesize textInputDelegate = _textInputDelegate;
 @synthesize textInputBlock = _textInputBlock;
 @synthesize textPerformBlock = _textPerformBlock;
 
@@ -724,7 +687,6 @@ static UIReturnKeyType ToUIReturnKeyType(NSString* inputType) {
     NSAssert([UIApplication sharedApplication].keyWindow != nullptr,
              @"The application must have a key window since the keyboard client "
              @"must be part of the responder chain to function");
-    //_activeView.textInputDelegate = _textInputDelegate;
     _activeView.textInputBlock = _textInputBlock;
     _activeView.textPerformBlock = _textPerformBlock;
     [self addToInputParentViewIfNeeded:_activeView];

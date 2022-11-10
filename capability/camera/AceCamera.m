@@ -89,7 +89,7 @@ FourCharCode const videoFormat = kCVPixelFormatType_32BGRA;
 }
 
 #pragma mark - AvCaptureSession
--(void)setupCapture{
+- (void)setupCapture{
     NSString *cameraName = @"";
     if (@available(iOS 10.0, *)) {
         AVCaptureDeviceDiscoverySession *discoverySession = [AVCaptureDeviceDiscoverySession
@@ -147,7 +147,7 @@ FourCharCode const videoFormat = kCVPixelFormatType_32BGRA;
     
 }
 
--(void)startRunCapture{
+- (void)startRunCapture{
     [_captureSession startRunning];
 }
 

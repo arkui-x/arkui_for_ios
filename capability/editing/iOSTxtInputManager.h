@@ -29,7 +29,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, assign) CGFloat inputBoxTopY;
 @property (nonatomic, assign) bool isDeclarative;
 
--(UIView<UITextInput>*)textInputView;
+- (UIView<UITextInput>*)textInputView;
 - (void)showTextInput;
 - (void)hideTextInput;
 - (void)setTextInputClient:(int)client withConfiguration:(NSDictionary*)configuration;

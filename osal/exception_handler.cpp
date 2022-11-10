@@ -13,17 +13,8 @@
  * limitations under the License.
  */
 
-#import <Foundation/Foundation.h>
+#include "base/log/exception_handler.h"
 
-NS_ASSUME_NONNULL_BEGIN
-
-@interface iOSVibratorManager : NSObject
-
-+ (instancetype)shareintance;
-@property(nonatomic,assign) NSInteger duration;
-- (void)addVibrate:(NSInteger)duration;
-- (void)addVibrateSingle;
-
-@end
-
-NS_ASSUME_NONNULL_END
+namespace OHOS::Ace {
+void ExceptionHandler::HandleJsException(const std::string& exceptionMsg) {}
+} // namespace OHOS::Ace
