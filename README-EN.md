@@ -47,7 +47,7 @@ For details about the source code structure of the ArkUI framework, see [ArkUI P
 
 ## How to Use<a name="section171384529150"></a>
 
-You can create an ArkUI cross-platform application project by following instructions in [Application Development](https://gitee.com/arkui-x/docs/blob/master/en/application-dev/README.md). During development on the iOS platform, use either constructor provided by **AceViewController** to set the development paradigm and the ArkUI module instance name or JSBundle path. The details are as follows:
+You can create an ArkUI cross-platform application project by following instructions in [Application Development](https://gitee.com/arkui-x/docs/blob/master/en/application-dev/README.md). During development on the iOS platform, use either constructor provided by **AceViewController** to set the development paradigm and the ArkUI module instance name or JSBundle directory. The details are as follows:
 
 **Constructor 1**
 
@@ -55,11 +55,10 @@ You can create an ArkUI cross-platform application project by following instruct
 /**
  * Initializes this AceViewController with the specified instance name.
  *
- *  This is used for pure ace application. It will combine the js/`instanceName` as the
- *  bundleDirectory.
+ *  This API is used for pure ACE application. It will combine the js/`instanceName` as bundleDirectory.
  *
- * @param version  Ace version.
- * @param instanceName instance name.
+ * @param version  ACE version.
+ * @param instanceName Instance name.
  */
 - (instancetype)initWithVersion:(ACE_VERSION)version
                   instanceName:(nonnull NSString*)instanceName;
@@ -70,16 +69,16 @@ How to Use
 AceViewController *controller = [[AceViewController alloc] initWithVersion:(ACE_VERSION_ETS) instanceName:@"MainAbility"];
 ```
 
-Note: The **instanceName** parameter indicates the module instance name. **AceViewController** internally loads the JSBundle whose path is **js/instanceName** in the xCode project. If you want to customize the JSBundle path, use constructor 2.
+Note: The **instanceName** parameter indicates the module instance name. **AceViewController** internally loads the JSBundle whose directory is **js/instanceName** in the xCode project. If you want to customize the JSBundle directory, use constructor 2.
 
 **Constructor 2**
 
 ```objective-c
 /**
- * Initializes this AceViewController with the specified JS bundle directory.
+ * Initializes this AceViewController with the specified JSBundle directory.
  *
- * @param version  Ace version.
- * @param bundleDirectory js bundle directory.
+ * @param version  ACE version.
+ * @param bundleDirectory JSBundle directory.
  */
 - (instancetype)initWithVersion:(ACE_VERSION)version
                bundleDirectory:(nonnull NSString*)bundleDirectory;
