@@ -34,7 +34,7 @@ ArkUI框架包括应用层（Application）、前端框架层（Framework）、�
 
 ## 目录介绍<a name="section1791423143211"></a>
 
-ArkUI开发框架的源代码结构参见 [代码工程结构及构建说明](https://gitee.com/arkui-x/docs/blob/master/zh-cn/framework-dev/quick-start/project-structure-guide.md), iOS平台的适配代码在/foundation/arkui/ace\_engine/adapter/ios下，目录结构如下图所示：
+ArkUI开发框架的源代码结构参见[代码工程结构及构建说明](https://gitee.com/arkui-x/docs/blob/master/zh-cn/framework-dev/quick-start/project-structure-guide.md), iOS平台的适配代码在/foundation/arkui/ace\_engine/adapter/ios下，目录结构如下图所示：
 
 ```
 /foundation/arkui/ace_engine/adapter/ios
@@ -47,9 +47,7 @@ ArkUI开发框架的源代码结构参见 [代码工程结构及构建说明](ht
 
 ## 使用说明<a name="section171384529150"></a>
 
-参考 [ArkUI跨平台应用构建工具使用指南](https://gitee.com/arkui-x/docs/blob/master/zh-cn/application-dev/quick-start/start-with-ace-tools.md) 可以创建出对应iOS平台的项目工程。
-
-使用AceViewController两种构造函数之一，传入开发范式以及ArkUI模块实例名称或JSBundle具体路径，即可使用，具体如下：
+参考[应用开发者文档](https://gitee.com/arkui-x/docs/blob/master/zh-cn/application-dev/README.md)可以创建出跨平台应用工程，其中在iOS平台中集成使用AceViewController两种构造函数之一，传入开发范式类型以及ArkUI模块实例名称或JSBundle具体路径名，即可构建ArkUI跨iOS平台应用，具体如下：
 
 **构造函数一**
 
