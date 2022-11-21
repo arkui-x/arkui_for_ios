@@ -17,6 +17,7 @@
 
 #include <cstring>
 #include <string>
+#include "core/components/theme/theme_manager_impl.h"
 
 #ifdef NG_BUILD
 #include "ace_shell/shell/common/window_manager.h"
@@ -476,7 +477,7 @@ void AceContainer::SetThemeResourceInfo(const std::string& path, int32_t themeId
     resourceInfo_.SetThemeId(themeId);
     resourceInfo_.SetPackagePath(path);
     ThemeConstants::InitDeviceType();
-    themeManager_ = AceType::MakeRefPtr<ThemeManager>();
+    themeManager_ = AceType::MakeRefPtr<ThemeManagerImpl>();
     if (themeManager_) {
         // init resource, load theme map , do not parse yet
         themeManager_->InitResource(resourceInfo_);
@@ -601,7 +602,7 @@ void AceContainer::AttachView(
     InitializeCallback();
 
     // Only init global resource here, construct theme in UI thread
-    auto themeManager = AceType::MakeRefPtr<ThemeManager>();
+    auto themeManager = AceType::MakeRefPtr<ThemeManagerImpl>();
     if (themeManager) {
         pipelineContext_->SetThemeManager(themeManager);
         // Init resource, load theme map.
