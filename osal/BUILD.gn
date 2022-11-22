@@ -29,6 +29,7 @@ template("ace_osal_ios_source_set") {
       "fake_accessibility_manager.cpp",
       "fetch_manager.cpp",
       "frame_report.cpp",
+      "frame_trace_adapter_impl.cpp",
       "ios_trace.cpp",
       "layout_inspector.cpp",
       "log_wrapper.cpp",
