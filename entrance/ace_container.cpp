@@ -151,7 +151,6 @@ void AceContainer::Destroy()
     }
 
     ContainerScope scope(instanceId_);
-    EngineHelper::RemoveEngine(instanceId_);
     // 1. Destroy Pipeline on UI Thread
     auto weak = AceType::WeakClaim(AceType::RawPtr(pipelineContext_));
     taskExecutor_->PostTask(
@@ -169,9 +168,10 @@ void AceContainer::Destroy()
     frontend_.Swap(frontend);
     if (frontend) {
         taskExecutor_->PostTask(
-            [frontend]() {
+            [frontend, id = instanceId_]() {
                 frontend->UpdateState(Frontend::State::ON_DESTROY);
                 frontend->Destroy();
+                EngineHelper::RemoveEngine(id);
             },
             TaskExecutor::TaskType::JS);
     }
