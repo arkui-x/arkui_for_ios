@@ -24,10 +24,12 @@
 @implementation VideoTests
 
 #define KEY_TEXTURE @"texture"
+#define KEY_NG_TEXTURE @""
 #define FAILED_MESSAGE @"Test failed!"
 #define TAG @"5"
 
 AceVideoResourcePlugin *aceVideoResourcePlugin;
+AceVideoResourcePlugin *aceVideoResourcePluginNg;
 NSString *incId = @"";
 
 - (void)setUp {
@@ -42,6 +44,11 @@ NSString *incId = @"";
     XCTAssertNotNil(aceVideoResourcePlugin, FAILED_MESSAGE);
 }
 
+- (void)testInitWithBundleDirectory_0200 {
+    aceVideoResourcePluginNg = [aceVideoResourcePluginNg initWithBundleDirectory:KEY_NG_TEXTURE];
+    XCTAssertNil(aceVideoResourcePluginNg, FAILED_MESSAGE);
+}
+
 - (void)testCreate_0100 {
     aceVideoResourcePlugin.tag = TAG;
     [((AceResourceRegisterOC*)aceVideoResourcePlugin.resRegister) registerPlugin:aceVideoResourcePlugin];
@@ -50,5 +57,12 @@ NSString *incId = @"";
     incId = [NSString stringWithFormat:@"%lld", value];
     [aceVideoResourcePlugin release:incId];
     XCTAssertNotEqual(value, -1, FAILED_MESSAGE);
+}
+
+- (void)testCreate_0200 {
+    aceVideoResourcePlugin = [[AceVideoResourcePlugin alloc] init];
+    aceVideoResourcePlugin = [aceVideoResourcePlugin initWithBundleDirectory:KEY_TEXTURE];
+    int64_t value = [aceVideoResourcePlugin create:nil];
+    XCTAssertEqual(value, -1, FAILED_MESSAGE);
 }
 @end
