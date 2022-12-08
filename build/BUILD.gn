@@ -70,6 +70,10 @@ ohos_shared_library("ace_ios") {
   deps += common_plugin_modules
   if (defined(ark_engine)) {
     deps += [
+      "//arkcompiler/runtime_core/libpandabase:libarkbase_static",
+      "//arkcompiler/runtime_core/libpandafile:libarkfile_static",
+
+      # for enable debugger
       "//arkcompiler/toolchain/inspector:ark_debugger_static",
       "//arkcompiler/toolchain/tooling:libark_ecma_debugger_set",
     ]
