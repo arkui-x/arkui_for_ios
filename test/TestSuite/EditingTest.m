@@ -1,15 +1,22 @@
-//
-//  EditingTests.m
-//  iOS_TestHostTests
-//
-//  Created by ZhangChuan on 2022/8/15.
-//
+/*
+ * Copyright (c) 2022 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
+#import <libace_ios/iOSTxtInputManager.h>
+#import <XCTest/XCTest.h>
 #include <Foundation/Foundation.h>
 #include <UIKit/UIKit.h>
-#import <XCTest/XCTest.h>
-#import <libace_ios/iOSTextInputDelegate.h>
-#import <libace_ios/iOSTxtInputManager.h>
 
 @interface EditingTests : XCTestCase
 
@@ -17,7 +24,7 @@
 
 @implementation EditingTests
 
-#define FAILED_MESSAGE @"测试未通过"
+#define FAILED_MESSAGE @"Test failed!"
 iOSTxtInputManager *inputManager;
 
 - (void)setUp {

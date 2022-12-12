@@ -17,6 +17,7 @@
 
 #include <cstring>
 #include <string>
+#include "core/components/theme/theme_manager_impl.h"
 
 #ifdef NG_BUILD
 #include "ace_shell/shell/common/window_manager.h"
@@ -25,7 +26,6 @@
 #else
 #include "flutter/lib/ui/ui_dart_state.h"
 #endif
-#include "third_party/quickjs/cutils.h"
 
 #include "adapter/ios/entrance/ace_application_info_impl.h"
 #include "adapter/ios/osal/dir_asset_provider.h"
@@ -61,7 +61,6 @@
 #include "frameworks/bridge/declarative_frontend/declarative_frontend.h"
 #endif
 #include "frameworks/bridge/js_frontend/engine/common/js_engine_loader.h"
-#include "frameworks/bridge/js_frontend/engine/quickjs/qjs_utils.h"
 #include "frameworks/bridge/js_frontend/js_frontend.h"
 
 const char* localJsFrameworkPath_;
@@ -152,7 +151,6 @@ void AceContainer::Destroy()
     }
 
     ContainerScope scope(instanceId_);
-    EngineHelper::RemoveEngine(instanceId_);
     // 1. Destroy Pipeline on UI Thread
     auto weak = AceType::WeakClaim(AceType::RawPtr(pipelineContext_));
     taskExecutor_->PostTask(
@@ -170,9 +168,10 @@ void AceContainer::Destroy()
     frontend_.Swap(frontend);
     if (frontend) {
         taskExecutor_->PostTask(
-            [frontend]() {
+            [frontend, id = instanceId_]() {
                 frontend->UpdateState(Frontend::State::ON_DESTROY);
                 frontend->Destroy();
+                EngineHelper::RemoveEngine(id);
             },
             TaskExecutor::TaskType::JS);
     }
@@ -478,7 +477,7 @@ void AceContainer::SetThemeResourceInfo(const std::string& path, int32_t themeId
     resourceInfo_.SetThemeId(themeId);
     resourceInfo_.SetPackagePath(path);
     ThemeConstants::InitDeviceType();
-    themeManager_ = AceType::MakeRefPtr<ThemeManager>();
+    themeManager_ = AceType::MakeRefPtr<ThemeManagerImpl>();
     if (themeManager_) {
         // init resource, load theme map , do not parse yet
         themeManager_->InitResource(resourceInfo_);
@@ -603,7 +602,7 @@ void AceContainer::AttachView(
     InitializeCallback();
 
     // Only init global resource here, construct theme in UI thread
-    auto themeManager = AceType::MakeRefPtr<ThemeManager>();
+    auto themeManager = AceType::MakeRefPtr<ThemeManagerImpl>();
     if (themeManager) {
         pipelineContext_->SetThemeManager(themeManager);
         // Init resource, load theme map.
