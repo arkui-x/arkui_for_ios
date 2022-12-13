@@ -189,6 +189,8 @@
 }
 
 - (void)releaseObject{
+    [self.playerItem_ removeObserver:self forKeyPath:@"status"];
+    [self.playerItem_ removeObserver:self forKeyPath:@"loadedTimeRanges"];
     [[NSNotificationCenter defaultCenter] removeObserver:self];
     [self.displayLink invalidate];
     self.displayLink = nil;
