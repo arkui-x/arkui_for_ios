@@ -59,7 +59,7 @@ public:
         return assetProvider_->IsValid();
     }
 
-    std::string GetAssetPath(const std::string& assetName) override
+    std::string GetAssetPath(const std::string& assetName, bool isAddHapPath) override
     {
         std::string fileName = basePath_ + assetName;
         std::FILE* fp = std::fopen(fileName.c_str(), "r");

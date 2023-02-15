@@ -106,7 +106,7 @@ public:
         return pipelineContext_;
     }
 
-    bool Dump(const std::vector<std::string>& params) override;
+    bool Dump(const std::vector<std::string>& params, std::vector<std::string>& info) override;
 
     AceView* GetAceView()
     {

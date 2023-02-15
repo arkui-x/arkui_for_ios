@@ -55,6 +55,8 @@ bool SystemProperties::accessibilityEnabled_ = false;
 bool SystemProperties::windowAnimationEnabled_ = false;
 bool SystemProperties::debugEnabled_ = false;
 bool SystemProperties::debugBoundaryEnabled_ = false;
+bool SystemProperties::extSurfaceEnabled_ = false;
+uint32_t SystemProperties::dumpFrameCount_ = 0;
 
 void SystemProperties::InitDeviceType(DeviceType type)
 {
@@ -140,11 +142,6 @@ std::string SystemProperties::GetLanguage()
 std::string SystemProperties::GetRegion()
 {
     return UNDEFINED_PARAM;
-}
-
-bool SystemProperties::GetDebugBoundaryEnabled()
-{
-    return false;
 }
 
 std::string SystemProperties::GetPartialUpdatePkg()
