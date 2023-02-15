@@ -15,7 +15,7 @@
 #import <UIKit/UIKit.h>
 
 NS_ASSUME_NONNULL_BEGIN
-
+extern BOOL isDebug;
 typedef NS_ENUM(NSUInteger, ACE_VERSION) {
     ACE_VERSION_JS = 1,    // default. web like js app version
     ACE_VERSION_ETS = 2,   // declarative ets app version
