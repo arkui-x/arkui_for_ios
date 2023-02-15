@@ -39,6 +39,7 @@
 
 const int32_t THEME_ID_DEFAULT = 117440515;
 int32_t CURRENT_INSTANCE_Id = 0;
+BOOL isDebug = NO;
 #define ASSER_PATH @"js"
 #define K_THEME_ID_LIGHT 125829967
 #define K_THEME_ID_DARK 125829966
@@ -125,7 +126,10 @@ int32_t CURRENT_INSTANCE_Id = 0;
     _flutterVc = controller;
     controller.view.frame = self.view.bounds;
     [self.view addSubview:controller.view];
-    
+
+    //set the debug information of the instance
+    OHOS::Ace::AceApplicationInfo::GetInstance().SetDebug(isDebug, false);
+   
     // alloc resource register
     _registerOC = [[AceResourceRegisterOC alloc] initWithParent:self];
     auto aceResRegister = OHOS::Ace::Referenced::MakeRefPtr<OHOS::Ace::Platform::AceResourceRegister>(_registerOC);
