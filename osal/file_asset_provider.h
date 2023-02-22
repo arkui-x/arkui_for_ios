@@ -44,7 +44,7 @@ public:
 
     bool IsValid() const override;
 
-    std::string GetAssetPath(const std::string& assetName) override;
+    std::string GetAssetPath(const std::string& assetName, bool isAddHapPath) override;
 
     void GetAssetList(const std::string& path, std::vector<std::string>& assetList) override;
 

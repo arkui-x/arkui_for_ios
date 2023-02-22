@@ -32,4 +32,9 @@ int32_t MouseStyleIOS::GetPointerStyle(int32_t windowId, int32_t& pointerStyle) 
     return -1;
 }
 
+bool MouseStyleIOS::ChangePointerStyle(int32_t windowId, MouseFormat mouseFormat) const
+{
+    return false;
+}
+
 } // namespace OHOS::Ace

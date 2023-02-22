@@ -202,7 +202,7 @@ bool AceContainer::RunPage(int32_t instanceId, int32_t pageId, const std::string
     return false;
 }
 
-bool AceContainer::Dump(const std::vector<std::string>& params)
+bool AceContainer::Dump(const std::vector<std::string>& params, std::vector<std::string>& info)
 {
     ContainerScope scope(instanceId_);
     if (aceView_ && aceView_->Dump(params)) {
