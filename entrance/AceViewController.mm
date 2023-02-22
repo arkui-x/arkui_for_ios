@@ -129,7 +129,11 @@ BOOL isDebug = NO;
 
     //set the debug information of the instance
     OHOS::Ace::AceApplicationInfo::GetInstance().SetDebug(isDebug, false);
-   
+
+    //set the device pixel ratio
+    double scale = [UIScreen mainScreen].scale;
+    OHOS::Ace::SystemProperties::SetResolution(scale);
+
     // alloc resource register
     _registerOC = [[AceResourceRegisterOC alloc] initWithParent:self];
     auto aceResRegister = OHOS::Ace::Referenced::MakeRefPtr<OHOS::Ace::Platform::AceResourceRegister>(_registerOC);
