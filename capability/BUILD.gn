@@ -67,7 +67,7 @@ template("ace_capability_ios_source_set") {
     sources = [
       # camera
       "$ace_root/adapter/ios/capability/camera/AceCamera.m",
-      "$ace_root/adapter/ios/capability/camera/AceCameraResoucePlugin.m",
+      "$ace_root/adapter/ios/capability/camera/AceCameraResoucePlugin.mm",
 
       # text_input
       "$ace_root/adapter/ios/capability/editing/text_input_client_handler.cpp",
@@ -88,7 +88,7 @@ template("ace_capability_ios_source_set") {
 
       # texture
       "$ace_root/adapter/ios/capability/texture/AceTexture.m",
-      "$ace_root/adapter/ios/capability/texture/AceTextureResourcePlugin.m",
+      "$ace_root/adapter/ios/capability/texture/AceTextureResourcePlugin.mm",
 
       # vibrator
       "$ace_root/adapter/ios/capability/vibrator/iOSVibratorManager.m",
@@ -97,7 +97,7 @@ template("ace_capability_ios_source_set") {
 
       # video
       "$ace_root/adapter/ios/capability/video/AceVideo.m",
-      "$ace_root/adapter/ios/capability/video/AceVideoResourcePlugin.m",
+      "$ace_root/adapter/ios/capability/video/AceVideoResourcePlugin.mm",
     ]
 
     deps = [ ":text_input" ]

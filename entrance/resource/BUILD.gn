@@ -36,7 +36,7 @@ ohos_source_set("resource") {
 
   sources = [
     "AceResourcePlugin.m",
-    "AceResourceRegisterOC.m",
+    "AceResourceRegisterOC.mm",
   ]
 
   libs = [
