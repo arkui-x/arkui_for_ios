@@ -99,12 +99,12 @@
 - (id)getObject:(NSString *)resourceHash{
     NSArray<NSString *> *split = [resourceHash componentsSeparatedByString:PARAM_AT];
     if (split.count == 2) {
-        return [self getObject:split[0] incId:split[1]];
+        return [self getObject:split[0] incId:[split[1] longLongValue]];
     }
     return nil;
 }
 
-- (id)getObject:(NSString *)resourceType incId:(NSString *)incId{
+- (id)getObject:(NSString *)resourceType incId:(int64_t)incId{
     AceResourcePlugin *plugin = [self.pluginMap objectForKey:resourceType];
     if (plugin) {
         return [plugin getObject:incId];

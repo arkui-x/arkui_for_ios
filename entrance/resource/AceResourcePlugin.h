@@ -51,8 +51,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void)registerSyncCallMethod:(NSDictionary<NSString *, IAceOnCallSyncResourceMethod> *)methodMap;
 
-- (void)unregisterSyncCallMethod:(NSString *)method;
-
+- (void)unregisterSyncCallMethod:(NSDictionary<NSString *, IAceOnCallSyncResourceMethod> *)methodMap;
 
 @end
 
