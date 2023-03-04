@@ -17,6 +17,7 @@
 
 #include <cstring>
 #include <string>
+
 #include "core/components/theme/theme_manager_impl.h"
 
 #ifdef NG_BUILD
@@ -427,6 +428,115 @@ void AceContainer::AddAssetPath(
     }
 }
 
+void AceContainer::InitDeviceInfo(
+    int32_t deviceWidth, int32_t deviceHeight, DeviceOrientation orientation, double density)
+{
+    if (orientation == DeviceOrientation::PORTRAIT) {
+        SystemProperties::InitDeviceInfo(deviceWidth, deviceHeight, PORTRAIT, density, false);
+    } else if (orientation == DeviceOrientation::LANDSCAPE) {
+        SystemProperties::InitDeviceInfo(deviceWidth, deviceHeight, LANDSCAPE, density, false);
+    }
+    auto config = GetResourceConfiguration();
+    config.SetOrientation(SystemProperties::GetDeviceOrientation());
+    SetResourceConfiguration(config);
+}
+
+void AceContainer::OnDeviceOrientationChange(DeviceOrientation orientation)
+{
+    auto front = GetFrontend();
+    if (!front) {
+        LOGW("Failed to get Frontend");
+        return;
+    }
+    std::string data = "";
+    if (orientation == DeviceOrientation::PORTRAIT) {
+        data = "\"orientation\":\"PORTRAIT\"";
+    } else if (orientation == DeviceOrientation::LANDSCAPE) {
+        data = "\"orientation\":\"LANDSCAPE\"";
+    } else {
+        LOGW("failed to get Device Orientation");
+        return;
+    }
+    const std::string dataStr = data;
+    if (front->GetType() == FrontendType::DECLARATIVE_JS) {
+        front->OnConfigurationUpdated(dataStr);
+        auto resConfig = resourceInfo_.GetResourceConfiguration();
+        if (orientation == DeviceOrientation::PORTRAIT && resConfig.GetOrientation() != DeviceOrientation::PORTRAIT) {
+            resConfig.SetOrientation(DeviceOrientation::PORTRAIT);
+        } else if (orientation == DeviceOrientation::LANDSCAPE &&
+                   resConfig.GetOrientation() != DeviceOrientation::LANDSCAPE) {
+            resConfig.SetOrientation(DeviceOrientation::LANDSCAPE);
+        }
+        resourceInfo_.SetResourceConfiguration(resConfig);
+        if (!pipelineContext_) {
+            return;
+        }
+        auto themeManager = pipelineContext_->GetThemeManager();
+        if (!themeManager) {
+            return;
+        }
+        themeManager->UpdateConfig(resConfig);
+        taskExecutor_->PostTask(
+            [weakContext = WeakPtr<PipelineBase>(pipelineContext_)]() {
+                auto context = weakContext.Upgrade();
+                context->NotifyConfigurationChange();
+                context->FlushReload();
+            },
+            TaskExecutor::TaskType::UI);
+        if (frontend_) {
+            frontend_->RebuildAllPages();
+        }
+    }
+}
+
+void AceContainer::OnColorModeChange(ColorMode colorMode)
+{
+    auto resConfig = resourceInfo_.GetResourceConfiguration();
+    ContainerScope scope(instanceId_);
+    SystemProperties::SetColorMode(colorMode);
+    if (colorMode == ColorMode::DARK) {
+        SetColorScheme(ColorScheme::SCHEME_DARK);
+    } else {
+        SetColorScheme(ColorScheme::SCHEME_LIGHT);
+    }
+    resConfig.SetColorMode(colorMode);
+    resourceInfo_.SetResourceConfiguration(resConfig);
+    if (!pipelineContext_) {
+        return;
+    }
+    auto themeManager = pipelineContext_->GetThemeManager();
+    if (!themeManager) {
+        return;
+    }
+    themeManager->UpdateConfig(resConfig);
+    taskExecutor_->PostTask(
+        [weakThemeManager = WeakPtr<ThemeManager>(themeManager), colorScheme = colorScheme_,
+            weakContext = WeakPtr<PipelineBase>(pipelineContext_)]() {
+            auto themeManager = weakThemeManager.Upgrade();
+            auto context = weakContext.Upgrade();
+            if (!themeManager || !context) {
+                return;
+            }
+            themeManager->LoadResourceThemes();
+            themeManager->ParseSystemTheme();
+            themeManager->SetColorScheme(colorScheme);
+            if (colorScheme == ColorScheme::SCHEME_DARK) {
+                context->SetAppBgColor(Color::BLACK);
+            } else {
+                context->SetAppBgColor(Color::WHITE);
+            }
+            context->RefreshRootBgColor();
+            context->NotifyConfigurationChange();
+            context->FlushReload();
+        },
+        TaskExecutor::TaskType::UI);
+    if (frontend_) {
+        frontend_->FlushReload();
+        frontend_->SetColorMode(colorMode);
+        frontend_->RebuildAllPages();
+    }
+}
+
 void AceContainer::UpdateColorMode(ColorMode colorMode)
 {
     auto resConfig = resourceInfo_.GetResourceConfiguration();
@@ -457,9 +567,11 @@ void AceContainer::UpdateColorMode(ColorMode colorMode)
             themeManager->ParseSystemTheme();
             themeManager->SetColorScheme(colorScheme);
             context->RefreshRootBgColor();
+            context->FlushReload();
         },
         TaskExecutor::TaskType::UI);
     if (frontend_) {
+        frontend_->FlushReload();
         frontend_->SetColorMode(colorMode);
         frontend_->RebuildAllPages();
     }
@@ -499,6 +611,7 @@ void AceContainer::SetThemeResourceInfo(const std::string& path, int32_t themeId
             TaskExecutor::TaskType::BACKGROUND);
     }
 }
+
 void AceContainer::SetView(FlutterAceView* view, double density, int32_t width, int32_t height)
 {
     if (view == nullptr) {
@@ -518,7 +631,7 @@ void AceContainer::SetView(FlutterAceView* view, double density, int32_t width, 
         LOGE("Create PlatformWindow failed!");
         return;
     }
-    
+
     if (view && view->IsViewLaunched()) {
         LOGW("aceView has launched");
         return;
@@ -783,4 +896,5 @@ void AceContainer::SetJsFrameworkLocalPath(const char* path)
 {
     localJsFrameworkPath_ = path;
 }
+
 } // namespace OHOS::Ace::Platform

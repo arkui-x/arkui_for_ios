@@ -13,11 +13,12 @@
  * limitations under the License.
  */
 
-#include "adapter/ios/osal/resource_adapter_impl.h" 
+#include "adapter/ios/osal/resource_adapter_impl.h"
+
+#include "adapter/ios/entrance/ace_application_info_impl.h"
 #include "adapter/ios/osal/resource_convertor.h"
 #include "adapter/ios/osal/resource_theme_style.h"
 #include "core/components/theme/theme_attributes.h"
-#include "adapter/ios/entrance/ace_application_info_impl.h"
 
 namespace OHOS::Ace {
 
@@ -111,9 +112,15 @@ void ResourceAdapterImpl::Init(const ResourceInfo& resourceInfo)
 
 void ResourceAdapterImpl::UpdateConfig(const ResourceConfiguration& config)
 {
+    LOGI("UpdateConfig ori=%{public}d, dpi=%{public}d, device=%{public}d, colorMode=%{public}d,",
+        config.GetOrientation(), config.GetDensity(), config.GetDeviceType(), config.GetColorMode());
     auto resConfig = ConvertConfigToGlobal(config);
-    LOGI("UpdateConfig ori=%{public}d, dpi=%{public}d, device=%{public}d",
-        resConfig->GetDirection(), resConfig->GetScreenDensity(), resConfig->GetDeviceType());
+    LOGI("UpdateConfig ori=%{public}d, dpi=%{public}d, device=%{public}d", resConfig->GetDirection(),
+        resConfig->GetScreenDensity(), resConfig->GetDeviceType());
+    LOGI("UpdateConfig ori=%{public}d, dpi=%{public}d, device=%{public}d, "
+         "colorMode=%{public}d, inputDevice=%{public}d",
+        resConfig->GetDirection(), resConfig->GetScreenDensity(), resConfig->GetDeviceType(), resConfig->GetColorMode(),
+        resConfig->GetInputDevice());
     resourceManager_->UpdateResConfig(*resConfig);
 }
 
