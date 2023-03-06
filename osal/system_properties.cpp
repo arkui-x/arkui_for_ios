@@ -154,4 +154,9 @@ int32_t SystemProperties::GetSvgMode()
     return 0;
 }
 
+bool SystemProperties::GetIsUseMemoryMonitor()
+{
+    return false;
+}
+
 } // namespace OHOS::Ace
