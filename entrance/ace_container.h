@@ -21,18 +21,19 @@
 #include <string.h>
 #include <vector>
 
+#include "flutter/fml/synchronization/waitable_event.h"
+
 #include "adapter/ios/entrance/flutter_ace_view.h"
 #include "adapter/preview/entrance/ace_run_args.h"
 #include "base/resource/asset_manager.h"
 #include "base/thread/task_executor.h"
 #include "base/utils/noncopyable.h"
+#include "base/utils/resource_configuration.h"
 #include "core/common/ace_view.h"
 #include "core/common/container.h"
 #include "core/common/js_message_dispatcher.h"
 #include "core/common/platform_bridge.h"
 #include "frameworks/bridge/js_frontend/engine/common/js_engine.h"
-
-#include "flutter/fml/synchronization/waitable_event.h"
 
 namespace OHOS::Ace::Platform {
 
@@ -143,6 +144,27 @@ public:
     void* GetView() const override
     {
         return static_cast<void*>(aceView_);
+    }
+
+    void InitDeviceInfo(int32_t deviceWidth, int32_t deviceHeight, DeviceOrientation orientation, double density);
+
+    void SetResourceConfiguration(const ResourceConfiguration& config)
+    {
+        resourceInfo_.SetResourceConfiguration(config);
+    }
+
+    ResourceConfiguration GetResourceConfiguration()
+    {
+        return resourceInfo_.GetResourceConfiguration();
+    }
+
+    void OnDeviceOrientationChange(DeviceOrientation orientation);
+
+    void OnColorModeChange(ColorMode colorMode);
+
+    void SetColorScheme(ColorScheme colorScheme)
+    {
+        colorScheme_ = colorScheme;
     }
 
     void Dispatch(
