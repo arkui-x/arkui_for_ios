@@ -119,7 +119,7 @@ public:
         width_ = width;
         height_ = height;
         if (viewChangeCallback_) {
-            viewChangeCallback_(width, height, type);
+            viewChangeCallback_(width, height, type, nullptr);
         }
     }
 
