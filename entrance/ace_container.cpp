@@ -69,6 +69,8 @@ const char* localJsFrameworkPath_;
 namespace OHOS::Ace::Platform {
 
 constexpr int32_t UNUSED_PAGE_ID = 1;
+constexpr int32_t PORTRAIT = 1;
+constexpr int32_t LANDSCAPE = 2;
 constexpr char ASSET_PATH_SHARE[] = "share";
 constexpr char DELIMITER[] = "/";
 
@@ -896,5 +898,4 @@ void AceContainer::SetJsFrameworkLocalPath(const char* path)
 {
     localJsFrameworkPath_ = path;
 }
-
 } // namespace OHOS::Ace::Platform
