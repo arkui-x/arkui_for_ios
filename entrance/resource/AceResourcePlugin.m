@@ -56,12 +56,14 @@
     }];
 }
 
-- (void)unregisterSyncCallMethod:(NSString *)method{
-    if (self.resRegister == nil) {
+- (void)unregisterSyncCallMethod:(NSDictionary<NSString *, IAceOnCallSyncResourceMethod> *)methodMap{
+    if (self.resRegister == nil || methodMap == nil || methodMap.allValues.count == 0) {
         return;
     }
-    
-    [self.resRegister unregisterSyncCallMethod:method];
+
+    [methodMap enumerateKeysAndObjectsUsingBlock:^(NSString * _Nonnull key, IAceOnCallSyncResourceMethod  _Nonnull callback, BOOL * _Nonnull stop) {
+        [self.resRegister unregisterSyncCallMethod:key];
+    }];
 }
 
 @end

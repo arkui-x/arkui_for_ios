@@ -20,29 +20,30 @@
 #import "AceTextureResourcePlugin.h"
 #import "AceVideoResourcePlugin.h"
 
-#include "flutter/fml/memory/weak_ptr.h"
-#include "flutter/fml/platform/darwin/scoped_nsobject.h"
-#include "flutter/lib/ui/window/viewport_metrics.h"
-#include "flutter/shell/platform/darwin/ios/framework/Headers/FlutterViewController.h"
-
-#include "adapter/ios/entrance/ace_application_info_impl.h"
 #include "adapter/ios/capability/editing/iOSTxtInputManager.h"
+#include "adapter/ios/entrance/ace_application_info_impl.h"
 #include "adapter/ios/entrance/ace_container.h"
 #include "adapter/ios/entrance/ace_resource_register.h"
-#include "adapter/ios/entrance/flutter_ace_view.h"
 #include "adapter/ios/entrance/capability_registry.h"
+#include "adapter/ios/entrance/flutter_ace_view.h"
 #include "adapter/preview/entrance/ace_run_args.h"
 #include "core/common/ace_engine.h"
 #include "core/common/container.h"
 #include "core/event/mouse_event.h"
 #include "core/event/touch_event.h"
 
+#include "flutter/fml/memory/weak_ptr.h"
+#include "flutter/fml/platform/darwin/scoped_nsobject.h"
+#include "flutter/lib/ui/window/viewport_metrics.h"
+#include "flutter/shell/platform/darwin/ios/framework/Headers/FlutterViewController.h"
+
 const int32_t THEME_ID_DEFAULT = 117440515;
 int32_t CURRENT_INSTANCE_Id = 0;
+BOOL isDebug = NO;
 #define ASSER_PATH @"js"
 #define K_THEME_ID_LIGHT 125829967
 #define K_THEME_ID_DARK 125829966
-@interface AceViewController ()<IAceOnCallEvent>
+@interface AceViewController ()<IAceOnCallEvent, UITraitEnvironment>
 
 @property (retain, nonatomic, readonly) FlutterViewController* flutterVc;
 @property (nonatomic, retain) AceResourceRegisterOC *registerOC;
@@ -125,7 +126,14 @@ int32_t CURRENT_INSTANCE_Id = 0;
     _flutterVc = controller;
     controller.view.frame = self.view.bounds;
     [self.view addSubview:controller.view];
-    
+
+    //set the debug information of the instance
+    OHOS::Ace::AceApplicationInfo::GetInstance().SetDebug(isDebug, false);
+
+    //set the device pixel ratio
+ 	double scale = [UIScreen mainScreen].scale;
+    OHOS::Ace::SystemProperties::SetResolution(scale);
+   
     // alloc resource register
     _registerOC = [[AceResourceRegisterOC alloc] initWithParent:self];
     auto aceResRegister = OHOS::Ace::Referenced::MakeRefPtr<OHOS::Ace::Platform::AceResourceRegister>(_registerOC);
@@ -151,32 +159,34 @@ int32_t CURRENT_INSTANCE_Id = 0;
         frontendType = OHOS::Ace::FrontendType::DECLARATIVE_JS;
     }
     OHOS::Ace::Platform::AceContainer::CreateContainer(_aceInstanceId, frontendType);
+    
     [self initTheme];
+    [self initDeviceInfo];
 
     std::string argurl = _bundleDirectory.UTF8String;
     std::string customurl = OHOS::Ace::Platform::AceContainer::GetCustomAssetPath(argurl);
     OHOS::Ace::Platform::AceContainer::AddAssetPath(_aceInstanceId, "", {argurl, customurl.append(ASSET_PATH_SHARE)});
 }
 
-- (void)initTheme{
-    auto container = OHOS::Ace::AceType::DynamicCast<OHOS::Ace::Platform::AceContainer>(OHOS::Ace::AceEngine::Get().GetContainer(_aceInstanceId));
-    if (container) {
-        BOOL isDark = [self isDarkMode];
+// - (void)initTheme{
+//     auto container = OHOS::Ace::AceType::DynamicCast<OHOS::Ace::Platform::AceContainer>(OHOS::Ace::AceEngine::Get().GetContainer(_aceInstanceId));
+//     if (container) {
+//         BOOL isDark = [self isDarkMode];
 
-        NSInteger themeId = isDark ? K_THEME_ID_DARK : K_THEME_ID_LIGHT;
-        NSString *resDirectory =
-            [[NSBundle mainBundle] pathForResource:@"res" ofType:nil];
-        std::string assetPathCStr;
-        if (resDirectory != nil && resDirectory.length > 0) {
-            assetPathCStr = std::string([resDirectory UTF8String]);
-        }
-        container->UpdateColorMode(isDark ? OHOS::Ace::ColorMode::DARK
-                                          : OHOS::Ace::ColorMode::LIGHT);
-        container->initResourceManager(assetPathCStr, themeId);
-    }
-}
+//         NSInteger themeId = isDark ? K_THEME_ID_DARK : K_THEME_ID_LIGHT;
+//         NSString *resDirectory =
+//             [[NSBundle mainBundle] pathForResource:@"res" ofType:nil];
+//         std::string assetPathCStr;
+//         if (resDirectory != nil && resDirectory.length > 0) {
+//             assetPathCStr = std::string([resDirectory UTF8String]);
+//         }
+//         container->UpdateColorMode(isDark ? OHOS::Ace::ColorMode::DARK
+//                                           : OHOS::Ace::ColorMode::LIGHT);
+//         container->initResourceManager(assetPathCStr, themeId);
+//     }
+// }
 
-- (BOOL)isDarkMode{
+- (BOOL)isDarkMode {
     __block BOOL isDark = NO;
     if (@available(iOS 13.0, *)) {
         UIColor *color = [UIColor colorWithDynamicProvider:^UIColor * _Nonnull(UITraitCollection * _Nonnull traitCollection) {
@@ -193,6 +203,59 @@ int32_t CURRENT_INSTANCE_Id = 0;
         self.view.backgroundColor = color;
     }
     return isDark;
+}
+
+- (void)initTheme {
+    auto container = OHOS::Ace::AceType::DynamicCast<OHOS::Ace::Platform::AceContainer>
+        (OHOS::Ace::AceEngine::Get().GetContainer(_aceInstanceId));
+    if (container) {
+        BOOL isDark = [self isDarkMode];
+        NSInteger themeId = isDark ? K_THEME_ID_DARK : K_THEME_ID_LIGHT;
+        NSString *resDirectory = [[NSBundle mainBundle] pathForResource:@"res" ofType:nil];
+        std::string assetPathCStr;
+        if (resDirectory != nil && resDirectory.length > 0) {
+            assetPathCStr = std::string([resDirectory UTF8String]);
+        }
+        container->UpdateColorMode(isDark ? OHOS::Ace::ColorMode::DARK
+                                          : OHOS::Ace::ColorMode::LIGHT);
+        container->initResourceManager(assetPathCStr, themeId);
+    }
+}
+
+- (void)traitCollectionDidChange:(UITraitCollection *)previousTraitCollection {
+    auto container = OHOS::Ace::AceType::DynamicCast<OHOS::Ace::Platform::AceContainer>
+        (OHOS::Ace::AceEngine::Get().GetContainer(_aceInstanceId));
+    if (container) {
+        if (@available(iOS 13.0, *)) {
+            if (UITraitCollection.currentTraitCollection.userInterfaceStyle == UIUserInterfaceStyleDark) {
+                container->OnColorModeChange(OHOS::Ace::ColorMode::DARK);
+            } 
+            else {
+                container->OnColorModeChange(OHOS::Ace::ColorMode::LIGHT);
+            }
+        }
+    }
+}
+
+- (void)initDeviceInfo {
+    auto container = OHOS::Ace::AceType::DynamicCast<OHOS::Ace::Platform::AceContainer>
+        (OHOS::Ace::AceEngine::Get().GetContainer(_aceInstanceId));
+    if (container) {
+        CGRect rect = [UIScreen mainScreen].bounds;
+        UIScreenMode *screenMode = [[UIScreen mainScreen] currentMode];
+        UIDeviceOrientation orientation = [UIDevice currentDevice].orientation ;
+        if (orientation == UIDeviceOrientationLandscapeLeft || orientation == UIDeviceOrientationLandscapeRight) {
+            container->InitDeviceInfo((int32_t)rect.size.width, 
+            (int32_t)rect.size.height, OHOS::Ace::DeviceOrientation::LANDSCAPE, 1.0);
+        } else if (orientation == UIInterfaceOrientationPortraitUpsideDown ||
+                orientation == UIInterfaceOrientationPortrait) {
+            container->InitDeviceInfo((int32_t)rect.size.width, 
+            (int32_t)rect.size.height, OHOS::Ace::DeviceOrientation::PORTRAIT, 1.0);
+        } else {
+            LOGE("initDeviceInfo: failed to get Device Orientation");
+            return;
+        }
+    }
 }
 
 - (void)viewWillAppear:(BOOL)animated {
@@ -429,10 +492,41 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
     [center addObserver:self
                selector:@selector(keyboardWillBeHidden:)
                    name:UIKeyboardWillHideNotification
-                 object:nil];           
+                 object:nil];
+
+    [center addObserver:self
+               selector:@selector(onDeviceOrientationChange:)
+                   name:UIDeviceOrientationDidChangeNotification
+                 object:nil];
 }
 
 #pragma mark - Application lifecycle notifications
+
+- (void)onDeviceOrientationChange:(NSNotification *)notification {
+    UIDeviceOrientation orientation = [UIDevice currentDevice].orientation;
+    UIInterfaceOrientation interfaceOrientation = (UIInterfaceOrientation)orientation;
+    CGRect rect = [UIScreen mainScreen].bounds;
+    UIScreenMode *screenMode = [[UIScreen mainScreen] currentMode];
+    auto container = OHOS::Ace::AceType::DynamicCast<OHOS::Ace::Platform::AceContainer>
+        (OHOS::Ace::AceEngine::Get().GetContainer(_aceInstanceId));
+    switch (interfaceOrientation) {
+        case UIInterfaceOrientationPortraitUpsideDown:
+            container->OnDeviceOrientationChange(OHOS::Ace::DeviceOrientation::PORTRAIT);
+            break;
+        case UIInterfaceOrientationPortrait:
+            container->OnDeviceOrientationChange(OHOS::Ace::DeviceOrientation::PORTRAIT);
+            break;
+        case UIInterfaceOrientationLandscapeLeft:
+            container->OnDeviceOrientationChange(OHOS::Ace::DeviceOrientation::LANDSCAPE);
+            break;
+        case UIInterfaceOrientationLandscapeRight:
+            container->OnDeviceOrientationChange(OHOS::Ace::DeviceOrientation::LANDSCAPE);
+            break;
+        default:
+            LOGE("onDeviceOrientationChange: failed to get Device Orientation");
+            break;
+    }
+}
 
 - (void)applicationBecameActive:(NSNotification *)notification {
     OHOS::Ace::Platform::AceContainer::OnActive(_aceInstanceId);

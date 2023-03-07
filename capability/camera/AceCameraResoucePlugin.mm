@@ -45,7 +45,7 @@
         return -1;
     }
     NSString *textureId = [param valueForKey:KEY_CAMERA_TEXTURE];
-    id obj = [self.resRegister getObject:KEY_CAMERA_TEXTURE incId:textureId];
+    id obj = [self.resRegister getObject:KEY_CAMERA_TEXTURE incId:[textureId longLongValue]];
     if (obj == nil || ![obj isKindOfClass:[AceTexture class]]) {
         return -1;
     }
