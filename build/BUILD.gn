@@ -43,8 +43,19 @@ ohos_combine_darwin_framework("libace_ios") {
 common_napi_modules = []
 
 foreach(module, common_napi_libs) {
+  module_path_names = []
+  module_path_names = string_split(module, "/")
+  prefix_dir = module_path_names[0]
+
+  module_path = prefix_dir
+  if (prefix_dir != module) {
+    module_path = module_path_names[1]
+  }
+
+  target_name_ext = string_replace(module_path, "_", "")
+
   common_napi_modules +=
-      [ "$ace_root/interfaces/napi/kits/$module:${module}_static_ios" ]
+      [ "$ace_root/interfaces/napi/kits/$module_path:${target_name_ext}_static_ios" ]
 }
 
 common_plugin_modules = []
