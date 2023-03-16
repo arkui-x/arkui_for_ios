@@ -593,4 +593,8 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
 + (int32_t)genterateInstanceId {
     return CURRENT_INSTANCE_Id++;
 }
+
+- (int32_t)getInstanceId {
+    return _aceInstanceId;
+}
 @end

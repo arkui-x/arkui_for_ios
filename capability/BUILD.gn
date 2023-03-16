@@ -31,6 +31,7 @@ config("capability_config") {
     "$ace_root/adapter/ios/capability/texture",
     "$ace_root/adapter/ios/capability/video",
     "$ace_root/adapter/ios/capability/camera",
+    "$ace_root/adapter/ios/capability/bridge",
   ]
 
   cflags_objc = [ "-fvisibility=default" ]
@@ -98,6 +99,15 @@ template("ace_capability_ios_source_set") {
       # video
       "$ace_root/adapter/ios/capability/video/AceVideo.m",
       "$ace_root/adapter/ios/capability/video/AceVideoResourcePlugin.mm",
+
+      # bridge
+      "$ace_root/adapter/ios/capability/bridge/BridgePlugin+jsMessage.m",
+      "$ace_root/adapter/ios/capability/bridge/BridgePlugin.m",
+      "$ace_root/adapter/ios/capability/bridge/BridgePluginManager.mm",
+      "$ace_root/adapter/ios/capability/bridge/MethodData.m",
+      "$ace_root/adapter/ios/capability/bridge/ParameterHelper.m",
+      "$ace_root/adapter/ios/capability/bridge/ResultValue.m",
+      "$ace_root/adapter/ios/capability/bridge/bridge_manager.mm",
     ]
 
     deps = [ ":text_input" ]
