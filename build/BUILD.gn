@@ -54,8 +54,9 @@ foreach(module, common_napi_libs) {
 
   target_name_ext = string_replace(module_path, "_", "")
 
-  common_napi_modules +=
-      [ "$ace_root/interfaces/napi/kits/$module_path:${target_name_ext}_static_ios" ]
+  common_napi_modules += [
+    "$ace_root/interfaces/napi/kits/$module_path:${target_name_ext}_static_ios",
+  ]
 }
 
 common_plugin_modules = []
