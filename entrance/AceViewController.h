@@ -48,6 +48,8 @@ typedef NS_ENUM(NSUInteger, ACE_VERSION) {
 - (instancetype)initWithVersion:(ACE_VERSION)version
                   instanceName:(nonnull NSString*)instanceName NS_DESIGNATED_INITIALIZER;
 
+- (int32_t)getInstanceId;
+
 @property(nonatomic,readonly) ACE_VERSION version;
 @property(nonatomic,readonly) NSString *bundleDirectory;
 

@@ -34,6 +34,9 @@ ohos_combine_darwin_framework("libace_ios") {
     "$ace_root/adapter/ios/entrance/Ace.h",
     "$ace_root/adapter/ios/entrance/AceViewController.h",
     "$flutter_root/engine/flutter/shell/platform/darwin/ios/framework/Headers/FlutterPlugin.h",
+    "$ace_root/adapter/ios/capability/bridge/BridgePlugin.h",
+    "$ace_root/adapter/ios/capability/bridge/ResultValue.h",
+    "$ace_root/adapter/ios/capability/bridge/MethodData.h",
   ]
 
   subsystem_name = "arkui"

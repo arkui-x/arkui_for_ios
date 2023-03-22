@@ -27,6 +27,7 @@ template("ace_ios_standard_source_set") {
       "$ace_root/frameworks",
       "$ace_root",
       "$ace_root/adapter/ios/entrance/resource",
+      "$ace_root/adapter/ios/capability/bridge",
       "$ace_root/adapter/ios/capability/texture",
       "$ace_root/adapter/ios/capability/video",
       "$ace_root/adapter/ios/capability/camera",
