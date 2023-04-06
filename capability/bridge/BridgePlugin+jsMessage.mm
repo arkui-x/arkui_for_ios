@@ -39,7 +39,7 @@
                                             target:self];
                 if (result && [result isKindOfClass:NSDictionary.class]) {
                     NSDictionary * dic = (NSDictionary *)result;
-                    errorCode = [dic[@"errorCode"] intValue];
+                    errorCode = (ErrorCode)[dic[@"errorCode"] intValue];
                     errorMessage = dic[@"errorMessage"];
                 }
                 NSLog(@"try result : %@", result);

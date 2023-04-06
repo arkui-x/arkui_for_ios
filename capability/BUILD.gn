@@ -101,12 +101,12 @@ template("ace_capability_ios_source_set") {
       "$ace_root/adapter/ios/capability/video/AceVideoResourcePlugin.mm",
 
       # bridge
-      "$ace_root/adapter/ios/capability/bridge/BridgePlugin+jsMessage.m",
-      "$ace_root/adapter/ios/capability/bridge/BridgePlugin.m",
+      "$ace_root/adapter/ios/capability/bridge/BridgePlugin+jsMessage.mm",
+      "$ace_root/adapter/ios/capability/bridge/BridgePlugin.mm",
       "$ace_root/adapter/ios/capability/bridge/BridgePluginManager.mm",
-      "$ace_root/adapter/ios/capability/bridge/MethodData.m",
-      "$ace_root/adapter/ios/capability/bridge/ParameterHelper.m",
-      "$ace_root/adapter/ios/capability/bridge/ResultValue.m",
+      "$ace_root/adapter/ios/capability/bridge/MethodData.mm",
+      "$ace_root/adapter/ios/capability/bridge/ParameterHelper.mm",
+      "$ace_root/adapter/ios/capability/bridge/ResultValue.mm",
       "$ace_root/adapter/ios/capability/bridge/bridge_manager.mm",
     ]
 
