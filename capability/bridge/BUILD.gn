@@ -35,12 +35,12 @@ ohos_source_set("bridge") {
   ]
 
   sources = [
-    "BridgePlugin+jsMessage.m",
-    "BridgePlugin.m",
-    "BridgePluginManager.m",
-    "MethodData.m",
-    "ParameterHelper.m",
-    "ResultValue.m",
+    "BridgePlugin+jsMessage.mm",
+    "BridgePlugin.mm",
+    "BridgePluginManager.mm",
+    "MethodData.mm",
+    "ParameterHelper.mm",
+    "ResultValue.mm",
     "baridge_manager.mm",
   ]
 
