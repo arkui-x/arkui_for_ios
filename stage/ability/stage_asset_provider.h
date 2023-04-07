@@ -26,11 +26,8 @@
 namespace OHOS {
 namespace AbilityRuntime {
 namespace Platform {
-
 class StageAssetProvider {
-
 public:
-
     StageAssetProvider() = default;
     ~StageAssetProvider() = default;
 

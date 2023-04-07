@@ -17,7 +17,6 @@
 #define FOUNDATION_ACE_ADAPTER_IOS_STAGE_ABILITY_STAGE_APPLICATION_INFO_ADAPTER_H
 
 #include <memory>
-#include <mutex>
 
 namespace OHOS {
 namespace AbilityRuntime {

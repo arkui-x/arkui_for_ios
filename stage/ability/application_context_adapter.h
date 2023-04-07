@@ -21,7 +21,6 @@
 #include "base/utils/macros.h"
 
 namespace OHOS::AbilityRuntime::Platform {
-
 struct ProcessInformation {
     int32_t pid = 0;
     std::string processName;
@@ -29,7 +28,6 @@ struct ProcessInformation {
 };
 
 class ApplicationContextAdapter {
-
 public:
     ApplicationContextAdapter() = default;
     ~ApplicationContextAdapter() = default;
