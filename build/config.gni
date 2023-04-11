@@ -47,4 +47,5 @@ platform_deps = [
   "//foundation/arkui/ace_engine/adapter/ios/entrance:ace_ios_entrance",
   "//foundation/arkui/ace_engine/adapter/ios/osal:ace_osal_ios",
   "//foundation/arkui/ace_engine/adapter/ios/stage/uicontent:ace_uicontent_ios",
+  # "//foundation/arkui/ace_engine/adapter/ios/stage/ability:stage_ios_entrance",
 ]
