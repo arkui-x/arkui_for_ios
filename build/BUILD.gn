@@ -103,6 +103,8 @@ ohos_shared_library("ace_ios") {
   }
   libs = [ "$root_out_dir/libicudata/ios/libicudata.a" ]
 
+  deps += [ "//foundation/appframework/arkui/uicontent:ace_uicontent_interface" ]
+
   cflags_cc += [
     "-Wall",
     "-frtti",
