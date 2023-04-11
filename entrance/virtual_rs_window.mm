@@ -23,16 +23,14 @@
 //#include "flutter/shell/platform/darwin/vsync_waiter_ios.h"
 #include "foundation/appframework/arkui/uicontent/ui_content.h"
 //#include "shell/common/vsync_waiter.h"
-//#include "transaction/rs_interfaces.h"
-#include <hilog.h>
+#include "transaction/rs_interfaces.h"
 #include "base/log/log.h"
 
 namespace OHOS::Rosen {
 std::shared_ptr<Window> Window::Create(
     std::shared_ptr<OHOS::AbilityRuntime::Platform::Context> context, void* windowView)
 {
-    HILOG_INFO("########## IOS>ENTRANCE #### WindowStage::Init");
-    LOGI("########## IOS>ENTRANCE #### WindowStage::Init");
+    LOGI("Window::Create with %{public}p", windowView);
     auto window = std::make_shared<Window>(context);
     window->SetWindowView(windowView);
     return window;
