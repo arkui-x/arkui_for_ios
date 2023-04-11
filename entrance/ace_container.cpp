@@ -64,6 +64,10 @@
 #include "frameworks/bridge/js_frontend/engine/common/js_engine_loader.h"
 #include "frameworks/bridge/js_frontend/js_frontend.h"
 
+#ifdef ENABLE_ROSEN_BACKEND
+#include "render_service_client/core/ui/rs_ui_director.h"
+#endif
+
 const char* localJsFrameworkPath_;
 
 namespace OHOS::Ace::Platform {
@@ -734,9 +738,38 @@ void AceContainer::AttachView(
             },
             TaskExecutor::TaskType::UI);
     }
-
+#ifdef ENABLE_ROSEN_BACKEND
     taskExecutor_->PostTask(
-        [context = pipelineContext_]() { context->SetupRootElement(); }, TaskExecutor::TaskType::UI);
+        [weak = WeakClaim(this)]() {
+            auto container = weak.Upgrade();
+            CHECK_NULL_VOID(container);
+            auto pipelineContext = AceType::DynamicCast<PipelineContext>(container->pipelineContext_);
+            CHECK_NULL_VOID(pipelineContext);
+            auto director = Rosen::RSUIDirector::Create();
+            if (director == nullptr) {
+                return;
+            }
+
+            auto func = [taskExecutor = container->taskExecutor_, id = container->instanceId_](const std::function<void()>& task) {
+                ContainerScope scope(id);
+                taskExecutor->PostTask(task, TaskExecutor::TaskType::UI);
+            };
+            director->SetUITaskRunner(func);
+
+            director->Init();
+            pipelineContext->SetRSUIDirector(director);
+            auto flutterAceView = static_cast<Platform::FlutterAceView*>(container->aceView_);
+            CHECK_NULL_VOID(flutterAceView);
+            flutterAceView->SetUIDirector(director);
+            LOGI("Init Rosen Backend");
+        },
+        TaskExecutor::TaskType::UI);
+#endif
+    taskExecutor_->PostTask(
+        [context = pipelineContext_]() {
+            LOGI("SetupRootElement"); 
+            context->SetupRootElement(); 
+            }, TaskExecutor::TaskType::UI);
     aceView_->Launch();
 
     frontend_->AttachPipelineContext(pipelineContext_);
@@ -752,6 +785,7 @@ void AceContainer::AttachView(
         TaskExecutor::TaskType::UI);
 
     AceEngine::Get().RegisterToWatchDog(instanceId, taskExecutor_);
+
 }
 
 void AceContainer::RequestFrame() {}

@@ -24,6 +24,7 @@ template("ace_ios_standard_source_set") {
 
     include_dirs = [
       "//third_party/",
+      "//commonlibrary/c_utils/base/include",
       "$ace_root/frameworks",
       "$ace_root",
       "$ace_root/adapter/ios/entrance/resource",
@@ -34,12 +35,14 @@ template("ace_ios_standard_source_set") {
     ]
 
     sources = [
+      "WindowView.mm",
       "ace_application_info_impl.cpp",
       "ace_bridge.mm",
       "ace_container.cpp",
       "ace_resource_register.cpp",
       "capability_registry.cpp",
       "flutter_ace_view.cpp",
+      "virtual_rs_window.mm",
     ]
 
     if (target_cpu == "arm64") {
@@ -48,7 +51,10 @@ template("ace_ios_standard_source_set") {
 
     defines += [ "BUILD_FOR_ARKUI" ]
 
-    configs = [ "$ace_root:ace_config" ]
+    configs = [
+      "$ace_root:ace_config",
+      "//foundation/appframework/ability/ability_runtime/cross_platform/interfaces/inner_api/hilog:ability_cross_platform_hilog_config",
+    ]
 
     cflags_objc = [ "-fvisibility=default" ]
 
@@ -58,6 +64,16 @@ template("ace_ios_standard_source_set") {
       "$ace_root/adapter/ios/capability:ace_capability_ios",
       "$ace_root/adapter/ios/entrance/resource:resource",
       "$ace_root/frameworks/core/components/theme:build_theme_code",
+
+      # unadapted rosen render for window
+      # "//foundation/graphic/graphic_2d/rosen/modules/render_service_client:librender_service_client_static",
+    ]
+    external_deps = [ "c_utils:utils_staticIOS_PLATFORM" ]
+
+    libs = [
+      "UIKit.framework",
+      "OpenGLES.framework",
+      "QuartzCore.framework",
     ]
 
     if (enable_ng_build) {
@@ -74,6 +90,9 @@ template("ace_ios_standard_source_set") {
 
       deps += [
         "$ace_flutter_engine_root_new:third_party_flutter_engine_dev_$platform",
+
+        # unadapted rosen render for window
+        #"$ace_flutter_engine_root:third_party_flutter_engine_lib_ui_dev_$platform",
         "$ace_flutter_engine_root_new/third_party/skia:ace_skia_dev_$platform",
       ]
     } else {
@@ -88,11 +107,18 @@ template("ace_ios_standard_source_set") {
       ]
 
       sources += [ "AceViewController.mm" ]
+      sources += [ "rosen_ace_view.mm" ]
 
       deps += [
         "$ace_flutter_engine_root:third_party_flutter_engine_$platform",
+
+        # unadapted rosen render for window
+        # "$ace_flutter_engine_root:third_party_flutter_engine_lib_ui_$platform",
         "$ace_flutter_engine_root/skia:ace_skia_$platform",
       ]
+    }
+    if (defined(config.enable_rosen_backend) && config.enable_rosen_backend) {
+      deps += [ "//foundation/graphic/graphic_2d/rosen/modules/render_service_client:librender_service_client_static" ]
     }
   }
 }

@@ -32,6 +32,7 @@ config("capability_config") {
     "$ace_root/adapter/ios/capability/video",
     "$ace_root/adapter/ios/capability/camera",
     "$ace_root/adapter/ios/capability/bridge",
+    "//foundation/graphic/graphic_2d/rosen/modules",
   ]
 
   cflags_objc = [ "-fvisibility=default" ]
@@ -111,7 +112,9 @@ template("ace_capability_ios_source_set") {
     ]
 
     deps = [ ":text_input" ]
-
+    if (defined(config.enable_rosen_backend) && config.enable_rosen_backend) {
+      deps += [ "//foundation/graphic/graphic_2d/rosen/modules/render_service_client:librender_service_client_static" ]
+    }
     part_name = "ace_engine_cross"
     subsystem_name = "arkui"
   }

@@ -37,8 +37,8 @@ ohos_combine_darwin_framework("libace_ios") {
     "$ace_root/adapter/ios/capability/bridge/BridgePlugin.h",
     "$ace_root/adapter/ios/capability/bridge/ResultValue.h",
     "$ace_root/adapter/ios/capability/bridge/MethodData.h",
-    # "$ace_root/adapter/ios/stage/ability/StageViewController.h",
-    # "$ace_root/adapter/ios/stage/ability/StageApplication.h",
+    "$ace_root/adapter/ios/stage/ability/StageViewController.h",
+    "$ace_root/adapter/ios/stage/ability/StageApplication.h",
   ]
 
   subsystem_name = "arkui"
