@@ -36,7 +36,7 @@
 #include "flutter/fml/platform/darwin/scoped_nsobject.h"
 #include "flutter/lib/ui/window/viewport_metrics.h"
 #include "flutter/shell/platform/darwin/ios/framework/Headers/FlutterViewController.h"
-
+#include "rosen_ace_view.h"
 const int32_t THEME_ID_DEFAULT = 117440515;
 int32_t CURRENT_INSTANCE_Id = 0;
 BOOL isDebug = NO;
@@ -46,6 +46,7 @@ BOOL isDebug = NO;
 @interface AceViewController ()<IAceOnCallEvent, UITraitEnvironment>
 
 @property (retain, nonatomic, readonly) FlutterViewController* flutterVc;
+@property (retain, nonatomic, readonly) FlutterRosenView* flutterView;
 @property (nonatomic, retain) AceResourceRegisterOC *registerOC;
 /// plugin
 @property (nonatomic, retain) AceVideoResourcePlugin *videoResourcePlugin;
@@ -95,6 +96,11 @@ BOOL isDebug = NO;
     [self onLocaleUpdated:nil];
     OHOS::Ace::Platform::AceContainer::SetView(_aceView, scale, width, height);
     _aceView->NotifySurfaceChanged(width, height, OHOS::Ace::WindowSizeChangeReason::RESIZE);
+    struct OHOS::Rosen::RSSurfaceNodeConfig rsSurfaceNodeConfig = {
+        .SurfaceNodeName = "arkui-x_surface",
+        .additionalData = _flutterView.layer
+    };
+    _aceView->SetSurfaceNode(OHOS::Rosen::RSSurfaceNode::Create(rsSurfaceNodeConfig));
 }
 
 - (void)viewWillDisappear:(BOOL)animated {
@@ -125,7 +131,11 @@ BOOL isDebug = NO;
     [controller didMoveToParentViewController:self];
     _flutterVc = controller;
     controller.view.frame = self.view.bounds;
-    [self.view addSubview:controller.view];
+    FlutterRosenView* view = [[FlutterRosenView alloc]init];
+    view.frame = self.view.bounds;
+    _flutterView = view;
+    [self.view addSubview:_flutterView];
+    //[controller.view addSubview:_flutterView];
 
     //set the debug information of the instance
     OHOS::Ace::AceApplicationInfo::GetInstance().SetDebug(isDebug, false);
@@ -278,6 +288,7 @@ BOOL isDebug = NO;
     
     [_flutterVc removeFromParentViewController];
     [_flutterVc release];
+    [_flutterView release];
     
     [super dealloc];
 }

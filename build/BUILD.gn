@@ -37,8 +37,8 @@ ohos_combine_darwin_framework("libace_ios") {
     "$ace_root/adapter/ios/capability/bridge/BridgePlugin.h",
     "$ace_root/adapter/ios/capability/bridge/ResultValue.h",
     "$ace_root/adapter/ios/capability/bridge/MethodData.h",
-    # "$ace_root/adapter/ios/stage/ability/StageViewController.h",
-    # "$ace_root/adapter/ios/stage/ability/StageApplication.h",
+    "$ace_root/adapter/ios/stage/ability/StageViewController.h",
+    "$ace_root/adapter/ios/stage/ability/StageApplication.h",
   ]
 
   subsystem_name = "arkui"
@@ -86,7 +86,7 @@ ohos_shared_library("ace_ios") {
   deps = [
     "$ace_root/build:libace_static_ios",
     "//foundation/appframework/icu_data:icu_data_static",
-    "//foundation/appframework:appframework_napis",
+    # "//foundation/appframework:appframework_napis",
     "//third_party/jsoncpp:jsoncpp_static",
   ]
   deps += common_napi_modules
