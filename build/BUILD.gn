@@ -21,14 +21,14 @@ import("config.gni")
 # Install packages
 group("ace_packages") {
   deps = [
-    ":ace_ios",
+    ":arkui_ios",
     ":create_ios_framework",
   ]
 }
 
 # combine framework and xcframework
-ohos_combine_darwin_framework("libace_ios") {
-  deps = [ ":ace_ios" ]
+ohos_combine_darwin_framework("libarkui_ios") {
+  deps = [ ":arkui_ios" ]
 
   _export_framework_headers = [
     "$ace_root/adapter/ios/entrance/Ace.h",
@@ -42,7 +42,7 @@ ohos_combine_darwin_framework("libace_ios") {
   ]
 
   subsystem_name = "arkui"
-  part_name = "ace_engine_cross"
+  part_name = "arkui-x"
 }
 
 common_napi_modules = []
@@ -76,11 +76,11 @@ foreach(module, common_plugin_libs) {
 }
 
 # libace target
-ohos_shared_library("ace_ios") {
+ohos_shared_library("arkui_ios") {
   ldflags = [
     "-Wl",
     "-install_name",
-    "@rpath/libace_ios.framework/libace_ios",
+    "@rpath/libarkui_ios.framework/libarkui_ios",
   ]
 
   deps = [
@@ -110,6 +110,6 @@ ohos_shared_library("ace_ios") {
     "-frtti",
   ]
 
-  part_name = "ace_engine_cross"
+  part_name = "arkui-x"
   subsystem_name = "arkui"
 }
