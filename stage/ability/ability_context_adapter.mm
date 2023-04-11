@@ -102,7 +102,8 @@ void AbilityContextAdapter::StartAbility(const std::string& instanceName, const 
     NSString *urlString = [NSString stringWithFormat:@"%@://%@?%@", bundleName, moduleName, abilityName];
     NSURL *appUrl = [NSURL URLWithString:urlString];
     NSLog(@"%s, url : %@", __func__, urlString);
-    bool isSingle = AppMain::GetInstance()->IsSingleton(want.GetModuleName(), want.GetAbilityName());
+    // bool isSingle = AppMain::GetInstance()->IsSingleton(want.GetModuleName(), want.GetAbilityName());
+    bool isSingle = false;
     dispatch_main_async_safe((^{
         if (isSingle) {
             NSString *instanceName = [NSString stringWithFormat:@"%@:%@:%@", bundleName, moduleName, abilityName];
