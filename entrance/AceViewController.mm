@@ -46,7 +46,7 @@ BOOL isDebug = NO;
 @interface AceViewController ()<IAceOnCallEvent, UITraitEnvironment>
 
 @property (retain, nonatomic, readonly) FlutterViewController* flutterVc;
-@property (retain, nonatomic, readonly) FlutterRosenView* flutterView;
+@property (retain, nonatomic, readonly) RosenAceView* flutterView;
 @property (nonatomic, retain) AceResourceRegisterOC *registerOC;
 /// plugin
 @property (nonatomic, retain) AceVideoResourcePlugin *videoResourcePlugin;
@@ -131,7 +131,7 @@ BOOL isDebug = NO;
     [controller didMoveToParentViewController:self];
     _flutterVc = controller;
     controller.view.frame = self.view.bounds;
-    FlutterRosenView* view = [[FlutterRosenView alloc]init];
+    RosenAceView* view = [[RosenAceView alloc]init];
     view.frame = self.view.bounds;
     _flutterView = view;
     [self.view addSubview:_flutterView];
