@@ -17,16 +17,17 @@ import("//foundation/arkui/ace_engine/ace_config.gni")
 # build static
 template("stage_ios_standard_source_set") {
   forward_variables_from(invoker, "*")
-
   ohos_source_set(target_name) {
     defines = []
     defines += invoker.defines
     cflags_cc += invoker.cflags_cc
+
     configs = [
       "$ace_root:ace_config",
       "//foundation/appframework/ability/ability_runtime/cross_platform/interfaces/kits/native/appkit:appkit_native_config",
       "//third_party/json:nlohmann_json_config",
     ]
+    
     include_dirs = [
       "//third_party/",
       "$ace_root/frameworks",
@@ -45,8 +46,8 @@ template("stage_ios_standard_source_set") {
 
     cflags_objc = [
       "-fvisibility=default",
-      "-fobjc-arc",
-      "-fobjc-weak",
+      # "-fobjc-arc",
+      # "-fobjc-weak",
     ]
 
     cflags_objcc = cflags_objc
@@ -61,6 +62,7 @@ template("stage_ios_standard_source_set") {
       "stage_application_info_adapter.cpp",
       "stage_asset_provider.mm",
       "window_view_Adapter.mm",
+      "InstanceIdGenerator.mm",
     ]
     deps = [
       "$ace_flutter_engine_root:third_party_flutter_engine_$platform",
@@ -68,6 +70,13 @@ template("stage_ios_standard_source_set") {
       "//foundation/arkui/ace_engine/adapter/ios/entrance:ace_ios_entrance",
       "//foundation/appframework/ability/ability_runtime/cross_platform/interfaces/kits/native/appkit:cross_platform_appkit_native",
     ]
+
+    libs = [
+      "CoreFoundation.framework",
+      "Foundation.framework",
+      "UIKit.framework",
+      ]
+
     subsystem_name = "arkui"
   }
 }

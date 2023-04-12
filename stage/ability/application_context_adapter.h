@@ -16,23 +16,27 @@
 #ifndef FOUNDATION_ACE_ADAPTER_IOS_STAGE_ABILITY_APPLICATION_CONTEXT_ADAPTER_H
 #define FOUNDATION_ACE_ADAPTER_IOS_STAGE_ABILITY_APPLICATION_CONTEXT_ADAPTER_H
 
-#include <string>
-#include <vector>
-#include "base/utils/macros.h"
+#include <memory>
+#include <mutex>
 
-namespace OHOS::AbilityRuntime::Platform {
-struct ProcessInformation {
-    int32_t pid = 0;
-    std::string processName;
-    std::vector<std::string> bundleNames;
-};
+#include "running_process_info.h"
 
+namespace OHOS {
+namespace AbilityRuntime {
+namespace Platform {
 class ApplicationContextAdapter {
 public:
     ApplicationContextAdapter() = default;
     ~ApplicationContextAdapter() = default;
 
-    ProcessInformation GetProcessRunningInformation();
+    static std::shared_ptr<ApplicationContextAdapter> GetInstance();
+    std::vector<RunningProcessInfo> GetRunningProcessInformation();
+
+private:
+    static std::shared_ptr<ApplicationContextAdapter> instance_;
+    static std::mutex mutex_;
 };
-} // namespace OHOS::AbilityRuntime::Platform
+} // namespace Platform
+} // namespace AbilityRuntime
+} // namespace OHOS
 #endif // FOUNDATION_ACE_ADAPTER_IOS_STAGE_ABILITY_APPLICATION_CONTEXT_ADAPTER_H

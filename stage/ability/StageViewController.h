@@ -13,6 +13,9 @@
  * limitations under the License.
  */
 
+#ifndef FOUNDATION_ACE_ADAPTER_IOS_STAGE_ABILITY_STAGEVIEWCONTROLLER_H
+#define FOUNDATION_ACE_ADAPTER_IOS_STAGE_ABILITY_STAGEVIEWCONTROLLER_H
+
 #import <UIKit/UIKit.h>
 
 @interface StageViewController : UIViewController
@@ -34,4 +37,6 @@
  */
 - (instancetype)initWithInstanceName:(NSString *_Nonnull)instanceName;
 
+- (int32_t)getInstanceId;
 @end
+#endif // FOUNDATION_ACE_ADAPTER_IOS_STAGE_ABILITY_STAGEVIEWCONTROLLER_H

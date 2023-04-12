@@ -15,19 +15,25 @@
 
 #import "StageViewController.h"
 #import "StageConfigurationManager.h"
+#import "StageAssetManager.h"
+#import "InstanceIdGenerator.h"
+#import "foundation/arkui/ace_engine/adapter/ios/entrance/AcePlatformPlugin.h"
+#import "WindowView.h"
 
 #include "app_main.h"
+#include "window_view_adapter.h"
 
 using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
-int32_t CURRENT_STAGE_INSTANCE_Id = 0;
-@interface StageViewController () <UITraitEnvironment> {
+using WindowViwAdapter = OHOS::AbilityRuntime::Platform::WindowViewAdapter;
+@interface StageViewController () <UITraitEnvironment,IAceOnCallEvent> {
     int32_t _instanceId;
     std::string _cInstanceName;
-
+    WindowView *_windowView;
 }
 
 @property (nonatomic, strong, readwrite) NSString *instanceName;
 
+@property (nonatomic, strong) AcePlatformPlugin *platformPlugin;
 @end
 
 @implementation StageViewController
@@ -36,13 +42,21 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 - (instancetype)initWithInstanceName:(NSString *_Nonnull)instanceName {
     self = [super init];
     if (self) {
-        _instanceId = [self genterateInstanceId];
+        _instanceId = InstanceIdGenerator.getAndIncrement;
         self.instanceName = [NSString stringWithFormat:@"%@:%d", instanceName, _instanceId];
         NSLog(@"StageVC->%@ init, instanceName is : %@", self, self.instanceName);
         _cInstanceName = [self getCPPString:self.instanceName];
         AppMain::GetInstance()->DispatchOnCreate(_cInstanceName);
+        [self initWindowView];
+        [self initPlatformPlugin];
     }
     return self;
+}
+
+- (void)initWindowView {
+    _windowView = [[WindowView alloc] initWithFrame:self.view.bounds];
+    WindowViwAdapter::GetInstance()->AddWindowView(_cInstanceName, (__bridge void*)_windowView);
+    [self.view addSubview:_windowView];
 }
 
 - (void) viewDidLoad {
@@ -73,6 +87,9 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 
 - (void)dealloc {
     NSLog(@"StageVC->%@ dealloc", self);
+
+    [self.platformPlugin releasePlugins];
+     [self.platformPlugin releasePlugins];
     AppMain::GetInstance()->DispatchOnDestroy(_cInstanceName);
     // Ability::OnWindowStageDestroy
 }
@@ -85,12 +102,23 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
     }
 }
 
+- (int32_t)getInstanceId {
+    return _instanceId;
+}
+
+#pragma mark IAceOnCallEvent
+- (void)onEvent:(NSString *)eventId param:(NSString *)param {
+    // _aceView->GetPlatformResRegister()->OnEvent([eventId UTF8String], [param UTF8String]);
+}
+
 #pragma mark - private method
+- (void)initPlatformPlugin {
+     NSString *bundleDirectory = [[StageAssetManager assetManager] getBundlePath];
+     self.platformPlugin = [[AcePlatformPlugin alloc] initPlatformPlugin:self bundleDirectory:bundleDirectory];
+}
+
 - (std::string)getCPPString:(NSString *)string {
     return [string UTF8String];
 }
 
-- (int32_t)genterateInstanceId {
-    return CURRENT_STAGE_INSTANCE_Id++;
-}
 @end

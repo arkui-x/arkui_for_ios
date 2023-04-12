@@ -15,7 +15,6 @@
 
 #include "window_view_adapter.h"
 #include "base/log/log.h"
-#include "WindowView.h"
 
 namespace OHOS {
 namespace AbilityRuntime {
@@ -30,13 +29,13 @@ std::shared_ptr<WindowViewAdapter> WindowViewAdapter::GetInstance()
     return instance;
 }
 
-void WindowViewAdapter::AddWindowView(const std::string& instanceName, std::shared_ptr<WindowView> windowView)
+void WindowViewAdapter::AddWindowView(const std::string& instanceName, void* windowView)
 {   
     std::lock_guard<std::mutex> lock(mutex_);
     windowViewObjects_.emplace(instanceName, windowView);
 }
 
-std::shared_ptr<WindowView> WindowViewAdapter::GetWindowView(const std::string& instanceName)
+void* WindowViewAdapter::GetWindowView(const std::string& instanceName)
 {
     LOGI("Get window view, instancename: %{public}s", instanceName.c_str());
     std::lock_guard<std::mutex> lock(mutex_);
