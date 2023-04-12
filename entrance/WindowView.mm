@@ -12,12 +12,7 @@
 
 @interface WindowView()
 
-// std::shared_ptr<RSSurfaceNode> surfaceNode_;
-// std::shared_ptr<AbilityRuntime::Platform::Context> context_;
-// std::unique_ptr<OHOS::Ace::Platform::UIContent> uiContent_;
-
 @end
-// #endif  //  FLUTTER_SHELL_ENABLE_METAL
 
 @implementation WindowView
 

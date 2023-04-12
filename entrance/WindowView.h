@@ -19,18 +19,16 @@
 #include <UIKit/UIKit.h>
 #include <memory>
 
-
 namespace OHOS::Rosen {
 class Window;
 }
+
 @interface WindowView : UIView
 
 - (void)setWindowDelegate:(std::shared_ptr<OHOS::Rosen::Window>)window;
 - (void)createSurfaceNode;
 - (void)notifySurfaceChangedWithWidth:(int32_t)width height:(int32_t)height;
 - (void)notifySurfaceDestroyed;
-
-
 
 @end
 
