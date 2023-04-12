@@ -25,8 +25,10 @@ template("ace_ios_standard_source_set") {
     include_dirs = [
       "//third_party/",
       "//commonlibrary/c_utils/base/include",
+      "//third_party/flutter/engine",
       "$ace_root/frameworks",
       "$ace_root",
+      "$ace_root/adapter/ios/entrance",
       "$ace_root/adapter/ios/entrance/resource",
       "$ace_root/adapter/ios/capability/bridge",
       "$ace_root/adapter/ios/capability/texture",
@@ -65,8 +67,7 @@ template("ace_ios_standard_source_set") {
       "$ace_root/adapter/ios/entrance/resource:resource",
       "$ace_root/frameworks/core/components/theme:build_theme_code",
 
-      # unadapted rosen render for window
-      # "//foundation/graphic/graphic_2d/rosen/modules/render_service_client:librender_service_client_static",
+      "//foundation/graphic/graphic_2d/rosen/modules/render_service_client:librender_service_client_static",
     ]
     external_deps = [ "c_utils:utils_staticIOS_PLATFORM" ]
 
@@ -91,8 +92,7 @@ template("ace_ios_standard_source_set") {
       deps += [
         "$ace_flutter_engine_root_new:third_party_flutter_engine_dev_$platform",
 
-        # unadapted rosen render for window
-        #"$ace_flutter_engine_root:third_party_flutter_engine_lib_ui_dev_$platform",
+        "$ace_flutter_engine_root:third_party_flutter_engine_lib_ui_dev_$platform",
         "$ace_flutter_engine_root_new/third_party/skia:ace_skia_dev_$platform",
       ]
     } else {
@@ -105,15 +105,11 @@ template("ace_ios_standard_source_set") {
         "//third_party/flutter/engine/flutter/shell/common",
         "//base/global/resource_management/interfaces/inner_api/include",
       ]
-
       sources += [ "AceViewController.mm" ]
       sources += [ "rosen_ace_view.mm" ]
 
       deps += [
         "$ace_flutter_engine_root:third_party_flutter_engine_$platform",
-
-        # unadapted rosen render for window
-        # "$ace_flutter_engine_root:third_party_flutter_engine_lib_ui_$platform",
         "$ace_flutter_engine_root/skia:ace_skia_$platform",
       ]
     }

@@ -28,9 +28,6 @@ template("ace_uicontent_ios_source_set") {
       "$ace_root/adapter/ios/stage/uicontent/ace_container_sg.cpp",
       "$ace_root/adapter/ios/stage/uicontent/ace_view_sg.cpp",
       "$ace_root/adapter/ios/stage/uicontent/ui_content_impl.cpp",
-
-      # mock window
-      "$ace_root/adapter/ios/stage/uicontent/virtual_rs_window.cpp",
     ]
 
     include_dirs = [
@@ -48,6 +45,7 @@ template("ace_uicontent_ios_source_set") {
       "//foundation/arkui/napi:ace_napi",
       "//third_party/icu/icu4c:static_icui18n",
       "//third_party/icu/icu4c:static_icuuc",
+      "//foundation/arkui/ace_engine/adapter/ios/entrance:ace_ios_entrance",
     ]
 
     deps += [
@@ -56,7 +54,7 @@ template("ace_uicontent_ios_source_set") {
     ]
 
     if (defined(config.enable_rosen_backend) && config.enable_rosen_backend) {
-      deps += [ "//foundation/graphic/graphic_2d/rosen/modules/render_service_client:librender_service_client" ]
+      deps += [ "//foundation/graphic/graphic_2d/rosen/modules/render_service_client:librender_service_client_static" ]
     }
 
     configs = [

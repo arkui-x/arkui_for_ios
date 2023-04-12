@@ -19,8 +19,9 @@
 #include <memory>
 
 #include "flutter/shell/common/vsync_waiter.h"
+#include "vsync_receiver.h"
 #include "refbase.h"
-//#include "render_service_client/core/ui/rs_surface_node.h"
+#include "render_service_client/core/ui/rs_surface_node.h"
 #include "base/log/log.h"
 #include "base/utils/noncopyable.h"
 class NativeValue;
@@ -103,10 +104,10 @@ public:
         NativeValue* storage, bool isdistributed, AbilityRuntime::Platform::Ability* ability);
 
 
-    // std::shared_ptr<RSSurfaceNode> GetSurfaceNode() const
-    // {
-    //     return surfaceNode_;
-    // }
+    std::shared_ptr<RSSurfaceNode> GetSurfaceNode() const
+    {
+        return surfaceNode_;
+    }
 
 private:
     void SetWindowView(void* windowView);
@@ -116,8 +117,8 @@ private:
 
     int32_t surfaceWidth_ = 0;
     int32_t surfaceHeight_ = 0;
-//    std::shared_ptr<RSSurfaceNode> surfaceNode_;
-//    std::shared_ptr<flutter::VsyncWaiter> vsyncWaiter_;
+   std::shared_ptr<RSSurfaceNode> surfaceNode_;
+   std::shared_ptr<flutter::VsyncWaiter> vsyncWaiter_;
 
     void* windowView_ = nullptr;
     std::shared_ptr<AbilityRuntime::Platform::Context> context_;

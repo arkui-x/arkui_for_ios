@@ -58,7 +58,7 @@ void ConvertTouchEvent(const std::vector<uint8_t>& data, std::vector<TouchEvent>
         TimeStamp time(micros);
         TouchEvent point { static_cast<int32_t>(current->device), static_cast<float>(current->physical_x),
             static_cast<float>(current->physical_y), static_cast<float>(current->physical_x),
-            static_cast<float>(current->physical_y), TouchType::UNKNOWN, time, current->size,
+            static_cast<float>(current->physical_y), TouchType::UNKNOWN, TouchType::UNKNOWN, time, current->size,
             static_cast<float>(current->pressure), static_cast<int64_t>(current->device) };
         point.sourceType = SourceType::TOUCH;
         point.pointers.emplace_back(ConvertTouchPoint(current));

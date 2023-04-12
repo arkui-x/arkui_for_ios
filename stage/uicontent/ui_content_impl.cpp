@@ -151,11 +151,11 @@ void UIContentImpl::CommonInitialize(OHOS::Rosen::Window* window, const std::str
             auto assetBasePathStr = { std::string(""), std::string("ets/"),
                 std::string("ets/share"), std::string("resources/base/profile/") };
             if (flutterAssetManager && !hapPath.empty()) {
-                auto assetProvider = AceType::MakeRefPtr<FileAssetProvider>();
-                if (assetProvider->Initialize(hapPath, assetBasePathStr)) {
-                    LOGD("Push AssetProvider to queue.");
-                    flutterAssetManager->PushBack(std::move(assetProvider));
-                }
+                // auto assetProvider = AceType::MakeRefPtr<FileAssetProvider>();
+                // if (assetProvider->Initialize(hapPath, assetBasePathStr)) {
+                //     LOGD("Push AssetProvider to queue.");
+                //     flutterAssetManager->PushBack(std::move(assetProvider));
+                // }
             }
         }
         auto hapInfo = context->GetHapModuleInfo();

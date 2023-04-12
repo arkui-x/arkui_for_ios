@@ -31,8 +31,7 @@
 #include "core/common/js_message_dispatcher.h"
 #include "core/common/platform_bridge.h"
 
-// mock window
-#include "adapter/ios/stage/uicontent/virtual_rs_window.h"
+#include "adapter/ios/entrance/virtual_rs_window.h"
 
 namespace OHOS::Ace::Platform {
 using UIEnvCallback = std::function<void(const OHOS::Ace::RefPtr<OHOS::Ace::PipelineContext>& context)>;

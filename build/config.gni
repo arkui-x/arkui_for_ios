@@ -37,7 +37,7 @@ js_pa_support = false
 connect_server_support = false
 
 napi_support = false
-enable_rosen_backend = false
+enable_rosen_backend = true
 
 cflags_cc = [
   "-std=c++17",
@@ -45,6 +45,7 @@ cflags_cc = [
 ]
 if (defined(enable_rosen_backend) && enable_rosen_backend) {
   defines += [ "ENABLE_ROSEN_BACKEND" ]
+  defines += [ "VIRTUAL_RS_WINDOW" ]
 }
 platform_deps = [
   "//foundation/arkui/ace_engine/adapter/ios/entrance:ace_ios_entrance",

@@ -32,6 +32,7 @@ template("stage_ios_standard_source_set") {
       "$ace_root/frameworks",
       "$ace_root",
       "./",
+      "//foundation/arkui/ace_engine/adapter/ios/entrance",
       "//foundation/appframework/ability/ability_runtime/cross_platform/interfaces/kits/native/appkit",
       "//third_party/flutter/engine",
     ]
@@ -64,6 +65,7 @@ template("stage_ios_standard_source_set") {
     deps = [
       "$ace_flutter_engine_root:third_party_flutter_engine_$platform",
       "$ace_flutter_engine_root/skia:ace_skia_$platform",
+      "//foundation/arkui/ace_engine/adapter/ios/entrance:ace_ios_entrance",
       "//foundation/appframework/ability/ability_runtime/cross_platform/interfaces/kits/native/appkit:cross_platform_appkit_native",
     ]
     subsystem_name = "arkui"
