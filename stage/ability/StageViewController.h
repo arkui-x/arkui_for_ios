@@ -34,4 +34,5 @@
  */
 - (instancetype)initWithInstanceName:(NSString *_Nonnull)instanceName;
 
+- (int32_t)getInstanceId;
 @end

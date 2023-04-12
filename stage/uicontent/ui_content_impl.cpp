@@ -139,23 +139,21 @@ void UIContentImpl::CommonInitialize(OHOS::Rosen::Window* window, const std::str
     std::string moduleName = info != nullptr ? info->moduleName : "";
     auto appInfo = context->GetApplicationInfo();
     auto bundleName = info != nullptr ? info->bundleName : "";
-    std::string moduleHapPath = info != nullptr ? info->hapPath : "";
     std::string pageProfile;
     LOGI("Initialize UIContent isModelJson:%{public}s", isModelJson ? "true" : "false");
     if (isModelJson) {
-        std::string hapPath = info != nullptr ? info->hapPath : "";
-        hapPath = hapPath.empty() ? "arkui-x/" + moduleName + "/" : hapPath;
+        std::string hapPath = context->GetBundleCodeDir() + "/" + moduleName + "/";
         LOGI("hapPath:%{public}s", hapPath.c_str());
         // first use hap provider
         if (flutterAssetManager && !hapPath.empty()) {
             auto assetBasePathStr = { std::string(""), std::string("ets/"),
                 std::string("ets/share"), std::string("resources/base/profile/") };
             if (flutterAssetManager && !hapPath.empty()) {
-                // auto assetProvider = AceType::MakeRefPtr<FileAssetProvider>();
-                // if (assetProvider->Initialize(hapPath, assetBasePathStr)) {
-                //     LOGD("Push AssetProvider to queue.");
-                //     flutterAssetManager->PushBack(std::move(assetProvider));
-                // }
+                auto assetProvider = AceType::MakeRefPtr<FileAssetProvider>();
+                if (assetProvider->Initialize(hapPath, assetBasePathStr)) {
+                    LOGD("Push AssetProvider to queue.");
+                    flutterAssetManager->PushBack(std::move(assetProvider));
+                }
             }
         }
         auto hapInfo = context->GetHapModuleInfo();

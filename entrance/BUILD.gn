@@ -37,6 +37,7 @@ template("ace_ios_standard_source_set") {
     ]
 
     sources = [
+      "AcePlatformPlugin.mm",
       "WindowView.mm",
       "ace_application_info_impl.cpp",
       "ace_bridge.mm",
@@ -66,7 +67,6 @@ template("ace_ios_standard_source_set") {
       "$ace_root/adapter/ios/capability:ace_capability_ios",
       "$ace_root/adapter/ios/entrance/resource:resource",
       "$ace_root/frameworks/core/components/theme:build_theme_code",
-
       "//foundation/graphic/graphic_2d/rosen/modules/render_service_client:librender_service_client_static",
     ]
     external_deps = [ "c_utils:utils_staticIOS_PLATFORM" ]
@@ -90,9 +90,8 @@ template("ace_ios_standard_source_set") {
       sources += [ "AceViewControllerNG.mm" ]
 
       deps += [
-        "$ace_flutter_engine_root_new:third_party_flutter_engine_dev_$platform",
-
         "$ace_flutter_engine_root:third_party_flutter_engine_lib_ui_dev_$platform",
+        "$ace_flutter_engine_root_new:third_party_flutter_engine_dev_$platform",
         "$ace_flutter_engine_root_new/third_party/skia:ace_skia_dev_$platform",
       ]
     } else {

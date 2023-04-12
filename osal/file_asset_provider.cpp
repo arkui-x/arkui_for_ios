@@ -106,7 +106,7 @@ std::unique_ptr<fml::Mapping> FileAssetProvider::GetAsMapping(const std::string&
     return nullptr;
 }
 
-std::string FileAssetProvider::GetAssetPath(const std::string& assetName)
+std::string FileAssetProvider::GetAssetPath(const std::string& assetName, bool)
 {
     for (const auto& basePath : assetBasePaths_) {
         std::string assetBasePath = packagePath_ + basePath;
