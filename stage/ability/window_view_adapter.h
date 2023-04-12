@@ -22,11 +22,6 @@
 #include <vector>
 #include <unordered_map>
 
-// #ifdef __OBJC__  
-// @class WindowView;  
-// #else  
-// typedef struct objc_object WindowView;  
-// #endif
 namespace OHOS {
 namespace AbilityRuntime {
 namespace Platform {
