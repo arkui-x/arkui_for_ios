@@ -17,40 +17,18 @@
 #define FOUNDATION_ACE_ADAPTER_IOS_ENTRANCE_WINDOW_VIEW_H
 
 #include <UIKit/UIKit.h>
-
 #include <memory>
 
-@class WindowView;
 
-// @protocol WindowViewDelegate <NSObject>
-// - (bool)ProcessPointerEvent(const std::vector<uint8_t>&) data;
-// - (bool)ProcessKeyEvent(int32_t keyCode, int32_t keyAction, 
-//                         int32_t repeatTime, int64_t timeStamp = 0,
-//                         int64_t timeStampStart = 0);
-// @end
-
-// @protocol WindowViewDelegate <NSObject>
-// -(bool) ProcessPointerEvent:(const std::vector<uint8_t>&) data;
-// @end
-
-
+namespace OHOS::Rosen {
+class Window;
+}
 @interface WindowView : UIView
 
-
-// - (instancetype)init NS_UNAVAILABLE;
-// + (instancetype)new NS_UNAVAILABLE;
-// - (instancetype)initWithFrame:(CGRect)frame NS_UNAVAILABLE;
-// - (instancetype)initWithCoder:(NSCoder*)aDecoder NS_UNAVAILABLE;
-
-// - (instancetype)initWithDelegate:(id<FlutterViewEngineDelegate>)delegate
-//                           opaque:(BOOL)opaque NS_DESIGNATED_INITIALIZER;
-
-// - (instancetype)initWithDelegate:(std::weak_ptr<Window>)windowDelegate;
-// @property(nomatic,weak)std::weak_ptr<Window> windowDelegate;
-
-// - (void)createSurfaceNode : (CALayer*)layer;
-// - (void)NotifySurfaceChanged : (int32_t)width, (int32_t)height;
-// - (void)NotifySurfaceDestroyed;
+- (void)setWindowDelegate:(std::shared_ptr<OHOS::Rosen::Window>)window;
+- (void)createSurfaceNode;
+- (void)notifySurfaceChangedWithWidth:(int32_t)width height:(int32_t)height;
+- (void)notifySurfaceDestroyed;
 
 
 

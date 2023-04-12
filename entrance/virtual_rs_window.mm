@@ -23,13 +23,15 @@
 #include "foundation/appframework/arkui/uicontent/ui_content.h"
 #include "shell/common/vsync_waiter.h"
 #include "transaction/rs_interfaces.h"
+#include <hilog.h>
 #include "base/log/log.h"
 
 namespace OHOS::Rosen {
 std::shared_ptr<Window> Window::Create(
     std::shared_ptr<OHOS::AbilityRuntime::Platform::Context> context, void* windowView)
 {
-    LOGI("Window::Create with %{public}p", windowView);
+    HILOG_INFO("########## IOS>ENTRANCE #### WindowStage::Init");
+    LOGI("########## IOS>ENTRANCE #### WindowStage::Init");
     auto window = std::make_shared<Window>(context);
     window->SetWindowView(windowView);
     return window;
@@ -97,10 +99,10 @@ void Window::RequestNextVsync(std::function<void(int64_t, void*)> callback)
     receiver_->RequestNextVSync(fcb);
 }
 
-void Window::CreateSurfaceNode(void* view)
+void Window::CreateSurfaceNode(void* layer)
 {
     struct OHOS::Rosen::RSSurfaceNodeConfig rsSurfaceNodeConfig = { .SurfaceNodeName = "arkui-x_surface",
-        .additionalData = view };
+        .additionalData = layer };
     surfaceNode_ = OHOS::Rosen::RSSurfaceNode::Create(rsSurfaceNodeConfig);
 
     if (!uiContent_) {

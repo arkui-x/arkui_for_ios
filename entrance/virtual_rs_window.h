@@ -24,6 +24,7 @@
 #include "render_service_client/core/ui/rs_surface_node.h"
 #include "base/log/log.h"
 #include "base/utils/noncopyable.h"
+//#include "noncopyable.h"
 class NativeValue;
 class NativeEngine;
 
@@ -92,7 +93,7 @@ public:
 
     virtual void RequestVsync(const std::shared_ptr<VsyncCallback>& vsyncCallback);
 
-    void CreateSurfaceNode(void* nativeWindow);
+    void CreateSurfaceNode(void* layer);
     void NotifySurfaceChanged(int32_t width, int32_t height);
     void NotifySurfaceDestroyed();
 

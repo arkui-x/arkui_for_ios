@@ -1,21 +1,14 @@
-/*
- * Copyright (c) 2023 Huawei Device Co., Ltd.
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Copyright 2013 The Flutter Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
 
+#include <__nullptr>
+#include <cstddef>
+#include <memory>
 #include <vector>
 #include "WindowView.h"
 #include "virtual_rs_window.h"
+#include "flutter/lib/ui/window/pointer_data_packet.h"
 
 @interface WindowView()
 
@@ -28,130 +21,140 @@
 
 @implementation WindowView
 
-// std::weak_ptr<OHOS::Rosen::Window> _window;
+std::weak_ptr<OHOS::Rosen::Window> _windowDelegate;
+- (instancetype)init {
+    if (self = [super init]) {
+    }
+    return self;
+}
+- (void)setWindowDelegate:(std::shared_ptr<OHOS::Rosen::Window>)window{
+    std::weak_ptr<OHOS::Rosen::Window> _windowDelegate(window);
+}
+   
+- (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event {
+    [self dispatchTouches:touches];
+}
 
-// - (instancetype)initWithWindow:(std::weak_ptr<OHOS::Rosen::Window> )window
-// {
-//     self = [super init];
+- (void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event {
+    [self dispatchTouches:touches];
+}
 
-//     if (self) {
-//         _window = window;;
-//     }
+- (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event {
+    [self dispatchTouches:touches];
+}
 
-//     return self;
-// }
+- (void)touchesCancelled:(NSSet *)touches withEvent:(UIEvent *)event {
+    [self dispatchTouches:touches];
+}
 
+#pragma mark - Touch event handling
+
+static flutter::PointerData::Change PointerDataChangeFromUITouchPhase(UITouchPhase phase) {
+    switch (phase) {
+        case UITouchPhaseBegan:
+            return flutter::PointerData::Change::kDown;
+        case UITouchPhaseMoved:
+        case UITouchPhaseStationary:
+            // There is no EVENT_TYPE_POINTER_STATIONARY. So we just pass a move type
+            // with the same coordinates
+            return flutter::PointerData::Change::kMove;
+        case UITouchPhaseEnded:
+            return flutter::PointerData::Change::kUp;
+        case UITouchPhaseCancelled:
+            return flutter::PointerData::Change::kCancel;
+    }
     
--(void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event {
-
-//   [self.windowDelegate  ProcessPointerEvent:event];
-}
--(void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event {
-
-}
--(void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event {
-
-}
--(void)touchesCancelled:(NSSet *)touches withEvent:(UIEvent *)event {
-
+    return flutter::PointerData::Change::kCancel;
 }
 
-// -(UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event
-// {
-//     if (_window.expired()) {
-//         // 需要处理vec，先传个空的
-//         //uint8_t* data = static_cast<uint8_t*>(env->GetDirectBufferAddress(buffer));
-//         //std::vector<uint8_t> vec(data, data + position);
-//         std::vector<uint8_t> vec;
-//         std::shared_ptr<OHOS::Rosen::Window> windowPtr = _window.lock();
-//         windowPtr->ProcessPointerEvent(vec);
-//     }
+static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) {
+    if (@available(iOS 9, *)) {
+        switch (touch.type) {
+            case UITouchTypeDirect:
+            case UITouchTypeIndirect:
+                return flutter::PointerData::DeviceKind::kTouch;
+            case UITouchTypeStylus:
+                return flutter::PointerData::DeviceKind::kStylus;
+        }
+    } else {
+        return flutter::PointerData::DeviceKind::kTouch;
+    }
+    
+    return flutter::PointerData::DeviceKind::kTouch;
+}
 
-//     return nil;
-// }
+- (void)dispatchTouches:(NSSet *)touches{
+    const CGFloat scale = [UIScreen mainScreen].scale;
+    std::unique_ptr<flutter::PointerDataPacket> packet = std::make_unique<flutter::PointerDataPacket>(touches.count);
+    
+    size_t pointer_index = 0;
+    
+    for (UITouch *touch in touches) {
+        CGPoint windowCoordinates = [touch locationInView:self];
+        
+        flutter::PointerData pointer_data;
+        pointer_data.Clear();
+        
+        constexpr int kMicrosecondsPerSecond = 1000 * 1000;
+        pointer_data.time_stamp = touch.timestamp * kMicrosecondsPerSecond;
+        
+        pointer_data.change = PointerDataChangeFromUITouchPhase(touch.phase);
+        
+        pointer_data.kind = DeviceKindFromTouchType(touch);
+        
+        pointer_data.device = reinterpret_cast<int64_t>(touch);
+        
+        pointer_data.physical_x = windowCoordinates.x * scale;
+        pointer_data.physical_y = windowCoordinates.y * scale;
+        
+        NSNumber *deviceKey = [NSNumber numberWithLongLong:pointer_data.device];
+       
+        if (@available(iOS 9, *)) {
+            // These properties were introduced in iOS 9.0.
+            pointer_data.pressure = touch.force;
+            pointer_data.pressure_max = touch.maximumPossibleForce;
+        } else {
+            pointer_data.pressure = 1.0;
+            pointer_data.pressure_max = 1.0;
+        }
+        
+        pointer_data.radius_major = touch.majorRadius;
+        pointer_data.radius_min = touch.majorRadius - touch.majorRadiusTolerance;
+        pointer_data.radius_max = touch.majorRadius + touch.majorRadiusTolerance;
+        
+        // These properties were introduced in iOS 9.1
+        if (@available(iOS 9.1, *)) {
 
-// jboolean WindowViewJni::DispatchPointerDataPacket(
-//     JNIEnv* env, jobject myObject, jlong view, jobject buffer, jint position)
-// {
-//     if (env == nullptr) {
-//         LOGW("env is null");
-//         return false;
-//     }
+            pointer_data.tilt = M_PI_2 - touch.altitudeAngle;
 
-//     uint8_t* data = static_cast<uint8_t*>(env->GetDirectBufferAddress(buffer));
-//     std::vector<uint8_t> packet(data, data + position);
-//     auto windowPtr = JavaLongToPointer<Rosen::Window>(view);
-//     if (windowPtr == nullptr) {
-//         LOGE("DispatchPointerDataPacket window is nullptr");
-//         return false;
-//     }
-
-//     return windowPtr->ProcessPointerEvent(packet);
-// }
-
-// - (void)layoutSubviews {
-//   if ([self.layer isKindOfClass:[CAEAGLLayer class]]) {
-//     CAEAGLLayer* layer = reinterpret_cast<CAEAGLLayer*>(self.layer);
-//     layer.allowsGroupOpacity = YES;
-//     CGFloat screenScale = [UIScreen mainScreen].scale;
-//     layer.contentsScale = screenScale;
-//     layer.rasterizationScale = screenScale;
-//   }
-
-//   [super layoutSubviews];
-// }
-
-// - (void)createSurfaceNode : (CALayer*)layer
-// {
-//     struct Rosen::RSSurfaceNodeConfig rsSurfaceNodeConfig = { 
-//       .SurfaceNodeName = "arkui-x_surface",
-//       .additionalData = layer };
-//     surfaceNode_ = Rosen::RSSurfaceNode::Create(rsSurfaceNodeConfig);
-
-//     if (!uiContent_) {
-//         LOGW("Window Notify uiContent_ Surface Created, uiContent_ is nullptr, delay notify.");
-//         delayNotifySurfaceCreated_ = true;
-//     } else {
-//         LOGI("Window Notify uiContent_ Surface Created");
-//         uiContent_->NotifySurfaceCreated();
-//     }
-// }
-
-// - (void)Window::NotifySurfaceChanged : (int32_t)width, (int32_t)height
-// {
-//     if (!surfaceNode_) {
-//         LOGE("Window Notify Surface Changed, surfaceNode_ is nullptr!");
-//         return;
-//     }
-//     LOGI("Window Notify Surface Changed wh:[%{public}d, %{public}d]", width, height);
-//     surfaceWidth_ = width;
-//     surfaceHeight_ = height;
-//     surfaceNode_->SetBoundsWidth(surfaceWidth_);
-//     surfaceNode_->SetBoundsHeight(surfaceHeight_);
-
-//     if (!uiContent_) {
-//         LOGW("Window Notify uiContent_ Surface Created, uiContent_ is nullptr, delay notify.");
-//         delayNotifySurfaceChanged_ = true;
-//     } else {
-//         LOGI("Window Notify uiContent_ Surface Created");
-//         Ace::ViewportConfig config;
-//         config.SetDensity(3.0f);
-//         config.SetSize(surfaceWidth_, surfaceHeight_);
-//         uiContent_->UpdateViewportConfig(config, WindowSizeChangeReason::RESIZE);
-//     }
-// }
-
-// - (void)Window::NotifySurfaceDestroyed
-// {
-//     surfaceNode_ = nullptr;
-
-//     if (!uiContent_) {
-//         LOGW("Window Notify Surface Destroyed, uiContent_ is nullptr, delay notify.");
-//         delayNotifySurfaceDestroyed_ = true;
-//     } else {
-//         LOGI("Window Notify uiContent_ Surface Destroyed");
-//         uiContent_->NotifySurfaceDestroyed();
-//     }
-// }
+            pointer_data.orientation = [touch azimuthAngleInView:nil] - M_PI_2;
+        }
+        
+        packet->SetPointerData(pointer_index++, pointer_data);
+    }
+    auto window = _windowDelegate.lock();
+    if (window != nullptr) {
+        window->ProcessPointerEvent(packet->data());
+    }
+    
+}
+- (void)createSurfaceNode {
+    auto window = _windowDelegate.lock();
+    if (window != nullptr) {
+        window->CreateSurfaceNode(self.layer);
+    }
+}
+- (void)notifySurfaceChangedWithWidth:(int32_t)width height:(int32_t)height {
+    auto window = _windowDelegate.lock();
+    if (window != nullptr) {
+        window->NotifySurfaceChanged(width,height);
+    }
+}
+- (void)notifySurfaceDestroyed {
+    auto window = _windowDelegate.lock();
+    if (window != nullptr) {
+        window->NotifySurfaceDestroyed();
+    }
+}
 
 @end
