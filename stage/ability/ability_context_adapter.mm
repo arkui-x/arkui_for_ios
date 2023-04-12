@@ -129,7 +129,6 @@ void AbilityContextAdapter::TerminateSelf(const std::string& instanceName)
         NSLog(@"%s, exit", __func__);
         std::string result = [topVC.instanceName UTF8String];
         OHOS::AbilityRuntime::Platform::AppMain::GetInstance()->DispatchOnDestroy(result);
-        // OHOS::AbilityRuntime::Platform::AppMain::GetInstance()->ExitApp();
         exit(0);
     }
     });
