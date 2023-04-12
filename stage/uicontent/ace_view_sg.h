@@ -30,8 +30,7 @@
 #include "core/common/flutter/flutter_thread_model.h"
 #endif
 
-// mock window
-#include "adapter/ios/stage/uicontent/virtual_rs_window.h"
+#include "adapter/ios/entrance/virtual_rs_window.h"
 
 namespace OHOS::Ace::Platform {
 class ACE_FORCE_EXPORT AceViewSG : public AceView, public Referenced {

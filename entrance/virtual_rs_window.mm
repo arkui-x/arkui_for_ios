@@ -18,11 +18,10 @@
 #include <memory>
 #include <UIKit/UIKit.h>
 #include "WindowView.h"
-//#include "adapter/ios/entrance/java/jni/jni_environment.h"
 #include "base/log/log.h"
-//#include "flutter/shell/platform/darwin/vsync_waiter_ios.h"
+#include "flutter/shell/platform/darwin/ios/framework/Source/vsync_waiter_ios.h"
 #include "foundation/appframework/arkui/uicontent/ui_content.h"
-//#include "shell/common/vsync_waiter.h"
+#include "shell/common/vsync_waiter.h"
 #include "transaction/rs_interfaces.h"
 #include "base/log/log.h"
 
@@ -37,7 +36,7 @@ std::shared_ptr<Window> Window::Create(
 }
 
 Window::Window(const flutter::TaskRunners& taskRunners)
-//    : vsyncWaiter_(std::make_shared<flutter::VsyncWaiterIOS>(taskRunners))
+    : vsyncWaiter_(std::make_shared<flutter::VsyncWaiterIOS>(taskRunners))
 {}
 
 Window::Window(std::shared_ptr<AbilityRuntime::Platform::Context> context) : context_(context)
@@ -49,13 +48,13 @@ Window::~Window()
 }
 
 void Window::RequestVsync(const std::shared_ptr<VsyncCallback>& vsyncCallback)
-{/*
+{
     // stage model
     if (receiver_) {
         auto callback = [vsyncCallback](int64_t timestamp, void*) {
             vsyncCallback->onCallback(timestamp);
         };
-        VSyncReceiver::FrameCallback fcb = {
+        OHOS::Rosen::VSyncReceiver::FrameCallback fcb = {
             .userData_ = this,
             .callback_ = callback,
         };
@@ -68,7 +67,7 @@ void Window::RequestVsync(const std::shared_ptr<VsyncCallback>& vsyncCallback)
         vsyncWaiter_->AsyncWaitForVsync([vsyncCallback](fml::TimePoint frameStart, fml::TimePoint frameTarget) {
             vsyncCallback->onCallback(frameStart.ToEpochDelta().ToNanoseconds());
         });
-    }*/
+    }
 }
 
 bool Window::CreateVSyncReceiver(std::shared_ptr<AppExecFwk::EventHandler> handler)
@@ -98,11 +97,11 @@ void Window::RequestNextVsync(std::function<void(int64_t, void*)> callback)
     receiver_->RequestNextVSync(fcb);
 }
 
-void Window::CreateSurfaceNode(void* nativeWindow)
-{/*
-    struct Rosen::RSSurfaceNodeConfig rsSurfaceNodeConfig = { .SurfaceNodeName = "arkui-x_surface",
-        .additionalData = nativeWindow };
-    surfaceNode_ = Rosen::RSSurfaceNode::Create(rsSurfaceNodeConfig);
+void Window::CreateSurfaceNode(void* view)
+{
+    struct OHOS::Rosen::RSSurfaceNodeConfig rsSurfaceNodeConfig = { .SurfaceNodeName = "arkui-x_surface",
+        .additionalData = view };
+    surfaceNode_ = OHOS::Rosen::RSSurfaceNode::Create(rsSurfaceNodeConfig);
 
     if (!uiContent_) {
         LOGW("Window Notify uiContent_ Surface Created, uiContent_ is nullptr, delay notify.");
@@ -110,11 +109,11 @@ void Window::CreateSurfaceNode(void* nativeWindow)
     } else {
         LOGI("Window Notify uiContent_ Surface Created");
         uiContent_->NotifySurfaceCreated();
-    }*/
+    }
 }
 
 void Window::NotifySurfaceChanged(int32_t width, int32_t height)
-{/*
+{
     if (!surfaceNode_) {
         LOGE("Window Notify Surface Changed, surfaceNode_ is nullptr!");
         return;
@@ -134,11 +133,11 @@ void Window::NotifySurfaceChanged(int32_t width, int32_t height)
         config.SetDensity(3.0f);
         config.SetSize(surfaceWidth_, surfaceHeight_);
         uiContent_->UpdateViewportConfig(config, WindowSizeChangeReason::RESIZE);
-    }*/
+    }
 }
 
 void Window::NotifySurfaceDestroyed()
-{/*
+{
     surfaceNode_ = nullptr;
 
     if (!uiContent_) {
@@ -147,7 +146,7 @@ void Window::NotifySurfaceDestroyed()
     } else {
         LOGI("Window Notify uiContent_ Surface Destroyed");
         uiContent_->NotifySurfaceDestroyed();
-    }*/
+    }
 }
 
 bool Window::ProcessPointerEvent(const std::vector<uint8_t>& data)
@@ -201,27 +200,27 @@ int Window::SetUIContent(const std::string& contentInfo,
     NativeEngine* engine, NativeValue* storage, bool isdistributed, AbilityRuntime::Platform::Ability* ability)
 {
     LOGI("Window::SetUIContent");
-    // using namespace OHOS::Ace::Platform;
-    // (void)ability;
-    // std::unique_ptr<UIContent> uiContent;
-    // uiContent = UIContent::Create(context_.get(), engine);
-    // if (uiContent == nullptr) {
-    //     return -1;
-    // }
-    // uiContent->Initialize(this, contentInfo, storage);
-    // // make uiContent available after Initialize/Restore
-    // uiContent_ = std::move(uiContent);
+    using namespace OHOS::Ace::Platform;
+    (void)ability;
+    std::unique_ptr<UIContent> uiContent;
+    uiContent = UIContent::Create(context_.get(), engine);
+    if (uiContent == nullptr) {
+        return -1;
+    }
+    uiContent->Initialize(this, contentInfo, storage);
+    // make uiContent available after Initialize/Restore
+    uiContent_ = std::move(uiContent);
 
-    // uiContent_->Foreground();
+    uiContent_->Foreground();
 
-    // DelayNotifyUIContentIfNeeded();
+    DelayNotifyUIContentIfNeeded();
     return 0;
 }
 
 void Window::SetWindowView(void* windowView)
 {
     if (windowView == nullptr) {
-        LOGE("Window::SetWindowView: jobject of WindowView is nullptr!");
+        LOGE("Window::SetWindowView: WindowView is nullptr!");
         return;
     }
     if (windowView_ != nullptr) {
