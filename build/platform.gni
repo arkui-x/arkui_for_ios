@@ -15,7 +15,7 @@ import("//build/ohos.gni")
 
 platforms = []
 
-if (!is_standard_system && target_os == "ios") {
+if (target_os == "ios") {
   ios_platform = {
     name = "ios"
     cross_platform_support = true
