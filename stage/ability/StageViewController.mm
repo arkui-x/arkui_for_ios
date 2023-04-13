@@ -23,7 +23,7 @@
 using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
 using WindowViwAdapter = OHOS::AbilityRuntime::Platform::WindowViewAdapter;
 int32_t CURRENT_STAGE_INSTANCE_Id = 0;
-@interface StageViewController () <UITraitEnvironment,IAceOnCallEvent> {
+@interface StageViewController () <UITraitEnvironment> {
     int32_t _instanceId;
     std::string _cInstanceName;
     WindowView *_windowView;
@@ -83,9 +83,6 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 
 - (void)dealloc {
     NSLog(@"StageVC->%@ dealloc", self);
-
-    [self.platformPlugin releasePlugins];
-     [self.platformPlugin releasePlugins];
     AppMain::GetInstance()->DispatchOnDestroy(_cInstanceName);
     // Ability::OnWindowStageDestroy
 }
