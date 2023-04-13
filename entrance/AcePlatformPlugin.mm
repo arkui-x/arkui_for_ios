@@ -59,15 +59,6 @@
 
 - (void)releasePlugins 
 {
-//    if(_resRegister) {
-//        [_resRegister release];
-//    }
-//    if(_videoResourcePlugin){
-//        [_videoResourcePlugin release];
-//    }
-//    if(_cameraResourcePlugin){
-//        [_cameraResourcePlugin release];
-//    }
 }
 
 @end

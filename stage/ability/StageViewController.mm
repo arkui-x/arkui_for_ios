@@ -17,7 +17,7 @@
 #import "StageConfigurationManager.h"
 #import "StageAssetManager.h"
 #import "InstanceIdGenerator.h"
-#import "foundation/arkui/ace_engine/adapter/ios/entrance/AcePlatformPlugin.h"
+#import "adapter/ios/entrance/AcePlatformPlugin.h"
 
 #include "app_main.h"
 
