@@ -33,7 +33,7 @@
     [self setPidAndUid];
     [self setLocale];
     [[StageAssetManager assetManager] launchAbility];
-    [[StageConfigurationManager configurationManager] initConfiguration];
+    [[StageConfigurationManager configurationManager] registConfiguration];
 }
 
 + (void)setPidAndUid {
