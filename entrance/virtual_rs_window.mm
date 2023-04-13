@@ -32,7 +32,7 @@ std::shared_ptr<Window> Window::Create(
     LOGI("Window::Create with %{public}p", windowView);
     auto window = std::make_shared<Window>(context);
     window->SetWindowView(windowView);
-    [static_cast<WindowView*>windowView setWindowDelegate:window];
+    [(WindowView*)windowView setWindowDelegate:window];
     return window;
 }
 
