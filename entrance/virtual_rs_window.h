@@ -118,8 +118,8 @@ private:
 
     int32_t surfaceWidth_ = 0;
     int32_t surfaceHeight_ = 0;
-   std::shared_ptr<RSSurfaceNode> surfaceNode_;
-   std::shared_ptr<flutter::VsyncWaiter> vsyncWaiter_;
+    std::shared_ptr<RSSurfaceNode> surfaceNode_;
+    std::shared_ptr<flutter::VsyncWaiter> vsyncWaiter_;
 
     void* windowView_ = nullptr;
     std::shared_ptr<AbilityRuntime::Platform::Context> context_;

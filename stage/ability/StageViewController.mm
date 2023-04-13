@@ -56,7 +56,8 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 }
 
 - (void)initWindowView {
-    _windowView = [[WindowView alloc] initWithFrame:self.view.bounds];
+    _windowView = [[WindowView alloc] init];
+    _windowView.frame = self.view.bounds;
     WindowViwAdapter::GetInstance()->AddWindowView(_cInstanceName, (__bridge void*)_windowView);
     [self.view addSubview:_windowView];
 }

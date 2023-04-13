@@ -228,6 +228,7 @@ void Window::SetWindowView(void* windowView)
         LOGW("Window::SetWindowView: windowView_ has already been set!");
         return;
     }
+    LOGI("Window::SetWindowView");
     windowView_ = windowView;
 }
 
