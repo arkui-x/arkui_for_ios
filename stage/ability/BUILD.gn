@@ -29,13 +29,13 @@ template("stage_ios_standard_source_set") {
     ]
 
     include_dirs = [
-      "//third_party/",
-      "$ace_root/frameworks",
-      "$ace_root",
       "./",
       "//foundation/arkui/ace_engine/adapter/ios/entrance",
       "//foundation/appframework/ability/ability_runtime/cross_platform/interfaces/kits/native/appkit",
+      "//third_party/",
       "//third_party/flutter/engine",
+      "$ace_root/frameworks",
+      "$ace_root",
     ]
 
     if (target_cpu == "arm64") {
