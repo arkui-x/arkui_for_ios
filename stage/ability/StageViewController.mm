@@ -15,9 +15,6 @@
 
 #import "StageViewController.h"
 #import "StageConfigurationManager.h"
-#import "StageAssetManager.h"
-#import "InstanceIdGenerator.h"
-#import "foundation/arkui/ace_engine/adapter/ios/entrance/AcePlatformPlugin.h"
 #import "WindowView.h"
 
 #include "app_main.h"
@@ -25,6 +22,7 @@
 
 using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
 using WindowViwAdapter = OHOS::AbilityRuntime::Platform::WindowViewAdapter;
+int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 @interface StageViewController () <UITraitEnvironment,IAceOnCallEvent> {
     int32_t _instanceId;
     std::string _cInstanceName;
@@ -33,7 +31,6 @@ using WindowViwAdapter = OHOS::AbilityRuntime::Platform::WindowViewAdapter;
 
 @property (nonatomic, strong, readwrite) NSString *instanceName;
 
-@property (nonatomic, strong) AcePlatformPlugin *platformPlugin;
 @end
 
 @implementation StageViewController
@@ -42,13 +39,12 @@ using WindowViwAdapter = OHOS::AbilityRuntime::Platform::WindowViewAdapter;
 - (instancetype)initWithInstanceName:(NSString *_Nonnull)instanceName {
     self = [super init];
     if (self) {
-        _instanceId = InstanceIdGenerator.getAndIncrement;
+        _instanceId = [self genterateInstanceId];
         self.instanceName = [NSString stringWithFormat:@"%@:%d", instanceName, _instanceId];
         NSLog(@"StageVC->%@ init, instanceName is : %@", self, self.instanceName);
         _cInstanceName = [self getCPPString:self.instanceName];
         AppMain::GetInstance()->DispatchOnCreate(_cInstanceName);
         [self initWindowView];
-        [self initPlatformPlugin];
     }
     return self;
 }
@@ -102,23 +98,12 @@ using WindowViwAdapter = OHOS::AbilityRuntime::Platform::WindowViewAdapter;
     }
 }
 
-- (int32_t)getInstanceId {
-    return _instanceId;
-}
-
-#pragma mark IAceOnCallEvent
-- (void)onEvent:(NSString *)eventId param:(NSString *)param {
-    // _aceView->GetPlatformResRegister()->OnEvent([eventId UTF8String], [param UTF8String]);
-}
-
 #pragma mark - private method
-- (void)initPlatformPlugin {
-     NSString *bundleDirectory = [[StageAssetManager assetManager] getBundlePath];
-     self.platformPlugin = [[AcePlatformPlugin alloc] initPlatformPlugin:self bundleDirectory:bundleDirectory];
-}
-
 - (std::string)getCPPString:(NSString *)string {
     return [string UTF8String];
 }
 
+- (int32_t)genterateInstanceId {
+    return CURRENT_STAGE_INSTANCE_Id++;
+}
 @end
