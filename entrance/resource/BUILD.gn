@@ -39,7 +39,7 @@ ohos_source_set("resource") {
     "AceResourceRegisterOC.mm",
   ]
 
-  libs = [
+  frameworks = [
     "AVFoundation.framework",
     "UIKit.framework",
   ]

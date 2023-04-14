@@ -11,7 +11,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import("//build/config/ios/rules.gni")
+import("//build/config/config.gni")
 import("//build/ohos.gni")
 import("//foundation/arkui/ace_engine/ace_config.gni")
 import("//foundation/arkui/ace_engine/interfaces/napi/kits/napi_lib.gni")
@@ -86,6 +86,7 @@ ohos_shared_library("arkui_ios") {
   deps = [
     "$ace_root/build:libace_static_ios",
     "//foundation/appframework/icu_data:icu_data_static",
+
     # "//foundation/appframework:appframework_napis",
     "//third_party/jsoncpp:jsoncpp_static",
   ]
@@ -103,7 +104,8 @@ ohos_shared_library("arkui_ios") {
   }
   libs = [ "$root_out_dir/libicudata/ios/libicudata.a" ]
 
-  deps += [ "//foundation/appframework/arkui/uicontent:ace_uicontent_interface" ]
+  deps +=
+      [ "//foundation/appframework/arkui/uicontent:ace_uicontent_interface" ]
 
   cflags_cc += [
     "-Wall",

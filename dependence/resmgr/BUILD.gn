@@ -85,7 +85,7 @@ ohos_source_set("global_resmgr_source_set") {
       ]
     }
     if (target_os == "android") {
-      aosp_deps = [ "shared_library:liblog" ]
+      libs = [ "log" ]
     }
   }
   subsystem_name = "global"
