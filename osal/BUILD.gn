@@ -28,6 +28,7 @@ template("ace_osal_ios_source_set") {
       "exception_handler.cpp",
       "fake_accessibility_manager.cpp",
       "fetch_manager.cpp",
+      "file_asset_provider.cpp",
       "frame_report.cpp",
       "frame_trace_adapter_impl.cpp",
       "ios_trace.cpp",
@@ -52,6 +53,7 @@ template("ace_osal_ios_source_set") {
     include_dirs = [
       "//commonlibrary/c_utils/base/include",
       "$ace_root/adapter/ios/entrance/",
+      "//third_party/flutter/engine/",
     ]
 
     deps = [ "//third_party/curl:curl" ]
