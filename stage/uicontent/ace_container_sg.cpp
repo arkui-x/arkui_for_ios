@@ -15,7 +15,7 @@
 
 #include "adapter/ios/stage/uicontent/ace_container_sg.h"
 
-#include "adapter/ios/entrance/ace_application_info_impl.h"t
+#include "adapter/ios/entrance/ace_application_info_impl.h"
 #include "adapter/ios/entrance/ace_platform_plugin.h"
 #include "adapter/ios/osal/file_asset_provider.h"
 #include "adapter/ios/stage/uicontent/ace_view_sg.h"
