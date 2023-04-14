@@ -56,7 +56,8 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 }
 
 - (void)initWindowView {
-    _windowView = [[WindowView alloc] initWithFrame:self.view.bounds];
+    _windowView = [[WindowView alloc] init];
+    _windowView.frame = self.view.bounds;
     WindowViwAdapter::GetInstance()->AddWindowView(_cInstanceName, (__bridge void*)_windowView);
     [self.view addSubview:_windowView];
 }
@@ -64,6 +65,13 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 - (void) viewDidLoad {
     [super viewDidLoad];
     NSLog(@"StageVC->%@ viewDidLoad call.", self);
+    [_windowView createSurfaceNode];
+    UIScreen *screen = [UIScreen mainScreen];
+    CGFloat scale = screen.scale;
+    int32_t width = static_cast<int32_t>(self.view.bounds.size.width * scale);
+    int32_t height = static_cast<int32_t>(self.view.bounds.size.height * scale);
+    [_windowView notifySurfaceChangedWithWidth:width height:height];
+    
     // Ability::OnWindowStageCreate
 }
 
@@ -77,6 +85,7 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
     [super viewDidDisappear:animated];
     NSLog(@"StageVC->%@ viewDidDisappear call.", self);
     AppMain::GetInstance()->DispatchOnBackground(_cInstanceName);
+    [_windowView notifySurfaceDestroyed];
 }
 
 - (void)didReceiveMemoryWarning {

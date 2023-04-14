@@ -32,6 +32,7 @@ std::shared_ptr<Window> Window::Create(
     LOGI("Window::Create with %{public}p", windowView);
     auto window = std::make_shared<Window>(context);
     window->SetWindowView(windowView);
+    [(WindowView*)windowView setWindowDelegate:window];
     return window;
 }
 
@@ -97,10 +98,10 @@ void Window::RequestNextVsync(std::function<void(int64_t, void*)> callback)
     receiver_->RequestNextVSync(fcb);
 }
 
-void Window::CreateSurfaceNode(void* view)
+void Window::CreateSurfaceNode(void* layer)
 {
     struct OHOS::Rosen::RSSurfaceNodeConfig rsSurfaceNodeConfig = { .SurfaceNodeName = "arkui-x_surface",
-        .additionalData = view };
+        .additionalData = layer };
     surfaceNode_ = OHOS::Rosen::RSSurfaceNode::Create(rsSurfaceNodeConfig);
 
     if (!uiContent_) {
@@ -227,7 +228,53 @@ void Window::SetWindowView(void* windowView)
         LOGW("Window::SetWindowView: windowView_ has already been set!");
         return;
     }
+    LOGI("Window::SetWindowView");
     windowView_ = windowView;
+}
+
+void Window::WindowFocusChanged(bool hasWindowFocus)
+{
+    if (!uiContent_) {
+        LOGW("Window::Focus uiContent_ is nullptr");
+        return;
+    }
+    if (hasWindowFocus) {
+        LOGI("Window: notify uiContent Focus");
+        uiContent_->Focus();
+    } else {
+        LOGI("Window: notify uiContent UnFocus");
+        uiContent_->UnFocus();
+    }
+}
+
+void Window::Foreground()
+{
+    if (!uiContent_) {
+        LOGW("Window::Foreground uiContent_ is nullptr");
+        return;
+    }
+    LOGI("Window: notify uiContent Foreground");
+    uiContent_->Foreground();
+}
+
+void Window::Background()
+{
+    if (!uiContent_) {
+        LOGW("Window::Background uiContent_ is nullptr");
+        return;
+    }
+    LOGI("Window: notify uiContent Background");
+    uiContent_->Background();
+}
+
+void Window::Destroy()
+{
+    if (!uiContent_) {
+        LOGW("Window::Destroy uiContent_ is nullptr");
+        return;
+    }
+    LOGI("Window: notify uiContent Destroy");
+    uiContent_->Destroy();
 }
 
 void Window::ReleaseWindowView()

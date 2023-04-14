@@ -13,145 +13,272 @@
  * limitations under the License.
  */
 
-#include <vector>
 #include "WindowView.h"
+
+#include <__nullptr>
+#include <cstddef>
+#include <memory>
+#include <vector>
+
+#include "adapter/ios/capability/editing/iOSTxtInputManager.h"
+#include "flutter/lib/ui/window/pointer_data_packet.h"
 #include "virtual_rs_window.h"
 
 @interface WindowView()
 
-// std::shared_ptr<RSSurfaceNode> surfaceNode_;
-// std::shared_ptr<AbilityRuntime::Platform::Context> context_;
-// std::unique_ptr<OHOS::Ace::Platform::UIContent> uiContent_;
-
 @end
-// #endif  //  FLUTTER_SHELL_ENABLE_METAL
 
 @implementation WindowView
 
-// std::weak_ptr<OHOS::Rosen::Window> _window;
+std::shared_ptr<OHOS::Rosen::Window> _windowDelegate;
+int32_t _instanceId;
+int32_t _width;
+int32_t _height;
+BOOL _needNotifySurfaceChangedWithWidth;
+BOOL _needCreateSurfaceNode;
 
-// - (instancetype)initWithWindow:(std::weak_ptr<OHOS::Rosen::Window> )window
-// {
-//     self = [super init];
+- (instancetype)init {
+    if (self = [super init]) {
+        [self setupNotificationCenterObservers];
+    }
+    return self;
+}
 
-//     if (self) {
-//         _window = window;;
-//     }
+- (void)setWindowDelegate:(std::shared_ptr<OHOS::Rosen::Window>)window {
+    _windowDelegate = window;
+    if (_needCreateSurfaceNode) {
+        _needCreateSurfaceNode = NO;
+        [self createSurfaceNode];
+    }
+    if (_needNotifySurfaceChangedWithWidth) {
+        _needNotifySurfaceChangedWithWidth = NO;
+        [self notifySurfaceChangedWithWidth:_width height:_height];
+    }
+}
 
-//     return self;
-// }
+- (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event {
+    [self dispatchTouches:touches];
+}
 
+- (void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event {
+    [self dispatchTouches:touches];
+}
+
+- (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event {
+    [self dispatchTouches:touches];
+}
+
+- (void)touchesCancelled:(NSSet *)touches withEvent:(UIEvent *)event {
+    [self dispatchTouches:touches];
+}
+
+#pragma mark - Touch event handling
+
+static flutter::PointerData::Change PointerDataChangeFromUITouchPhase(UITouchPhase phase) {
+    switch (phase) {
+        case UITouchPhaseBegan:
+            return flutter::PointerData::Change::kDown;
+        case UITouchPhaseMoved:
+        case UITouchPhaseStationary:
+            // There is no EVENT_TYPE_POINTER_STATIONARY. So we just pass a move type
+            // with the same coordinates
+            return flutter::PointerData::Change::kMove;
+        case UITouchPhaseEnded:
+            return flutter::PointerData::Change::kUp;
+        case UITouchPhaseCancelled:
+            return flutter::PointerData::Change::kCancel;
+    }
     
--(void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event {
-
-//   [self.windowDelegate  ProcessPointerEvent:event];
-}
--(void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event {
-
-}
--(void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event {
-
-}
--(void)touchesCancelled:(NSSet *)touches withEvent:(UIEvent *)event {
-
+    return flutter::PointerData::Change::kCancel;
 }
 
-// -(UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event
-// {
-//     if (_window.expired()) {
-//         // 需要处理vec，先传个空的
-//         //uint8_t* data = static_cast<uint8_t*>(env->GetDirectBufferAddress(buffer));
-//         //std::vector<uint8_t> vec(data, data + position);
-//         std::vector<uint8_t> vec;
-//         std::shared_ptr<OHOS::Rosen::Window> windowPtr = _window.lock();
-//         windowPtr->ProcessPointerEvent(vec);
-//     }
+static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) {
+    if (@available(iOS 9, *)) {
+        switch (touch.type) {
+            case UITouchTypeDirect:
+            case UITouchTypeIndirect:
+                return flutter::PointerData::DeviceKind::kTouch;
+            case UITouchTypeStylus:
+                return flutter::PointerData::DeviceKind::kStylus;
+        }
+    } else {
+        return flutter::PointerData::DeviceKind::kTouch;
+    }
+    
+    return flutter::PointerData::DeviceKind::kTouch;
+}
 
-//     return nil;
-// }
+- (void)dispatchTouches:(NSSet *)touches{
+    const CGFloat scale = [UIScreen mainScreen].scale;
+    std::unique_ptr<flutter::PointerDataPacket> packet = std::make_unique<flutter::PointerDataPacket>(touches.count);
+    
+    size_t pointer_index = 0;
+    
+    for (UITouch *touch in touches) {
+        CGPoint windowCoordinates = [touch locationInView:self];
+        
+        flutter::PointerData pointer_data;
+        pointer_data.Clear();
+        
+        constexpr int kMicrosecondsPerSecond = 1000 * 1000;
+        pointer_data.time_stamp = touch.timestamp * kMicrosecondsPerSecond;
+        
+        pointer_data.change = PointerDataChangeFromUITouchPhase(touch.phase);
+        
+        pointer_data.kind = DeviceKindFromTouchType(touch);
+        
+        pointer_data.device = reinterpret_cast<int64_t>(touch);
+        
+        pointer_data.physical_x = windowCoordinates.x * scale;
+        pointer_data.physical_y = windowCoordinates.y * scale;
+        
+        NSNumber *deviceKey = [NSNumber numberWithLongLong:pointer_data.device];
+       
+        if (@available(iOS 9, *)) {
+            // These properties were introduced in iOS 9.0.
+            pointer_data.pressure = touch.force;
+            pointer_data.pressure_max = touch.maximumPossibleForce;
+        } else {
+            pointer_data.pressure = 1.0;
+            pointer_data.pressure_max = 1.0;
+        }
+        
+        pointer_data.radius_major = touch.majorRadius;
+        pointer_data.radius_min = touch.majorRadius - touch.majorRadiusTolerance;
+        pointer_data.radius_max = touch.majorRadius + touch.majorRadiusTolerance;
+        
+        // These properties were introduced in iOS 9.1
+        if (@available(iOS 9.1, *)) {
 
-// jboolean WindowViewJni::DispatchPointerDataPacket(
-//     JNIEnv* env, jobject myObject, jlong view, jobject buffer, jint position)
-// {
-//     if (env == nullptr) {
-//         LOGW("env is null");
-//         return false;
-//     }
+            pointer_data.tilt = M_PI_2 - touch.altitudeAngle;
 
-//     uint8_t* data = static_cast<uint8_t*>(env->GetDirectBufferAddress(buffer));
-//     std::vector<uint8_t> packet(data, data + position);
-//     auto windowPtr = JavaLongToPointer<Rosen::Window>(view);
-//     if (windowPtr == nullptr) {
-//         LOGE("DispatchPointerDataPacket window is nullptr");
-//         return false;
-//     }
+            pointer_data.orientation = [touch azimuthAngleInView:nil] - M_PI_2;
+        }
+        
+        packet->SetPointerData(pointer_index++, pointer_data);
+    }
+    if (_windowDelegate != nullptr) {
+        _windowDelegate->ProcessPointerEvent(packet->data());
+    }
+    
+}
 
-//     return windowPtr->ProcessPointerEvent(packet);
-// }
+- (void)createSurfaceNode {
+    if (_windowDelegate != nullptr) {
+        _windowDelegate->CreateSurfaceNode(self.layer);
+    } else {
+        _needCreateSurfaceNode = YES;
+    }
+}
 
-// - (void)layoutSubviews {
-//   if ([self.layer isKindOfClass:[CAEAGLLayer class]]) {
-//     CAEAGLLayer* layer = reinterpret_cast<CAEAGLLayer*>(self.layer);
-//     layer.allowsGroupOpacity = YES;
-//     CGFloat screenScale = [UIScreen mainScreen].scale;
-//     layer.contentsScale = screenScale;
-//     layer.rasterizationScale = screenScale;
-//   }
+- (void)notifySurfaceChangedWithWidth:(int32_t)width height:(int32_t)height {
+    _width = width;
+    _height = height;
+    if (_windowDelegate != nullptr) {
+        _windowDelegate->NotifySurfaceChanged(width,height);
+    } else {
+        _needNotifySurfaceChangedWithWidth = YES;
+    }
+}
 
-//   [super layoutSubviews];
-// }
+- (void)notifySurfaceDestroyed {
+    if (_windowDelegate != nullptr) {
+        _windowDelegate->NotifySurfaceDestroyed();
+    }
+}
 
-// - (void)createSurfaceNode : (CALayer*)layer
-// {
-//     struct Rosen::RSSurfaceNodeConfig rsSurfaceNodeConfig = { 
-//       .SurfaceNodeName = "arkui-x_surface",
-//       .additionalData = layer };
-//     surfaceNode_ = Rosen::RSSurfaceNode::Create(rsSurfaceNodeConfig);
+- (void)setupNotificationCenterObservers {
+    NSNotificationCenter* center = [NSNotificationCenter defaultCenter];
+    [center addObserver:self
+               selector:@selector(applicationBecameActive:)
+                   name:UIApplicationDidBecomeActiveNotification
+                 object:nil];
+    
+    [center addObserver:self
+               selector:@selector(applicationWillResignActive:)
+                   name:UIApplicationWillResignActiveNotification
+                 object:nil];
+    
+    [center addObserver:self
+               selector:@selector(applicationDidEnterBackground:)
+                   name:UIApplicationDidEnterBackgroundNotification
+                 object:nil];
+    
+    [center addObserver:self
+               selector:@selector(applicationWillEnterForeground:)
+                   name:UIApplicationWillEnterForegroundNotification
+                 object:nil];
 
-//     if (!uiContent_) {
-//         LOGW("Window Notify uiContent_ Surface Created, uiContent_ is nullptr, delay notify.");
-//         delayNotifySurfaceCreated_ = true;
-//     } else {
-//         LOGI("Window Notify uiContent_ Surface Created");
-//         uiContent_->NotifySurfaceCreated();
-//     }
-// }
+    [center addObserver:self
+               selector:@selector(keyboardWillChangeFrame:)
+                   name:UIKeyboardWillChangeFrameNotification
+                 object:nil];
 
-// - (void)Window::NotifySurfaceChanged : (int32_t)width, (int32_t)height
-// {
-//     if (!surfaceNode_) {
-//         LOGE("Window Notify Surface Changed, surfaceNode_ is nullptr!");
-//         return;
-//     }
-//     LOGI("Window Notify Surface Changed wh:[%{public}d, %{public}d]", width, height);
-//     surfaceWidth_ = width;
-//     surfaceHeight_ = height;
-//     surfaceNode_->SetBoundsWidth(surfaceWidth_);
-//     surfaceNode_->SetBoundsHeight(surfaceHeight_);
+    [center addObserver:self
+               selector:@selector(keyboardWillBeHidden:)
+                   name:UIKeyboardWillHideNotification
+                 object:nil];
 
-//     if (!uiContent_) {
-//         LOGW("Window Notify uiContent_ Surface Created, uiContent_ is nullptr, delay notify.");
-//         delayNotifySurfaceChanged_ = true;
-//     } else {
-//         LOGI("Window Notify uiContent_ Surface Created");
-//         Ace::ViewportConfig config;
-//         config.SetDensity(3.0f);
-//         config.SetSize(surfaceWidth_, surfaceHeight_);
-//         uiContent_->UpdateViewportConfig(config, WindowSizeChangeReason::RESIZE);
-//     }
-// }
+}
 
-// - (void)Window::NotifySurfaceDestroyed
-// {
-//     surfaceNode_ = nullptr;
+#pragma mark - Application lifecycle notifications
 
-//     if (!uiContent_) {
-//         LOGW("Window Notify Surface Destroyed, uiContent_ is nullptr, delay notify.");
-//         delayNotifySurfaceDestroyed_ = true;
-//     } else {
-//         LOGI("Window Notify uiContent_ Surface Destroyed");
-//         uiContent_->NotifySurfaceDestroyed();
-//     }
-// }
+- (void)applicationBecameActive:(NSNotification *)notification {
+    if (_windowDelegate != nullptr) {
+        _windowDelegate->WindowFocusChanged(true);
+    }
+}
 
+- (void)applicationWillResignActive:(NSNotification *)notification {
+    if (_windowDelegate != nullptr) {
+        _windowDelegate->WindowFocusChanged(false);
+    }
+}
+
+- (void)applicationDidEnterBackground:(NSNotification *)notification {
+    if (_windowDelegate != nullptr) {
+        _windowDelegate->Foreground();
+    }
+}
+
+- (void)applicationWillEnterForeground:(NSNotification *)notification {
+    if (_windowDelegate != nullptr) {
+        _windowDelegate->Background();
+    }
+}
+
+- (void)keyboardWillChangeFrame:(NSNotification*)notification{
+    NSDictionary* info = [notification userInfo];
+    CGFloat keyboardY = [info[UIKeyboardFrameEndUserInfoKey] CGRectValue].origin.y;
+
+    CGRect screenRect = [[UIScreen mainScreen] bounds];
+    CGFloat screenHeight = screenRect.size.height;
+    CGFloat scale = [UIScreen mainScreen].scale;
+
+    double duration = [info[UIKeyboardAnimationDurationUserInfoKey] doubleValue];
+    bool isEts = [iOSTxtInputManager shareintance].isDeclarative;
+    CGFloat inputBoxHeight = [iOSTxtInputManager shareintance].inputBoxY -
+                             [iOSTxtInputManager shareintance].inputBoxTopY;
+    CGFloat ty = keyboardY - [iOSTxtInputManager shareintance].inputBoxTopY -inputBoxHeight;
+    if (isEts) {
+        ty = keyboardY - inputBoxHeight - [iOSTxtInputManager shareintance].inputBoxTopY/scale;
+    }
+    [UIView animateWithDuration:duration animations:^{
+        if (ty < 0) {
+            self.transform = CGAffineTransformMakeTranslation(0, ty);
+        }
+    }];
+}
+
+- (void)keyboardWillBeHidden:(NSNotification*)notification{
+    double duration = [notification.userInfo[UIKeyboardAnimationDurationUserInfoKey] doubleValue];
+    [UIView animateWithDuration:duration animations:^{
+        self.transform = CGAffineTransformMakeTranslation(0, 0);
+    }];
+}
+
+- (void)dealloc {
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
+    [super dealloc];
+}
 @end

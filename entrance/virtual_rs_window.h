@@ -18,12 +18,13 @@
 
 #include <memory>
 
-#include "flutter/shell/common/vsync_waiter.h"
-#include "vsync_receiver.h"
-#include "refbase.h"
-#include "render_service_client/core/ui/rs_surface_node.h"
 #include "base/log/log.h"
 #include "base/utils/noncopyable.h"
+#include "flutter/shell/common/vsync_waiter.h"
+#include "refbase.h"
+#include "render_service_client/core/ui/rs_surface_node.h"
+#include "vsync_receiver.h"
+
 class NativeValue;
 class NativeEngine;
 
@@ -92,7 +93,7 @@ public:
 
     virtual void RequestVsync(const std::shared_ptr<VsyncCallback>& vsyncCallback);
 
-    void CreateSurfaceNode(void* nativeWindow);
+    void CreateSurfaceNode(void* layer);
     void NotifySurfaceChanged(int32_t width, int32_t height);
     void NotifySurfaceDestroyed();
 
@@ -100,9 +101,13 @@ public:
     bool ProcessKeyEvent(
         int32_t keyCode, int32_t keyAction, int32_t repeatTime, int64_t timeStamp = 0, int64_t timeStampStart = 0);
 
-   int SetUIContent(const std::string& contentInfo, NativeEngine* engine,
+    int SetUIContent(const std::string& contentInfo, NativeEngine* engine,
         NativeValue* storage, bool isdistributed, AbilityRuntime::Platform::Ability* ability);
 
+    void WindowFocusChanged(bool hasWindowFocus);
+    void Foreground();
+    void Background();
+    void Destroy();
 
     std::shared_ptr<RSSurfaceNode> GetSurfaceNode() const
     {
@@ -117,8 +122,8 @@ private:
 
     int32_t surfaceWidth_ = 0;
     int32_t surfaceHeight_ = 0;
-   std::shared_ptr<RSSurfaceNode> surfaceNode_;
-   std::shared_ptr<flutter::VsyncWaiter> vsyncWaiter_;
+    std::shared_ptr<RSSurfaceNode> surfaceNode_;
+    std::shared_ptr<flutter::VsyncWaiter> vsyncWaiter_;
 
     void* windowView_ = nullptr;
     std::shared_ptr<AbilityRuntime::Platform::Context> context_;
