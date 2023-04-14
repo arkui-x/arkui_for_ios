@@ -19,7 +19,7 @@
 #import "AceVideoResourcePlugin.h"
 
 #include "adapter/ios/entrance/ace_resource_register.h"
-#include "adapter/ios/entrance/ace_plaform_plugin.h"
+#include "adapter/ios/entrance/ace_platform_plugin.h"
 @interface AcePlatformPlugin()
 
 @property (nonatomic, strong) AceCameraResoucePlugin* cameraResourcePlugin;

@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-#include "ace_plaform_plugin.h"
+#include "ace_platform_plugin.h"
 
 #include "base/log/log.h"
 #include "base/utils/macros.h"
