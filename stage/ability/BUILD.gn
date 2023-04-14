@@ -62,6 +62,7 @@ template("stage_ios_standard_source_set") {
       "stage_application_info_adapter.cpp",
       "stage_asset_provider.mm",
       "window_view_adapter.mm",
+      "InstanceIdGenerator.mm",
     ]
     deps = [
       "$ace_flutter_engine_root:third_party_flutter_engine_$platform",
