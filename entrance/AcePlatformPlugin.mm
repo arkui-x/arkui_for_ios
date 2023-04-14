@@ -18,6 +18,8 @@
 #import "AceCameraResoucePlugin.h"
 #import "AceVideoResourcePlugin.h"
 
+#include "adapter/ios/entrance/ace_resource_register.h"
+#include "adapter/ios/entrance/ace_plaform_plugin.h"
 @interface AcePlatformPlugin()
 
 @property (nonatomic, strong) AceCameraResoucePlugin* cameraResourcePlugin;
@@ -26,18 +28,21 @@
 @end
 @implementation AcePlatformPlugin
 
-- (instancetype)initPlatformPlugin:(id)target bundleDirectory:(NSString *_Nonnull)bundleDir
+- (instancetype)initPlatformPlugin:(id)target
+    instanceId:(int32_t)instanceId bundleDirectory:(NSString *_Nonnull)bundleDir
 {
     self = [super init];
     if (self) {
         if(target){
             _resRegister = [[AceResourceRegisterOC alloc] initWithParent:target];
-            
+            auto aceResRegister =
+                OHOS::Ace::Referenced::MakeRefPtr<OHOS::Ace::Platform::AceResourceRegister>(_resRegister);
+            OHOS::Ace::Platform::AcePlatformPlugin::InitResRegister(instanceId,aceResRegister);
+   
             if(bundleDir && bundleDir.length != 0){
                 _videoResourcePlugin = [[AceVideoResourcePlugin alloc] initWithBundleDirectory:bundleDir];
                 [self addResourcePlugin:_videoResourcePlugin];
             }
-          
             _cameraResourcePlugin = [[AceCameraResoucePlugin alloc] init];
             [self addResourcePlugin:_cameraResourcePlugin];
         }

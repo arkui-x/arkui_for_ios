@@ -16,6 +16,7 @@
 #include "adapter/ios/stage/uicontent/ace_container_sg.h"
 
 #include "adapter/ios/entrance/ace_application_info_impl.h"
+#include "adapter/ios/entrance/ace_plaform_plugin.h"
 #include "adapter/ios/osal/file_asset_provider.h"
 #include "adapter/ios/stage/uicontent/ace_view_sg.h"
 #include "base/log/ace_trace.h"
@@ -161,24 +162,18 @@ void AceContainerSG::InitializeFrontend()
         EngineHelper::AddEngine(instanceId_, jsEngine);
         declarativeFrontend->SetNeedDebugBreakPoint(AceApplicationInfo::GetInstance().IsNeedDebugBreakPoint());
         declarativeFrontend->SetDebugVersion(AceApplicationInfo::GetInstance().IsDebugVersion());
-
-        ACE_DCHECK(frontend_);
-        frontend_->Initialize(type_, taskExecutor_);
-        if (assetManager_) {
-            frontend_->SetAssetManager(assetManager_);
-        }
-        std::vector<std::string> packagePath = assetManager_->GetLibPath();
-        auto appLibPathKey = assetManager_->GetAppLibPathKey();
-        if (!packagePath.empty()) {
-            LOGI("Using sharedRuntime, arkNativeEngine set appLibPath %{public}s", appLibPathKey.c_str());
-            auto arkNativeEngine = static_cast<ArkNativeEngine*>(jsEngine->GetNativeEngine());
-            arkNativeEngine->SetPackagePath(appLibPathKey, packagePath);
-        }
     } else {
         LOGE("Frontend Type not supported");
         EventReport::SendAppStartException(AppStartExcepType::FRONTEND_TYPE_ERR);
         return;
     }
+
+    ACE_DCHECK(frontend_);
+    frontend_->Initialize(type_, taskExecutor_);
+    if (assetManager_) {
+        frontend_->SetAssetManager(assetManager_);
+    }
+
     LOGI("InitializeFrontend finished.");
 }
 
@@ -528,6 +523,12 @@ void AceContainerSG::AttachView(
         }
     }
 
+    auto resResgister = AcePlatformPlugin::GetResRegister(instanceId);
+    if (resResgister == nullptr) {
+        LOGW("AcePlatformPluginJni::GetResRegister fail.");
+    }
+    auto* aceViewSG = static_cast<AceViewSG*>(aceView_);
+    aceViewSG->SetPlatformResRegister(resResgister);
     resRegister_ = aceView_->GetPlatformResRegister();
 
     InitPiplineContext(std::move(window), density, width, height);

@@ -102,7 +102,8 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 #pragma mark - private method
 - (void)initPlatformPlugin {
      NSString *bundleDirectory = [[StageAssetManager assetManager] getBundlePath];
-     self.platformPlugin = [[AcePlatformPlugin alloc] initPlatformPlugin:self bundleDirectory:bundleDirectory];
+     self.platformPlugin = [[AcePlatformPlugin alloc]
+        initPlatformPlugin:self instanceId:_instanceId bundleDirectory:bundleDirectory];
 }
 
 - (std::string)getCPPString:(NSString *)string {

@@ -28,12 +28,68 @@
 #include "core/common/thread_checker.h"
 #include "core/components/theme/app_theme.h"
 #include "core/components/theme/theme_manager.h"
-#include "core/event/event_convertor.h"
 #include "core/event/mouse_event.h"
 #include "core/event/touch_event.h"
 #include "core/image/image_cache.h"
+#include "flutter/lib/ui/window/pointer_data_packet.h"
 
 namespace OHOS::Ace::Platform {
+namespace {
+TouchPoint ConvertTouchPoint(flutter::PointerData* pointerItem)
+{
+    TouchPoint touchPoint;
+    // just get the max of width and height
+    touchPoint.size = pointerItem->size;
+    touchPoint.id = pointerItem->device;
+    touchPoint.force = pointerItem->pressure;
+    touchPoint.x = pointerItem->physical_x;
+    touchPoint.y = pointerItem->physical_y;
+    return touchPoint;
+}
+
+void ConvertTouchEvent(const std::vector<uint8_t>& data, std::vector<TouchEvent>& events)
+{
+    const auto* origin = reinterpret_cast<const flutter::PointerData*>(data.data());
+    size_t size = data.size() / sizeof(flutter::PointerData);
+    auto current = const_cast<flutter::PointerData*>(origin);
+    auto end = current + size;
+
+    while (current < end) {
+        std::chrono::microseconds micros(current->time_stamp);
+        TimeStamp time(micros);
+        TouchEvent point { static_cast<int32_t>(current->device), static_cast<float>(current->physical_x),
+            static_cast<float>(current->physical_y), static_cast<float>(current->physical_x),
+            static_cast<float>(current->physical_y), TouchType::UNKNOWN, TouchType::UNKNOWN, time, current->size,
+            static_cast<float>(current->pressure), static_cast<int64_t>(current->device) };
+        point.sourceType = SourceType::TOUCH;
+        point.pointers.emplace_back(ConvertTouchPoint(current));
+        switch (current->change) {
+            case flutter::PointerData::Change::kCancel:
+                point.type = TouchType::CANCEL;
+                events.push_back(point);
+                break;
+            case flutter::PointerData::Change::kAdd:
+            case flutter::PointerData::Change::kRemove:
+            case flutter::PointerData::Change::kHover:
+                break;
+            case flutter::PointerData::Change::kDown:
+                point.type = TouchType::DOWN;
+                events.push_back(point);
+                break;
+            case flutter::PointerData::Change::kMove:
+                point.type = TouchType::MOVE;
+                events.push_back(point);
+                break;
+            case flutter::PointerData::Change::kUp:
+                point.type = TouchType::UP;
+                events.push_back(point);
+                break;
+        }
+        current++;
+    }
+}
+} // namespace
+
 AceViewSG* AceViewSG::CreateView(int32_t instanceId)
 {
     auto* aceView = new AceViewSG(instanceId);
