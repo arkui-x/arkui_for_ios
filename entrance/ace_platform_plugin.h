@@ -12,22 +12,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #ifndef FOUNDATION_ACE_ADAPTER_IOS_ENTRANCE_ACE_PLATFORM_PLUGIN_H
 #define FOUNDATION_ACE_ADAPTER_IOS_ENTRANCE_ACE_PLATFORM_PLUGIN_H
 
-#import <Foundation/Foundation.h>
-#import "adapter/ios/entrance/resource/AceResourceRegisterOC.h"
+#include <memory>
+#include <map>
 
-NS_ASSUME_NONNULL_BEGIN
+#include "adapter/ios/entrance/ace_resource_register.h"
+#include "base/utils/noncopyable.h"
 
-@interface AcePlatformPlugin : NSObject
-- (instancetype)initPlatformPlugin:(id)target
-    instanceId:(int32_t)instanceId bundleDirectory:(NSString *_Nonnull)bundleDir;
+namespace OHOS::Ace::Platform {
+class AcePlatformPlugin {
+public:
+    AcePlatformPlugin() = delete;
+    ~AcePlatformPlugin() = delete;
 
-- (void)releaseObject;
-- (void)releasePlugins;
-@end
+    static void InitResRegister(int32_t instanceId, const RefPtr<PlatformResRegister>& resRegister);
 
-NS_ASSUME_NONNULL_END
-
+    static RefPtr<PlatformResRegister> GetResRegister(int32_t instanceId);
+};
+} // namespace OHOS::Ace::Platform
 #endif // FOUNDATION_ACE_ADAPTER_IOS_ENTRANCE_ACE_PLATFORM_PLUGIN_H

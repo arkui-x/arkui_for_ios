@@ -42,6 +42,7 @@ template("ace_ios_standard_source_set") {
       "ace_application_info_impl.cpp",
       "ace_bridge.mm",
       "ace_container.cpp",
+      "ace_platform_plugin.cpp",
       "ace_resource_register.cpp",
       "capability_registry.cpp",
       "flutter_ace_view.cpp",
