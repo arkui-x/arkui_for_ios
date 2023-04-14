@@ -16,6 +16,7 @@
 #import "StageApplication.h"
 #import "StageAssetManager.h"
 #import "StageConfigurationManager.h"
+#import <Foundation/NSProcessInfo.h>
 
 #include "app_main.h"
 #include "stage_application_info_adapter.h"
@@ -32,13 +33,13 @@
     [self setPidAndUid];
     [self setLocale];
     [[StageAssetManager assetManager] launchAbility];
-    [[StageConfigurationManager configurationManager] initConfiguration];
+    [[StageConfigurationManager configurationManager] registConfiguration];
 }
 
 + (void)setPidAndUid {
-    NSProcessInfo *processInfo = [NSProcessInfo processInfo];
-    int32_t pid = processInfo.processIdentifier;
+    int pid = [[NSProcessInfo processInfo] processIdentifier];
     int32_t uid = 0;
+    NSLog(@"%s pid : %d", __func__, pid);
     OHOS::AbilityRuntime::Platform::AppMain::GetInstance()->SetPidAndUid(pid, uid);
 }
 

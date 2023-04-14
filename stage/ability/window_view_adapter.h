@@ -21,11 +21,7 @@
 #include <mutex>
 #include <vector>
 #include <unordered_map>
-#ifdef __OBJC__  
-@class WindowView;  
-#else  
-typedef struct objc_object WindowView;  
-#endif
+
 namespace OHOS {
 namespace AbilityRuntime {
 namespace Platform {
@@ -35,13 +31,13 @@ public:
     ~WindowViewAdapter();
 
     static std::shared_ptr<WindowViewAdapter> GetInstance();
-    void AddWindowView(const std::string& instanceName, std::shared_ptr<WindowView> windowView);
-    std::shared_ptr<WindowView> GetWindowView(const std::string& instanceName);
+    void AddWindowView(const std::string& instanceName, void* windowView);
+    void* GetWindowView(const std::string& instanceName);
     void RemoveWindowView(const std::string& instanceName);
 
 private:
     std::mutex mutex_;
-    std::unordered_map<std::string, std::shared_ptr<WindowView>> windowViewObjects_;
+    std::unordered_map<std::string, void*> windowViewObjects_;
 };
 } // namespace Platform
 } // namespace AbilityRuntime

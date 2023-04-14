@@ -16,17 +16,36 @@
 #import <Foundation/Foundation.h>
 #import "application_context_adapter.h"
 
-namespace OHOS::AbilityRuntime::Platform {
-ProcessInformation ApplicationContextAdapter::GetProcessRunningInformation()
+namespace OHOS {
+namespace AbilityRuntime {
+namespace Platform {
+std::shared_ptr<ApplicationContextAdapter> ApplicationContextAdapter::instance_ = nullptr;
+std::mutex ApplicationContextAdapter::mutex_;
+
+std::shared_ptr<ApplicationContextAdapter> ApplicationContextAdapter::GetInstance()
 {
-    ProcessInformation processInfomation;
+    if (instance_ == nullptr) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        if (instance_ == nullptr) {
+            instance_ = std::make_shared<ApplicationContextAdapter>();
+        }
+    }
+
+    return instance_;
+}
+
+std::vector<RunningProcessInfo> ApplicationContextAdapter::GetRunningProcessInformation()
+{
+    RunningProcessInfo info;
     NSProcessInfo *processInfo = [NSProcessInfo processInfo];
-    NSLog(@"process id : %d", processInfo.processIdentifier);
-    processInfomation.pid = processInfo.processIdentifier;
-    processInfomation.processName = std::string([processInfo.processName UTF8String]);
+    info.pid = processInfo.processIdentifier;
+    info.processName = std::string([processInfo.processName UTF8String]);
     NSDictionary *dict = [[NSBundle mainBundle] infoDictionary];
     NSString *bundleName = dict[@"CFBundleName"];
-    processInfomation.bundleNames.emplace_back([bundleName UTF8String]);
-    return processInfomation;
+    info.bundleNames.emplace_back([bundleName UTF8String]);
+    std::vector<RunningProcessInfo> infos {info};
+    return infos;
 }
-} // namespace OHOS::AbilityRuntime::Platform
+} // namespace Platform
+} // namespace AbilityRuntime
+} // namespace OHOS

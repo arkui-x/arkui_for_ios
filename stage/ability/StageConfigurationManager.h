@@ -13,6 +13,9 @@
  * limitations under the License.
  */
 
+#ifndef FOUNDATION_ACE_ADAPTER_IOS_STAGE_ABILITY_CONFIGURATION_MANAGER_H
+#define FOUNDATION_ACE_ADAPTER_IOS_STAGE_ABILITY_CONFIGURATION_MANAGER_H
+
 #import <Foundation/Foundation.h>
 #import <UIKit/UIInterface.h>
 #import <UIKit/UIDevice.h>
@@ -31,7 +34,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void)colorModeUpdate:(UIUserInterfaceStyle)colorMode;
 
-- (void)initConfiguration;
+- (void)registConfiguration;
 @end
 
 NS_ASSUME_NONNULL_END
+#endif // FOUNDATION_ACE_ADAPTER_IOS_STAGE_ABILITY_CONFIGURATION_MANAGER_H

@@ -48,12 +48,11 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
 }
 
 - (void)moduleFilesWithbundleDirectory:(NSString *_Nonnull)bundleDirectory {
-    NSError *error;
-    NSMutableArray *files = [NSMutableArray array];
+    NSError *error = nil;
+    NSMutableArray *files = [[NSMutableArray alloc] init];
     NSString *bundlePath = [NSString stringWithFormat:@"%@/%@", [NSBundle mainBundle].bundlePath, bundleDirectory];
     NSLog(@"%s, \n bundlePath is : %@", __func__, bundlePath);
     self.bundlePath = bundlePath;
-
     NSArray *moduleArray = [[NSFileManager defaultManager] subpathsOfDirectoryAtPath:bundlePath error:&error];
     if (!error && moduleArray.count > 0) {
         for (NSString *subFile in moduleArray) {
@@ -212,7 +211,7 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
 - (NSMutableArray *)allModuleFilePathArray {
     if (!_allModuleFilePathArray) {
         @synchronized (self) {
-            _allModuleFilePathArray = [NSMutableArray array];
+            _allModuleFilePathArray = [[NSMutableArray alloc] init];
         }
     }
     return _allModuleFilePathArray;
@@ -221,7 +220,7 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
 - (NSMutableArray *)moduleJsonFileArray {
     if (!_moduleJsonFileArray) {
         @synchronized (self) {
-            _moduleJsonFileArray = [NSMutableArray array];
+            _moduleJsonFileArray = [[NSMutableArray alloc] init];
         }
     }
     return _moduleJsonFileArray;

@@ -15,18 +15,21 @@
 
 #import "StageViewController.h"
 #import "StageConfigurationManager.h"
+#import "WindowView.h"
 #import "StageAssetManager.h"
 #import "InstanceIdGenerator.h"
 #import "adapter/ios/entrance/AcePlatformPlugin.h"
 
 #include "app_main.h"
+#include "window_view_adapter.h"
 
 using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
+using WindowViwAdapter = OHOS::AbilityRuntime::Platform::WindowViewAdapter;
 int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 @interface StageViewController () <UITraitEnvironment> {
     int32_t _instanceId;
     std::string _cInstanceName;
-
+    WindowView *_windowView;
 }
 
 @property (nonatomic, strong, readwrite) NSString *instanceName;
@@ -46,9 +49,16 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
         NSLog(@"StageVC->%@ init, instanceName is : %@", self, self.instanceName);
         _cInstanceName = [self getCPPString:self.instanceName];
         AppMain::GetInstance()->DispatchOnCreate(_cInstanceName);
+        [self initWindowView];
         [self initPlatformPlugin];
     }
     return self;
+}
+
+- (void)initWindowView {
+    _windowView = [[WindowView alloc] initWithFrame:self.view.bounds];
+    WindowViwAdapter::GetInstance()->AddWindowView(_cInstanceName, (__bridge void*)_windowView);
+    [self.view addSubview:_windowView];
 }
 
 - (void) viewDidLoad {

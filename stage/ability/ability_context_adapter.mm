@@ -53,17 +53,15 @@ std::shared_ptr<AbilityContextAdapter> AbilityContextAdapter::GetInstance()
 
 UIViewController * theTopViewControler()
 {
-    __block UIViewController *rootVC = nil;
-    dispatch_main_async_safe(^{
-        rootVC = [[UIApplication sharedApplication].delegate window].rootViewController;
-        UIViewController *parent = rootVC;
-        while ((parent = rootVC.presentedViewController) != nil ) {
-            rootVC = parent;
-        }
-        while ([rootVC isKindOfClass:[UINavigationController class]]) {
-            rootVC = [(UINavigationController *)rootVC topViewController];
-        }
-    });
+    UIViewController *rootVC = nil;
+    rootVC = [[UIApplication sharedApplication].delegate window].rootViewController;
+    UIViewController *parent = rootVC;
+    while ((parent = rootVC.presentedViewController) != nil ) {
+        rootVC = parent;
+    }
+    while ([rootVC isKindOfClass:[UINavigationController class]]) {
+        rootVC = [(UINavigationController *)rootVC topViewController];
+    }
     return rootVC;
 }
 
@@ -98,12 +96,10 @@ void AbilityContextAdapter::StartAbility(const std::string& instanceName, const 
     NSString *bundleName = GetOCstring(want.GetBundleName());
     NSString *moduleName = GetOCstring(want.GetModuleName());
     NSString *abilityName = GetOCstring(want.GetAbilityName());
-
     NSString *urlString = [NSString stringWithFormat:@"%@://%@?%@", bundleName, moduleName, abilityName];
     NSURL *appUrl = [NSURL URLWithString:urlString];
     NSLog(@"%s, url : %@", __func__, urlString);
-    // bool isSingle = AppMain::GetInstance()->IsSingleton(want.GetModuleName(), want.GetAbilityName());
-    bool isSingle = false;
+    bool isSingle = AppMain::GetInstance()->IsSingleton(want.GetModuleName(), want.GetAbilityName());
     dispatch_main_async_safe((^{
         if (isSingle) {
             NSString *instanceName = [NSString stringWithFormat:@"%@:%@:%@", bundleName, moduleName, abilityName];
@@ -122,15 +118,19 @@ void AbilityContextAdapter::StartAbility(const std::string& instanceName, const 
 
 void AbilityContextAdapter::TerminateSelf(const std::string& instanceName)
 {
-    NSLog(@"%s", __func__);
-    UIViewController *topVC = theTopViewControler();
+    dispatch_main_async_safe(^{
+    StageViewController *topVC = theTopViewControler();
     if (!topVC) {
         NSLog(@"%s, topVC nil", __func__);
-    } else if (UIApplication.sharedApplication.windows[0].rootViewController != topVC) {
+    } else if (topVC.navigationController.viewControllers.count > 1) {
         NSLog(@"%s, pop", __func__);
         [topVC.navigationController popViewControllerAnimated:YES];
     } else {
+        NSLog(@"%s, exit", __func__);
+        std::string result = [topVC.instanceName UTF8String];
+        OHOS::AbilityRuntime::Platform::AppMain::GetInstance()->DispatchOnDestroy(result);
         exit(0);
     }
+    });
 }
 }

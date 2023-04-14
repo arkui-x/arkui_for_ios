@@ -17,24 +17,25 @@ import("//foundation/arkui/ace_engine/ace_config.gni")
 # build static
 template("stage_ios_standard_source_set") {
   forward_variables_from(invoker, "*")
-
   ohos_source_set(target_name) {
     defines = []
     defines += invoker.defines
     cflags_cc += invoker.cflags_cc
+
     configs = [
       "$ace_root:ace_config",
       "//foundation/appframework/ability/ability_runtime/cross_platform/interfaces/kits/native/appkit:appkit_native_config",
       "//third_party/json:nlohmann_json_config",
     ]
+
     include_dirs = [
-      "//third_party/",
-      "$ace_root/frameworks",
-      "$ace_root",
       "./",
       "//foundation/arkui/ace_engine/adapter/ios/entrance",
       "//foundation/appframework/ability/ability_runtime/cross_platform/interfaces/kits/native/appkit",
+      "//third_party/",
       "//third_party/flutter/engine",
+      "$ace_root/frameworks",
+      "$ace_root",
     ]
 
     if (target_cpu == "arm64") {
@@ -45,8 +46,8 @@ template("stage_ios_standard_source_set") {
 
     cflags_objc = [
       "-fvisibility=default",
-      "-fobjc-arc",
-      "-fobjc-weak",
+      # "-fobjc-arc",
+      # "-fobjc-weak",
     ]
 
     cflags_objcc = cflags_objc
@@ -60,15 +61,22 @@ template("stage_ios_standard_source_set") {
       "application_context_adapter.mm",
       "stage_application_info_adapter.cpp",
       "stage_asset_provider.mm",
-      "window_view_Adapter.mm",
+      "window_view_adapter.mm",
       "InstanceIdGenerator.mm",
     ]
     deps = [
       "$ace_flutter_engine_root:third_party_flutter_engine_$platform",
       "$ace_flutter_engine_root/skia:ace_skia_$platform",
-      "//foundation/arkui/ace_engine/adapter/ios/entrance:ace_ios_entrance",
       "//foundation/appframework/ability/ability_runtime/cross_platform/interfaces/kits/native/appkit:cross_platform_appkit_native",
+      "//foundation/arkui/ace_engine/adapter/ios/entrance:ace_ios_entrance",
     ]
+
+    libs = [
+      "CoreFoundation.framework",
+      "Foundation.framework",
+      "UIKit.framework",
+    ]
+
     subsystem_name = "arkui"
   }
 }

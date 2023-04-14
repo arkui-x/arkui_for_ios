@@ -27,8 +27,6 @@
 #define EMPTY_JSON ""
 #define UNKNOWN @""
 #define SYSTEM_COLORMODE @"ohos.system.colorMode"
-#define ERROR_CONVERT_FAILED 1
-#define ERR_OK 0
 using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
 @interface StageConfigurationManager () <UITraitEnvironment>
 
@@ -50,6 +48,40 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
                                                    object:nil];
     });
     return _configurationManager;
+}
+
+- (void)registConfiguration {
+    NSLog(@"initConfiguration called");
+    UIDeviceOrientation orientation = [UIDevice currentDevice].orientation;
+    [self setDirection:orientation];
+    UITraitCollection *trait = [UITraitCollection currentTraitCollection];
+
+    [self setColorMode:trait.userInterfaceStyle];
+    std::string json = [self getJsonString:self.configuration];
+    if (json.empty()) {
+        AppMain::GetInstance()->InitConfiguration(EMPTY_JSON);
+    }
+    AppMain::GetInstance()->InitConfiguration(json);
+}
+
+- (void)directionUpdate:(UIDeviceOrientation)direction {
+    NSLog(@"directionUpdate called");
+    [self setDirection:direction];
+    std::string json = [self getJsonString:self.configuration];
+    if (json.empty()) {
+        AppMain::GetInstance()->OnConfigurationUpdate(EMPTY_JSON);
+    }
+    AppMain::GetInstance()->OnConfigurationUpdate(json);
+}
+
+- (void)colorModeUpdate:(UIUserInterfaceStyle)colorMode {
+    NSLog(@"colorModeUpdate called");
+    [self setColorMode:colorMode];
+    std::string json = [self getJsonString:self.configuration];
+    if (json.empty()) {
+        AppMain::GetInstance()->OnConfigurationUpdate(EMPTY_JSON);
+    }
+    AppMain::GetInstance()->OnConfigurationUpdate(json);
 }
 
 - (void)setDirection:(UIDeviceOrientation)direction {
@@ -77,18 +109,6 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
     }
 }
 
-- (int32_t)directionUpdate:(UIDeviceOrientation)direction {
-    NSLog(@"directionUpdate called");
-    [self setDirection:direction];
-    std::string json = [self getJsonString:self.configuration];
-    if (json.empty()) {
-        AppMain::GetInstance()->OnConfigurationUpdate(EMPTY_JSON);
-        return ERROR_CONVERT_FAILED;
-    }
-    AppMain::GetInstance()->OnConfigurationUpdate(json);
-    return ERR_OK;
-}
-
 - (void)setColorMode:(UIUserInterfaceStyle)colorMode {
     switch (colorMode) {
         case UIUserInterfaceStyleLight: {
@@ -106,34 +126,6 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
     }
 }
 
-- (int32_t)colorModeUpdate:(UIUserInterfaceStyle)colorMode {
-    NSLog(@"colorModeUpdate called");
-    [self setColorMode:colorMode];
-    std::string json = [self getJsonString:self.configuration];
-    if (json.empty()) {
-        AppMain::GetInstance()->OnConfigurationUpdate(EMPTY_JSON);
-        return ERROR_CONVERT_FAILED;
-    }
-    AppMain::GetInstance()->OnConfigurationUpdate(json);
-    return ERR_OK;
-}
-
-- (int32_t)initConfiguration {
-    NSLog(@"initConfiguration called");
-    UIDeviceOrientation orientation = [UIDevice currentDevice].orientation;
-    [self setDirection:orientation];
-    UITraitCollection *trait = [UITraitCollection currentTraitCollection];
-
-    [self setColorMode:trait.userInterfaceStyle];
-    std::string json = [self getJsonString:self.configuration];
-    if (json.empty()) {
-        AppMain::GetInstance()->InitConfiguration(EMPTY_JSON);
-        return ERROR_CONVERT_FAILED;
-    }
-    AppMain::GetInstance()->InitConfiguration(json);
-    return ERR_OK;
-}
-
 - (void)onDeviceOrientationChange:(NSNotification *)notification {
     UIDeviceOrientation orientation = [UIDevice currentDevice].orientation;
     [self directionUpdate:orientation];
@@ -145,7 +137,7 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
     }
     NSError *parseError = nil;
     NSData *jsonData = [NSJSONSerialization dataWithJSONObject:object
-                                                       options:NSJSONWritingPrettyPrinted
+                                                       options:kNilOptions
                                                          error:&parseError];
     if (parseError) {
         NSLog(@"parsing failed, code: %ld, message: %@", (long)parseError.code, parseError.userInfo);
@@ -159,7 +151,7 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
 #pragma mark - lazy load
 - (NSMutableDictionary *)configuration {
     if (!_configuration) {
-        _configuration = [NSMutableDictionary dictionary];
+        _configuration = [[NSMutableDictionary alloc] init];
     }
     return _configuration;
 }
