@@ -29,7 +29,6 @@ class Window;
 - (void)createSurfaceNode;
 - (void)notifySurfaceChangedWithWidth:(int32_t)width height:(int32_t)height;
 - (void)notifySurfaceDestroyed;
-
 @end
 
 #endif  // FOUNDATION_ACE_ADAPTER_IOS_ENTRANCE_WINDOW_VIEW_H

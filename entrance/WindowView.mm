@@ -20,6 +20,7 @@
 #include <memory>
 #include <vector>
 
+#include "adapter/ios/capability/editing/iOSTxtInputManager.h"
 #include "flutter/lib/ui/window/pointer_data_packet.h"
 #include "virtual_rs_window.h"
 
@@ -30,6 +31,7 @@
 @implementation WindowView
 
 std::shared_ptr<OHOS::Rosen::Window> _windowDelegate;
+int32_t _instanceId;
 int32_t _width;
 int32_t _height;
 BOOL _needNotifySurfaceChangedWithWidth;
@@ -37,6 +39,7 @@ BOOL _needCreateSurfaceNode;
 
 - (instancetype)init {
     if (self = [super init]) {
+        [self setupNotificationCenterObservers];
     }
     return self;
 }
@@ -184,4 +187,98 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
     }
 }
 
+- (void)setupNotificationCenterObservers {
+    NSNotificationCenter* center = [NSNotificationCenter defaultCenter];
+    [center addObserver:self
+               selector:@selector(applicationBecameActive:)
+                   name:UIApplicationDidBecomeActiveNotification
+                 object:nil];
+    
+    [center addObserver:self
+               selector:@selector(applicationWillResignActive:)
+                   name:UIApplicationWillResignActiveNotification
+                 object:nil];
+    
+    [center addObserver:self
+               selector:@selector(applicationDidEnterBackground:)
+                   name:UIApplicationDidEnterBackgroundNotification
+                 object:nil];
+    
+    [center addObserver:self
+               selector:@selector(applicationWillEnterForeground:)
+                   name:UIApplicationWillEnterForegroundNotification
+                 object:nil];
+
+    [center addObserver:self
+               selector:@selector(keyboardWillChangeFrame:)
+                   name:UIKeyboardWillChangeFrameNotification
+                 object:nil];
+
+    [center addObserver:self
+               selector:@selector(keyboardWillBeHidden:)
+                   name:UIKeyboardWillHideNotification
+                 object:nil];
+
+}
+
+#pragma mark - Application lifecycle notifications
+
+- (void)applicationBecameActive:(NSNotification *)notification {
+    if (_windowDelegate != nullptr) {
+        _windowDelegate->WindowFocusChanged(true);
+    }
+}
+
+- (void)applicationWillResignActive:(NSNotification *)notification {
+    if (_windowDelegate != nullptr) {
+        _windowDelegate->WindowFocusChanged(false);
+    }
+}
+
+- (void)applicationDidEnterBackground:(NSNotification *)notification {
+    if (_windowDelegate != nullptr) {
+        _windowDelegate->Foreground();
+    }
+}
+
+- (void)applicationWillEnterForeground:(NSNotification *)notification {
+    if (_windowDelegate != nullptr) {
+        _windowDelegate->Background();
+    }
+}
+
+- (void)keyboardWillChangeFrame:(NSNotification*)notification{
+    NSDictionary* info = [notification userInfo];
+    CGFloat keyboardY = [info[UIKeyboardFrameEndUserInfoKey] CGRectValue].origin.y;
+
+    CGRect screenRect = [[UIScreen mainScreen] bounds];
+    CGFloat screenHeight = screenRect.size.height;
+    CGFloat scale = [UIScreen mainScreen].scale;
+
+    double duration = [info[UIKeyboardAnimationDurationUserInfoKey] doubleValue];
+    bool isEts = [iOSTxtInputManager shareintance].isDeclarative;
+    CGFloat inputBoxHeight = [iOSTxtInputManager shareintance].inputBoxY -
+                             [iOSTxtInputManager shareintance].inputBoxTopY;
+    CGFloat ty = keyboardY - [iOSTxtInputManager shareintance].inputBoxTopY -inputBoxHeight;
+    if (isEts) {
+        ty = keyboardY - inputBoxHeight - [iOSTxtInputManager shareintance].inputBoxTopY/scale;
+    }
+    [UIView animateWithDuration:duration animations:^{
+        if (ty < 0) {
+            self.transform = CGAffineTransformMakeTranslation(0, ty);
+        }
+    }];
+}
+
+- (void)keyboardWillBeHidden:(NSNotification*)notification{
+    double duration = [notification.userInfo[UIKeyboardAnimationDurationUserInfoKey] doubleValue];
+    [UIView animateWithDuration:duration animations:^{
+        self.transform = CGAffineTransformMakeTranslation(0, 0);
+    }];
+}
+
+- (void)dealloc {
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
+    [super dealloc];
+}
 @end
