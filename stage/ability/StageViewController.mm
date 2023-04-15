@@ -53,7 +53,8 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 }
 
 - (void)initWindowView {
-    _windowView = [[WindowView alloc] initWithFrame:self.view.bounds];
+    _windowView = [[WindowView alloc] init];
+    _windowView.frame = self.view.bounds;
     WindowViwAdapter::GetInstance()->AddWindowView(_cInstanceName, (__bridge void*)_windowView);
     [self.view addSubview:_windowView];
 }
@@ -67,7 +68,7 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
     int32_t width = static_cast<int32_t>(self.view.bounds.size.width * scale);
     int32_t height = static_cast<int32_t>(self.view.bounds.size.height * scale);
     [_windowView notifySurfaceChangedWithWidth:width height:height];
-    
+
     // Ability::OnWindowStageCreate
 
     AppMain::GetInstance()->DispatchOnCreate(_cInstanceName);
