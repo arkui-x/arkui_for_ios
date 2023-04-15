@@ -19,6 +19,7 @@
 #import "StageAssetManager.h"
 #import "InstanceIdGenerator.h"
 #import "adapter/ios/entrance/AcePlatformPlugin.h"
+#import "WindowView.h"
 
 #include "app_main.h"
 #include "window_view_adapter.h"
@@ -43,21 +44,16 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 - (instancetype)initWithInstanceName:(NSString *_Nonnull)instanceName {
     self = [super init];
     if (self) {
-        
         _instanceId = InstanceIdGenerator.getAndIncrement;
         self.instanceName = [NSString stringWithFormat:@"%@:%d", instanceName, _instanceId];
         NSLog(@"StageVC->%@ init, instanceName is : %@", self, self.instanceName);
         _cInstanceName = [self getCPPString:self.instanceName];
-        AppMain::GetInstance()->DispatchOnCreate(_cInstanceName);
-        [self initWindowView];
-        [self initPlatformPlugin];
     }
     return self;
 }
 
 - (void)initWindowView {
-    _windowView = [[WindowView alloc] init];
-    _windowView.frame = self.view.bounds;
+    _windowView = [[WindowView alloc] initWithFrame:self.view.bounds];
     WindowViwAdapter::GetInstance()->AddWindowView(_cInstanceName, (__bridge void*)_windowView);
     [self.view addSubview:_windowView];
 }
@@ -73,6 +69,10 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
     [_windowView notifySurfaceChangedWithWidth:width height:height];
     
     // Ability::OnWindowStageCreate
+
+    AppMain::GetInstance()->DispatchOnCreate(_cInstanceName);
+    [self initWindowView];
+    [self initPlatformPlugin];
 }
 
 - (void)viewDidAppear:(BOOL)animated {

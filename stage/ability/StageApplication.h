@@ -17,6 +17,7 @@
 #define FOUNDATION_ACE_ADAPTER_IOS_STAGE_ABILITY_APPLICATION_H
 
 #import <Foundation/Foundation.h>
+#import "StageViewController.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -25,6 +26,16 @@ NS_ASSUME_NONNULL_BEGIN
 + (void)configModuleWithBundleDirectory:(NSString *_Nonnull)bundleDirectory;
 
 + (void)launchApplication;
+
++ (void)callCurrentAbilityOnForeground;
+
++ (void)callCurrentAbilityOnBackground;
+
++ (BOOL)handleSingleton:(NSString *)bundleName moduleName:(NSString *)moduleName abilityName:(NSString *)abilityName;
+
++ (void)releaseViewControllers;
+
++ (StageViewController *)getApplicationTopViewController;
 
 @end
 
