@@ -48,6 +48,8 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
         self.instanceName = [NSString stringWithFormat:@"%@:%d", instanceName, _instanceId];
         NSLog(@"StageVC->%@ init, instanceName is : %@", self, self.instanceName);
         _cInstanceName = [self getCPPString:self.instanceName];
+        [self initWindowView];
+        [self initPlatformPlugin];
     }
     return self;
 }
@@ -70,10 +72,7 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
     [_windowView notifySurfaceChangedWithWidth:width height:height];
 
     // Ability::OnWindowStageCreate
-
     AppMain::GetInstance()->DispatchOnCreate(_cInstanceName);
-    [self initWindowView];
-    [self initPlatformPlugin];
 }
 
 - (void)viewDidAppear:(BOOL)animated {
