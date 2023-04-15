@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-#include "ace_platform_plugin.h"
+#include "adapter/ios/entrance/ace_platform_plugin.h"
 
 #include "base/log/log.h"
 #include "base/utils/macros.h"
