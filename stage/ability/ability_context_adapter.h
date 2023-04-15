@@ -25,7 +25,6 @@
 #include "want.h"
 
 namespace OHOS::AbilityRuntime::Platform {
-
 class AbilityContextAdapter {
 public:
     AbilityContextAdapter() = default;
