@@ -33,11 +33,10 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
 
 + (void)launchApplication {
     NSLog(@"%s", __FUNCTION__);
-    [[StageAssetManager assetManager] launchAbility];
-    [[StageConfigurationManager configurationManager] registConfiguration];
-
     [self setPidAndUid];
     [self setLocale];
+    [[StageAssetManager assetManager] launchAbility];
+    [[StageConfigurationManager configurationManager] registConfiguration];
 }
 
 + (void)setPidAndUid {

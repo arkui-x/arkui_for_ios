@@ -17,10 +17,10 @@
 #import "StageApplication.h"
 #import "StageViewController.h"
 #import "ability_context_adapter.h"
-#include "ability_manager_errors.h"
 
 #include <stdio.h>
 
+#include "ability_manager_errors.h"
 #include "app_main.h"
 
 #define dispatch_main_async_safe(block)\
@@ -92,7 +92,8 @@ void AbilityContextAdapter::TerminateSelf(const std::string& instanceName)
             [topVC.navigationController popViewControllerAnimated:YES];
             return;
         }
-        NSMutableArray *controllerArr = [[NSMutableArray alloc] initWithArray:topVC.navigationController.viewControllers];
+        NSMutableArray *controllerArr =
+            [[NSMutableArray alloc] initWithArray:topVC.navigationController.viewControllers];
         for (int i = 0; i < controllerArr.count; i++) {
             StageViewController *tempVC = controllerArr[i];
             if ([tempVC.instanceName containsString:targetName]) {
