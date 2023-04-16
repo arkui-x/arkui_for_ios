@@ -14,11 +14,13 @@
  */
 
 #import <Foundation/Foundation.h>
+#import "StageApplication.h"
 #import "StageViewController.h"
 #import "ability_context_adapter.h"
 
 #include <stdio.h>
 
+#include "ability_manager_errors.h"
 #include "app_main.h"
 
 #define dispatch_main_async_safe(block)\
@@ -51,47 +53,7 @@ std::shared_ptr<AbilityContextAdapter> AbilityContextAdapter::GetInstance()
     return instance_;
 }
 
-UIViewController * theTopViewControler()
-{
-    UIViewController *rootVC = nil;
-    rootVC = [[UIApplication sharedApplication].delegate window].rootViewController;
-    UIViewController *parent = rootVC;
-    while ((parent = rootVC.presentedViewController) != nil ) {
-        rootVC = parent;
-    }
-    while ([rootVC isKindOfClass:[UINavigationController class]]) {
-        rootVC = [(UINavigationController *)rootVC topViewController];
-    }
-    return rootVC;
-}
-
-bool OnNewWant(NSString *singletonName)
-{
-    NSLog(@"%s, singletonName is %@", __func__, singletonName);
-    StageViewController *topVC = theTopViewControler();
-    if ([topVC.instanceName containsString:singletonName]) {
-        std::string instanceName = [topVC.instanceName UTF8String];
-        AppMain::GetInstance()->DispatchOnNewWant(instanceName);
-        return true;
-    }
-
-    NSMutableArray *controllerArr = [NSMutableArray arrayWithArray:topVC.navigationController.viewControllers];
-
-    for (int i = 0; i < controllerArr.count; i++) {
-        StageViewController *tempVC = controllerArr[i];
-        if ([tempVC.instanceName containsString:singletonName]) {
-            [controllerArr removeObjectAtIndex:i];
-            [controllerArr addObject:tempVC];
-            [topVC.navigationController setViewControllers:controllerArr];
-            std::string instanceName = [tempVC.instanceName UTF8String];
-            AppMain::GetInstance()->DispatchOnNewWant(instanceName);
-            return true;
-        }
-    }
-    return false;
-}
-
-void AbilityContextAdapter::StartAbility(const std::string& instanceName, const AAFwk::Want& want)
+int32_t AbilityContextAdapter::StartAbility(const std::string& instanceName, const AAFwk::Want& want)
 {
     NSString *bundleName = GetOCstring(want.GetBundleName());
     NSString *moduleName = GetOCstring(want.GetModuleName());
@@ -99,38 +61,48 @@ void AbilityContextAdapter::StartAbility(const std::string& instanceName, const 
     NSString *urlString = [NSString stringWithFormat:@"%@://%@?%@", bundleName, moduleName, abilityName];
     NSURL *appUrl = [NSURL URLWithString:urlString];
     NSLog(@"%s, url : %@", __func__, urlString);
-    bool isSingle = AppMain::GetInstance()->IsSingleton(want.GetModuleName(), want.GetAbilityName());
-    dispatch_main_async_safe((^{
-        if (isSingle) {
-            NSString *instanceName = [NSString stringWithFormat:@"%@:%@:%@", bundleName, moduleName, abilityName];
-            if (OnNewWant(instanceName)) {
-                return;
-            }
-        }
-
-        if ([[UIApplication sharedApplication] canOpenURL:appUrl]) {
+    if ([[UIApplication sharedApplication] canOpenURL:appUrl]) {
+        dispatch_main_async_safe(^{
             [[UIApplication sharedApplication] openURL:appUrl options: @{} completionHandler: ^(BOOL success) {}];
-        } else {
-            NSLog(@"can't open app");
-        }
-    }));
+        });
+    } else {
+        NSLog(@"can't open app, INVALID_PARAMETERS_ERR");
+        return AAFwk::INVALID_PARAMETERS_ERR;
+    }
+    return ERR_OK;
 }
 
 void AbilityContextAdapter::TerminateSelf(const std::string& instanceName)
 {
     dispatch_main_async_safe(^{
-    StageViewController *topVC = theTopViewControler();
-    if (!topVC) {
-        NSLog(@"%s, topVC nil", __func__);
-    } else if (topVC.navigationController.viewControllers.count > 1) {
-        NSLog(@"%s, pop", __func__);
-        [topVC.navigationController popViewControllerAnimated:YES];
-    } else {
-        NSLog(@"%s, exit", __func__);
-        std::string result = [topVC.instanceName UTF8String];
-        OHOS::AbilityRuntime::Platform::AppMain::GetInstance()->DispatchOnDestroy(result);
-        exit(0);
-    }
+        StageViewController *topVC = [StageApplication getApplicationTopViewController];
+        NSString *targetName = [NSString stringWithCString:instanceName.c_str() encoding:NSUTF8StringEncoding];
+        int size = topVC.navigationController.viewControllers.count;
+        if (size == 0) {
+            NSLog(@"%s, viewControllers count zero", __func__);
+            exit(0);
+        }
+        if (size == 1) {
+            NSLog(@"%s, exit", __func__);
+            OHOS::AbilityRuntime::Platform::AppMain::GetInstance()->DispatchOnDestroy(instanceName);
+            exit(0);
+        }
+        if ([topVC.instanceName isEqualToString:targetName]) {
+            NSLog(@"%s, pop", __func__);
+            [topVC.navigationController popViewControllerAnimated:YES];
+            return;
+        }
+        NSMutableArray *controllerArr =
+            [[NSMutableArray alloc] initWithArray:topVC.navigationController.viewControllers];
+        for (int i = 0; i < controllerArr.count; i++) {
+            StageViewController *tempVC = controllerArr[i];
+            if ([tempVC.instanceName containsString:targetName]) {
+                [controllerArr removeObjectAtIndex:i];
+                [topVC.navigationController setViewControllers:controllerArr.copy];
+                return;
+            }
+        }
+        NSLog(@"%s, failed", __func__);
     });
 }
 }

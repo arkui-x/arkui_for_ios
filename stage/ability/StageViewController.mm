@@ -19,6 +19,7 @@
 #import "StageAssetManager.h"
 #import "InstanceIdGenerator.h"
 #import "adapter/ios/entrance/AcePlatformPlugin.h"
+#import "WindowView.h"
 
 #include "app_main.h"
 #include "window_view_adapter.h"
@@ -43,12 +44,10 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 - (instancetype)initWithInstanceName:(NSString *_Nonnull)instanceName {
     self = [super init];
     if (self) {
-        
         _instanceId = InstanceIdGenerator.getAndIncrement;
         self.instanceName = [NSString stringWithFormat:@"%@:%d", instanceName, _instanceId];
         NSLog(@"StageVC->%@ init, instanceName is : %@", self, self.instanceName);
         _cInstanceName = [self getCPPString:self.instanceName];
-        AppMain::GetInstance()->DispatchOnCreate(_cInstanceName);
         [self initWindowView];
         [self initPlatformPlugin];
     }
@@ -71,8 +70,9 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
     int32_t width = static_cast<int32_t>(self.view.bounds.size.width * scale);
     int32_t height = static_cast<int32_t>(self.view.bounds.size.height * scale);
     [_windowView notifySurfaceChangedWithWidth:width height:height];
-    
+
     // Ability::OnWindowStageCreate
+    AppMain::GetInstance()->DispatchOnCreate(_cInstanceName);
 }
 
 - (void)viewDidAppear:(BOOL)animated {
