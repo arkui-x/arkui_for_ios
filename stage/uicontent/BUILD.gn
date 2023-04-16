@@ -41,11 +41,11 @@ template("ace_uicontent_ios_source_set") {
 
     deps = [
       "$ability_runtime_cross_platform_path/interfaces/kits/native/ability:cross_platform_abilitykit_native",
-      "$ace_root/adapter/ios/dependence/resmgr:global_resmgr_source_set",
+      "//foundation/appframework/resource_management:global_resmgr",
+      "//foundation/arkui/ace_engine/adapter/ios/entrance:ace_ios_entrance",
       "//foundation/arkui/napi:ace_napi",
       "//third_party/icu/icu4c:static_icui18n",
       "//third_party/icu/icu4c:static_icuuc",
-      "//foundation/arkui/ace_engine/adapter/ios/entrance:ace_ios_entrance",
     ]
 
     deps += [
