@@ -13,12 +13,11 @@
  * limitations under the License.
  */
 
+#import "adapter/ios/entrance/AcePlatformPlugin.h"
+#import "InstanceIdGenerator.h"
 #import "StageViewController.h"
 #import "StageConfigurationManager.h"
-#import "WindowView.h"
 #import "StageAssetManager.h"
-#import "InstanceIdGenerator.h"
-#import "adapter/ios/entrance/AcePlatformPlugin.h"
 #import "WindowView.h"
 
 #include "app_main.h"
@@ -56,9 +55,8 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 
 - (void)initWindowView {
     _windowView = [[WindowView alloc] init];
-    _windowView.frame = self.view.bounds;
+    _windowView.frame = [UIScreen mainScreen].bounds;
     WindowViwAdapter::GetInstance()->AddWindowView(_cInstanceName, (__bridge void*)_windowView);
-    [self.view addSubview:_windowView];
 }
 
 - (void) viewDidLoad {
@@ -70,8 +68,7 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
     int32_t width = static_cast<int32_t>(self.view.bounds.size.width * scale);
     int32_t height = static_cast<int32_t>(self.view.bounds.size.height * scale);
     [_windowView notifySurfaceChangedWithWidth:width height:height];
-
-    // Ability::OnWindowStageCreate
+    [self.view addSubview:_windowView];
     AppMain::GetInstance()->DispatchOnCreate(_cInstanceName);
 }
 
@@ -99,7 +96,6 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 - (void)dealloc {
     NSLog(@"StageVC->%@ dealloc", self);
     AppMain::GetInstance()->DispatchOnDestroy(_cInstanceName);
-    // Ability::OnWindowStageDestroy
 }
 
 - (void)traitCollectionDidChange:(UITraitCollection *)previousTraitCollection {
