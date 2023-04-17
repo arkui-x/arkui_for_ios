@@ -25,6 +25,11 @@
 #include "core/common/ace_view.h"
 #include "core/event/key_event_recognizer.h"
 
+#ifdef ENABLE_ROSEN_BACKEND
+#include "render_service_client/core/ui/rs_surface_node.h"
+#include "render_service_client/core/ui/rs_ui_director.h"
+#endif
+
 namespace OHOS::Ace::Platform {
 
 using ReleaseCallback = std::function<void()>;
@@ -161,7 +166,22 @@ public:
     std::unique_ptr<DrawDelegate> GetDrawDelegate() override;
     std::unique_ptr<PlatformWindow> GetPlatformWindow() override;
     const void* GetNativeWindowById(uint64_t textureId) override;
-
+#ifdef ENABLE_ROSEN_BACKEND
+    void SetSurfaceNode(std::shared_ptr<Rosen::RSSurfaceNode> surfaceNode)
+    {
+        surfaceNode_ = surfaceNode;
+        if (uiDirector_) {
+            uiDirector_->SetRSSurfaceNode(surfaceNode_);
+        }
+    }
+    void SetUIDirector(std::shared_ptr<Rosen::RSUIDirector> uiDirector)
+    {
+        uiDirector_ = uiDirector;
+        if (uiDirector_ && surfaceNode_) {
+            uiDirector_->SetRSSurfaceNode(surfaceNode_);
+        }
+    }
+#endif
 private:
     int32_t instanceId_ = 0;
     RefPtr<PlatformResRegister> resRegister_;
@@ -181,7 +201,10 @@ private:
     KeyEventCallback keyEventCallback_;
     KeyEventRecognizer keyEventRecognizer_;
     bool viewLaunched_ = false;
-
+#ifdef ENABLE_ROSEN_BACKEND
+    std::shared_ptr<Rosen::RSSurfaceNode> surfaceNode_ = nullptr;
+    std::shared_ptr<Rosen::RSUIDirector> uiDirector_ = nullptr;
+#endif
     ACE_DISALLOW_COPY_AND_MOVE(FlutterAceView);
 };
 

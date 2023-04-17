@@ -49,7 +49,8 @@ ColorMode SystemProperties::colorMode_ { ColorMode::LIGHT };
 ScreenShape SystemProperties::screenShape_ { ScreenShape::NOT_ROUND };
 LongScreenType SystemProperties::LongScreen_ { LongScreenType::NOT_LONG };
 bool SystemProperties::unZipHap_ = true;
-bool SystemProperties::rosenBackendEnabled_ = false;
+bool SystemProperties::rosenBackendEnabled_ = true;
+bool SystemProperties::svgTraceEnable_ = false;
 bool SystemProperties::isHookModeEnabled_ = false;
 bool SystemProperties::accessibilityEnabled_ = false;
 bool SystemProperties::windowAnimationEnabled_ = false;
@@ -57,6 +58,7 @@ bool SystemProperties::debugEnabled_ = false;
 bool SystemProperties::debugBoundaryEnabled_ = false;
 bool SystemProperties::extSurfaceEnabled_ = false;
 uint32_t SystemProperties::dumpFrameCount_ = 0;
+PerformancePtr SystemProperties::performanceProps_ = nullptr;
 
 void SystemProperties::InitDeviceType(DeviceType type)
 {
@@ -159,4 +161,20 @@ bool SystemProperties::GetIsUseMemoryMonitor()
     return false;
 }
 
+void SystemProperties::InitPerformanceParameters() {}
+
+bool SystemProperties::IsPerformanceCheckEnabled()
+{
+    return false;
+}
+
+uint32_t SystemProperties::GetPerformanceParameterWithType(PerformanceParameterType type)
+{
+    return 0;
+}
+
+bool SystemProperties::IsFormAnimationLimited()
+{
+    return false;
+}
 } // namespace OHOS::Ace
