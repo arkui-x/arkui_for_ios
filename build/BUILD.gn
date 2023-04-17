@@ -22,7 +22,6 @@ import("config.gni")
 group("ace_packages") {
   deps = [
     ":libace_ios",
-    "$ace_root/adapter/ios/dependence:ace_napi_frameworks"
   ]
 }
 
@@ -81,9 +80,8 @@ ohos_shared_library("ace_ios") {
   ]
 
   deps = [ "$ace_root/build:libace_static_ios" ]
-  # deps += common_napi_modules 
-  # deps += common_plugin_modules
-  # no static dependencies required
+  deps += common_napi_modules 
+  deps += common_plugin_modules
   if (defined(ark_engine)) {
     deps += [
       "//arkcompiler/runtime_core/libpandabase:libarkbase_static",
