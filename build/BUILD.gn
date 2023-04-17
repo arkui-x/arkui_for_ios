@@ -21,8 +21,7 @@ import("config.gni")
 # Install packages
 group("ace_packages") {
   deps = [
-    ":arkui_ios",
-    ":create_ios_framework",
+    ":libarkui_ios",
   ]
 }
 
