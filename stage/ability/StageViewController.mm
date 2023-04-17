@@ -13,12 +13,11 @@
  * limitations under the License.
  */
 
+#import "adapter/ios/entrance/AcePlatformPlugin.h"
+#import "InstanceIdGenerator.h"
 #import "StageViewController.h"
 #import "StageConfigurationManager.h"
-#import "WindowView.h"
 #import "StageAssetManager.h"
-#import "InstanceIdGenerator.h"
-#import "adapter/ios/entrance/AcePlatformPlugin.h"
 #import "WindowView.h"
 
 #include "app_main.h"
@@ -48,8 +47,6 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
         self.instanceName = [NSString stringWithFormat:@"%@:%d", instanceName, _instanceId];
         NSLog(@"StageVC->%@ init, instanceName is : %@", self, self.instanceName);
         _cInstanceName = [self getCPPString:self.instanceName];
-        [self initWindowView];
-        [self initPlatformPlugin];
     }
     return self;
 }
@@ -58,12 +55,14 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
     _windowView = [[WindowView alloc] init];
     _windowView.frame = self.view.bounds;
     WindowViwAdapter::GetInstance()->AddWindowView(_cInstanceName, (__bridge void*)_windowView);
-    [self.view addSubview:_windowView];
+    self.view = _windowView;
 }
 
 - (void) viewDidLoad {
     [super viewDidLoad];
     NSLog(@"StageVC->%@ viewDidLoad call.", self);
+    [self initWindowView];
+    [self initPlatformPlugin];
     [_windowView createSurfaceNode];
     UIScreen *screen = [UIScreen mainScreen];
     CGFloat scale = screen.scale;
@@ -71,7 +70,6 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
     int32_t height = static_cast<int32_t>(self.view.bounds.size.height * scale);
     [_windowView notifySurfaceChangedWithWidth:width height:height];
 
-    // Ability::OnWindowStageCreate
     AppMain::GetInstance()->DispatchOnCreate(_cInstanceName);
 }
 
@@ -99,7 +97,6 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 - (void)dealloc {
     NSLog(@"StageVC->%@ dealloc", self);
     AppMain::GetInstance()->DispatchOnDestroy(_cInstanceName);
-    // Ability::OnWindowStageDestroy
 }
 
 - (void)traitCollectionDidChange:(UITraitCollection *)previousTraitCollection {
