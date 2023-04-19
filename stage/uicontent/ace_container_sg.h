@@ -245,6 +245,11 @@ public:
 
     void SetResPaths(const std::string& hapPath, const std::string& path, const ColorMode& colorMode);
 
+    bool WindowIsShow() const override
+    {
+        return true;
+    }
+
 private:
     void InitializeFrontend();
     void InitializeCallback();
