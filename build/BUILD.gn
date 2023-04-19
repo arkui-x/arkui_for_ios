@@ -115,7 +115,7 @@ foreach(module, common_napi_libs) {
     subsystem_name = "arkui"
     part_name = "arkui-x"
   }
-  
+
   ohos_combine_darwin_framework(lib_name) {
     deps = [ ":$module_name" ]
 
