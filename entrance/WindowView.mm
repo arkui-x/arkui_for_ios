@@ -31,7 +31,6 @@
 @implementation WindowView
 
 std::shared_ptr<OHOS::Rosen::Window> _windowDelegate;
-int32_t _instanceId;
 int32_t _width;
 int32_t _height;
 BOOL _needNotifySurfaceChangedWithWidth;
@@ -39,6 +38,11 @@ BOOL _needCreateSurfaceNode;
 
 - (instancetype)init {
     if (self = [super init]) {
+         _windowDelegate = nullptr;
+         _width = 0;
+         _height = 0;
+         _needNotifySurfaceChangedWithWidth = NO;
+         _needCreateSurfaceNode = NO;
         [self setupNotificationCenterObservers];
     }
     return self;
@@ -279,6 +283,10 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
 
 - (void)dealloc {
     [[NSNotificationCenter defaultCenter] removeObserver:self];
+    if (_windowDelegate != nullptr) {
+        _windowDelegate->Destroy();
+        _windowDelegate = nullptr;
+    }
     [super dealloc];
 }
 @end

@@ -44,7 +44,6 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 - (instancetype)initWithInstanceName:(NSString *_Nonnull)instanceName {
     self = [super init];
     if (self) {
-        _hasLaunch = NO;
         _instanceId = InstanceIdGenerator.getAndIncrement;
         self.instanceName = [NSString stringWithFormat:@"%@:%d", instanceName, _instanceId];
         NSLog(@"StageVC->%@ init, instanceName is : %@", self, self.instanceName);
@@ -65,21 +64,18 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
     NSLog(@"StageVC->%@ viewDidLoad call.", self);
     [self initWindowView];
     [self initPlatformPlugin];
+    [_windowView createSurfaceNode];
+    UIScreen *screen = [UIScreen mainScreen];
+    CGFloat scale = screen.scale;
+    int32_t width = static_cast<int32_t>(self.view.bounds.size.width * scale);
+    int32_t height = static_cast<int32_t>(self.view.bounds.size.height * scale);
+    [_windowView notifySurfaceChangedWithWidth:width height:height];
     AppMain::GetInstance()->DispatchOnCreate(_cInstanceName);
 }
 
 - (void)viewDidAppear:(BOOL)animated {
     [super viewDidAppear:animated];
     NSLog(@"StageVC->%@ viewDidAppear call.", self);
-    if (_hasLaunch == NO) {
-        [_windowView createSurfaceNode];
-        UIScreen *screen = [UIScreen mainScreen];
-        CGFloat scale = screen.scale;
-        int32_t width = static_cast<int32_t>(self.view.bounds.size.width * scale);
-        int32_t height = static_cast<int32_t>(self.view.bounds.size.height * scale);
-        [_windowView notifySurfaceChangedWithWidth:width height:height];
-        _hasLaunch = YES;
-    }
     AppMain::GetInstance()->DispatchOnForeground(_cInstanceName);
 }
 
