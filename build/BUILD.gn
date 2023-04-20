@@ -37,16 +37,16 @@ ohos_combine_darwin_framework("libarkui_ios") {
   part_name = "arkui-x"
 }
 
-common_plugin_modules = []
+# common_plugin_modules = []
 
-foreach(module, common_plugin_libs) {
-  plugin_lib(module) {
-    platform = "ios"
-  }
-  module_name = string_replace(module, "_", "")
-  module_name = string_replace(module_name, "/", "_")
-  common_plugin_modules += [ ":$module_name" ]
-}
+# foreach(module, common_plugin_libs) {
+#   plugin_lib(module) {
+#     platform = "ios"
+#   }
+#   module_name = string_replace(module, "_", "")
+#   module_name = string_replace(module_name, "/", "_")
+#   common_plugin_modules += [ ":$module_name" ]
+# }
 
 # libace target
 ohos_shared_library("arkui_ios") {
@@ -62,7 +62,7 @@ ohos_shared_library("arkui_ios") {
     "//foundation/appframework:appframework_napis",
     "//third_party/jsoncpp:jsoncpp_static",
   ]
-  deps += common_plugin_modules
+  #deps += common_plugin_modules
   if (defined(ark_engine)) {
     deps += [
       "//arkcompiler/runtime_core/libpandabase:libarkbase_static",
@@ -87,6 +87,7 @@ ohos_shared_library("arkui_ios") {
   subsystem_name = "arkui"
 }
 
+# napi target
 common_napi_modules = []
 
 foreach(module, common_napi_libs) {
@@ -124,9 +125,45 @@ foreach(module, common_napi_libs) {
   }
   common_napi_modules += [ ":${lib_name}" ]
 }
+# plugin target
+common_plugin_modules = []
+
+foreach(module, common_plugin_libs) {
+
+  plugin_name = module
+  target_name_ext = string_replace(module, "_", "")
+  target_name_ext = string_replace(target_name_ext, "/", "_")
+  plugin_name_ext = string_replace(plugin_name, "/", "_")
+  lib_name = "lib" + target_name_ext
+  ohos_shared_library(target_name_ext) {
+    ldflags = [
+      "-Wl",
+      "-install_name",
+      "@rpath/${lib_name}.framework/$lib_name",
+    ]
+    deps = [ "//plugins/$module:${plugin_name_ext}_static_ios" ]
+    deps += [ ":arkui_ios" ]
+    frameworks = [ 
+      "AVFoundation.framework",
+      "Foundation.framework",
+      "UIKit.framework"
+    ]    
+    # relative_install_dir = "module"
+    subsystem_name = "arkui"
+    part_name = "plugins"
+  }
+  ohos_combine_darwin_framework(lib_name) {
+    deps = [ ":$target_name_ext" ]
+
+    subsystem_name = "arkui"
+    part_name = "plugins"
+  }
+  common_plugin_modules += [ ":${lib_name}" ]
+}
 
 # Install packages
 group("ace_packages") {
   deps = [ ":libarkui_ios" ]
   deps += common_napi_modules
+  deps += common_plugin_modules
 }
