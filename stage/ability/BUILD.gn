@@ -53,6 +53,7 @@ template("stage_ios_standard_source_set") {
     cflags_objcc = cflags_objc
 
     sources = [
+      "InstanceIdGenerator.mm",
       "StageApplication.mm",
       "StageAssetManager.mm",
       "StageConfigurationManager.mm",
@@ -62,7 +63,6 @@ template("stage_ios_standard_source_set") {
       "stage_application_info_adapter.cpp",
       "stage_asset_provider.mm",
       "window_view_adapter.mm",
-      "InstanceIdGenerator.mm",
     ]
     deps = [
       "$ace_flutter_engine_root:third_party_flutter_engine_$platform",
@@ -71,7 +71,7 @@ template("stage_ios_standard_source_set") {
       "//foundation/arkui/ace_engine/adapter/ios/entrance:ace_ios_entrance",
     ]
 
-    libs = [
+    frameworks = [
       "CoreFoundation.framework",
       "Foundation.framework",
       "UIKit.framework",

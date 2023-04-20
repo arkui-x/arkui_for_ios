@@ -11,7 +11,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import("//build/config/ios/rules.gni")
+import("//build/config/config.gni")
 import("//build/ohos.gni")
 import("//foundation/arkui/ace_engine/ace_config.gni")
 import("//foundation/arkui/ace_engine/interfaces/napi/kits/napi_lib.gni")
@@ -58,8 +58,8 @@ ohos_shared_library("arkui_ios") {
 
   deps = [
     "$ace_root/build:libace_static_ios",
-    "//foundation/appframework/icu_data:icu_data_static",
     "//foundation/appframework:appframework_napis",
+    "//foundation/appframework/icu_data:icu_data_static",
     "//third_party/jsoncpp:jsoncpp_static",
   ]
   deps += common_plugin_modules
@@ -115,7 +115,7 @@ foreach(module, common_napi_libs) {
     subsystem_name = "arkui"
     part_name = "arkui-x"
   }
-  
+
   ohos_combine_darwin_framework(lib_name) {
     deps = [ ":$module_name" ]
 
