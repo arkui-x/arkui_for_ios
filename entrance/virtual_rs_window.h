@@ -31,6 +31,7 @@ class NativeEngine;
 namespace OHOS {
 namespace AbilityRuntime::Platform {
 class Context;
+class Configuration;
 class Ability;
 }
 
@@ -113,6 +114,8 @@ public:
     {
         return surfaceNode_;
     }
+
+    void UpdateConfiguration(const std::shared_ptr<OHOS::AbilityRuntime::Platform::Configuration>& config);
 
 private:
     void SetWindowView(void* windowView);
