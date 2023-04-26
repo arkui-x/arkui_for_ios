@@ -296,13 +296,21 @@ void UIContentImpl::InitAceInfoFromResConfig()
             SystemProperties::SetColorMode(ColorMode::LIGHT);
             LOGI("UIContent set light mode");
         }
-        if (resConfig->GetDirection() != OHOS::Global::Resource::Direction::DIRECTION_VERTICAL) {
-            SystemProperties::SetDeviceOrientation(ORIENTATION_PORTRAIT);
-        } else if (resConfig->GetDirection() == OHOS::Global::Resource::Direction::DIRECTION_HORIZONTAL) {
-            SystemProperties::SetDeviceOrientation(ORIENTATION_LANDSCAPE);
-        }
         SystemProperties::SetDeviceAccess(
             resConfig->GetInputDevice() == Global::Resource::InputDevice::INPUTDEVICE_POINTINGDEVICE);
+    }
+
+    auto config = context->GetConfiguration();
+    if (config) {
+        auto direction = config->GetItem(OHOS::AbilityRuntime::Platform::ConfigurationInner::APPLICATION_DIRECTION);
+        LOGI("UIContent set Direction %{public}s", direction.c_str());
+        if (direction == OHOS::AbilityRuntime::Platform::ConfigurationInner::DIRECTION_VERTICAL) {
+            SystemProperties::SetDeviceOrientation(ORIENTATION_PORTRAIT);
+        } else if (direction == OHOS::AbilityRuntime::Platform::ConfigurationInner::DIRECTION_HORIZONTAL) {
+            SystemProperties::SetDeviceOrientation(ORIENTATION_LANDSCAPE);
+        }else {
+            LOGI("UIContent Direction get fail");
+        }
     }
 }
 
@@ -379,7 +387,7 @@ void UIContentImpl::SetBackgroundColor(uint32_t color)
     LOGI("UIContentImpl: SetBackgroundColor color is %{public}u", color);
     auto container = AceEngine::Get().GetContainer(instanceId_);
     CHECK_NULL_VOID(container);
-
+    
     ContainerScope scope(instanceId_);
     auto taskExecutor = container->GetTaskExecutor();
     CHECK_NULL_VOID(taskExecutor);

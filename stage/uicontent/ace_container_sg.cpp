@@ -586,6 +586,12 @@ void AceContainerSG::UpdateConfiguration(const std::string& colorMode, const std
     themeManager->LoadResourceThemes();
     themeManager->ParseSystemTheme();
     themeManager->SetColorScheme(colorScheme_);
+    if (colorScheme_ == ColorScheme::SCHEME_DARK) {
+        pipelineContext_->SetAppBgColor(Color::BLACK);
+    } else {
+        pipelineContext_->SetAppBgColor(Color::WHITE);
+    }
+    pipelineContext_->RefreshRootBgColor();
     pipelineContext_->NotifyConfigurationChange();
     pipelineContext_->FlushReload();
     pipelineContext_->FlushReloadTransition();
@@ -608,6 +614,11 @@ void AceContainerSG::InitThemeManager()
         themeManager->LoadCustomTheme(assetManager);
         themeManager->LoadResourceThemes();
         aceView->SetBackgroundColor(themeManager->GetBackgroundColor());
+        if (colorScheme == ColorScheme::SCHEME_DARK) {
+            pipelineContext->SetAppBgColor(Color::BLACK);
+        } else {
+            pipelineContext->SetAppBgColor(Color::WHITE);
+        }
     };
 
     if (GetSettings().usePlatformAsUIThread) {
