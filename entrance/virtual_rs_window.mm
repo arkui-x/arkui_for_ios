@@ -287,4 +287,12 @@ void Window::ReleaseWindowView()
     }
     windowView_ = nullptr;
 }
+
+void Window::UpdateConfiguration(const std::shared_ptr<OHOS::AbilityRuntime::Platform::Configuration>& config)
+{
+    if (uiContent_ != nullptr) {
+        LOGI("Window::UpdateConfiguration called.");
+        uiContent_->UpdateConfiguration(config);
+    }
+}
 } // namespace OHOS::Rosen
