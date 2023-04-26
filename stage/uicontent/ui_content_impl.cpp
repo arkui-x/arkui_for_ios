@@ -308,7 +308,7 @@ void UIContentImpl::InitAceInfoFromResConfig()
             SystemProperties::SetDeviceOrientation(ORIENTATION_PORTRAIT);
         } else if (direction == OHOS::AbilityRuntime::Platform::ConfigurationInner::DIRECTION_HORIZONTAL) {
             SystemProperties::SetDeviceOrientation(ORIENTATION_LANDSCAPE);
-        }else {
+        } else {
             LOGI("UIContent Direction get fail");
         }
     }
