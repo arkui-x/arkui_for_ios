@@ -99,7 +99,7 @@ void TextInputConnectionImpl::Show(bool isFocusViewChanged, int32_t instanceId){
         @"textCapitalization":@"TextCapitalization.none"
     };
     
-    auto value = renderTextField->GetEditingValue();
+    auto value = renderTextField->GetInputEditingValue();
     NSString *text = [NSString stringWithCString:value.text.c_str() encoding:NSUTF8StringEncoding];
     NSString *selectionAffinity = @"TextAffinity.downstream";
     if(value.selection.affinity == TextAffinity::UPSTREAM){
