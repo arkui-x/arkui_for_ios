@@ -85,6 +85,7 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
 }
 
 - (void)setDirection:(UIDeviceOrientation)direction {
+    NSLog(@"setDirection, %d", direction);
     switch (direction) {
         case UIDeviceOrientationPortrait: {
             [self.configuration setObject:DIRECTION_VERTICAL forKey:APPLICATION_DIRECTION];
@@ -102,9 +103,11 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
             [self.configuration setObject:DIRECTION_HORIZONTAL forKey:APPLICATION_DIRECTION];
         }
         break;
-        default: {
+        case UIDeviceOrientationUnknown: {
             [self.configuration setObject:UNKNOWN forKey:APPLICATION_DIRECTION];
         }
+        break;
+        default:
         break;
     }
 }

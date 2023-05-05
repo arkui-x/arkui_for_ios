@@ -30,6 +30,7 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
     int32_t _instanceId;
     std::string _cInstanceName;
     WindowView *_windowView;
+    BOOL _hasLaunch;
 }
 
 @property (nonatomic, strong, readwrite) NSString *instanceName;
@@ -54,8 +55,9 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 - (void)initWindowView {
     _windowView = [[WindowView alloc] init];
     _windowView.frame = self.view.bounds;
+    _windowView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     WindowViwAdapter::GetInstance()->AddWindowView(_cInstanceName, (__bridge void*)_windowView);
-    self.view = _windowView;
+    [self.view addSubview: _windowView];
 }
 
 - (void) viewDidLoad {
@@ -64,12 +66,6 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
     [self initWindowView];
     [self initPlatformPlugin];
     [_windowView createSurfaceNode];
-    UIScreen *screen = [UIScreen mainScreen];
-    CGFloat scale = screen.scale;
-    int32_t width = static_cast<int32_t>(self.view.bounds.size.width * scale);
-    int32_t height = static_cast<int32_t>(self.view.bounds.size.height * scale);
-    [_windowView notifySurfaceChangedWithWidth:width height:height];
-
     AppMain::GetInstance()->DispatchOnCreate(_cInstanceName);
 }
 
@@ -83,7 +79,6 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
     [super viewDidDisappear:animated];
     NSLog(@"StageVC->%@ viewDidDisappear call.", self);
     AppMain::GetInstance()->DispatchOnBackground(_cInstanceName);
-    [_windowView notifySurfaceDestroyed];
 }
 
 - (void)didReceiveMemoryWarning {
@@ -96,7 +91,11 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 
 - (void)dealloc {
     NSLog(@"StageVC->%@ dealloc", self);
+    [_windowView notifySurfaceDestroyed];
+    [_windowView release];
+    [_platformPlugin release];
     AppMain::GetInstance()->DispatchOnDestroy(_cInstanceName);
+    [super dealloc];
 }
 
 - (void)traitCollectionDidChange:(UITraitCollection *)previousTraitCollection {

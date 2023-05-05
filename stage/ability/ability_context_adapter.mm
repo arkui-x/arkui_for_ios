@@ -14,9 +14,9 @@
  */
 
 #import <Foundation/Foundation.h>
+#import "ability_context_adapter.h"
 #import "StageApplication.h"
 #import "StageViewController.h"
-#import "ability_context_adapter.h"
 
 #include <stdio.h>
 
@@ -58,6 +58,12 @@ int32_t AbilityContextAdapter::StartAbility(const std::string& instanceName, con
     NSString *bundleName = GetOCstring(want.GetBundleName());
     NSString *moduleName = GetOCstring(want.GetModuleName());
     NSString *abilityName = GetOCstring(want.GetAbilityName());
+    if (!bundleName.length || !moduleName.length || !abilityName.length) {
+        NSLog(@"startAbility failed, bundleName : %@, moduleName : %@, abilityName : %@",
+            bundleName, moduleName, abilityName);
+        return AAFwk::INVALID_PARAMETERS_ERR;
+    }
+
     NSString *urlString = [NSString stringWithFormat:@"%@://%@?%@", bundleName, moduleName, abilityName];
     NSURL *appUrl = [NSURL URLWithString:urlString];
     NSLog(@"%s, url : %@", __func__, urlString);
@@ -66,7 +72,7 @@ int32_t AbilityContextAdapter::StartAbility(const std::string& instanceName, con
             [[UIApplication sharedApplication] openURL:appUrl options: @{} completionHandler: ^(BOOL success) {}];
         });
     } else {
-        NSLog(@"can't open app, INVALID_PARAMETERS_ERR");
+        NSLog(@"startAbility failed, can't open app");
         return AAFwk::INVALID_PARAMETERS_ERR;
     }
     return ERR_OK;

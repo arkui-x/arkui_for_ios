@@ -31,6 +31,7 @@ class NativeEngine;
 namespace OHOS {
 namespace AbilityRuntime::Platform {
 class Context;
+class Configuration;
 class Ability;
 }
 
@@ -94,7 +95,7 @@ public:
     virtual void RequestVsync(const std::shared_ptr<VsyncCallback>& vsyncCallback);
 
     void CreateSurfaceNode(void* layer);
-    void NotifySurfaceChanged(int32_t width, int32_t height);
+    void NotifySurfaceChanged(int32_t width, int32_t height, float density);
     void NotifySurfaceDestroyed();
 
     bool ProcessPointerEvent(const std::vector<uint8_t>& data);
@@ -114,6 +115,8 @@ public:
         return surfaceNode_;
     }
 
+    void UpdateConfiguration(const std::shared_ptr<OHOS::AbilityRuntime::Platform::Configuration>& config);
+
 private:
     void SetWindowView(void* windowView);
     void ReleaseWindowView();
@@ -122,6 +125,7 @@ private:
 
     int32_t surfaceWidth_ = 0;
     int32_t surfaceHeight_ = 0;
+    float density_ = 0;
     std::shared_ptr<RSSurfaceNode> surfaceNode_;
     std::shared_ptr<flutter::VsyncWaiter> vsyncWaiter_;
 

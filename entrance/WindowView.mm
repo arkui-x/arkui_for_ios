@@ -31,17 +31,31 @@
 @implementation WindowView
 
 std::shared_ptr<OHOS::Rosen::Window> _windowDelegate;
-int32_t _instanceId;
 int32_t _width;
 int32_t _height;
+float _density;
 BOOL _needNotifySurfaceChangedWithWidth;
 BOOL _needCreateSurfaceNode;
 
 - (instancetype)init {
     if (self = [super init]) {
+         _windowDelegate = nullptr;
+         _width = 0;
+         _height = 0;
+         _needNotifySurfaceChangedWithWidth = NO;
+         _needCreateSurfaceNode = NO;
         [self setupNotificationCenterObservers];
     }
     return self;
+}
+
+- (void)layoutSubviews {
+    [super layoutSubviews];
+    UIScreen *screen = [UIScreen mainScreen];
+    CGFloat scale = screen.scale;
+    int32_t width = static_cast<int32_t>(self.bounds.size.width * scale);
+    int32_t height = static_cast<int32_t>(self.bounds.size.height * scale);
+    [self notifySurfaceChangedWithWidth:width height:height density:scale];
 }
 
 - (void)setWindowDelegate:(std::shared_ptr<OHOS::Rosen::Window>)window {
@@ -52,7 +66,7 @@ BOOL _needCreateSurfaceNode;
     }
     if (_needNotifySurfaceChangedWithWidth) {
         _needNotifySurfaceChangedWithWidth = NO;
-        [self notifySurfaceChangedWithWidth:_width height:_height];
+        [self notifySurfaceChangedWithWidth:_width height:_height density:_density];
     }
 }
 
@@ -108,7 +122,7 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
     return flutter::PointerData::DeviceKind::kTouch;
 }
 
-- (void)dispatchTouches:(NSSet *)touches{
+- (void)dispatchTouches:(NSSet *)touches {
     const CGFloat scale = [UIScreen mainScreen].scale;
     std::unique_ptr<flutter::PointerDataPacket> packet = std::make_unique<flutter::PointerDataPacket>(touches.count);
     
@@ -171,11 +185,12 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
     }
 }
 
-- (void)notifySurfaceChangedWithWidth:(int32_t)width height:(int32_t)height {
+- (void)notifySurfaceChangedWithWidth:(int32_t)width height:(int32_t)height density:(float)density {
     _width = width;
     _height = height;
+    _density = density;
     if (_windowDelegate != nullptr) {
-        _windowDelegate->NotifySurfaceChanged(width,height);
+        _windowDelegate->NotifySurfaceChanged(width, height, density);
     } else {
         _needNotifySurfaceChangedWithWidth = YES;
     }
@@ -218,7 +233,6 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
                selector:@selector(keyboardWillBeHidden:)
                    name:UIKeyboardWillHideNotification
                  object:nil];
-
 }
 
 #pragma mark - Application lifecycle notifications
@@ -237,17 +251,18 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
 
 - (void)applicationDidEnterBackground:(NSNotification *)notification {
     if (_windowDelegate != nullptr) {
-        _windowDelegate->Foreground();
+        _windowDelegate->Background();
     }
 }
 
 - (void)applicationWillEnterForeground:(NSNotification *)notification {
     if (_windowDelegate != nullptr) {
-        _windowDelegate->Background();
+        _windowDelegate->Foreground();
     }
 }
 
-- (void)keyboardWillChangeFrame:(NSNotification*)notification{
+
+- (void)keyboardWillChangeFrame:(NSNotification*)notification {
     NSDictionary* info = [notification userInfo];
     CGFloat keyboardY = [info[UIKeyboardFrameEndUserInfoKey] CGRectValue].origin.y;
 
@@ -270,7 +285,7 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
     }];
 }
 
-- (void)keyboardWillBeHidden:(NSNotification*)notification{
+- (void)keyboardWillBeHidden:(NSNotification*)notification {
     double duration = [notification.userInfo[UIKeyboardAnimationDurationUserInfoKey] doubleValue];
     [UIView animateWithDuration:duration animations:^{
         self.transform = CGAffineTransformMakeTranslation(0, 0);
@@ -278,7 +293,12 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
 }
 
 - (void)dealloc {
+    NSLog(@"WindowView->%@ dealloc",self);
     [[NSNotificationCenter defaultCenter] removeObserver:self];
+    if (_windowDelegate != nullptr) {
+        _windowDelegate->Destroy();
+        _windowDelegate = nullptr;
+    }
     [super dealloc];
 }
 @end

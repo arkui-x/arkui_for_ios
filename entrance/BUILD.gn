@@ -72,7 +72,7 @@ template("ace_ios_standard_source_set") {
     ]
     external_deps = [ "c_utils:utils_staticIOS_PLATFORM" ]
 
-    libs = [
+    frameworks = [
       "UIKit.framework",
       "OpenGLES.framework",
       "QuartzCore.framework",
