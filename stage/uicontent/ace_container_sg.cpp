@@ -545,12 +545,13 @@ void AceContainerSG::AttachView(
     frontend_->AttachPipelineContext(pipelineContext_);
 }
 
-void AceContainerSG::UpdateConfiguration(const std::string& colorMode, const std::string& direction)
+void AceContainerSG::UpdateConfiguration(
+    const std::string& colorMode, const std::string& direction, const std::string& densityDpi)
 {
     LOGI("AceContainerSG::UpdateConfiguration, colorMode:%{public}s, direction:%{public}s",
         colorMode.c_str(), direction.c_str());
 
-    if (colorMode.empty() && direction.empty()) {
+    if (colorMode.empty() && direction.empty() && densityDpi.empty()) {
         LOGW("AceContainerSG::UpdateResourceConfiguration param is empty");
         return;
     }
@@ -581,6 +582,13 @@ void AceContainerSG::UpdateConfiguration(const std::string& colorMode, const std
             resConfig.SetOrientation(DeviceOrientation::LANDSCAPE);
         }
     }
+    if (!densityDpi.empty()) {
+        double density = std::stoi(densityDpi) / DPI_BASE;
+        LOGI("resconfig density : %{public}f", density);
+        resConfig.SetDensity(density);
+        SystemProperties::SetResolution(density);
+    }
+
     SetResourceConfiguration(resConfig);
     themeManager->UpdateConfig(resConfig);
     themeManager->LoadResourceThemes();
@@ -591,7 +599,6 @@ void AceContainerSG::UpdateConfiguration(const std::string& colorMode, const std
     } else {
         pipelineContext_->SetAppBgColor(Color::WHITE);
     }
-    pipelineContext_->RefreshRootBgColor();
     pipelineContext_->NotifyConfigurationChange();
     pipelineContext_->FlushReload();
     pipelineContext_->FlushReloadTransition();
@@ -601,7 +608,8 @@ void AceContainerSG::InitThemeManager()
 {
     LOGI("Init theme manager");
     auto initThemeManagerTask = [pipelineContext = pipelineContext_, assetManager = assetManager_,
-                                    colorScheme = colorScheme_, resourceInfo = resourceInfo_,
+                                    colorScheme = colorScheme_,
+                                    resourceInfo = resourceInfo_,
                                     aceView = aceView_]() {
         ACE_SCOPED_TRACE("OHOS::LoadThemes()");
         LOGI("UIContent load theme");
@@ -883,8 +891,8 @@ bool AceContainerSG::RunPage(int32_t instanceId, int32_t pageId, const std::stri
     return false;
 }
 
-void AceContainerSG::SetResPaths(const std::string& hapResPath,
-    const std::string& sysResPath, const ColorMode& colorMode)
+void AceContainerSG::SetResPaths(
+    const std::string& hapResPath, const std::string& sysResPath, const ColorMode& colorMode)
 {
     LOGI("SetResPaths, Use hap path to load resource");
     resourceInfo_.SetHapPath(hapResPath);

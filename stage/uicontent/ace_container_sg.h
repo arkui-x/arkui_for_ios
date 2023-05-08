@@ -204,7 +204,7 @@ public:
     }
 
     void UpdateResourceConfiguration(const std::string& jsonStr) override {};
-    void UpdateConfiguration(const std::string& colorMode, const std::string& direction);
+    void UpdateConfiguration(const std::string& colorMode, const std::string& direction, const std::string& density);
 
     uintptr_t GetMutilModalPtr() const override
     {
