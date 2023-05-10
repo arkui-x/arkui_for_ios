@@ -43,6 +43,7 @@ namespace {
 const std::string START_PARAMS_KEY = "__startParams";
 constexpr int32_t ORIENTATION_PORTRAIT = 1;
 constexpr int32_t ORIENTATION_LANDSCAPE = 2;
+constexpr double DPI_BASE { 160.0f };
 } // namespace
 
 using ContentFinishCallback = std::function<void()>;
@@ -296,6 +297,9 @@ void UIContentImpl::InitAceInfoFromResConfig()
             SystemProperties::SetColorMode(ColorMode::LIGHT);
             LOGI("UIContent set light mode");
         }
+
+        LOGI("UIContent set GetScreenDensity dpi=%{public}f", resConfig->GetScreenDensity());
+        SystemProperties::SetResolution(resConfig->GetScreenDensity());
         SystemProperties::SetDeviceAccess(
             resConfig->GetInputDevice() == Global::Resource::InputDevice::INPUTDEVICE_POINTINGDEVICE);
     }
@@ -303,7 +307,12 @@ void UIContentImpl::InitAceInfoFromResConfig()
     auto config = context->GetConfiguration();
     if (config) {
         auto direction = config->GetItem(OHOS::AbilityRuntime::Platform::ConfigurationInner::APPLICATION_DIRECTION);
-        LOGI("UIContent set Direction %{public}s", direction.c_str());
+        auto densityDpi = config->GetItem(OHOS::AbilityRuntime::Platform::ConfigurationInner::APPLICATION_DENSITYDPI);
+        LOGI("UIContent set GetScreenDensity dpi=%{public}s", densityDpi.c_str());
+        if (!densityDpi.empty()) {
+            double density = std::stoi(densityDpi) / DPI_BASE;
+            SystemProperties::SetResolution(density);
+        }
         if (direction == OHOS::AbilityRuntime::Platform::ConfigurationInner::DIRECTION_VERTICAL) {
             SystemProperties::SetDeviceOrientation(ORIENTATION_PORTRAIT);
         } else if (direction == OHOS::AbilityRuntime::Platform::ConfigurationInner::DIRECTION_HORIZONTAL) {
@@ -455,7 +464,10 @@ void UIContentImpl::UpdateConfiguration(const std::shared_ptr<OHOS::AbilityRunti
             CHECK_NULL_VOID_NOLOG(container);
             auto colorMode = config->GetItem(OHOS::AbilityRuntime::Platform::ConfigurationInner::SYSTEM_COLORMODE);
             auto direction = config->GetItem(OHOS::AbilityRuntime::Platform::ConfigurationInner::APPLICATION_DIRECTION);
-            container->UpdateConfiguration(colorMode, direction);
+            auto densityDpi = config->GetItem(
+                OHOS::AbilityRuntime::Platform::ConfigurationInner::APPLICATION_DENSITYDPI);
+
+            container->UpdateConfiguration(colorMode, direction, densityDpi);
         },
         TaskExecutor::TaskType::UI);
     LOGI("UIContentImpl: UpdateConfiguration called End");
