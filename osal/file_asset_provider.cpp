@@ -133,7 +133,9 @@ void FileAssetProvider::GetAssetList(const std::string& path, std::vector<std::s
         struct dirent* dptr = nullptr;
         while ((dptr = readdir(dp)) != nullptr) {
             if (strcmp(dptr->d_name, ".") != 0 && strcmp(dptr->d_name, "..") != 0) {
-                assetList.push_back(dptr->d_name);
+                std::string file = "./";
+                file += dptr->d_name;
+                assetList.emplace_back(file);
             }
         }
         closedir(dp);
