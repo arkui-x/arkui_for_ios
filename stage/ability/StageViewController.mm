@@ -62,11 +62,13 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 
 - (void) viewDidLoad {
     [super viewDidLoad];
-    NSLog(@"StageVC->%@ viewDidLoad call.", self);
+    NSLog(@"StageVC->%@ viewDidLoad call. self.params : %@", self, self.params);
     [self initWindowView];
     [self initPlatformPlugin];
     [_windowView createSurfaceNode];
-    AppMain::GetInstance()->DispatchOnCreate(_cInstanceName);
+
+    std::string paramsString = [self getCPPString:self.params.length ? self.params : @""];
+    AppMain::GetInstance()->DispatchOnCreate(_cInstanceName, paramsString);
 }
 
 - (void)viewDidAppear:(BOOL)animated {
