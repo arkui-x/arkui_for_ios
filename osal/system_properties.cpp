@@ -168,7 +168,7 @@ bool SystemProperties::IsPerformanceCheckEnabled()
     return false;
 }
 
-uint32_t SystemProperties::GetPerformanceParameterWithType(PerformanceParameterType type)
+int32_t SystemProperties::GetPerformanceParameterWithType(PerformanceParameterType type)
 {
     return 0;
 }
