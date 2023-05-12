@@ -37,16 +37,15 @@ ohos_combine_darwin_framework("libarkui_ios") {
   part_name = "arkui-x"
 }
 
-# common_plugin_modules = []
-
-# foreach(module, common_plugin_libs) {
-#   plugin_lib(module) {
-#     platform = "ios"
-#   }
-#   module_name = string_replace(module, "_", "")
-#   module_name = string_replace(module_name, "/", "_")
-#   common_plugin_modules += [ ":$module_name" ]
-# }
+common_plugin_modules_static = []
+foreach(module, common_plugin_libs_static) {
+  plugin_lib(module) {
+    platform = "ios"
+  }
+  module_name = string_replace(module, "_", "")
+  module_name = string_replace(module_name, "/", "_")
+  common_plugin_modules_static += [ ":$module_name" ]
+}
 
 # libace target
 ohos_shared_library("arkui_ios") {
@@ -62,7 +61,7 @@ ohos_shared_library("arkui_ios") {
     "//foundation/appframework/icu_data:static_icudata",
     "//third_party/jsoncpp:jsoncpp_static",
   ]
-  #deps += common_plugin_modules
+  deps += common_plugin_modules_static
   if (defined(ark_engine)) {
     deps += [
       "//arkcompiler/runtime_core/libpandabase:libarkbase_static",
