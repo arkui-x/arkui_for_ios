@@ -29,13 +29,14 @@
 @end
 
 @implementation WindowView
-
-std::shared_ptr<OHOS::Rosen::Window> _windowDelegate;
-int32_t _width;
-int32_t _height;
-float _density;
-BOOL _needNotifySurfaceChangedWithWidth;
-BOOL _needCreateSurfaceNode;
+{
+    std::shared_ptr<OHOS::Rosen::Window> _windowDelegate;
+    int32_t _width;
+    int32_t _height;
+    float _density;
+    BOOL _needNotifySurfaceChangedWithWidth;
+    BOOL _needCreateSurfaceNode;
+}
 
 - (instancetype)init {
     if (self = [super init]) {
