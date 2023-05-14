@@ -35,6 +35,7 @@ template("ace_osal_ios_source_set") {
       "layout_inspector.cpp",
       "log_wrapper.cpp",
       "mouse_style_ios.cpp",
+      "page_url_checker_ios.cpp",
       "pixel_map_ios.cpp",
       "resource_adapter_impl.cpp",
       "resource_convertor.cpp",
@@ -53,6 +54,7 @@ template("ace_osal_ios_source_set") {
     include_dirs = [
       "//commonlibrary/c_utils/base/include",
       "$ace_root/adapter/ios/entrance/",
+      "$ace_root/frameworks/core/common",
       "//third_party/flutter/engine/",
     ]
 

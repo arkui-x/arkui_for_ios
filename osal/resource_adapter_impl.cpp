@@ -116,7 +116,7 @@ void ResourceAdapterImpl::Init(const ResourceInfo& resourceInfo)
         appResRet, sysResRet, configRet, resConfig->GetDirection(), resConfig->GetScreenDensity(),
         resConfig->GetDeviceType());
     resourceManager_ = newResMgr;
-    packagePathStr_ = packagePath;
+    packagePathStr_ = hapPath.empty() ? packagePath : hapPath;
     Platform::AceApplicationInfoImpl::GetInstance().SetResourceManager(newResMgr);
 }
 
