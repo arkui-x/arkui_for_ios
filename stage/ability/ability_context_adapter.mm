@@ -30,6 +30,9 @@ block();\
 dispatch_async(dispatch_get_main_queue(), block);\
 }
 
+#define URL_QUERY_ABILITY_KEY @"abilityName"
+#define URL_QUERY_PARAMS_KEY @"params"
+
 namespace OHOS::AbilityRuntime::Platform {
 namespace {
 NSString * GetOCstring(const std::string& c_string)
@@ -58,15 +61,28 @@ int32_t AbilityContextAdapter::StartAbility(const std::string& instanceName, con
     NSString *bundleName = GetOCstring(want.GetBundleName());
     NSString *moduleName = GetOCstring(want.GetModuleName());
     NSString *abilityName = GetOCstring(want.GetAbilityName());
+    NSString *jsonString = GetOCstring(want.ToJson());
+
     if (!bundleName.length || !moduleName.length || !abilityName.length) {
         NSLog(@"startAbility failed, bundleName : %@, moduleName : %@, abilityName : %@",
             bundleName, moduleName, abilityName);
         return AAFwk::INVALID_PARAMETERS_ERR;
     }
 
-    NSString *urlString = [NSString stringWithFormat:@"%@://%@?%@", bundleName, moduleName, abilityName];
-    NSURL *appUrl = [NSURL URLWithString:urlString];
-    NSLog(@"%s, url : %@", __func__, urlString);
+    NSString *urlString = [NSString stringWithFormat:@"%@://%@", bundleName, moduleName];
+
+    NSURLComponents *components = [NSURLComponents componentsWithString:urlString];
+    NSMutableArray<NSURLQueryItem *> *queryItems = [[NSMutableArray alloc] init];
+    NSURLQueryItem *abilityNameItem = [NSURLQueryItem queryItemWithName:URL_QUERY_ABILITY_KEY value:abilityName];
+    [queryItems addObject:abilityNameItem];
+    if (jsonString.length) {
+        NSURLQueryItem *paramsItem = [NSURLQueryItem queryItemWithName:URL_QUERY_PARAMS_KEY value:jsonString];
+        [queryItems addObject:paramsItem];
+    }
+    components.queryItems = queryItems;
+    NSURL *appUrl = components.URL;
+
+    NSLog(@"%s, url : %@", __func__, appUrl);
     if ([[UIApplication sharedApplication] canOpenURL:appUrl]) {
         dispatch_main_async_safe(^{
             [[UIApplication sharedApplication] openURL:appUrl options: @{} completionHandler: ^(BOOL success) {}];

@@ -22,6 +22,8 @@
 
 @property (nonatomic, readonly) NSString *instanceName;
 
+@property (nonatomic, strong) NSString *params;
+
 - (instancetype)init NS_UNAVAILABLE;
 - (instancetype)initWithCoder:(NSCoder *)coder NS_UNAVAILABLE;
 - (instancetype)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil NS_UNAVAILABLE;
