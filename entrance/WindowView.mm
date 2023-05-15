@@ -38,6 +38,14 @@
     BOOL _needCreateSurfaceNode;
 }
 
++(Class)layerClass{
+#ifdef ACE_ENABLE_GL
+    return [CAEAGLLayer class];
+#else
+    return [CALayer class];
+#endif
+}
+
 - (instancetype)init {
     if (self = [super init]) {
          _windowDelegate = nullptr;
@@ -302,4 +310,5 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
     }
     [super dealloc];
 }
+
 @end
