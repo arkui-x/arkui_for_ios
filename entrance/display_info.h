@@ -25,7 +25,7 @@
 #include "nocopyable.h"
 
 namespace OHOS::Rosen {
-class DisplayInfo /*: public Parcelable*/ : public virtual RefBase {
+class DisplayInfo : public virtual RefBase {
 public:
     DisplayInfo();
     ~DisplayInfo();

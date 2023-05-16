@@ -32,10 +32,10 @@
 
 class NativeValue;
 class NativeEngine;
-#ifdef __OBJC__  
+#ifdef __OBJC__
 @class WindowView;
-@class UIViewController;  
-#else  
+@class UIViewController;
+#else
 typedef struct objc_object WindowView;
 typedef struct objc_object UIViewController;
 #endif
@@ -82,14 +82,12 @@ enum class WindowSizeChangeReason : uint32_t {
     END,
 };
 
-class Window : public RefBase{
+class Window : public RefBase {
 #define CALL_LIFECYCLE_LISTENER(windowLifecycleCb, listeners) \
     do {                                                      \
         for (auto& listener : (listeners)) {                  \
-            LOGI("Window: notify listener"); \
             if (listener.GetRefPtr() != nullptr) {            \
                 listener.GetRefPtr()->windowLifecycleCb();    \
-                LOGI("Window: notify listener not nullptr"); \
             }                                                 \
         }                                                     \
     } while (0)    
@@ -98,14 +96,15 @@ public:
         std::shared_ptr<OHOS::AbilityRuntime::Platform::Context> context, void* windowView);
 
     static std::shared_ptr<Window> CreateSubWindow(
-        std::shared_ptr<OHOS::AbilityRuntime::Platform::Context> context, 
+        std::shared_ptr<OHOS::AbilityRuntime::Platform::Context> context,
         std::shared_ptr<OHOS::Rosen::WindowOption> option);
     explicit Window(const flutter::TaskRunners& taskRunners);
     explicit Window(std::shared_ptr<AbilityRuntime::Platform::Context> context, uint32_t windowId);
     virtual ~Window() override;
     static std::vector<std::shared_ptr<Window>> GetSubWindow(uint32_t parentId);
     static std::shared_ptr<Window> FindWindow(const std::string& name);
-    static std::shared_ptr<Window> GetTopWindow(const std::shared_ptr<OHOS::AbilityRuntime::Platform::Context>& context = nullptr);
+    static std::shared_ptr<Window> GetTopWindow(
+        const std::shared_ptr<OHOS::AbilityRuntime::Platform::Context>& context = nullptr);
 
     WMError ShowWindow();
     WMError DestroyWindow();
@@ -129,12 +128,14 @@ public:
         NativeValue* storage, bool isdistributed, AbilityRuntime::Platform::Ability* ability);
         
     WMError SetBackgroundColor(uint32_t color);
-    uint32_t GetBackgroundColor() const 
+
+    uint32_t GetBackgroundColor() const
     {
         return backgroundColor_;
     }
     WMError SetBrightness(float brightness);
-    float GetBrightness() const 
+
+    float GetBrightness() const
     {
         return 0;
     }
@@ -145,13 +146,19 @@ public:
     void Foreground();
     void Background();
     void Destroy();
-    bool IsSubWindow() const{
+
+    bool IsSubWindow() const
+    {
         return windowType_  == OHOS::Rosen::WindowType::WINDOW_TYPE_APP_SUB_WINDOW;
     }
-    uint32_t GetWindowId() const{
+
+    uint32_t GetWindowId() const
+    {
         return windowId_;
     }
-    uint32_t GetParentId() const{
+
+    uint32_t GetParentId() const
+    {
         return parentId_;
     }
     std::shared_ptr<RSSurfaceNode> GetSurfaceNode() const
@@ -161,28 +168,33 @@ public:
 
     void UpdateConfiguration(const std::shared_ptr<OHOS::AbilityRuntime::Platform::Configuration>& config);
 
-    bool IsWindowShow() 
+    bool IsWindowShow()
     {
         return isWindowShow_;
     }
   
-    std::string& GetWindowName() {
+    std::string& GetWindowName()
+    {
         return name_;
     }
 
-    Rect GetRect() {
+    Rect GetRect()
+    {
         return rect_;
     }
 
-    WindowType GetType() {
+    WindowType GetType()
+    {
         return windowType_;
     }
 
-    WindowMode GetMode() {
+    WindowMode GetMode()
+    {
         return windowMode_;
     }
 
-    WindowState GetWindowState() {
+    WindowState GetWindowState()
+    {
         return state_;
     }
 

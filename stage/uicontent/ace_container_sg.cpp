@@ -180,7 +180,6 @@ void AceContainerSG::InitializeFrontend()
 void AceContainerSG::InitPiplineContext(std::unique_ptr<Window> window, double density, int32_t width, int32_t height)
 {
     LOGI("init piplinecontext start.");
-    LOGI("New pipeline version creating...%p",window.get());
     ACE_DCHECK(aceView_ && window && taskExecutor_ && assetManager_ && resRegister_ && frontend_);
     auto instanceId = aceView_->GetInstanceId();
     LOGI("New pipeline version creating...");
