@@ -22,6 +22,7 @@
 #include "interfaces/inner_api/ace/viewport_config.h"
 #include "native_engine/native_engine.h"
 #include "native_engine/native_value.h"
+#include "refbase.h"
 
 namespace OHOS {
 class Window;
@@ -80,7 +81,7 @@ private:
     std::weak_ptr<OHOS::AbilityRuntime::Platform::Context> context_;
 
     void* runtime_ = nullptr;
-    OHOS::Rosen::Window* window_ = nullptr;
+    sptr<OHOS::Rosen::Window> window_ = nullptr;
     std::string startUrl_;
     int32_t instanceId_ = -1;
 };

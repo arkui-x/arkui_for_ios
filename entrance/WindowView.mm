@@ -23,14 +23,14 @@
 #include "adapter/ios/capability/editing/iOSTxtInputManager.h"
 #include "flutter/lib/ui/window/pointer_data_packet.h"
 #include "virtual_rs_window.h"
-
+#define ACE_ENABLE_GL
 @interface WindowView()
 
 @end
 
 @implementation WindowView
 {
-    std::shared_ptr<OHOS::Rosen::Window> _windowDelegate;
+    std::weak_ptr<OHOS::Rosen::Window> _windowDelegate;
     int32_t _width;
     int32_t _height;
     float _density;
@@ -48,11 +48,11 @@
 
 - (instancetype)init {
     if (self = [super init]) {
-         _windowDelegate = nullptr;
-         _width = 0;
-         _height = 0;
-         _needNotifySurfaceChangedWithWidth = NO;
-         _needCreateSurfaceNode = NO;
+        NSLog(@"windowView init%@", self);
+        _width = 0;
+        _height = 0;
+        _needNotifySurfaceChangedWithWidth = NO;
+        _needCreateSurfaceNode = NO;
         [self setupNotificationCenterObservers];
     }
     return self;
@@ -79,7 +79,11 @@
     }
 }
 
+- (std::shared_ptr<OHOS::Rosen::Window>)getWindow {
+    return _windowDelegate.lock();
+}
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event {
+   NSLog(@"touchesBegan%@ %p", self, _windowDelegate.lock().get());
     [self dispatchTouches:touches];
 }
 
@@ -180,15 +184,17 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
         
         packet->SetPointerData(pointer_index++, pointer_data);
     }
-    if (_windowDelegate != nullptr) {
-        _windowDelegate->ProcessPointerEvent(packet->data());
+    NSLog(@"dispatchTouches%p", _windowDelegate.lock().get());
+    if (_windowDelegate.lock() != nullptr) {
+        
+        _windowDelegate.lock()->ProcessPointerEvent(packet->data());
     }
     
 }
 
 - (void)createSurfaceNode {
-    if (_windowDelegate != nullptr) {
-        _windowDelegate->CreateSurfaceNode(self.layer);
+    if (_windowDelegate.lock() != nullptr) {
+        _windowDelegate.lock()->CreateSurfaceNode(self.layer);
     } else {
         _needCreateSurfaceNode = YES;
     }
@@ -198,16 +204,16 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
     _width = width;
     _height = height;
     _density = density;
-    if (_windowDelegate != nullptr) {
-        _windowDelegate->NotifySurfaceChanged(width, height, density);
+    if (_windowDelegate.lock() != nullptr) {
+        _windowDelegate.lock()->NotifySurfaceChanged(width, height, density);
     } else {
         _needNotifySurfaceChangedWithWidth = YES;
     }
 }
 
 - (void)notifySurfaceDestroyed {
-    if (_windowDelegate != nullptr) {
-        _windowDelegate->NotifySurfaceDestroyed();
+    if (_windowDelegate.lock() != nullptr) {
+        _windowDelegate.lock()->NotifySurfaceDestroyed();
     }
 }
 
@@ -247,29 +253,28 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
 #pragma mark - Application lifecycle notifications
 
 - (void)applicationBecameActive:(NSNotification *)notification {
-    if (_windowDelegate != nullptr) {
-        _windowDelegate->WindowFocusChanged(true);
+    if (_windowDelegate.lock() != nullptr) {
+        _windowDelegate.lock()->WindowFocusChanged(true);
     }
 }
 
 - (void)applicationWillResignActive:(NSNotification *)notification {
-    if (_windowDelegate != nullptr) {
-        _windowDelegate->WindowFocusChanged(false);
+    if (_windowDelegate.lock() != nullptr) {
+        _windowDelegate.lock()->WindowFocusChanged(false);
     }
 }
 
 - (void)applicationDidEnterBackground:(NSNotification *)notification {
-    if (_windowDelegate != nullptr) {
-        _windowDelegate->Background();
+    if (_windowDelegate.lock() != nullptr) {
+        _windowDelegate.lock()->Background();
     }
 }
 
 - (void)applicationWillEnterForeground:(NSNotification *)notification {
-    if (_windowDelegate != nullptr) {
-        _windowDelegate->Foreground();
+    if (_windowDelegate.lock() != nullptr) {
+        _windowDelegate.lock()->Foreground();
     }
 }
-
 
 - (void)keyboardWillChangeFrame:(NSNotification*)notification {
     NSDictionary* info = [notification userInfo];
@@ -304,10 +309,6 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
 - (void)dealloc {
     NSLog(@"WindowView->%@ dealloc",self);
     [[NSNotificationCenter defaultCenter] removeObserver:self];
-    if (_windowDelegate != nullptr) {
-        _windowDelegate->Destroy();
-        _windowDelegate = nullptr;
-    }
     [super dealloc];
 }
 

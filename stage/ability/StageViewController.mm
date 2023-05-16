@@ -40,6 +40,8 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 
 @implementation StageViewController
 
+CGFloat _brightness = 0.0;
+
 #pragma mark - life cycle
 - (instancetype)initWithInstanceName:(NSString *_Nonnull)instanceName {
     self = [super init];
@@ -57,6 +59,7 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
     _windowView.frame = self.view.bounds;
     _windowView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     WindowViwAdapter::GetInstance()->AddWindowView(_cInstanceName, (__bridge void*)_windowView);
+    _brightness = [UIScreen mainScreen].brightness;
     [self.view addSubview: _windowView];
 }
 
@@ -79,6 +82,7 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 
 - (void)viewDidDisappear:(BOOL)animated {
     [super viewDidDisappear:animated];
+    [UIScreen mainScreen].brightness = _brightness;
     NSLog(@"StageVC->%@ viewDidDisappear call.", self);
     AppMain::GetInstance()->DispatchOnBackground(_cInstanceName);
 }
