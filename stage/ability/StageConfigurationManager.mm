@@ -54,9 +54,12 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
     NSLog(@"initConfiguration called");
     UIDeviceOrientation orientation = [UIDevice currentDevice].orientation;
     [self setDirection:orientation];
-    UITraitCollection *trait = [UITraitCollection currentTraitCollection];
-
-    [self setColorMode:trait.userInterfaceStyle];
+    if (@available(iOS 13.0, *)) {
+        UITraitCollection *trait = [UITraitCollection currentTraitCollection];
+        [self setColorMode:trait.userInterfaceStyle];
+    } else {
+        [self setColorMode:UIUserInterfaceStyleLight];
+    }
     std::string json = [self getJsonString:self.configuration];
     if (json.empty()) {
         AppMain::GetInstance()->InitConfiguration(EMPTY_JSON);

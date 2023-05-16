@@ -118,7 +118,7 @@ void UIContentImpl::Initialize(OHOS::Rosen::Window* window, const std::string& u
 void UIContentImpl::CommonInitialize(OHOS::Rosen::Window* window, const std::string& url, NativeValue* storage)
 {
     ACE_FUNCTION_TRACE();
-    window_ = window;
+    window_ = sptr<OHOS::Rosen::Window>(window);
     startUrl_ = url;
     CHECK_NULL_VOID(window_);
 

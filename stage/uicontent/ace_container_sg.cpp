@@ -183,6 +183,7 @@ void AceContainerSG::InitPiplineContext(std::unique_ptr<Window> window, double d
     ACE_DCHECK(aceView_ && window && taskExecutor_ && assetManager_ && resRegister_ && frontend_);
     auto instanceId = aceView_->GetInstanceId();
     LOGI("New pipeline version creating...");
+    
     pipelineContext_ = AceType::MakeRefPtr<NG::PipelineContext>(
         std::move(window), taskExecutor_, assetManager_, resRegister_, frontend_, instanceId);
 
@@ -475,7 +476,7 @@ bool AceContainerSG::Dump(const std::vector<std::string>& params, std::vector<st
 }
 
 void AceContainerSG::SetView(
-    AceView* view, double density, int32_t width, int32_t height, OHOS::Rosen::Window* rsWindow)
+    AceView* view, double density, int32_t width, int32_t height, sptr<OHOS::Rosen::Window> rsWindow)
 {
     CHECK_NULL_VOID(view);
     auto container = AceType::DynamicCast<AceContainerSG>(AceEngine::Get().GetContainer(view->GetInstanceId()));

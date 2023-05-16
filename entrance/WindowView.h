@@ -18,17 +18,19 @@
 
 #include <UIKit/UIKit.h>
 #include <memory>
-
 namespace OHOS::Rosen {
 class Window;
 }
 
 @interface WindowView : UIView
 
+@property (nonatomic, assign) UIViewController*viewController;
+
 - (void)setWindowDelegate:(std::shared_ptr<OHOS::Rosen::Window>)window;
 - (void)createSurfaceNode;
 - (void)notifySurfaceChangedWithWidth:(int32_t)width height:(int32_t)height density:(float)density;
 - (void)notifySurfaceDestroyed;
+- (std::shared_ptr<OHOS::Rosen::Window>)getWindow;
 @end
 
 #endif  // FOUNDATION_ACE_ADAPTER_IOS_ENTRANCE_WINDOW_VIEW_H

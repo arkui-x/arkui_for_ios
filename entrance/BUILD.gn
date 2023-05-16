@@ -34,6 +34,11 @@ template("ace_ios_standard_source_set") {
       "$ace_root/adapter/ios/capability/texture",
       "$ace_root/adapter/ios/capability/video",
       "$ace_root/adapter/ios/capability/camera",
+      "//foundation/arkui/ace_engine/adapter/ios/stage/ability",
+      "//foundation/appframework/window_manager/interfaces/innerkits/wm",
+      "//foundation/appframework/window_manager/interfaces/innerkits/dm",
+      "//foundation/appframework/window_manager/dm/include",
+      "//foundation/appframework/window_manager/utils/include",
     ]
 
     sources = [
@@ -47,6 +52,7 @@ template("ace_ios_standard_source_set") {
       "capability_registry.cpp",
       "flutter_ace_view.cpp",
       "virtual_rs_window.mm",
+      "display_info.mm",
     ]
 
     if (target_cpu == "arm64") {
@@ -70,7 +76,9 @@ template("ace_ios_standard_source_set") {
       "$ace_root/frameworks/core/components/theme:build_theme_code",
       "//foundation/graphic/graphic_2d/rosen/modules/render_service_client:librender_service_client_static",
     ]
-    external_deps = [ "c_utils:utils_staticIOS_PLATFORM" ]
+    external_deps = [ 
+      "c_utils:utils_staticIOS_PLATFORM"
+    ]
 
     frameworks = [
       "UIKit.framework",

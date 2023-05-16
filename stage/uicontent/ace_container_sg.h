@@ -232,7 +232,7 @@ public:
     static bool OnBackPressed(int32_t instanceId);
     static bool RunPage(int32_t instanceId, int32_t pageId, const std::string& content, const std::string& params);
     static void SetView(AceView* view, double density,
-        int32_t width, int32_t height, OHOS::Rosen::Window* rsWindow);
+        int32_t width, int32_t height, sptr<OHOS::Rosen::Window> rsWindow);
 
     int32_t GeneratePageId()
     {
