@@ -23,4 +23,11 @@
  return self;
 }
 
++ (Class)layerClass {
+#ifdef ACE_ENABLE_GL
+    return [CAEAGLLayer class];
+#else
+    return [CALayer class];
+#endif
+}
 @end
