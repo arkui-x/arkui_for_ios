@@ -64,6 +64,13 @@
     CGFloat scale = screen.scale;
     int32_t width = static_cast<int32_t>(self.bounds.size.width * scale);
     int32_t height = static_cast<int32_t>(self.bounds.size.height * scale);
+    if ([self.layer isKindOfClass:[CAEAGLLayer class]]) {
+        CAEAGLLayer* layer = reinterpret_cast<CAEAGLLayer*>(self.layer);
+        layer.allowsGroupOpacity = YES;
+        CGFloat screenScale = scale;
+        layer.contentsScale = screenScale;
+        layer.rasterizationScale = screenScale;
+    }
     [self notifySurfaceChangedWithWidth:width height:height density:scale];
 }
 
