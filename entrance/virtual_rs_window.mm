@@ -649,19 +649,7 @@ void Window::SetRequestedOrientation(Orientation orientation)
         windowView_.OrientationMask = UIInterfaceOrientationMaskPortraitUpsideDown;
         windowView_.orientation = UIInterfaceOrientationPortraitUpsideDown;
     }
-    if (@available(iOS 16, *)) {
-        [windowView_.getViewController setNeedsUpdateOfSupportedInterfaceOrientations];
-        NSArray *array = [[[UIApplication sharedApplication] connectedScenes] allObjects];
-        UIWindowScene *scene = [array firstObject];
-        UIInterfaceOrientationMask OrientationMask = windowView_.OrientationMask;
-        UIWindowSceneGeometryPreferencesIOS *geometryPreferencesIOS = [[UIWindowSceneGeometryPreferencesIOS alloc] initWithInterfaceOrientations:OrientationMask];
-        /* start transform animation */
-        [scene requestGeometryUpdateWithPreferences:geometryPreferencesIOS errorHandler:^(NSError * _Nonnull error) {
-            
-        }];
-    } else {
-        [windowView_ setNewOrientation:windowView_.orientation];
-    }
+    [windowView_ setNewOrientation:windowView_.orientation];
 }
 
 SystemBarProperty Window::GetSystemBarPropertyByType(WindowType type) const
