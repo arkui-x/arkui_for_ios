@@ -489,7 +489,7 @@ void Window::SetWindowView(WindowView* windowView)
      windowView_ = [windowView retain];
 }
 
-void Window::SetWindowName(std::string windowName)
+void Window::SetWindowName(const std::string& windowName)
 {
     name_ = windowName;
 }
@@ -622,10 +622,8 @@ WMError Window::SetSystemBarProperty(WindowType type, const SystemBarProperty& p
             HILOG_INFO("Window::SetSystemBarProperty : Set Status Bar - hidden");
             controller.statusBarHidden = YES;
             [controller setNeedsStatusBarAppearanceUpdate];
-            // [[UIApplication sharedApplication] setStatusBarHidden:YES withAnimation:UIStatusBarAnimationNone];
         } else {
             HILOG_INFO("Window::SetSystemBarProperty : Set Status Bar - show");
-            // [[UIApplication sharedApplication] setStatusBarHidden:NO withAnimation:UIStatusBarAnimationNone];
             controller.statusBarHidden = NO;
             [controller setNeedsStatusBarAppearanceUpdate];
         }
@@ -636,36 +634,33 @@ WMError Window::SetSystemBarProperty(WindowType type, const SystemBarProperty& p
 
 void Window::SetRequestedOrientation(Orientation orientation)
 {
-    //StageViewController *rotateWindow = [StageApplication getApplicationTopViewController];
-    WindowView* windowView = [[WindowView alloc]init];
     if (orientation == Orientation::UNSPECIFIED) {
         return;
     } else if (orientation == Orientation::VERTICAL) {
-        windowView.OrientationMask = UIInterfaceOrientationMaskPortrait;
-        windowView.orientation = UIInterfaceOrientationPortrait;
+        windowView_.OrientationMask = UIInterfaceOrientationMaskPortrait;
+        windowView_.orientation = UIInterfaceOrientationPortrait;
     } else if (orientation == Orientation::HORIZONTAL) {
-        windowView.OrientationMask = UIInterfaceOrientationMaskLandscapeLeft;
-        windowView.orientation = UIInterfaceOrientationLandscapeLeft;
+        windowView_.OrientationMask = UIInterfaceOrientationMaskLandscapeLeft;
+        windowView_.orientation = UIInterfaceOrientationLandscapeLeft;
     } else if (orientation == Orientation::REVERSE_VERTICAL) {
-        windowView.OrientationMask = UIInterfaceOrientationMaskLandscapeRight;
-        windowView.orientation = UIInterfaceOrientationLandscapeRight;
+        windowView_.OrientationMask = UIInterfaceOrientationMaskLandscapeRight;
+        windowView_.orientation = UIInterfaceOrientationLandscapeRight;
     } else if (orientation == Orientation::REVERSE_HORIZONTAL) {
-        windowView.OrientationMask = UIInterfaceOrientationMaskPortraitUpsideDown;
-        windowView.orientation = UIInterfaceOrientationPortraitUpsideDown;
+        windowView_.OrientationMask = UIInterfaceOrientationMaskPortraitUpsideDown;
+        windowView_.orientation = UIInterfaceOrientationPortraitUpsideDown;
     }
     if (@available(iOS 16, *)) {
-        [windowView.getViewController setNeedsUpdateOfSupportedInterfaceOrientations];
+        [windowView_.getViewController setNeedsUpdateOfSupportedInterfaceOrientations];
         NSArray *array = [[[UIApplication sharedApplication] connectedScenes] allObjects];
         UIWindowScene *scene = [array firstObject];
-        // 屏幕方向
-        UIInterfaceOrientationMask OrientationMask = windowView.OrientationMask;
+        UIInterfaceOrientationMask OrientationMask = windowView_.OrientationMask;
         UIWindowSceneGeometryPreferencesIOS *geometryPreferencesIOS = [[UIWindowSceneGeometryPreferencesIOS alloc] initWithInterfaceOrientations:OrientationMask];
-        // 开始切换
+        /* start transform animation */
         [scene requestGeometryUpdateWithPreferences:geometryPreferencesIOS errorHandler:^(NSError * _Nonnull error) {
             
         }];
     } else {
-        [windowView setNewOrientation:windowView.orientation];
+        [windowView_ setNewOrientation:windowView_.orientation];
     }
 }
 

@@ -200,7 +200,7 @@ public:
 
 private:
     void SetWindowView(WindowView* windowView);
-    void SetWindowName(std::string windowName);
+    void SetWindowName(const std::string& windowName);
     void SetWindowType(WindowType windowType);
     void SetParentId(uint32_t parentId);
     void ReleaseWindowView();
@@ -261,7 +261,7 @@ private:
     int32_t surfaceWidth_ = 0;
     int32_t surfaceHeight_ = 0;
     Rect rect_ = {0, 0, 0, 0};
-    std::string name_ = "";
+    std::string name_;
     float density_ = 0;
     std::shared_ptr<RSSurfaceNode> surfaceNode_;
     std::shared_ptr<flutter::VsyncWaiter> vsyncWaiter_;

@@ -327,7 +327,7 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
 }
 
 - (UIViewController*)getViewController {
-     UIResponder *responder = self;
+    UIResponder *responder = self;
     while ((responder = [responder nextResponder])) {
         if ([responder isKindOfClass:[UIViewController class]]) {
             return (UIViewController *)responder;
