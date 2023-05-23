@@ -131,4 +131,7 @@ CGFloat _brightness = 0.0;
     return [string UTF8String];
 }
 
+- (BOOL)prefersStatusBarHidden {
+    return self.statusBarHidden;
+}
 @end

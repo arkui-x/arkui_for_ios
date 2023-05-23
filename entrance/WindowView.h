@@ -23,9 +23,13 @@ class Window;
 }
 
 @interface WindowView : UIView
-
+@property (nonatomic, assign) UIInterfaceOrientationMask OrientationMask;
 @property (nonatomic, assign) UIViewController*viewController;
+@property (nonatomic, assign) UIInterfaceOrientation orientation;
 
+- (UIViewController*)getViewController;
+
+- (void)setNewOrientation:(UIInterfaceOrientation)Orientation;
 - (void)setWindowDelegate:(std::shared_ptr<OHOS::Rosen::Window>)window;
 - (void)createSurfaceNode;
 - (void)notifySurfaceChangedWithWidth:(int32_t)width height:(int32_t)height density:(float)density;

@@ -21,6 +21,7 @@
 @interface StageViewController : UIViewController
 
 @property (nonatomic, readonly) NSString *instanceName;
+@property (nonatomic, assign) BOOL statusBarHidden;
 
 @property (nonatomic, strong) NSString *params;
 

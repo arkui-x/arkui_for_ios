@@ -36,8 +36,11 @@ DisplayInfo::DisplayInfo()
 {
     id_ = 0;
     orientation_ = gUIDeviceOrientationToOrientationMap[[UIDevice currentDevice].orientation];
-    width_ = static_cast<int32_t>([UIScreen mainScreen].bounds.size.width);
-    height_ = static_cast<int32_t>([UIScreen mainScreen].bounds.size.height);
+
+    UIScreen *screen = [UIScreen mainScreen];
+    CGFloat scale = screen.scale;
+    width_ = static_cast<int32_t>([UIScreen mainScreen].bounds.size.width * scale);
+    height_ = static_cast<int32_t>([UIScreen mainScreen].bounds.size.height * scale);
 }
 
 DisplayInfo::~DisplayInfo()
