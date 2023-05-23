@@ -22,6 +22,7 @@
 #include <vector>
 #include <unordered_map>
 
+
 namespace OHOS {
 namespace AbilityRuntime {
 namespace Platform {
@@ -35,6 +36,8 @@ public:
     void* GetWindowView(const std::string& instanceName);
     void RemoveWindowView(const std::string& instanceName);
 
+    std::string GetWindowName(void* windowView);
+
 private:
     std::mutex mutex_;
     std::unordered_map<std::string, void*> windowViewObjects_;
@@ -42,4 +45,4 @@ private:
 } // namespace Platform
 } // namespace AbilityRuntime
 } // namespace OHOS
-#endif // FOUNDATION_ACE_ADAPTER_ANDROID_STAGE_ABILITY_JAVA_JNI_WINDOW_VIEW_ADAPTER_H
+#endif // FOUNDATION_ACE_ADAPTER_IOS_STAGE_WINDOW_VIEW_ADAPTER_H

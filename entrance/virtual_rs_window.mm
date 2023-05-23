@@ -40,49 +40,6 @@ std::map<uint32_t, std::vector<std::shared_ptr<Window>>> Window::subWindowMap_;
 std::map<std::string, std::pair<uint32_t, std::shared_ptr<Window>>> Window::windowMap_;
 std::map<uint32_t, std::vector<sptr<IWindowLifeCycle>>> Window::lifecycleListeners_;
 std::recursive_mutex Window::globalMutex_;
-std::shared_ptr<Window> Window::Create(
-    std::shared_ptr<OHOS::AbilityRuntime::Platform::Context> context, void* windowView)
-{
-    LOGI("Window::Create with %{public}p", windowView);
-    
-    static std::atomic<uint32_t> tempWindowId = 0;
-    uint32_t windowId = tempWindowId++; // for test
-    auto window = std::make_shared<Window>(context, windowId);
-    window->SetWindowView((WindowView*)windowView);
-    [(WindowView*)windowView setWindowDelegate:window]; 
-    return window;
-}
-
-std::shared_ptr<Window> Window::CreateSubWindow(
-        std::shared_ptr<OHOS::AbilityRuntime::Platform::Context> context, 
-        std::shared_ptr<OHOS::Rosen::WindowOption> option)
-{
-    static std::atomic<uint32_t> tempWindowId = 0;
-    uint32_t windowId = tempWindowId++; // for test
-    if (option->GetWindowType() != OHOS::Rosen::WindowType::WINDOW_TYPE_APP_SUB_WINDOW) {
-        LOGI("Window::Create failed, mainWindow needs windowView");
-        return nullptr;
-    }
-
-     auto window = std::make_shared<Window>(context, windowId);
-     WindowView* windowView = [[WindowView alloc]init];
-     LOGI("Window::Createsubwindow with %{public}p", windowView);
-     window->SetWindowView(windowView);
-    [windowView setWindowDelegate:window]; 
-    [windowView createSurfaceNode];
-    [windowView setBackgroundColor:[UIColor redColor]];   // Jason: Test for set color
-    window->name_ = option->GetWindowName();
-    window->windowType_ = option->GetWindowType();
-    LOGI("Window::Createsubwindow with name:%s", window->name_.c_str());
-    windowMap_.insert(std::make_pair(window->name_, std::pair<uint32_t, std::shared_ptr<Window>>(windowId, window))); 
-    uint32_t parentId = option->GetParentId();
-    if (parentId != INVALID_WINDOW_ID) {
-        subWindowMap_[parentId].push_back(window);
-    }
-    
-    return window;
-    
-}
 
 Window::Window(const flutter::TaskRunners& taskRunners)
     : vsyncWaiter_(std::make_shared<flutter::VsyncWaiterIOS>(taskRunners))
@@ -96,6 +53,166 @@ Window::~Window()
 {
     LOGI("Window: release");
     ReleaseWindowView();
+}
+
+std::shared_ptr<Window> Window::Create(
+    std::shared_ptr<OHOS::AbilityRuntime::Platform::Context> context, void* windowView)
+{
+    LOGI("Window::Create with %{public}p", windowView);
+    
+    static std::atomic<uint32_t> tempWindowId = 0;
+    uint32_t windowId = tempWindowId++; // for test
+    auto window = std::make_shared<Window>(context, windowId);
+    window->SetWindowView((WindowView*)windowView);
+    window->SetWindowName(AbilityRuntime::Platform::WindowViewAdapter::GetInstance()->GetWindowName(windowView));
+    [(WindowView*)windowView setWindowDelegate:window];
+    AddToWindowMap(window);
+    return window;
+}
+
+std::shared_ptr<Window> Window::CreateSubWindow(
+        std::shared_ptr<OHOS::AbilityRuntime::Platform::Context> context, 
+        std::shared_ptr<OHOS::Rosen::WindowOption> option)
+{
+    static std::atomic<uint32_t> tempWindowId = 0;
+    uint32_t windowId = tempWindowId++; // for test
+    if (option->GetWindowType() != OHOS::Rosen::WindowType::WINDOW_TYPE_APP_SUB_WINDOW) {
+        LOGI("Window::CreateSubWindow failed, window type error![windowType=%{public}d]", static_cast<int32_t>(option->GetWindowType()));
+        return nullptr;
+    }
+
+     auto window = std::make_shared<Window>(context, windowId);
+     WindowView* windowView = [[WindowView alloc]init];
+     LOGI("Window::Createsubwindow with %{public}p", windowView);
+     window->SetWindowView(windowView);
+    [windowView setWindowDelegate:window]; 
+    [windowView createSurfaceNode];
+    [windowView setBackgroundColor:[UIColor redColor]];   // Jason: Test for set color
+    window->SetWindowName(option->GetWindowName());
+    window->SetWindowType(option->GetWindowType());
+    LOGI("Window::Createsubwindow with name:%s", window->GetWindowName().c_str());
+    window->SetParentId(option->GetParentId());
+    AddToSubWindowMap(window);
+    AddToWindowMap(window);
+    
+    return window;
+}
+
+void Window::AddToWindowMap(std::shared_ptr<Window> window)
+{
+    DeleteFromWindowMap(window);
+    windowMap_.insert(std::make_pair(window->GetWindowName(), 
+        std::pair<uint32_t, std::shared_ptr<Window>>(window->GetWindowId(), window)));
+}
+
+void Window::DeleteFromWindowMap(std::shared_ptr<Window> window)
+{
+    auto iter = windowMap_.find(window->GetWindowName());
+    if (iter != windowMap_.end()) {
+        windowMap_.erase(iter);
+    }
+}
+void Window::DeleteFromWindowMap(Window* window)
+{
+    if (window == nullptr) {
+        return;
+    }
+    auto iter = windowMap_.find(window->GetWindowName());
+    if (iter != windowMap_.end()) {
+        windowMap_.erase(iter);
+    }
+}
+void Window::AddToSubWindowMap(std::shared_ptr<Window> window)
+{
+    if (window == nullptr) {
+        HILOG_ERROR("window is null");
+        return;
+    }
+    if (window->GetType() != OHOS::Rosen::WindowType::WINDOW_TYPE_APP_SUB_WINDOW ||
+        window->GetParentId() != INVALID_WINDOW_ID) {
+        HILOG_ERROR("window is not subwindow");
+        return;
+    }
+    DeleteFromSubWindowMap(window);
+    uint32_t parentId = window->GetParentId();
+    subWindowMap_[parentId].push_back(window);
+}
+void Window::DeleteFromSubWindowMap(std::shared_ptr<Window> window)
+{
+    if (window == nullptr) {
+        return;
+    }
+    uint32_t parentId = window->GetParentId();
+    if (parentId == INVALID_WINDOW_ID) {
+        return;
+    }
+    auto iter1 = subWindowMap_.find(parentId);
+    if (iter1 == subWindowMap_.end()) {
+        return;
+    }
+    auto subWindows = iter1->second;
+    auto iter2 = subWindows.begin();
+    while (iter2 != subWindows.end()) {
+        if (*iter2 == window) {
+            subWindows.erase(iter2);
+            ((*iter2)->Destroy());
+            break;
+        }
+    }
+}
+
+WMError Window::Destroy()
+{
+    if (uiContent_ != nullptr) {
+        uiContent_->Destroy();
+        uiContent_ = nullptr;
+    }
+
+    if (windowView_ != nullptr) {
+        [windowView_ removeFromSuperview];
+        windowView_ = nullptr;
+    }
+
+    isWindowShow_ = false;
+    ClearListenersById(GetWindowId());
+
+    // Remove subWindows of current window from subWindowMap_ 
+    if (subWindowMap_.count(GetWindowId()) > 0) {
+        auto& subWindows = subWindowMap_.at(GetWindowId());
+        for (auto iter = subWindows.begin(); iter != subWindows.end(); iter = subWindows.begin()) {
+            if ((*iter) == nullptr) {
+                subWindows.erase(iter);
+                continue;
+            }
+            subWindows.erase(iter);
+            DeleteFromWindowMap(*iter);
+            (*iter)->Destroy();
+        }
+        subWindowMap_[GetWindowId()].clear();
+        subWindowMap_.erase(GetWindowId());
+    }
+
+    // Rmove current window from subWindowMap_ of parent window
+    if (subWindowMap_.count(GetParentId()) > 0) {
+        auto& subWindows = subWindowMap_.at(GetParentId());
+        for (auto iter = subWindows.begin(); iter < subWindows.end(); ++iter) {
+            if ((*iter) == nullptr) {
+                continue;
+            }
+            if ((*iter)->GetWindowId() == GetWindowId()) {
+                subWindows.erase(iter);
+                break;
+            }
+        }
+    }
+
+    // Remove current window from windowMap_
+    if (windowMap_.count(GetWindowName()) > 0) {
+        DeleteFromWindowMap(this);
+    }
+
+    NotifyAfterBackground();
+    return WMError::WM_OK;
 }
 
 std::vector<std::shared_ptr<Window>> Window::GetSubWindow(uint32_t parentId)
@@ -141,40 +258,8 @@ WMError Window::ShowWindow()
     NotifyAfterForeground();
     return WMError::WM_OK;
 }
-WMError Window::DestroyWindow()
-{   
-    if (!windowView_) {
-        LOGE("Window: DestroyWindow failed");
-        return WMError::WM_ERROR_INVALID_PARENT;   
-    }
-    [windowView_ removeFromSuperview];
-     if (subWindowMap_.count(GetParentId()) > 0) { // remove from subWindowMap_
-        auto& subWindows = subWindowMap_.at(GetParentId());
-        for (auto iter = subWindows.begin(); iter < subWindows.end(); ++iter) {
-            if ((*iter) == nullptr) {
-                continue;
-            }
-            if ((*iter)->GetWindowId() == GetWindowId()) {
-                subWindows.erase(iter);
-                break;
-            }
-        }
-    }
-    if (subWindowMap_.count(GetWindowId()) > 0) { // remove from subWindowMap_ and windowMap_
-        auto& subWindows = subWindowMap_.at(GetWindowId());
-        for (auto iter = subWindows.begin(); iter != subWindows.end(); iter = subWindows.begin()) {
-            if ((*iter) == nullptr) {
-                subWindows.erase(iter);
-                continue;
-            }
-            (*iter)->Destroy();
-        }
-        subWindowMap_[GetWindowId()].clear();
-        subWindowMap_.erase(GetWindowId());
-    }
-    NotifyAfterBackground();
-    return WMError::WM_OK;
-}
+
+
 
 WMError Window::MoveWindowTo(int32_t x, int32_t y)
 {   
@@ -182,7 +267,11 @@ WMError Window::MoveWindowTo(int32_t x, int32_t y)
         LOGE("Window: MoveWindowTo failed");
         return WMError::WM_ERROR_INVALID_PARENT;   
     }
+    x = x < 0 ? 0 : x;
+    y = y < 0 ? 0 : y;
     windowView_.frame = CGRectMake(x, y, windowView_.frame.size.width, windowView_.frame.size.height);
+    rect_.posX_ = x;
+    rect_.posY_ = y;
     return WMError::WM_OK;
 }
 
@@ -193,25 +282,10 @@ WMError Window::ResizeWindowTo(int32_t width, int32_t height) {
         return WMError::WM_ERROR_INVALID_PARENT;   
     }
     LOGI("Window: ResizeWindowTo %d %d", width, height);
-    windowView_.bounds = CGRectMake(0, 0, width, height);
+    windowView_.bounds = CGRectMake(rect_.posX_, rect_.posY_, width, height);
+    rect_.width_ = width;
+    rect_.height_ = height;
     return WMError::WM_OK;
-}
-
-void Window::DestroySubWindow()
-{
-    if (subWindowMap_.count(GetWindowId()) > 0) { // remove from subWindowMap_ and windowMap_
-        auto& subWindows = subWindowMap_.at(GetWindowId());
-        for (auto iter = subWindows.begin(); iter != subWindows.end(); iter = subWindows.begin()) {
-            if ((*iter) == nullptr) {
-                subWindows.erase(iter);
-                continue;
-            }
-            (*iter)->Destroy();
-        }
-        subWindowMap_[GetWindowId()].clear();
-        subWindowMap_.erase(GetWindowId());
-    }
-    NotifyAfterBackground();
 }
 
 bool Window::IsWindowValid() const
@@ -297,6 +371,8 @@ void Window::NotifySurfaceChanged(int32_t width, int32_t height, float density)
     LOGI("Window Notify Surface Changed wh:[%{public}d, %{public}d]", width, height);
     surfaceWidth_ = width;
     surfaceHeight_ = height;
+    rect_.width_ = width;
+    rect_.height_ = height;
     surfaceNode_->SetBoundsWidth(surfaceWidth_);
     surfaceNode_->SetBoundsHeight(surfaceHeight_);
     density_ = density;
@@ -411,7 +487,22 @@ void Window::SetWindowView(WindowView* windowView)
     LOGI("Window::SetWindowView");
     [windowView_ release];
      windowView_ = [windowView retain];
-}  
+}
+
+void Window::SetWindowName(const std::string& windowName)
+{
+    name_ = windowName;
+}
+
+void Window::SetWindowType(WindowType windowType)
+{
+    windowType_ = windowType;
+}
+
+void Window::SetParentId(uint32_t parentId)
+{
+    parentId_ = parentId;
+}
 
 void Window::WindowFocusChanged(bool hasWindowFocus)
 {
@@ -454,26 +545,12 @@ void Window::Background()
     NotifyAfterBackground();
 }
 
-void Window::Destroy()
-{
-    if (!uiContent_) {
-        LOGW("Window::Destroy uiContent_ is nullptr");
-        return;
-    }
-    LOGI("Window: notify uiContent Destroy");
-    uiContent_->Destroy();
-    isWindowShow_ = false;
-    ClearListenersById(GetWindowId());
-    DestroySubWindow();
-}
-
 void Window::ReleaseWindowView()
 {
     if (windowView_ == nullptr) {
         return;
     }
     [windowView_ release];
-
 }
 
 void Window::UpdateConfiguration(const std::shared_ptr<OHOS::AbilityRuntime::Platform::Configuration>& config)
@@ -499,6 +576,12 @@ WMError Window::SetBrightness(float brightness)
     [[UIScreen mainScreen] setBrightness:brightness];
     return WMError::WM_OK;
 }
+
+float Window::GetBrightness() const
+{
+    return [UIScreen mainScreen].brightness;
+}
+
 WMError Window::SetKeepScreenOn(bool keepScreenOn)
 {
     if (keepScreenOn) {
@@ -521,7 +604,7 @@ bool Window::IsKeepScreenOn()
 WMError Window::SetSystemBarProperty(WindowType type, const SystemBarProperty& property)
 {
     HILOG_INFO("Window::SetSystemBarProperty : Start... / type=%{public}d, enable=%{public}d", static_cast<int>(type), property.enable_);
-    StageViewController *controller = [StageApplication getApplicationTopViewController];
+    StageViewController *controller = [StageApplication getApplicationTopViewController];   
     if (type ==  WindowType::WINDOW_TYPE_NAVIGATION_BAR) {
         HILOG_INFO("Window::SetSystemBarProperty : Set Navigation Bar");
         if (!property.enable_) {
@@ -530,15 +613,19 @@ WMError Window::SetSystemBarProperty(WindowType type, const SystemBarProperty& p
         } else {
             HILOG_INFO("Window::SetSystemBarProperty : Set Navigation Bar - show");
             [controller.navigationController setNavigationBarHidden:NO animated:YES];
+            controller.statusBarHidden = YES;
+            [controller setNeedsStatusBarAppearanceUpdate];
         }
     } else if (type == WindowType::WINDOW_TYPE_STATUS_BAR) {
         HILOG_INFO("Window::SetSystemBarProperty : Set Status Bar");
         if (!property.enable_) {
             HILOG_INFO("Window::SetSystemBarProperty : Set Status Bar - hidden");
-            [[UIApplication sharedApplication] setStatusBarHidden:YES withAnimation:UIStatusBarAnimationNone];
+            controller.statusBarHidden = YES;
+            [controller setNeedsStatusBarAppearanceUpdate];
         } else {
             HILOG_INFO("Window::SetSystemBarProperty : Set Status Bar - show");
-            [[UIApplication sharedApplication] setStatusBarHidden:NO withAnimation:UIStatusBarAnimationNone];
+            controller.statusBarHidden = NO;
+            [controller setNeedsStatusBarAppearanceUpdate];
         }
     } 
     sysBarPropMap_[type] = property;
@@ -550,25 +637,30 @@ void Window::SetRequestedOrientation(Orientation orientation)
     if (orientation == Orientation::UNSPECIFIED) {
         return;
     } else if (orientation == Orientation::VERTICAL) {
-        [[UIApplication sharedApplication] setStatusBarOrientation:UIInterfaceOrientationPortrait];
-        windowView_.transform = CGAffineTransformIdentity;
-        CGRect frame = [UIScreen mainScreen].applicationFrame;
-        windowView_.bounds = CGRectMake(0, 0, frame.size.width, frame.size.height);
+        windowView_.OrientationMask = UIInterfaceOrientationMaskPortrait;
+        windowView_.orientation = UIInterfaceOrientationPortrait;
     } else if (orientation == Orientation::HORIZONTAL) {
-        [[UIApplication sharedApplication] setStatusBarOrientation:UIInterfaceOrientationLandscapeRight];
-        windowView_.transform = CGAffineTransformMakeRotation(M_PI/2);
-        CGRect frame = [UIScreen mainScreen].applicationFrame;
-        windowView_.bounds = CGRectMake(0, 0, frame.size.height, frame.size.width);
+        windowView_.OrientationMask = UIInterfaceOrientationMaskLandscapeLeft;
+        windowView_.orientation = UIInterfaceOrientationLandscapeLeft;
     } else if (orientation == Orientation::REVERSE_VERTICAL) {
-        [[UIApplication sharedApplication] setStatusBarOrientation:UIInterfaceOrientationPortraitUpsideDown];
-        windowView_.transform = CGAffineTransformMakeRotation(M_PI);
-        CGRect frame = [UIScreen mainScreen].applicationFrame;
-        windowView_.bounds = CGRectMake(0, 0, frame.size.width, frame.size.height);
+        windowView_.OrientationMask = UIInterfaceOrientationMaskLandscapeRight;
+        windowView_.orientation = UIInterfaceOrientationLandscapeRight;
     } else if (orientation == Orientation::REVERSE_HORIZONTAL) {
-        [[UIApplication sharedApplication] setStatusBarOrientation:UIInterfaceOrientationLandscapeLeft];
-        windowView_.transform = CGAffineTransformMakeRotation(-M_PI/2);
-        CGRect frame = [UIScreen mainScreen].applicationFrame;
-        windowView_.bounds = CGRectMake(0, 0, frame.size.height, frame.size.width);
+        windowView_.OrientationMask = UIInterfaceOrientationMaskPortraitUpsideDown;
+        windowView_.orientation = UIInterfaceOrientationPortraitUpsideDown;
+    }
+    if (@available(iOS 16, *)) {
+        [windowView_.getViewController setNeedsUpdateOfSupportedInterfaceOrientations];
+        NSArray *array = [[[UIApplication sharedApplication] connectedScenes] allObjects];
+        UIWindowScene *scene = [array firstObject];
+        UIInterfaceOrientationMask OrientationMask = windowView_.OrientationMask;
+        UIWindowSceneGeometryPreferencesIOS *geometryPreferencesIOS = [[UIWindowSceneGeometryPreferencesIOS alloc] initWithInterfaceOrientations:OrientationMask];
+        /* start transform animation */
+        [scene requestGeometryUpdateWithPreferences:geometryPreferencesIOS errorHandler:^(NSError * _Nonnull error) {
+            
+        }];
+    } else {
+        [windowView_ setNewOrientation:windowView_.orientation];
     }
 }
 

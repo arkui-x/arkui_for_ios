@@ -319,4 +319,21 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
     [super dealloc];
 }
 
+- (void)setNewOrientation:(UIInterfaceOrientation)Orientation {
+    NSNumber *resetOrientationTarget = [NSNumber numberWithInt:UIInterfaceOrientationUnknown];
+    [[UIDevice currentDevice] setValue:resetOrientationTarget forKey:@"orientation"];
+    NSNumber *orientationTarget = [NSNumber numberWithInt:Orientation];
+    [[UIDevice currentDevice] setValue:orientationTarget forKey:@"orientation"];
+}
+
+- (UIViewController*)getViewController {
+    UIResponder *responder = self;
+    while ((responder = [responder nextResponder])) {
+        if ([responder isKindOfClass:[UIViewController class]]) {
+            return (UIViewController *)responder;
+        }
+    }
+    return nil;
+}
+
 @end

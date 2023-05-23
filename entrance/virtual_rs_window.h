@@ -90,7 +90,7 @@ class Window : public RefBase {
                 listener.GetRefPtr()->windowLifecycleCb();    \
             }                                                 \
         }                                                     \
-    } while (0)    
+    } while (0)
 public:
     static std::shared_ptr<Window> Create(
         std::shared_ptr<OHOS::AbilityRuntime::Platform::Context> context, void* windowView);
@@ -107,7 +107,6 @@ public:
         const std::shared_ptr<OHOS::AbilityRuntime::Platform::Context>& context = nullptr);
 
     WMError ShowWindow();
-    WMError DestroyWindow();
     WMError MoveWindowTo(int32_t x, int32_t y);
     WMError ResizeWindowTo(int32_t width, int32_t height);
 
@@ -134,18 +133,14 @@ public:
         return backgroundColor_;
     }
     WMError SetBrightness(float brightness);
-
-    float GetBrightness() const
-    {
-        return 0;
-    }
+    float GetBrightness() const;
     WMError SetKeepScreenOn(bool keepScreenOn);
     bool IsKeepScreenOn();
     WMError SetSystemBarProperty(WindowType type, const SystemBarProperty& property);
     void WindowFocusChanged(bool hasWindowFocus);
     void Foreground();
     void Background();
-    void Destroy();
+    WMError Destroy();
 
     bool IsSubWindow() const
     {
@@ -205,6 +200,9 @@ public:
 
 private:
     void SetWindowView(WindowView* windowView);
+    void SetWindowName(const std::string& windowName);
+    void SetWindowType(WindowType windowType);
+    void SetParentId(uint32_t parentId);
     void ReleaseWindowView();
 
     void DelayNotifyUIContentIfNeeded();
@@ -258,8 +256,8 @@ private:
         CALL_LIFECYCLE_LISTENER(AfterInactive, lifecycleListeners);
     }
     void ClearListenersById(uint32_t winId);
-    void DestroySubWindow();
 
+private:
     int32_t surfaceWidth_ = 0;
     int32_t surfaceHeight_ = 0;
     Rect rect_ = {0, 0, 0, 0};
@@ -290,13 +288,19 @@ private:
     WindowType windowType_;
     uint32_t backgroundColor_;
     WindowState state_ { WindowState::STATE_INITIAL };
-    static std::map<uint32_t, std::vector<std::shared_ptr<Window>>> subWindowMap_;
+
+    static void AddToWindowMap(std::shared_ptr<Window> window);
+    static void DeleteFromWindowMap(std::shared_ptr<Window> window);
+    static void DeleteFromWindowMap(Window* window);
+    static void AddToSubWindowMap(std::shared_ptr<Window> window);
+    static void DeleteFromSubWindowMap(std::shared_ptr<Window> window);
+
     static std::map<std::string, std::pair<uint32_t, std::shared_ptr<Window>>> windowMap_;
+    static std::map<uint32_t, std::vector<std::shared_ptr<Window>>> subWindowMap_;
     static std::map<uint32_t, std::vector<sptr<IWindowLifeCycle>>> lifecycleListeners_;
-   
+
     ACE_DISALLOW_COPY_AND_MOVE(Window);
 };
-
 } // namespace Rosen
 } // namespace OHOS
-#endif // FOUNDATION_ACE_ADAPTER_ANDROID_ENTRANCE_JAVA_JNI_VIRTUAL_RS_WINDOW_H
+#endif // FOUNDATION_ACE_ADAPTER_IOS_ENTRANCE_VIRTUAL_RS_WINDOW_H
