@@ -101,7 +101,7 @@ public:
     explicit Window(const flutter::TaskRunners& taskRunners);
     explicit Window(std::shared_ptr<AbilityRuntime::Platform::Context> context, uint32_t windowId);
     virtual ~Window() override;
-    static std::vector<std::shared_ptr<Window>> GetSubWindow(uint32_t parentId);
+    static const std::vector<std::shared_ptr<Window>>& GetSubWindow(uint32_t parentId);
     static std::shared_ptr<Window> FindWindow(const std::string& name);
     static std::shared_ptr<Window> GetTopWindow(
         const std::shared_ptr<OHOS::AbilityRuntime::Platform::Context>& context = nullptr);
@@ -261,7 +261,7 @@ private:
     int32_t surfaceWidth_ = 0;
     int32_t surfaceHeight_ = 0;
     Rect rect_ = {0, 0, 0, 0};
-    std::string name_;
+    std::string name_ = "";
     float density_ = 0;
     std::shared_ptr<RSSurfaceNode> surfaceNode_;
     std::shared_ptr<flutter::VsyncWaiter> vsyncWaiter_;
@@ -294,12 +294,16 @@ private:
     static void DeleteFromWindowMap(Window* window);
     static void AddToSubWindowMap(std::shared_ptr<Window> window);
     static void DeleteFromSubWindowMap(std::shared_ptr<Window> window);
+    static void ShowSubWindowMap(std::string str, uint32_t parentId);
+    static bool CheckWindowNameExist(std::string windowName);
 
     static std::map<std::string, std::pair<uint32_t, std::shared_ptr<Window>>> windowMap_;
     static std::map<uint32_t, std::vector<std::shared_ptr<Window>>> subWindowMap_;
     static std::map<uint32_t, std::vector<sptr<IWindowLifeCycle>>> lifecycleListeners_;
 
     ACE_DISALLOW_COPY_AND_MOVE(Window);
+
+    static std::atomic<uint32_t> tempWindowId;
 };
 } // namespace Rosen
 } // namespace OHOS

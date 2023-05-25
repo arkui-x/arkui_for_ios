@@ -40,6 +40,7 @@ std::map<uint32_t, std::vector<std::shared_ptr<Window>>> Window::subWindowMap_;
 std::map<std::string, std::pair<uint32_t, std::shared_ptr<Window>>> Window::windowMap_;
 std::map<uint32_t, std::vector<sptr<IWindowLifeCycle>>> Window::lifecycleListeners_;
 std::recursive_mutex Window::globalMutex_;
+std::atomic<uint32_t> Window::tempWindowId = INVALID_WINDOW_ID;
 
 Window::Window(const flutter::TaskRunners& taskRunners)
     : vsyncWaiter_(std::make_shared<flutter::VsyncWaiterIOS>(taskRunners))
@@ -59,12 +60,17 @@ std::shared_ptr<Window> Window::Create(
     std::shared_ptr<OHOS::AbilityRuntime::Platform::Context> context, void* windowView)
 {
     LOGI("Window::Create with %{public}p", windowView);
+
+    std::string windowName = AbilityRuntime::Platform::WindowViewAdapter::GetInstance()->GetWindowName(windowView);
+    if (CheckWindowNameExist(windowName)) {
+        HILOG_ERROR("Window::Create : windowName exist! windowName=%{public}s", windowName.c_str());
+        return nullptr;
+    }
     
-    static std::atomic<uint32_t> tempWindowId = 0;
-    uint32_t windowId = tempWindowId++; // for test
+    uint32_t windowId = ++tempWindowId; // for test
     auto window = std::make_shared<Window>(context, windowId);
     window->SetWindowView((WindowView*)windowView);
-    window->SetWindowName(AbilityRuntime::Platform::WindowViewAdapter::GetInstance()->GetWindowName(windowView));
+    window->SetWindowName(windowName);
     [(WindowView*)windowView setWindowDelegate:window];
     AddToWindowMap(window);
     return window;
@@ -74,26 +80,31 @@ std::shared_ptr<Window> Window::CreateSubWindow(
         std::shared_ptr<OHOS::AbilityRuntime::Platform::Context> context, 
         std::shared_ptr<OHOS::Rosen::WindowOption> option)
 {
-    static std::atomic<uint32_t> tempWindowId = 0;
-    uint32_t windowId = tempWindowId++; // for test
+    if (CheckWindowNameExist(option->GetWindowName())) {
+        HILOG_ERROR("Window::CreateSubWindow : windowName exist! windowName=%{public}s", option->GetWindowName().c_str());
+        return nullptr;
+    }
+
+    uint32_t windowId = ++tempWindowId; // for test
     if (option->GetWindowType() != OHOS::Rosen::WindowType::WINDOW_TYPE_APP_SUB_WINDOW) {
         LOGI("Window::CreateSubWindow failed, window type error![windowType=%{public}d]", static_cast<int32_t>(option->GetWindowType()));
         return nullptr;
     }
 
-     auto window = std::make_shared<Window>(context, windowId);
-     WindowView* windowView = [[WindowView alloc]init];
-     LOGI("Window::Createsubwindow with %{public}p", windowView);
-     window->SetWindowView(windowView);
+    auto window = std::make_shared<Window>(context, windowId);
+    WindowView* windowView = [[WindowView alloc]init];
+    LOGI("Window::Createsubwindow with %{public}p", windowView);
+    window->SetWindowView(windowView);
     [windowView setWindowDelegate:window]; 
     [windowView createSurfaceNode];
     [windowView setBackgroundColor:[UIColor redColor]];   // Jason: Test for set color
     window->SetWindowName(option->GetWindowName());
     window->SetWindowType(option->GetWindowType());
-    LOGI("Window::Createsubwindow with name:%s", window->GetWindowName().c_str());
+    LOGI("Window::Createsubwindow with name:%s, parentId=%{public}u", window->GetWindowName().c_str(), option->GetParentId());
     window->SetParentId(option->GetParentId());
     AddToSubWindowMap(window);
     AddToWindowMap(window);
+    ShowSubWindowMap("Window::CreateSubWindow", window->GetParentId());
     
     return window;
 }
@@ -103,6 +114,15 @@ void Window::AddToWindowMap(std::shared_ptr<Window> window)
     DeleteFromWindowMap(window);
     windowMap_.insert(std::make_pair(window->GetWindowName(), 
         std::pair<uint32_t, std::shared_ptr<Window>>(window->GetWindowId(), window)));
+}
+
+bool Window::CheckWindowNameExist(std::string windowName)
+{
+    auto iter = windowMap_.find(windowName);
+    if (iter == windowMap_.end()) {
+        return false;
+    }
+    return true;
 }
 
 void Window::DeleteFromWindowMap(std::shared_ptr<Window> window)
@@ -124,30 +144,36 @@ void Window::DeleteFromWindowMap(Window* window)
 }
 void Window::AddToSubWindowMap(std::shared_ptr<Window> window)
 {
+    HILOG_INFO("Window::AddToSubWindowMap : Start...");
     if (window == nullptr) {
         HILOG_ERROR("window is null");
         return;
     }
-    if (window->GetType() != OHOS::Rosen::WindowType::WINDOW_TYPE_APP_SUB_WINDOW ||
-        window->GetParentId() != INVALID_WINDOW_ID) {
+    if (window->GetType() != OHOS::Rosen::WindowType::WINDOW_TYPE_APP_SUB_WINDOW/* ||
+        window->GetParentId() == INVALID_WINDOW_ID*/) {
         HILOG_ERROR("window is not subwindow");
         return;
     }
     DeleteFromSubWindowMap(window);
     uint32_t parentId = window->GetParentId();
     subWindowMap_[parentId].push_back(window);
+    HILOG_INFO("Window::AddToSubWindowMap : End!!!");
 }
 void Window::DeleteFromSubWindowMap(std::shared_ptr<Window> window)
 {
+    HILOG_INFO("Window::DeleteFromSubWindowMap : Start...");
     if (window == nullptr) {
+        HILOG_INFO("Window::DeleteFromSubWindowMap : window is null");
         return;
     }
     uint32_t parentId = window->GetParentId();
     if (parentId == INVALID_WINDOW_ID) {
+        HILOG_INFO("Window::DeleteFromSubWindowMap : parentId is invalid");
         return;
     }
     auto iter1 = subWindowMap_.find(parentId);
     if (iter1 == subWindowMap_.end()) {
+        HILOG_INFO("Window::DeleteFromSubWindowMap : find parentId failed");
         return;
     }
     auto subWindows = iter1->second;
@@ -157,7 +183,25 @@ void Window::DeleteFromSubWindowMap(std::shared_ptr<Window> window)
             subWindows.erase(iter2);
             ((*iter2)->Destroy());
             break;
+        } else {
+            iter2++;
         }
+    }
+    HILOG_INFO("Window::AddToSubWindowMap : End!!!");
+}
+
+void Window::ShowSubWindowMap(std::string str, uint32_t parentId)
+{
+    auto iter1 = subWindowMap_.find(parentId);
+    if (iter1 == subWindowMap_.end()) {
+        HILOG_INFO("Window::ShowSubWindowMap : %{public}s : find parentId failed! parentId=%{public}u", str.c_str(), parentId);
+        return;
+    }
+    auto subWindows = iter1->second;
+    auto iter2 = subWindows.begin();
+    while (iter2 != subWindows.end()) {
+        HILOG_INFO("Window::ShowSubWindowMap : %{public}s : windowId=%{public}u, windowName=%{public}s", str.c_str(), (*iter2)->GetWindowId(), (*iter2)->GetWindowName().c_str());
+        iter2++;
     }
 }
 
@@ -215,12 +259,17 @@ WMError Window::Destroy()
     return WMError::WM_OK;
 }
 
-std::vector<std::shared_ptr<Window>> Window::GetSubWindow(uint32_t parentId)
+const std::vector<std::shared_ptr<Window>>& Window::GetSubWindow(uint32_t parentId)
 {
+    HILOG_INFO("Window::GetSubWindow : Start... / parentId = %{public}u, subWIndowMapSize=%{public}u", parentId, subWindowMap_.size());
     if (subWindowMap_.find(parentId) == subWindowMap_.end()) {
+        HILOG_INFO("Window::GetSubWindow : find subwindow failed");
         return std::vector<std::shared_ptr<Window>>();
     }
-    return std::vector<std::shared_ptr<Window>>(subWindowMap_[parentId].begin(), subWindowMap_[parentId].end());
+    HILOG_INFO("Window::GetSubWindow : find subwindow success, parentId=%u, subwindowSize=%u", parentId, subWindowMap_[parentId].size());
+    ShowSubWindowMap("Window::GetSubWindow", parentId);
+    //return std::vector<std::shared_ptr<Window>>(subWindowMap_[parentId].begin(), subWindowMap_[parentId].end());
+    return subWindowMap_[parentId];
 }
 
 std::shared_ptr<Window> Window::FindWindow(const std::string& name)
@@ -275,6 +324,7 @@ WMError Window::MoveWindowTo(int32_t x, int32_t y)
     return WMError::WM_OK;
 }
 
+
 WMError Window::ResizeWindowTo(int32_t width, int32_t height) {
     
     if (!windowView_) {
@@ -282,7 +332,9 @@ WMError Window::ResizeWindowTo(int32_t width, int32_t height) {
         return WMError::WM_ERROR_INVALID_PARENT;   
     }
     LOGI("Window: ResizeWindowTo %d %d", width, height);
-    windowView_.bounds = CGRectMake(rect_.posX_, rect_.posY_, width, height);
+    UIScreen *screen = [UIScreen mainScreen];
+    CGFloat scale = screen.scale;
+    windowView_.bounds = CGRectMake(0, 0, width / scale, height / scale);
     rect_.width_ = width;
     rect_.height_ = height;
     return WMError::WM_OK;
@@ -373,6 +425,7 @@ void Window::NotifySurfaceChanged(int32_t width, int32_t height, float density)
     surfaceHeight_ = height;
     rect_.width_ = width;
     rect_.height_ = height;
+    
     surfaceNode_->SetBoundsWidth(surfaceWidth_);
     surfaceNode_->SetBoundsHeight(surfaceHeight_);
     density_ = density;
@@ -455,12 +508,13 @@ void Window::DelayNotifyUIContentIfNeeded()
 int Window::SetUIContent(const std::string& contentInfo,
     NativeEngine* engine, NativeValue* storage, bool isdistributed, AbilityRuntime::Platform::Ability* ability)
 {
-    LOGI("Window::SetUIContent%p %p",this, windowView_);
+    LOGI("Window::SetUIContent : Start... / this=%p, windowView=%p",this, windowView_);
     using namespace OHOS::Ace::Platform;
     (void)ability;
     std::unique_ptr<UIContent> uiContent;
     uiContent = UIContent::Create(context_.get(), engine);
     if (uiContent == nullptr) {
+        LOGE("Window::SetUIContent : Create UIContent Failed!");
         return -1;
     }
     uiContent->Initialize(this, contentInfo, storage);
@@ -471,6 +525,7 @@ int Window::SetUIContent(const std::string& contentInfo,
     isWindowShow_ = true;
 
     DelayNotifyUIContentIfNeeded();
+    LOGI("Window::SetUIContent : End!!!");
     return 0;
 }
 
@@ -613,7 +668,6 @@ WMError Window::SetSystemBarProperty(WindowType type, const SystemBarProperty& p
         } else {
             HILOG_INFO("Window::SetSystemBarProperty : Set Navigation Bar - show");
             [controller.navigationController setNavigationBarHidden:NO animated:YES];
-            controller.statusBarHidden = YES;
             [controller setNeedsStatusBarAppearanceUpdate];
         }
     } else if (type == WindowType::WINDOW_TYPE_STATUS_BAR) {
@@ -642,14 +696,29 @@ void Window::SetRequestedOrientation(Orientation orientation)
     } else if (orientation == Orientation::HORIZONTAL) {
         windowView_.OrientationMask = UIInterfaceOrientationMaskLandscapeLeft;
         windowView_.orientation = UIInterfaceOrientationLandscapeLeft;
-    } else if (orientation == Orientation::REVERSE_VERTICAL) {
+    } else if (orientation == Orientation::REVERSE_HORIZONTAL) {
         windowView_.OrientationMask = UIInterfaceOrientationMaskLandscapeRight;
         windowView_.orientation = UIInterfaceOrientationLandscapeRight;
-    } else if (orientation == Orientation::REVERSE_HORIZONTAL) {
+    } else if (orientation == Orientation::REVERSE_VERTICAL) {
         windowView_.OrientationMask = UIInterfaceOrientationMaskPortraitUpsideDown;
         windowView_.orientation = UIInterfaceOrientationPortraitUpsideDown;
     }
-    [windowView_ setNewOrientation:windowView_.orientation];
+
+    if (@available(iOS 16, *)) {
+#if defined __IPHONE_16_0
+        [windowView_.getViewController setNeedsUpdateOfSupportedInterfaceOrientations];
+        NSArray *array = [[[UIApplication sharedApplication] connectedScenes] allObjects];
+        UIWindowScene *scene = [array firstObject];
+        UIInterfaceOrientationMask OrientationMask = windowView_.OrientationMask;
+        UIWindowSceneGeometryPreferencesIOS *geometryPreferencesIOS = 
+            [[UIWindowSceneGeometryPreferencesIOS alloc] initWithInterfaceOrientations:OrientationMask];
+        /* start transform animation */
+        [scene requestGeometryUpdateWithPreferences:geometryPreferencesIOS 
+            errorHandler:^(NSError * _Nonnull error) {}];
+#endif
+    } else {
+        [windowView_ setNewOrientation:windowView_.orientation];
+    }
 }
 
 SystemBarProperty Window::GetSystemBarPropertyByType(WindowType type) const
