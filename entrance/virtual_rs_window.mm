@@ -705,6 +705,10 @@ void Window::SetRequestedOrientation(Orientation orientation)
         windowView_.OrientationMask = UIInterfaceOrientationMaskLandscapeRight;
         windowView_.orientation = UIInterfaceOrientationLandscapeRight;
     } else if (orientation == Orientation::REVERSE_VERTICAL) {
+        /* if statusbar height >20 ,not support for UIInterfaceOrientationPortraitUpsideDown*/
+        if ([[UIApplication sharedApplication] statusBarFrame].size.height > 20) {
+            return;
+        }
         windowView_.OrientationMask = UIInterfaceOrientationMaskPortraitUpsideDown;
         windowView_.orientation = UIInterfaceOrientationPortraitUpsideDown;
     }

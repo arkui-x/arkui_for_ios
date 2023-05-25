@@ -21,4 +21,8 @@
     return self.visibleViewController.prefersStatusBarHidden;
 }
 
+- (UIInterfaceOrientationMask)supportedInterfaceOrientations {
+    return UIInterfaceOrientationMaskAll;
+}
+
 @end
