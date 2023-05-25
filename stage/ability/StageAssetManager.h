@@ -35,7 +35,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (NSArray *_Nullable)getModuleJsonFileList;
 
 - (NSString *_Nullable)getAbilityStageABCWithModuleName:(NSString *)moduleName
-                                             modulePath:(NSString **)modulePath;
+                                             modulePath:(NSString **)modulePath
+                                             esmodule:(BOOL)esmodule;
 
 - (void)getModuleResourcesWithModuleName:(NSString *)moduleName
                          appResIndexPath:(NSString **)appResIndexPath
@@ -43,7 +44,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (NSString *_Nullable)getModuleAbilityABCWithModuleName:(NSString *)moduleName
                                              abilityName:(NSString *)abilityName
-                                              modulePath:(NSString **)modulePath;
+                                              modulePath:(NSString **)modulePath
+                                              esmodule:(BOOL)esmodule;
 
 @end
 
