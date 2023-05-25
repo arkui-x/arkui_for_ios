@@ -85,7 +85,7 @@ std::shared_ptr<Window> Window::CreateSubWindow(
         return nullptr;
     }
 
-    uint32_t windowId = ++tempWindowId; // for test
+    uint32_t windowId = ++tempWindowId;
     if (option->GetWindowType() != OHOS::Rosen::WindowType::WINDOW_TYPE_APP_SUB_WINDOW) {
         LOGI("Window::CreateSubWindow failed, window type error![windowType=%{public}d]", static_cast<int32_t>(option->GetWindowType()));
         return nullptr;
@@ -149,8 +149,8 @@ void Window::AddToSubWindowMap(std::shared_ptr<Window> window)
         HILOG_ERROR("window is null");
         return;
     }
-    if (window->GetType() != OHOS::Rosen::WindowType::WINDOW_TYPE_APP_SUB_WINDOW/* ||
-        window->GetParentId() == INVALID_WINDOW_ID*/) {
+    if (window->GetType() != OHOS::Rosen::WindowType::WINDOW_TYPE_APP_SUB_WINDOW ||
+        window->GetParentId() == INVALID_WINDOW_ID) {
         HILOG_ERROR("window is not subwindow");
         return;
     }
@@ -194,13 +194,15 @@ void Window::ShowSubWindowMap(std::string str, uint32_t parentId)
 {
     auto iter1 = subWindowMap_.find(parentId);
     if (iter1 == subWindowMap_.end()) {
-        HILOG_INFO("Window::ShowSubWindowMap : %{public}s : find parentId failed! parentId=%{public}u", str.c_str(), parentId);
+        HILOG_INFO("Window::ShowSubWindowMap : %{public}s : find parentId failed! parentId=%{public}u",
+            str.c_str(), parentId);
         return;
     }
     auto subWindows = iter1->second;
     auto iter2 = subWindows.begin();
     while (iter2 != subWindows.end()) {
-        HILOG_INFO("Window::ShowSubWindowMap : %{public}s : windowId=%{public}u, windowName=%{public}s", str.c_str(), (*iter2)->GetWindowId(), (*iter2)->GetWindowName().c_str());
+        HILOG_INFO("Window::ShowSubWindowMap : %{public}s : windowId=%{public}u, windowName=%{public}s",
+            str.c_str(), (*iter2)->GetWindowId(), (*iter2)->GetWindowName().c_str());
         iter2++;
     }
 }
@@ -261,14 +263,15 @@ WMError Window::Destroy()
 
 const std::vector<std::shared_ptr<Window>>& Window::GetSubWindow(uint32_t parentId)
 {
-    HILOG_INFO("Window::GetSubWindow : Start... / parentId = %{public}u, subWIndowMapSize=%{public}u", parentId, subWindowMap_.size());
+    HILOG_INFO("Window::GetSubWindow : Start... / parentId = %{public}u, subWIndowMapSize=%{public}u",
+        parentId, subWindowMap_.size());
     if (subWindowMap_.find(parentId) == subWindowMap_.end()) {
         HILOG_INFO("Window::GetSubWindow : find subwindow failed");
         return std::vector<std::shared_ptr<Window>>();
     }
-    HILOG_INFO("Window::GetSubWindow : find subwindow success, parentId=%u, subwindowSize=%u", parentId, subWindowMap_[parentId].size());
+    HILOG_INFO("Window::GetSubWindow : find subwindow success, parentId=%u, subwindowSize=%u",
+        parentId, subWindowMap_[parentId].size());
     ShowSubWindowMap("Window::GetSubWindow", parentId);
-    //return std::vector<std::shared_ptr<Window>>(subWindowMap_[parentId].begin(), subWindowMap_[parentId].end());
     return subWindowMap_[parentId];
 }
 
@@ -285,7 +288,8 @@ std::shared_ptr<Window> Window::GetTopWindow(const std::shared_ptr<OHOS::Ability
 {
     StageViewController *controller = [StageApplication getApplicationTopViewController];
     NSString *instanceName = controller.instanceName;
-    WindowView *windowView = (WindowView*)OHOS::AbilityRuntime::Platform::WindowViewAdapter::GetInstance()->GetWindowView([instanceName UTF8String]);
+    WindowView *windowView = static_cast<WindowView*>(OHOS::AbilityRuntime::Platform
+        ::WindowViewAdapter::GetInstance()->GetWindowView([instanceName UTF8String]));
     return [windowView getWindow]; 
 }
 
@@ -658,7 +662,8 @@ bool Window::IsKeepScreenOn()
 
 WMError Window::SetSystemBarProperty(WindowType type, const SystemBarProperty& property)
 {
-    HILOG_INFO("Window::SetSystemBarProperty : Start... / type=%{public}d, enable=%{public}d", static_cast<int>(type), property.enable_);
+    HILOG_INFO("Window::SetSystemBarProperty : Start... / type=%{public}d, enable=%{public}d",
+        static_cast<int>(type), property.enable_);
     StageViewController *controller = [StageApplication getApplicationTopViewController];   
     if (type ==  WindowType::WINDOW_TYPE_NAVIGATION_BAR) {
         HILOG_INFO("Window::SetSystemBarProperty : Set Navigation Bar");
