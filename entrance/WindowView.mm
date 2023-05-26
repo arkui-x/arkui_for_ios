@@ -53,6 +53,7 @@
         NSLog(@"windowView init%@", self);
         _width = 0;
         _height = 0;
+        self.multipleTouchEnabled = YES;
         _needNotifySurfaceChangedWithWidth = NO;
         _needCreateSurfaceNode = NO;
         [self setupNotificationCenterObservers];
