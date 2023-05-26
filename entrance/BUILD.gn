@@ -44,6 +44,7 @@ template("ace_ios_standard_source_set") {
     sources = [
       "AcePlatformPlugin.mm",
       "WindowView.mm",
+      "UINavigationController+StatusBar.mm",
       "ace_application_info_impl.cpp",
       "ace_bridge.mm",
       "ace_container.cpp",

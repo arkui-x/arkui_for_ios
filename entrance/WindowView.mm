@@ -14,6 +14,7 @@
  */
 
 #include "WindowView.h"
+#include "hilog.h"
 
 #include <__nullptr>
 #include <cstddef>
@@ -23,6 +24,7 @@
 #include "adapter/ios/capability/editing/iOSTxtInputManager.h"
 #include "flutter/lib/ui/window/pointer_data_packet.h"
 #include "virtual_rs_window.h"
+#include "UINavigationController+StatusBar.h"
 #define ACE_ENABLE_GL
 @interface WindowView()
 
@@ -62,6 +64,9 @@
     [super layoutSubviews];
     UIScreen *screen = [UIScreen mainScreen];
     CGFloat scale = screen.scale;
+    HILOG_INFO("layoutSubviews : bounds.width/height=%{public}u/%{public}u", 
+        static_cast<int32_t>(self.bounds.size.width), 
+        static_cast<int32_t>(self.bounds.size.height));
     int32_t width = static_cast<int32_t>(self.bounds.size.width * scale);
     int32_t height = static_cast<int32_t>(self.bounds.size.height * scale);
     if ([self.layer isKindOfClass:[CAEAGLLayer class]]) {
@@ -90,7 +95,6 @@
     return _windowDelegate.lock();
 }
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event {
-   NSLog(@"touchesBegan%@ %p", self, _windowDelegate.lock().get());
     [self dispatchTouches:touches];
 }
 
@@ -191,7 +195,6 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
         
         packet->SetPointerData(pointer_index++, pointer_data);
     }
-    NSLog(@"dispatchTouches%p", _windowDelegate.lock().get());
     if (_windowDelegate.lock() != nullptr) {
         
         _windowDelegate.lock()->ProcessPointerEvent(packet->data());
