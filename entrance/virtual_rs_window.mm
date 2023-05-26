@@ -116,7 +116,7 @@ void Window::AddToWindowMap(std::shared_ptr<Window> window)
         std::pair<uint32_t, std::shared_ptr<Window>>(window->GetWindowId(), window)));
 }
 
-bool Window::CheckWindowNameExist(std::string windowName)
+bool Window::CheckWindowNameExist(const std::string& windowName)
 {
     auto iter = windowMap_.find(windowName);
     if (iter == windowMap_.end()) {
@@ -190,7 +190,7 @@ void Window::DeleteFromSubWindowMap(std::shared_ptr<Window> window)
     HILOG_INFO("Window::AddToSubWindowMap : End!!!");
 }
 
-void Window::ShowSubWindowMap(std::string str, uint32_t parentId)
+void Window::ShowSubWindowMap(const std::string& str, uint32_t parentId)
 {
     auto iter1 = subWindowMap_.find(parentId);
     if (iter1 == subWindowMap_.end()) {
@@ -512,7 +512,7 @@ void Window::DelayNotifyUIContentIfNeeded()
 int Window::SetUIContent(const std::string& contentInfo,
     NativeEngine* engine, NativeValue* storage, bool isdistributed, AbilityRuntime::Platform::Ability* ability)
 {
-    LOGI("Window::SetUIContent : Start... / this=%p, windowView=%p",this, windowView_);
+    LOGI("Window::SetUIContent : Start");
     using namespace OHOS::Ace::Platform;
     (void)ability;
     std::unique_ptr<UIContent> uiContent;

@@ -261,7 +261,7 @@ private:
     int32_t surfaceWidth_ = 0;
     int32_t surfaceHeight_ = 0;
     Rect rect_ = {0, 0, 0, 0};
-    std::string name_ = "";
+    std::string name_;
     float density_ = 0;
     std::shared_ptr<RSSurfaceNode> surfaceNode_;
     std::shared_ptr<flutter::VsyncWaiter> vsyncWaiter_;
@@ -294,8 +294,8 @@ private:
     static void DeleteFromWindowMap(Window* window);
     static void AddToSubWindowMap(std::shared_ptr<Window> window);
     static void DeleteFromSubWindowMap(std::shared_ptr<Window> window);
-    static void ShowSubWindowMap(std::string str, uint32_t parentId);
-    static bool CheckWindowNameExist(std::string windowName);
+    static void ShowSubWindowMap(const std::string& str, uint32_t parentId);
+    static bool CheckWindowNameExist(const std::string& windowName);
 
     static std::map<std::string, std::pair<uint32_t, std::shared_ptr<Window>>> windowMap_;
     static std::map<uint32_t, std::vector<std::shared_ptr<Window>>> subWindowMap_;

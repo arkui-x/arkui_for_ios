@@ -95,7 +95,6 @@
     return _windowDelegate.lock();
 }
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event {
-   NSLog(@"touchesBegan%@ %p", self, _windowDelegate.lock().get());
     [self dispatchTouches:touches];
 }
 
@@ -196,7 +195,6 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
         
         packet->SetPointerData(pointer_index++, pointer_data);
     }
-    NSLog(@"dispatchTouches%p", _windowDelegate.lock().get());
     if (_windowDelegate.lock() != nullptr) {
         
         _windowDelegate.lock()->ProcessPointerEvent(packet->data());
