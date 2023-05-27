@@ -141,15 +141,24 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
     }
 
     NSArray *array = self.allModuleFilePathArray.copy;
-    NSString *abilityString =  esmodule ? @"" : abilityName;
-    NSString *moduleString =  esmodule ? MODULE_STAGE_ABC_NAME : FILTER_FILE_MODULE_ABC;
-    for (NSString *path in array) {
+    if (!esmodule) {
+        for (NSString *path in array) {
+            if ([path containsString:moduleName]
+                && [path containsString:abilityName]
+                && [path containsString:FILTER_FILE_MODULE_ABC]) {
+                NSLog(@"%s, moduleName : %@, abilityName : %@, \n path : %@", __func__, moduleName, abilityName, path);
+                *modulePath = path;
+                return path;
+            }
+        }
+    } else {
+        for (NSString *path in array) {
         if ([path containsString:moduleName]
-            && [path containsString:abilityString]
-            && [path containsString:moduleString]) {
-            NSLog(@"%s, moduleName : %@, abilityName : %@, \n path : %@", __func__, moduleName, abilityName, path);
-            *modulePath = path;
-            return path;
+                && [path containsString:MODULE_STAGE_ABC_NAME]) {
+                NSLog(@"%s, moduleName : %@, abilityName : %@, \n path : %@", __func__, moduleName, abilityName, path);
+                *modulePath = path;
+                return path;
+            }
         }
     }
     return nil;
