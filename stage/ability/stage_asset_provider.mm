@@ -79,7 +79,7 @@ std::list<std::vector<uint8_t>> StageAssetProvider::GetModuleJsonBufferList()
     return bufferList;
 }
 
-std::vector<uint8_t> StageAssetProvider::GetModuleBuffer(const std::string& moduleName, std::string& modulePath)
+std::vector<uint8_t> StageAssetProvider::GetModuleBuffer(const std::string& moduleName, std::string& modulePath, bool esmodule)
 {
     printf("%s, moduleName : %s, modulePath : %s", __func__, moduleName.c_str(), modulePath.c_str());
     std::lock_guard<std::mutex> lock(providerLock_);
@@ -93,7 +93,8 @@ std::vector<uint8_t> StageAssetProvider::GetModuleBuffer(const std::string& modu
     NSString *oc_moduleName = GetOCstring(moduleName);
     NSString *oc_modulePath = GetOCstring(modulePath);
     NSString *abilityStageAbcPath = [[StageAssetManager assetManager] getAbilityStageABCWithModuleName:oc_moduleName
-                                                                                            modulePath:&oc_modulePath];
+                                                                                            modulePath:&oc_modulePath
+                                                                                              esmodule:esmodule];
     if (!abilityStageAbcPath.length) {
         printf("%s, abilityStageAbcPath null", __func__);
         return buffer;
@@ -125,7 +126,7 @@ void StageAssetProvider::GetResIndexPath(const std::string& moduleName,
 }
 
 std::vector<uint8_t> StageAssetProvider::GetModuleAbilityBuffer (
-    const std::string& moduleName, const std::string& abilityName, std::string& modulePath)
+    const std::string& moduleName, const std::string& abilityName, std::string& modulePath, bool esmodule)
 {
     printf("%s, moduleName : %s, abilityName : %s", __func__, moduleName.c_str(), abilityName.c_str());
     std::lock_guard<std::mutex> lock(providerLock_);
@@ -138,7 +139,7 @@ std::vector<uint8_t> StageAssetProvider::GetModuleAbilityBuffer (
 
     if (abilityName.empty()) {
         printf("%s, abilityName null", __func__);
-        buffer = GetModuleBuffer(moduleName, modulePath);
+        buffer = GetModuleBuffer(moduleName, modulePath, esmodule);
         return buffer;
     }
 
@@ -147,7 +148,8 @@ std::vector<uint8_t> StageAssetProvider::GetModuleAbilityBuffer (
     NSString *oc_modulePath = GetOCstring(modulePath);
     NSString *moduleAbilityPath = [[StageAssetManager assetManager] getModuleAbilityABCWithModuleName:oc_moduleName
                                                                                           abilityName:oc_abilityName
-                                                                                           modulePath:&oc_modulePath];
+                                                                                           modulePath:&oc_modulePath 
+                                                                                             esmodule:esmodule];
     if (!moduleAbilityPath.length) {
         printf("%s, moduleAbilityPath null", __func__);
         return buffer;
