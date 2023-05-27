@@ -32,6 +32,7 @@
 #include "window_view_adapter.h"
 #include "window_interface.h"
 #include "window_option.h"
+#include "instanceidGenerator.h"
 #include "hilog.h"
 
 namespace OHOS::Rosen {
@@ -40,7 +41,6 @@ std::map<uint32_t, std::vector<std::shared_ptr<Window>>> Window::subWindowMap_;
 std::map<std::string, std::pair<uint32_t, std::shared_ptr<Window>>> Window::windowMap_;
 std::map<uint32_t, std::vector<sptr<IWindowLifeCycle>>> Window::lifecycleListeners_;
 std::recursive_mutex Window::globalMutex_;
-std::atomic<uint32_t> Window::tempWindowId = INVALID_WINDOW_ID;
 
 Window::Window(const flutter::TaskRunners& taskRunners)
     : vsyncWaiter_(std::make_shared<flutter::VsyncWaiterIOS>(taskRunners))
@@ -67,7 +67,7 @@ std::shared_ptr<Window> Window::Create(
         return nullptr;
     }
     
-    uint32_t windowId = ++tempWindowId; // for test
+    uint32_t windowId = [InstanceIdGenerator getAndIncrement];
     auto window = std::make_shared<Window>(context, windowId);
     window->SetWindowView((WindowView*)windowView);
     window->SetWindowName(windowName);
@@ -85,7 +85,7 @@ std::shared_ptr<Window> Window::CreateSubWindow(
         return nullptr;
     }
 
-    uint32_t windowId = ++tempWindowId;
+    uint32_t windowId = [InstanceIdGenerator getAndIncrement];
     if (option->GetWindowType() != OHOS::Rosen::WindowType::WINDOW_TYPE_APP_SUB_WINDOW) {
         LOGI("Window::CreateSubWindow failed, window type error![windowType=%{public}d]", static_cast<int32_t>(option->GetWindowType()));
         return nullptr;
