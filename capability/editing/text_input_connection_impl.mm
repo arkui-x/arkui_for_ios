@@ -116,8 +116,8 @@ void TextInputConnectionImpl::Show(bool isFocusViewChanged, int32_t instanceId){
     };
     LOGE("vailclientid->Show sb:%d,se:%d,cb:%d,ce:%d,text:%s",value.selection.baseOffset,value.selection.extentOffset,value.compose.baseOffset,value.compose.extentOffset,text.UTF8String);
     
-    dispatch_async(dispatch_get_main_queue(), ^{
-        [iOSTxtInputManager shareintance].textInputBlock = ^(int client, NSDictionary *state){
+    TextInputNoParamsBlock showCallback = ^{
+        updateEditingClientBlock textInputCallback = ^(int client, NSDictionary *state){
             if(clientId == client && [state objectForKey:@"text"]){
                 NSString *text = [state objectForKey:@"text"];
                 NSInteger selectionBase = [state[@"selectionBase"] intValue];
@@ -134,7 +134,8 @@ void TextInputConnectionImpl::Show(bool isFocusViewChanged, int32_t instanceId){
                 needFireChangeEvent_ = true;
             }
         };
-        [iOSTxtInputManager shareintance].textPerformBlock = ^(int action, int client){
+        [iOSTxtInputManager shareintance].textInputBlock = textInputCallback;
+        performActionBlock textPerformCallback = ^(int action, int client){
             if(clientId == client){
                 TextInputAction actionType = TextInputAction::DONE; 
                 switch (action) {
@@ -170,13 +171,15 @@ void TextInputConnectionImpl::Show(bool isFocusViewChanged, int32_t instanceId){
                 }
             }
         };
+        [iOSTxtInputManager shareintance].textPerformBlock = textPerformCallback;
         [iOSTxtInputManager shareintance].inputBoxY = renderTextField->GetEditingBoxY();
         [iOSTxtInputManager shareintance].inputBoxTopY = renderTextField->GetEditingBoxTopY();
         [iOSTxtInputManager shareintance].isDeclarative = renderTextField->GetEditingBoxModel();
         [[iOSTxtInputManager shareintance] setTextInputClient:clientId withConfiguration:configure];
         [[iOSTxtInputManager shareintance] setTextInputEditingState:stateDict];
         [[iOSTxtInputManager shareintance] showTextInput];
-    });
+    };
+    dispatch_main_async_safe(showCallback);
 }
 
 void TextInputConnectionImpl::SetEditingState(const TextEditingValue& value, int32_t instanceId, bool needFireChangeEvent){
@@ -199,7 +202,7 @@ void TextInputConnectionImpl::SetEditingState(const TextEditingValue& value, int
         @"selectionIsDirectional":@(0)
     };
     
-    dispatch_async(dispatch_get_main_queue(), ^{
+    dispatch_main_async_safe(^{
         [[iOSTxtInputManager shareintance] setTextInputEditingState:stateDict];
     });
 }
