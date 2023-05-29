@@ -228,6 +228,12 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
     }
 }
 
+- (void)notifyWindowDestroyed {
+    if (_windowDelegate.lock() != nullptr) {
+        _windowDelegate.lock()->Destroy();
+    }
+}
+
 - (void)setupNotificationCenterObservers {
     NSNotificationCenter* center = [NSNotificationCenter defaultCenter];
     [center addObserver:self
