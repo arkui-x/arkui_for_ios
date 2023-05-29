@@ -32,7 +32,7 @@
 #include "window_view_adapter.h"
 #include "window_interface.h"
 #include "window_option.h"
-#include "instanceidGenerator.h"
+#include "InstanceIdGenerator.h"
 #include "hilog.h"
 
 namespace OHOS::Rosen {
