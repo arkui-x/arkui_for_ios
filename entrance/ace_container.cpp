@@ -633,18 +633,12 @@ void AceContainer::SetView(FlutterAceView* view, double density, int32_t width, 
     auto instanceId = view->GetInstanceId();
     std::unique_ptr<Window> window = std::make_unique<NG::FlutterWindow>(container->GetTaskExecutor(), instanceId);
 #else
-    auto platformWindow = PlatformWindow::Create(view);
-    if (!platformWindow) {
-        LOGE("Create PlatformWindow failed!");
-        return;
-    }
-
     if (view && view->IsViewLaunched()) {
         LOGW("aceView has launched");
         return;
     }
 
-    std::unique_ptr<Window> window = std::make_unique<Window>(std::move(platformWindow));
+    std::unique_ptr<Window> window = std::make_unique<Window>(nullptr);
 #endif
     container->AttachView(std::move(window), view, density, width, height);
 }
