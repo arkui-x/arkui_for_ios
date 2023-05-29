@@ -52,7 +52,7 @@ Window::Window(std::shared_ptr<AbilityRuntime::Platform::Context> context, uint3
 
 Window::~Window()
 {
-    LOGI("Window: release");
+    LOGI("Window: release id = %u", windowId_);
     ReleaseWindowView();
 }
 
@@ -209,6 +209,7 @@ void Window::ShowSubWindowMap(const std::string& str, uint32_t parentId)
 
 WMError Window::Destroy()
 {
+    HILOG_INFO("Window::Destroy");
     if (uiContent_ != nullptr) {
         uiContent_->Destroy();
         uiContent_ = nullptr;
@@ -216,6 +217,7 @@ WMError Window::Destroy()
 
     if (windowView_ != nullptr) {
         [windowView_ removeFromSuperview];
+        [windowView_ release];
         windowView_ = nullptr;
     }
 
