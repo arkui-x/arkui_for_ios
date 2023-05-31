@@ -20,13 +20,7 @@
 
 #include "core/components/theme/theme_manager_impl.h"
 
-#ifdef NG_BUILD
-#include "ace_shell/shell/common/window_manager.h"
-
-#include "core/components_ng/render/adapter/flutter_window.h"
-#else
 #include "flutter/lib/ui/ui_dart_state.h"
-#endif
 
 #include "adapter/ios/entrance/ace_application_info_impl.h"
 #include "adapter/ios/osal/dir_asset_provider.h"
@@ -421,15 +415,9 @@ void AceContainer::AddAssetPath(
         }
         if (flutterAssetManager) {
             LOGD("Current path is: %s", path.c_str());
-#ifdef NG_BUILD
-            auto dirAssetProvider = AceType::MakeRefPtr<DirAssetProvider>(
-                path, std::make_unique<flutter::DirectoryAssetBundle>(
-                          fml::OpenDirectory(path.c_str(), false, fml::FilePermission::kRead), true));
-#else
             auto dirAssetProvider = AceType::MakeRefPtr<DirAssetProvider>(
                 path, std::make_unique<flutter::DirectoryAssetBundle>(
                           fml::OpenDirectory(path.c_str(), false, fml::FilePermission::kRead)));
-#endif
             flutterAssetManager->PushBack(std::move(dirAssetProvider));
         }
     }
@@ -629,17 +617,12 @@ void AceContainer::SetView(FlutterAceView* view, double density, int32_t width, 
     if (!container) {
         return;
     }
-#ifdef NG_BUILD
-    auto instanceId = view->GetInstanceId();
-    std::unique_ptr<Window> window = std::make_unique<NG::FlutterWindow>(container->GetTaskExecutor(), instanceId);
-#else
     if (view && view->IsViewLaunched()) {
         LOGW("aceView has launched");
         return;
     }
 
     std::unique_ptr<Window> window = std::make_unique<Window>(nullptr);
-#endif
     container->AttachView(std::move(window), view, density, width, height);
 }
 
@@ -674,13 +657,8 @@ void AceContainer::AttachView(
 {
     aceView_ = view;
     auto instanceId = aceView_->GetInstanceId();
-#ifdef NG_BUILD
-    auto state = flutter::ace::WindowManager::GetWindow(instanceId);
-    ACE_DCHECK(state != nullptr);
-#else
     auto state = flutter::UIDartState::Current()->GetStateById(instanceId);
     ACE_DCHECK(state != nullptr);
-#endif
     auto flutterTaskExecutor = AceType::DynamicCast<FlutterTaskExecutor>(taskExecutor_);
     flutterTaskExecutor->InitOtherThreads(state->GetTaskRunners());
 
@@ -732,6 +710,7 @@ void AceContainer::AttachView(
             },
             TaskExecutor::TaskType::UI);
     }
+#ifndef NG_BUILD
 #ifdef ENABLE_ROSEN_BACKEND
     taskExecutor_->PostTask(
         [weak = WeakClaim(this)]() {
@@ -758,6 +737,7 @@ void AceContainer::AttachView(
             LOGI("Init Rosen Backend");
         },
         TaskExecutor::TaskType::UI);
+#endif
 #endif
     taskExecutor_->PostTask(
         [context = pipelineContext_]() {

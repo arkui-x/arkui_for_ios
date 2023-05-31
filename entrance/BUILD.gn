@@ -87,41 +87,23 @@ template("ace_ios_standard_source_set") {
       "QuartzCore.framework",
     ]
 
-    if (enable_ng_build) {
-      include_dirs += [
-        "//third_party/flutter_ace_shell",
-        "//third_party/flutter_ace_shell/engine",
-        "//third_party/flutter_ace_shell/third_party/skia",
-        "//third_party/flutter_ace_shell/engine/flutter/third_party/txt/src",
-        "//third_party/flutter_ace_shell/engine/flutter/shell/platform/darwin/common/framework/Headers",
-        "//base/global/resource_management/interfaces/inner_api/include",
-      ]
+    include_dirs += [
+      "//third_party/flutter",
+      "//third_party/flutter/engine",
+      "//third_party/flutter/third_party/skia",
+      "//third_party/flutter/engine/flutter/shell/platform/darwin/common/framework/Headers",
+      "//third_party/flutter/engine/flutter/shell/platform/darwin/ios/framework/Headers",
+      "//third_party/flutter/engine/flutter/shell/common",
+      "//base/global/resource_management/interfaces/inner_api/include",
+    ]
+    sources += [ "AceViewController.mm" ]
+    sources += [ "rosen_ace_view.mm" ]
 
-      sources += [ "AceViewControllerNG.mm" ]
+    deps += [
+      "$ace_flutter_engine_root:third_party_flutter_engine_$platform",
+      "$ace_flutter_engine_root/skia:ace_skia_$platform",
+    ]
 
-      deps += [
-        "$ace_flutter_engine_root:third_party_flutter_engine_lib_ui_dev_$platform",
-        "$ace_flutter_engine_root_new:third_party_flutter_engine_dev_$platform",
-        "$ace_flutter_engine_root_new/third_party/skia:ace_skia_dev_$platform",
-      ]
-    } else {
-      include_dirs += [
-        "//third_party/flutter",
-        "//third_party/flutter/engine",
-        "//third_party/flutter/third_party/skia",
-        "//third_party/flutter/engine/flutter/shell/platform/darwin/common/framework/Headers",
-        "//third_party/flutter/engine/flutter/shell/platform/darwin/ios/framework/Headers",
-        "//third_party/flutter/engine/flutter/shell/common",
-        "//base/global/resource_management/interfaces/inner_api/include",
-      ]
-      sources += [ "AceViewController.mm" ]
-      sources += [ "rosen_ace_view.mm" ]
-
-      deps += [
-        "$ace_flutter_engine_root:third_party_flutter_engine_$platform",
-        "$ace_flutter_engine_root/skia:ace_skia_$platform",
-      ]
-    }
     if (defined(config.enable_rosen_backend) && config.enable_rosen_backend) {
       deps += [ "//foundation/graphic/graphic_2d/rosen/modules/render_service_client:librender_service_client_static" ]
     }
