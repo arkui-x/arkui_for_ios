@@ -730,10 +730,17 @@ void AceContainerSG::OnShow(int32_t instanceId)
     ContainerScope scope(instanceId);
     auto taskExecutor = container->GetTaskExecutor();
     CHECK_NULL_VOID(taskExecutor);
+    if (!container->UpdateState(Frontend::State::ON_SHOW)) {
+        return;
+    }
     taskExecutor->PostTask(
         [container]() {
             // When it is subContainer, no need call the OnShow,
             auto front = container->GetFrontend();
+            if (front) {
+                front->UpdateState(Frontend::State::ON_SHOW);
+                front->OnShow();
+            }
             auto pipelineBase = container->GetPipelineContext();
             CHECK_NULL_VOID(pipelineBase);
             pipelineBase->OnShow();
@@ -750,7 +757,9 @@ void AceContainerSG::OnHide(int32_t instanceId)
     ContainerScope scope(instanceId);
     auto taskExecutor = container->GetTaskExecutor();
     CHECK_NULL_VOID(taskExecutor);
-
+    if (!container->UpdateState(Frontend::State::ON_HIDE)) {
+        return;
+    }
     taskExecutor->PostTask(
         [container]() {
             auto front = container->GetFrontend();
@@ -777,6 +786,10 @@ void AceContainerSG::OnActive(int32_t instanceId)
         [container]() {
             // When it is subContainer, no need call the OnActive.
             auto front = container->GetFrontend();
+            if (front) {
+                front->UpdateState(Frontend::State::ON_ACTIVE);
+                front->OnActive();
+            }
             auto pipelineContext = container->GetPipelineContext();
             CHECK_NULL_VOID(pipelineContext);
             pipelineContext->WindowFocus(true);
@@ -796,6 +809,10 @@ void AceContainerSG::OnInactive(int32_t instanceId)
         [container]() {
             // When it is subContainer, no need call the OnInactive.
             auto front = container->GetFrontend();
+            if (front) {
+                front->UpdateState(Frontend::State::ON_INACTIVE);
+                front->OnInactive();
+            }
             auto pipelineContext = container->GetPipelineContext();
             CHECK_NULL_VOID(pipelineContext);
             pipelineContext->WindowFocus(false);
