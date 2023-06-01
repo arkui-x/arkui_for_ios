@@ -16,6 +16,7 @@
 #import "BridgePlugin+jsMessage.h"
 #import "ParameterHelper.h"
 #import "BridgePluginManager.h"
+#import <objc/runtime.h>
 
 @implementation BridgePlugin (jsMessage)
 
@@ -29,12 +30,11 @@
         errorMessage = BRIDGE_METHOD_NAME_ERROR_MESSAGE;
     } else {
         NSArray *parameterArray = (NSArray *)callMethod.parameter;
-        SEL c_method = NSSelectorFromString(callMethod.methodName);
         id result = nil;
         NSLog(@"%s, parameterArray : %@", __func__, parameterArray);
-        if ([self respondsToSelector:c_method]) {
+        if (callMethod.methodName.length != 0) {
             @try {
-                result = [self performeNewSelector:c_method
+                result = [self performeNewSelector:callMethod.methodName
                                         withParams:parameterArray
                                             target:self];
                 if (result && [result isKindOfClass:NSDictionary.class]) {
@@ -120,50 +120,84 @@
     }
 }
 
-- (id)performeNewSelector:(SEL)selector
+- (id)performeNewSelector:(NSString *)methodName
                withParams:(NSArray *)params
                    target:(id)target {
-    NSMethodSignature *signature = [target methodSignatureForSelector:selector];
-    if (!signature) {
+    NSUInteger paramCount = params.count;
+    int signatureDefaultArgsNum = 2;
+    NSMethodSignature *signature;
+    SEL selector = nullptr;
+
+    if (params.count == 0) {
+        selector = NSSelectorFromString(methodName);
+        signature = [target methodSignatureForSelector:selector];
+    }else {
+        unsigned int methodCount;
+        Method *methodList = class_copyMethodList([target class], &methodCount);
+        for (int i = 0; i < methodCount; i++) {
+            Method method = methodList[i];
+            SEL c_sel = method_getName(method);
+            const char *name = sel_getName(c_sel);
+            if (![methodName hasSuffix:@":"]) {
+                methodName = [methodName stringByAppendingString:@":"];
+            }
+            const char *c_methodname = [methodName UTF8String];
+            signature = [target methodSignatureForSelector:c_sel];
+            if (signature.numberOfArguments == paramCount + signatureDefaultArgsNum && 
+                !strncmp(name,c_methodname,strlen(c_methodname))) {
+                selector = c_sel;
+                break;
+            }
+        }
+        free(methodList);
+    }
+
+    return [self handleMethodParam:signature target:target selector:selector params:params];
+}
+
+- (id)handleMethodParam:(NSMethodSignature *)signature
+    target:(id)target  selector:(SEL)selector params:(NSArray *)params {
+    int signatureDefaultArgsNum = 2;
+    if (!signature || selector == nullptr) {
         NSLog(@"signature nil");
         return @{@"errorCode":@(BRIDGE_METHOD_UNIMPL), @"errorMessage":BRIDGE_METHOD_UNIMPL_MESSAGE};
     }
-    int signatureDefaultArgsNum = 2;
-    NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:signature];
-    invocation.target = target;
-    invocation.selector = selector;
     NSInteger paramsCount = signature.numberOfArguments - signatureDefaultArgsNum;
     if (paramsCount != params.count) {
         NSLog(@"params count error");
         return @{@"errorCode":@(BRIDGE_METHOD_PARAM_ERROR), @"errorMessage":BRIDGE_METHOD_PARAM_ERROR_MESSAGE};
     }
+    
+    NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:signature];
+    invocation.target = target;
+    invocation.selector = selector;
     if (params.count > 0) {
-        for (int i = 0; i < paramsCount; i++) {
-            id argument = params[i];
-            const char *argumentType = [signature getArgumentTypeAtIndex:i + signatureDefaultArgsNum];
-            NSLog(@"argument : %@", argument);
-            if ([argument isKindOfClass:[NSNumber class]]) {
-                if (!strcmp(argumentType, @encode(BOOL))) {
-                    BOOL arg = [argument boolValue];
-                    [invocation setArgument:&arg atIndex:i + signatureDefaultArgsNum];
-                } else if (!strcmp(argumentType, @encode(int))) {
-                    int arg = [argument intValue];
-                    [invocation setArgument:&arg atIndex:i + signatureDefaultArgsNum];
-                } else if (!strcmp(argumentType, @encode(float))) {
-                    float arg = [argument floatValue];
-                    [invocation setArgument:&arg atIndex:i + signatureDefaultArgsNum];
-                } else if (!strcmp(argumentType, @encode(long))) {
-                    long arg = [argument longValue];
-                    [invocation setArgument:&arg atIndex:i + signatureDefaultArgsNum];
-                } else {
-                    return @{@"errorCode":@(BRIDGE_METHOD_PARAM_ERROR),
-                             @"errorMessage":BRIDGE_METHOD_PARAM_ERROR_MESSAGE}; // illegal parameterType
-                }
-            } else {
-                NSLog(@"paramsIndex : %d, id : %@", i, argument);
-                [invocation setArgument:&argument atIndex:i + signatureDefaultArgsNum];
-            }
-        }
+       for (int i = 0; i < paramsCount; i++) {
+           id argument = params[i];
+           const char *argumentType = [signature getArgumentTypeAtIndex:i + signatureDefaultArgsNum];
+           NSLog(@"argument : %@", argument);
+           if ([argument isKindOfClass:[NSNumber class]]) {
+               if (!strcmp(argumentType, @encode(BOOL))) {
+                   BOOL arg = [argument boolValue];
+                   [invocation setArgument:&arg atIndex:i + signatureDefaultArgsNum];
+               } else if (!strcmp(argumentType, @encode(int))) {
+                   int arg = [argument intValue];
+                   [invocation setArgument:&arg atIndex:i + signatureDefaultArgsNum];
+               } else if (!strcmp(argumentType, @encode(float))) {
+                   float arg = [argument floatValue];
+                   [invocation setArgument:&arg atIndex:i + signatureDefaultArgsNum];
+               } else if (!strcmp(argumentType, @encode(long))) {
+                   long arg = [argument longValue];
+                   [invocation setArgument:&arg atIndex:i + signatureDefaultArgsNum];
+               } else {
+                   return @{@"errorCode":@(BRIDGE_METHOD_PARAM_ERROR),
+                            @"errorMessage":BRIDGE_METHOD_PARAM_ERROR_MESSAGE}; // illegal parameterType
+               }
+           } else {
+               NSLog(@"paramsIndex : %d, id : %@", i, argument);
+               [invocation setArgument:&argument atIndex:i + signatureDefaultArgsNum];
+           }
+       }
     }
     [invocation retainArguments];
     [invocation invoke];
