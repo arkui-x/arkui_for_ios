@@ -163,10 +163,12 @@ void TextInputConnectionImpl::Show(bool isFocusViewChanged, int32_t instanceId){
                 TextInputClientHandler::GetInstance().PerformAction(client, actionType);
                 if(action == iOSTextInputActionDone){
                     dispatch_async(dispatch_get_main_queue(), ^{
-                        [[iOSTxtInputManager shareintance] hideTextInput];
-                        [iOSTxtInputManager shareintance].inputBoxY = 0.0;
-                        [iOSTxtInputManager shareintance].inputBoxTopY = 0.0;
-                        [iOSTxtInputManager shareintance].isDeclarative = false;
+                        if ([iOSTxtInputManager shareintance]) {
+                            [[iOSTxtInputManager shareintance] hideTextInput];
+                            [iOSTxtInputManager shareintance].inputBoxY = 0.0;
+                            [iOSTxtInputManager shareintance].inputBoxTopY = 0.0;
+                            [iOSTxtInputManager shareintance].isDeclarative = false;
+                        }
                     });
                 }
             }
