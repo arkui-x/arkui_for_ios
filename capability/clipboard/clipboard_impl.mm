@@ -48,6 +48,14 @@ void ClipboardImpl::GetData(const std::function<void(const std::string&)>& callb
     }
 }
 
+void ClipboardImpl::HasData(const std::function<void(bool hasData)>& callback)
+{  
+    if (callback) {
+        UIPasteboard *pasteboard = [UIPasteboard generalPasteboard];
+        callback(pasteboard.hasStrings);
+    }
+}
+
 void ClipboardImpl::Clear()
 {
     if (taskExecutor_) {
