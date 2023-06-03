@@ -307,7 +307,7 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
                              [iOSTxtInputManager shareintance].inputBoxTopY;
     CGFloat ty = keyboardY - [iOSTxtInputManager shareintance].inputBoxTopY -inputBoxHeight;
     if (isEts) {
-        ty = keyboardY - inputBoxHeight - [iOSTxtInputManager shareintance].inputBoxTopY/scale;
+        ty = keyboardY - ([iOSTxtInputManager shareintance].inputBoxTopY + inputBoxHeight) / scale;
     }
     [UIView animateWithDuration:duration animations:^{
         if (ty < 0) {
