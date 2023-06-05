@@ -239,14 +239,14 @@ WMError Window::Destroy()
                 subWindows.erase(iter);
                 continue;
             }
+            auto windowPtr = (*iter);
             subWindows.erase(iter);
-            DeleteFromWindowMap(*iter);
-            (*iter)->Destroy();
+            DeleteFromWindowMap(windowPtr);
+            windowPtr->Destroy();
         }
         subWindowMap_[GetWindowId()].clear();
         subWindowMap_.erase(GetWindowId());
     }
-
     // Rmove current window from subWindowMap_ of parent window
     if (subWindowMap_.count(GetParentId()) > 0) {
         auto& subWindows = subWindowMap_.at(GetParentId());
