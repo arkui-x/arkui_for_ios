@@ -193,6 +193,11 @@ public:
         return state_;
     }
 
+    bool GetISUIContentInitialize() const
+    {
+        return iSUIContentInitialize_;
+    }
+
     SystemBarProperty GetSystemBarPropertyByType(WindowType type) const;
     void SetRequestedOrientation(Orientation);
     WMError RegisterLifeCycleListener(const sptr<IWindowLifeCycle>& listener);
@@ -207,7 +212,7 @@ private:
 
     void DelayNotifyUIContentIfNeeded();
     bool IsWindowValid() const;
-    
+
     template<typename T1, typename T2, typename Ret>
     using EnableIfSame = typename std::enable_if<std::is_same_v<T1, T2>, Ret>::type;
     template<typename T> WMError RegisterListener(std::vector<sptr<T>>& holder, const sptr<T>& listener);
@@ -287,6 +292,7 @@ private:
     WindowMode windowMode_;
     WindowType windowType_;
     uint32_t backgroundColor_;
+    bool iSUIContentInitialize_ = false;
     WindowState state_ { WindowState::STATE_INITIAL };
 
     static void AddToWindowMap(std::shared_ptr<Window> window);

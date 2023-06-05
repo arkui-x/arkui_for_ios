@@ -98,6 +98,7 @@ CGFloat _brightness = 0.0;
 - (void)dealloc {
     NSLog(@"StageVC->%@ dealloc", self);
     [_windowView notifySurfaceDestroyed];
+    [_windowView notifyWindowDestroyed];
     [_windowView release];
     [_platformPlugin release];
     AppMain::GetInstance()->DispatchOnDestroy(_cInstanceName);
