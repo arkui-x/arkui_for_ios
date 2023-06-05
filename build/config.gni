@@ -38,6 +38,7 @@ connect_server_support = false
 
 napi_support = false
 enable_rosen_backend = true
+use_external_icu = "static"
 pixel_map_support = true
 
 cflags_cc = [
