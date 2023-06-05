@@ -340,7 +340,7 @@ WMError Window::ResizeWindowTo(int32_t width, int32_t height) {
     LOGI("Window: ResizeWindowTo %d %d", width, height);
     UIScreen *screen = [UIScreen mainScreen];
     CGFloat scale = screen.scale;
-    windowView_.bounds = CGRectMake(0, 0, width / scale, height / scale);
+    windowView_.frame = CGRectMake(windowView_.frame.origin.x, windowView_.frame.origin.y, width / scale, height / scale);
     rect_.width_ = width;
     rect_.height_ = height;
     return WMError::WM_OK;
