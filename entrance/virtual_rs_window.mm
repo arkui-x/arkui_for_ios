@@ -39,7 +39,7 @@ namespace OHOS::Rosen {
 
 void DummyWindowRelease(Window* window)
 {
-    if (!window->GetISUIContentInitialize()) {
+    if (!window->GetIsUIContentInitialize()) {
         delete window;
     }
     LOGI("Rosenwindow rsWindow_Window: dummy release");
@@ -75,7 +75,7 @@ std::shared_ptr<Window> Window::Create(
     }
     
     uint32_t windowId = [InstanceIdGenerator getAndIncrement];
-    auto window = std::shared_ptr<Window>(new Window(context, windowId),DummyWindowRelease);
+    auto window = std::shared_ptr<Window>(new Window(context, windowId), DummyWindowRelease);
     window->SetWindowView((WindowView*)windowView);
     window->SetWindowName(windowName);
     [(WindowView*)windowView setWindowDelegate:window];
@@ -98,7 +98,7 @@ std::shared_ptr<Window> Window::CreateSubWindow(
         return nullptr;
     }
 
-     auto window = std::shared_ptr<Window>(new Window(context, windowId),DummyWindowRelease);
+     auto window = std::shared_ptr<Window>(new Window(context, windowId), DummyWindowRelease);
     WindowView* windowView = [[WindowView alloc]init];
     LOGI("Window::Createsubwindow with %{public}p", windowView);
     window->SetWindowView(windowView);
@@ -543,7 +543,7 @@ int Window::SetUIContent(const std::string& contentInfo,
 
     uiContent_->Foreground();
     isWindowShow_ = true;
-    iSUIContentInitialize_ = true;
+    isUIContentInitialize_ = true;
 
     DelayNotifyUIContentIfNeeded();
     LOGI("Window::SetUIContent : End!!!");

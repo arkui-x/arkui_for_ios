@@ -195,9 +195,9 @@ public:
         return state_;
     }
 
-    bool GetISUIContentInitialize() const
+    bool GetIsUIContentInitialize() const
     {
-        return iSUIContentInitialize_;
+        return isUIContentInitialize_;
     }
 
     SystemBarProperty GetSystemBarPropertyByType(WindowType type) const;
@@ -304,7 +304,7 @@ private:
     WindowMode windowMode_;
     WindowType windowType_;
     uint32_t backgroundColor_;
-    bool iSUIContentInitialize_ = false;
+    bool isUIContentInitialize_ = false;
     WindowState state_ { WindowState::STATE_INITIAL };
 
     static void AddToWindowMap(std::shared_ptr<Window> window);
