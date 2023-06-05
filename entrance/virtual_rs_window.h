@@ -58,6 +58,7 @@ class EventHandler;
 namespace Rosen {
 class IWindowLifeCycle;
 class WindowOption;
+using NotifyNativeWinDestroyFunc = std::function<void(std::string windowName)>;
 using OnCallback = std::function<void(int64_t)>;
 struct VsyncCallback {
     OnCallback onCallback;
@@ -141,6 +142,7 @@ public:
     void Foreground();
     void Background();
     WMError Destroy();
+    void RegisterWindowDestroyedListener(const NotifyNativeWinDestroyFunc& func);
 
     bool IsSubWindow() const
     {
@@ -260,6 +262,15 @@ private:
         auto lifecycleListeners = GetListeners<IWindowLifeCycle>();
         CALL_LIFECYCLE_LISTENER(AfterInactive, lifecycleListeners);
     }
+
+    inline void NotifyBeforeDestroy(std::string windowName)
+    {
+        std::lock_guard<std::recursive_mutex> lock(globalMutex_);
+        if (notifyNativefunc_) {
+            notifyNativefunc_(windowName);
+        }
+    }
+
     void ClearListenersById(uint32_t winId);
 
 private:
@@ -283,6 +294,7 @@ private:
         { WindowType::WINDOW_TYPE_NAVIGATION_BAR, SystemBarProperty() },
     };
 
+    NotifyNativeWinDestroyFunc notifyNativefunc_;
     static std::recursive_mutex globalMutex_;
     bool delayNotifySurfaceCreated_ = false;
     bool delayNotifySurfaceChanged_ = false;

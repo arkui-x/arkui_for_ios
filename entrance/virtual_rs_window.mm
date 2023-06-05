@@ -221,6 +221,7 @@ WMError Window::Destroy()
         uiContent_->Destroy();
         uiContent_ = nullptr;
     }
+    NotifyBeforeDestroy(GetWindowName());
 
     if (windowView_ != nullptr) {
         [windowView_ removeFromSuperview];
@@ -268,6 +269,12 @@ WMError Window::Destroy()
 
     NotifyAfterBackground();
     return WMError::WM_OK;
+}
+
+void Window::RegisterWindowDestroyedListener(const NotifyNativeWinDestroyFunc& func)
+{
+    LOGD("Start register");
+    notifyNativefunc_ = std::move(func);
 }
 
 const std::vector<std::shared_ptr<Window>>& Window::GetSubWindow(uint32_t parentId)
