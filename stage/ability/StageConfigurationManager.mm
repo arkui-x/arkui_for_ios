@@ -27,6 +27,7 @@
 #define EMPTY_JSON ""
 #define UNKNOWN @""
 #define SYSTEM_COLORMODE @"ohos.system.colorMode"
+#define APPLICATION_DENSITY @"ohos.application.densitydpi"
 using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
 @interface StageConfigurationManager () <UITraitEnvironment>
 
@@ -61,6 +62,7 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
         [self setColorMode:UIUserInterfaceStyleLight];
     }
     std::string json = [self getJsonString:self.configuration];
+    [self updateDensitydpi];
     if (json.empty()) {
         AppMain::GetInstance()->InitConfiguration(EMPTY_JSON);
     }
@@ -129,6 +131,13 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
             [self.configuration setObject:UNKNOWN forKey:APPLICATION_DIRECTION];
         }
         break;
+    }
+}
+
+- (void)updateDensitydpi {
+    CGFloat screenScale = [UIScreen mainScreen].scale;
+    if (screenScale != 0) {
+         [self.configuration setObject:[NSString stringWithFormat:@"%f",screenScale] forKey:APPLICATION_DENSITY];
     }
 }
 

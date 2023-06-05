@@ -217,9 +217,11 @@ void UIContentImpl::CommonInitialize(OHOS::Rosen::Window* window, const std::str
         front->UpdateState(Frontend::State::ON_CREATE);
         front->SetJsMessageDispatcher(container);
     }
+
+    double density = SystemProperties::GetResolution();
     auto aceResCfg = container->GetResourceConfiguration();
     aceResCfg.SetOrientation(SystemProperties::GetDeviceOrientation());
-    aceResCfg.SetDensity(SystemProperties::GetResolution());
+    aceResCfg.SetDensity(density);
     aceResCfg.SetDeviceType(SystemProperties::GetDeviceType());
     aceResCfg.SetColorMode(SystemProperties::GetColorMode());
     aceResCfg.SetDeviceAccess(SystemProperties::GetDeviceAccess());
@@ -240,7 +242,7 @@ void UIContentImpl::CommonInitialize(OHOS::Rosen::Window* window, const std::str
         Platform::AceViewSG::SurfaceCreated(aceView, window_);
     }
     // set view
-    Platform::AceContainerSG::SetView(aceView, 1.0f, 0, 0, window_);
+    Platform::AceContainerSG::SetView(aceView, density, 0, 0, window_);
 
     // Set sdk version in module json mode
     if (isModelJson) {
@@ -300,8 +302,6 @@ void UIContentImpl::InitAceInfoFromResConfig()
             LOGI("UIContent set light mode");
         }
 
-        LOGI("UIContent set GetScreenDensity dpi=%{public}f", resConfig->GetScreenDensity());
-        SystemProperties::SetResolution(resConfig->GetScreenDensity());
         SystemProperties::SetDeviceAccess(
             resConfig->GetInputDevice() == Global::Resource::InputDevice::INPUTDEVICE_POINTINGDEVICE);
     }
@@ -312,7 +312,7 @@ void UIContentImpl::InitAceInfoFromResConfig()
         auto densityDpi = config->GetItem(OHOS::AbilityRuntime::Platform::ConfigurationInner::APPLICATION_DENSITYDPI);
         LOGI("UIContent set GetScreenDensity dpi=%{public}s", densityDpi.c_str());
         if (!densityDpi.empty()) {
-            double density = std::stoi(densityDpi) / DPI_BASE;
+            double density = std::stoi(densityDpi);
             SystemProperties::SetResolution(density);
         }
         if (direction == OHOS::AbilityRuntime::Platform::ConfigurationInner::DIRECTION_VERTICAL) {
