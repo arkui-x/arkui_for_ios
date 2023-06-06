@@ -19,6 +19,7 @@
 #import <Foundation/Foundation.h>
 #import <UIKit/UIInterface.h>
 #import <UIKit/UIDevice.h>
+#import <UIKit/UIScreen.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
