@@ -99,6 +99,13 @@ void AbilityContextAdapter::TerminateSelf(const std::string& instanceName)
     dispatch_main_async_safe(^{
         StageViewController *topVC = [StageApplication getApplicationTopViewController];
         NSString *targetName = [NSString stringWithCString:instanceName.c_str() encoding:NSUTF8StringEncoding];
+
+        if (topVC.presentingViewController) {
+            [topVC dismissViewControllerAnimated:YES completion:nil];
+            OHOS::AbilityRuntime::Platform::AppMain::GetInstance()->DispatchOnDestroy(instanceName);
+            return;
+        }
+
         int size = topVC.navigationController.viewControllers.count;
         if (size == 0) {
             NSLog(@"%s, viewControllers count zero", __func__);
