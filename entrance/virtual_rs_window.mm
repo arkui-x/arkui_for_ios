@@ -37,6 +37,13 @@
 
 namespace OHOS::Rosen {
 
+void DummyWindowRelease(Window* window)
+{
+    if (!window->GetIsUIContentInitialize()) {
+        delete window;
+    }
+    LOGI("Rosenwindow rsWindow_Window: dummy release");
+}
 std::map<uint32_t, std::vector<std::shared_ptr<Window>>> Window::subWindowMap_;
 std::map<std::string, std::pair<uint32_t, std::shared_ptr<Window>>> Window::windowMap_;
 std::map<uint32_t, std::vector<sptr<IWindowLifeCycle>>> Window::lifecycleListeners_;
@@ -68,7 +75,7 @@ std::shared_ptr<Window> Window::Create(
     }
     
     uint32_t windowId = [InstanceIdGenerator getAndIncrement];
-    auto window = std::make_shared<Window>(context, windowId);
+    auto window = std::shared_ptr<Window>(new Window(context, windowId), DummyWindowRelease);
     window->SetWindowView((WindowView*)windowView);
     window->SetWindowName(windowName);
     [(WindowView*)windowView setWindowDelegate:window];
@@ -91,7 +98,7 @@ std::shared_ptr<Window> Window::CreateSubWindow(
         return nullptr;
     }
 
-    auto window = std::make_shared<Window>(context, windowId);
+     auto window = std::shared_ptr<Window>(new Window(context, windowId), DummyWindowRelease);
     WindowView* windowView = [[WindowView alloc]init];
     LOGI("Window::Createsubwindow with %{public}p", windowView);
     window->SetWindowView(windowView);
@@ -214,6 +221,7 @@ WMError Window::Destroy()
         uiContent_->Destroy();
         uiContent_ = nullptr;
     }
+    NotifyBeforeDestroy(GetWindowName());
 
     if (windowView_ != nullptr) {
         [windowView_ removeFromSuperview];
@@ -232,14 +240,14 @@ WMError Window::Destroy()
                 subWindows.erase(iter);
                 continue;
             }
+            auto windowPtr = (*iter);
             subWindows.erase(iter);
-            DeleteFromWindowMap(*iter);
-            (*iter)->Destroy();
+            DeleteFromWindowMap(windowPtr);
+            windowPtr->Destroy();
         }
         subWindowMap_[GetWindowId()].clear();
         subWindowMap_.erase(GetWindowId());
     }
-
     // Rmove current window from subWindowMap_ of parent window
     if (subWindowMap_.count(GetParentId()) > 0) {
         auto& subWindows = subWindowMap_.at(GetParentId());
@@ -261,6 +269,12 @@ WMError Window::Destroy()
 
     NotifyAfterBackground();
     return WMError::WM_OK;
+}
+
+void Window::RegisterWindowDestroyedListener(const NotifyNativeWinDestroyFunc& func)
+{
+    LOGD("Start register");
+    notifyNativefunc_ = std::move(func);
 }
 
 const std::vector<std::shared_ptr<Window>>& Window::GetSubWindow(uint32_t parentId)
@@ -529,6 +543,7 @@ int Window::SetUIContent(const std::string& contentInfo,
 
     uiContent_->Foreground();
     isWindowShow_ = true;
+    isUIContentInitialize_ = true;
 
     DelayNotifyUIContentIfNeeded();
     LOGI("Window::SetUIContent : End!!!");

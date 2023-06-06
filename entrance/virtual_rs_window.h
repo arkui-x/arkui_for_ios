@@ -58,6 +58,7 @@ class EventHandler;
 namespace Rosen {
 class IWindowLifeCycle;
 class WindowOption;
+using NotifyNativeWinDestroyFunc = std::function<void(std::string windowName)>;
 using OnCallback = std::function<void(int64_t)>;
 struct VsyncCallback {
     OnCallback onCallback;
@@ -141,6 +142,7 @@ public:
     void Foreground();
     void Background();
     WMError Destroy();
+    void RegisterWindowDestroyedListener(const NotifyNativeWinDestroyFunc& func);
 
     bool IsSubWindow() const
     {
@@ -193,6 +195,11 @@ public:
         return state_;
     }
 
+    bool GetIsUIContentInitialize() const
+    {
+        return isUIContentInitialize_;
+    }
+
     SystemBarProperty GetSystemBarPropertyByType(WindowType type) const;
     void SetRequestedOrientation(Orientation);
     WMError RegisterLifeCycleListener(const sptr<IWindowLifeCycle>& listener);
@@ -207,7 +214,7 @@ private:
 
     void DelayNotifyUIContentIfNeeded();
     bool IsWindowValid() const;
-    
+
     template<typename T1, typename T2, typename Ret>
     using EnableIfSame = typename std::enable_if<std::is_same_v<T1, T2>, Ret>::type;
     template<typename T> WMError RegisterListener(std::vector<sptr<T>>& holder, const sptr<T>& listener);
@@ -255,6 +262,15 @@ private:
         auto lifecycleListeners = GetListeners<IWindowLifeCycle>();
         CALL_LIFECYCLE_LISTENER(AfterInactive, lifecycleListeners);
     }
+
+    inline void NotifyBeforeDestroy(std::string windowName)
+    {
+        std::lock_guard<std::recursive_mutex> lock(globalMutex_);
+        if (notifyNativefunc_) {
+            notifyNativefunc_(windowName);
+        }
+    }
+
     void ClearListenersById(uint32_t winId);
 
 private:
@@ -278,6 +294,7 @@ private:
         { WindowType::WINDOW_TYPE_NAVIGATION_BAR, SystemBarProperty() },
     };
 
+    NotifyNativeWinDestroyFunc notifyNativefunc_;
     static std::recursive_mutex globalMutex_;
     bool delayNotifySurfaceCreated_ = false;
     bool delayNotifySurfaceChanged_ = false;
@@ -287,6 +304,7 @@ private:
     WindowMode windowMode_;
     WindowType windowType_;
     uint32_t backgroundColor_;
+    bool isUIContentInitialize_ = false;
     WindowState state_ { WindowState::STATE_INITIAL };
 
     static void AddToWindowMap(std::shared_ptr<Window> window);
