@@ -17,6 +17,8 @@
 
 #include <cstdint>
 
+#include "foundation/appframework/arkui/uicontent/component_info.h"
+
 #include "base/log/dump_log.h"
 #include "base/memory/ace_type.h"
 #include "base/utils/utils.h"
@@ -336,62 +338,61 @@ void AccessibilityManagerImpl::DumpTree(int32_t depth, NodeId nodeID)
     DumpTreeNG(rootNode, depth, nodeID, pageId);
 }
 
-void GetComponents(const RefPtr<NG::FrameNode>& parent, int32_t depth, NodeId nodeID, int32_t pageId,std::vector<ComponentInfo>& components)
-{   
+void GetComponents(const RefPtr<NG::FrameNode>& parent, NodeId nodeID, int32_t pageId,
+    std::vector<OHOS::Ace::Platform::ComponentInfo>& components)
+{
     auto node = GetInspectorById(parent, nodeID);
     if (!node) {
-        DumpLog::GetInstance().Print("Error: failed to get accessibility node with ID " + std::to_string(nodeID));
         return;
     }
     if (!node->IsActive()) {
         return;
     }
-    ComponentInfo info;
+
+    OHOS::Ace::Platform::ComponentInfo info;
     NG::RectF rect = node->GetTransformRectRelativeToWindow();
-    info.compid=node->GetInspectorId().value_or("");
+    info.compid = node->GetInspectorId().value_or("");
     info.text = node->GetAccessibilityProperty<NG::AccessibilityProperty>()->GetText();
-
-    // info.x=rect.Top()+rect.Width()/2;
-	// info.y=rect.Left()+rect.Height()/2;
-    info.top=rect.Top();
-    info.width=rect.Width();
-    info.left=rect.Left();
-    info.height=rect.Height();
-
+    info.top = rect.Top();
+    info.width = rect.Width();
+    info.left = rect.Left();
+    info.height = rect.Height();
     auto gestureEventHub = node->GetEventHub<NG::EventHub>()->GetGestureEventHub();
     info.clickable = gestureEventHub ? gestureEventHub->IsAccessibilityClickable() : false;
     auto accessibilityProperty = node->GetAccessibilityProperty<NG::AccessibilityProperty>();
     info.checked = accessibilityProperty->IsChecked();
     info.selected = accessibilityProperty->IsSelected();
+    info.checkable = accessibilityProperty->IsCheckable();
     info.scrollable = accessibilityProperty->IsScrollable();
     info.enabled = node->GetFocusHub() ? node->GetFocusHub()->IsEnabled() : true;
     info.focused = node->GetFocusHub() ? node->GetFocusHub()->IsCurrentFocus() : false;
     info.longClickable = gestureEventHub ? gestureEventHub->IsAccessibilityLongClickable() : false;
     info.type = node->GetTag();
-
     components.push_back(info);
     std::vector<int32_t> children;
     for (const auto& item : node->GetChildren()) {
         GetFrameNodeChildren(item, children, pageId);
     }
     for (auto nodeId : children) {
-        GetComponents(node, depth + 1, nodeId, pageId,components);
+        GetComponents(node, nodeId, pageId, components);
     }
 }
-bool AccessibilityManagerImpl::GetAllComponents(int32_t depth, NodeId nodeID, std::vector<ComponentInfo>& components)
-{    
+
+bool AccessibilityManagerImpl::GetAllComponents(
+    NodeId nodeID, std::vector<OHOS::Ace::Platform::ComponentInfo>& components)
+{
     auto pipeline = context_.Upgrade();
-    CHECK_NULL_RETURN(pipeline,false);
+    CHECK_NULL_RETURN(pipeline, false);
     auto ngPipeline = AceType::DynamicCast<NG::PipelineContext>(pipeline);
     auto rootNode = ngPipeline->GetRootElement();
-    CHECK_NULL_RETURN(rootNode,false);
+    CHECK_NULL_RETURN(rootNode, false);
     nodeID = rootNode->GetAccessibilityId();
     auto stageManager = ngPipeline->GetStageManager();
-    CHECK_NULL_RETURN(stageManager,false);
+    CHECK_NULL_RETURN(stageManager, false);
     auto page = stageManager->GetLastPage();
-    CHECK_NULL_RETURN(page,false);
+    CHECK_NULL_RETURN(page, false);
     auto pageId = page->GetPageId();
-    GetComponents(rootNode, depth, nodeID, pageId, components);
+    GetComponents(rootNode, nodeID, pageId, components);
     return true;
 }
 
