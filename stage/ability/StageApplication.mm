@@ -37,6 +37,53 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
     [self setLocale];
     [[StageAssetManager assetManager] launchAbility];
     [[StageConfigurationManager configurationManager] registConfiguration];
+    [NSThread sleepForTimeInterval:0.5];
+    [self startAbilityDelegator];
+}
+
++ (void)startAbilityDelegator { 
+    NSProcessInfo *processInfo = [NSProcessInfo processInfo];
+    NSArray *arguments = processInfo.arguments;
+    @try {
+        if (arguments) {
+            if ([arguments containsObject:@"test"]) {
+                NSString *bundleName = [NSString new];
+                NSString *moduleName = [NSString new];
+                NSString *unittest = [NSString new];
+                NSString *timeout = [NSString new];
+                for (int i = 1; i < arguments.count; i++) {
+                    if ([arguments[i] isEqualToString:@"bundleName"]) {
+                        if (arguments.count >= i+1) {
+                            bundleName = arguments[i+1];
+                        }
+                    } else if ([arguments[i] isEqualToString:@"moduleName"]) {
+                        if (arguments.count >= i+1) {
+                            moduleName = arguments[i+1];
+                        }
+                    } else if ([arguments[i] isEqualToString:@"unittest"]) {
+                        if (arguments.count >= i+1) {
+                            unittest = arguments[i+1];
+                        }
+                    } else if ([arguments[i] isEqualToString:@"timeout"]) {
+                        if (arguments.count >= i+1) {
+                            timeout = arguments[i+1];
+                        }
+                    }
+                }
+                std::string bundleNameString = [bundleName UTF8String];
+                std::string moduleNameString = [moduleName UTF8String];
+                std::string unittestString = [unittest UTF8String];
+                std::string timeoutString = [timeout UTF8String];
+                AppMain::GetInstance()->PrepareAbilityDelegator(bundleNameString, moduleNameString, unittestString, timeoutString);
+            } else {
+                NSLog(@"%s, No need to start creating abilityDelegate", __FUNCTION__);
+            }
+        }
+    } @catch (NSException *exception) {
+        NSLog(@"NSException %@",exception);
+    } @finally {
+        NSLog(@"%s, failed . arguments is %@", __FUNCTION__, arguments);
+    }
 }
 
 + (void)setPidAndUid {
@@ -113,7 +160,7 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
 }
 
 + (void)releaseViewControllers {
-    StageViewController *topVC = [self getApplicationTopViewController];
+    StageViewController *topVC = [StageApplication getApplicationTopViewController];
     NSMutableArray *controllerArr = [[NSMutableArray alloc] initWithArray:topVC.navigationController.viewControllers];
     int size = controllerArr.count;
     NSString *instanceName = topVC.instanceName;
@@ -129,7 +176,7 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
 
 + (StageViewController *)getApplicationTopViewController {
     UIViewController* viewController = [[UIApplication sharedApplication].delegate window].rootViewController;
-    return (StageViewController *)[self findTopViewController:viewController];
+    return (StageViewController *)[StageApplication findTopViewController:viewController];
 }
 
 + (UIViewController *)findTopViewController:(UIViewController*)topViewController {
@@ -149,5 +196,47 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
     return topViewController;
 }
 
+- (NSString *)getTopAbility {
+    StageViewController *topViewController = [StageApplication getApplicationTopViewController];
+    NSMutableArray *viewControllers = [NSMutableArray arrayWithArray:topViewController.navigationController.viewControllers];
+    NSMutableArray *controllerArray = [[NSMutableArray alloc]init];
+    for (UIViewController *vc in viewControllers) {
+        if ([vc isKindOfClass:[StageViewController class]]){
+            StageViewController *tvc = (StageViewController *)vc;
+            [controllerArray addObject:tvc];
+        }
+    }
+    if (controllerArray.count == 0) {
+        return @"current views is null";
+    }
+    StageViewController *tvc = controllerArray.lastObject;
+    return tvc.instanceName;
+}
+
+- (void)doAbilityBackground {
+    StageViewController *topVC = [StageApplication getApplicationTopViewController];
+    [topVC.navigationController popViewControllerAnimated:YES];
+}
+
+- (void)print:(NSString *)msg {
+    NSLog(@"print: %@",msg);
+}
+
+- (void)printSync:(NSString *)msg {
+    NSLog(@"printSync: %@",msg);
+}
+
+- (int)finishTest {
+    NSLog(@"finishTest");
+    int error = 0;
+    @try {
+       exit(0);
+    } @catch (NSException *exception) {
+        NSLog(@"finishTest :%@",exception);
+        error = 1;
+    } @finally {
+        return error;
+    }
+}
 
 @end
