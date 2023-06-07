@@ -31,6 +31,7 @@
 #endif
 
 #include "adapter/ios/entrance/virtual_rs_window.h"
+#include "core/event/touch_event.h"
 
 namespace OHOS::Ace::Platform {
 class ACE_FORCE_EXPORT AceViewSG : public AceView, public Referenced {
@@ -80,6 +81,7 @@ public:
     void RegisterViewPositionChangeCallback(ViewPositionChangeCallback&& callback) override;
     void RegisterSystemBarHeightChangeCallback(SystemBarHeightChangeCallback&& callback) override;
     void RegisterIdleCallback(IdleCallback&& callback) override {}
+    bool DispatchBasicEvent (const std::vector<TouchEvent>& touchEvents);
 
     bool Dump(const std::vector<std::string>& params) override;
     const void* GetNativeWindowById(uint64_t textureId) override;

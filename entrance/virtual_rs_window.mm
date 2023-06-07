@@ -34,6 +34,7 @@
 #include "window_option.h"
 #include "InstanceIdGenerator.h"
 #include "hilog.h"
+#include "core/event/touch_event.h"
 
 namespace OHOS::Rosen {
 
@@ -344,6 +345,14 @@ WMError Window::MoveWindowTo(int32_t x, int32_t y)
     return WMError::WM_OK;
 }
 
+bool Window::ProcessBasicEvent(const std::vector<Ace::TouchEvent>& touchEvents)
+{
+    if (!uiContent_) {
+        LOGW("Window::ProcessBasicEvent uiContent_ is nullptr");
+        return false;
+    }
+    return uiContent_->ProcessBasicEvent(touchEvents);
+}
 
 WMError Window::ResizeWindowTo(int32_t width, int32_t height) {
     

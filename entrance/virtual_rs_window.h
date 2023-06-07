@@ -29,6 +29,7 @@
 #include "vsync_receiver.h"
 #include "foundation/appframework/window_manager/interfaces/innerkits/wm/wm_common.h"
 #include "foundation/appframework/window_manager/interfaces/innerkits/wm/window_interface.h"
+#include "core/event/touch_event.h"
 
 class NativeValue;
 class NativeEngine;
@@ -204,7 +205,7 @@ public:
     void SetRequestedOrientation(Orientation);
     WMError RegisterLifeCycleListener(const sptr<IWindowLifeCycle>& listener);
     WMError UnregisterLifeCycleListener(const sptr<IWindowLifeCycle>& listener);
-
+    bool ProcessBasicEvent(const std::vector<Ace::TouchEvent>& touchEvents);
 private:
     void SetWindowView(WindowView* windowView);
     void SetWindowName(const std::string& windowName);
