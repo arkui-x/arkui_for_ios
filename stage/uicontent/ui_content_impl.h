@@ -23,6 +23,7 @@
 #include "native_engine/native_engine.h"
 #include "native_engine/native_value.h"
 #include "refbase.h"
+#include "core/event/touch_event.h"
 
 namespace OHOS {
 class Window;
@@ -69,6 +70,8 @@ public:
 
     // Receive memory level notification
     void NotifyMemoryLevel(int32_t level) override;
+
+    bool ProcessBasicEvent(const std::vector<TouchEvent>& touchEvents);
 
 private:
     void CommonInitialize(OHOS::Rosen::Window* window, const std::string& url, NativeValue* storage);
