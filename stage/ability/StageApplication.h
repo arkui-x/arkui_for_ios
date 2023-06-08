@@ -37,6 +37,16 @@ NS_ASSUME_NONNULL_BEGIN
 
 + (StageViewController *)getApplicationTopViewController;
 
+- (NSString *)getTopAbility;
+
+- (void)doAbilityBackground;
+
+- (void)print:(NSString *)msg;
+
+- (void)printSync:(NSString *)msg;
+
+- (int)finishTest;
+
 @end
 
 NS_ASSUME_NONNULL_END

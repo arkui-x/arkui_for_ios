@@ -22,6 +22,7 @@
 
 #include "ability_manager_errors.h"
 #include "app_main.h"
+#include "base/utils/string_utils.h"
 
 #define dispatch_main_async_safe(block)\
 if (dispatch_queue_get_label(DISPATCH_CURRENT_QUEUE_LABEL) == dispatch_queue_get_label(dispatch_get_main_queue())) {\
@@ -32,6 +33,7 @@ dispatch_async(dispatch_get_main_queue(), block);\
 
 #define URL_QUERY_ABILITY_KEY @"abilityName"
 #define URL_QUERY_PARAMS_KEY @"params"
+#define ABILITY_NAME @"Ability"
 
 namespace OHOS::AbilityRuntime::Platform {
 namespace {
@@ -54,6 +56,53 @@ std::shared_ptr<AbilityContextAdapter> AbilityContextAdapter::GetInstance()
     }
 
     return instance_;
+}
+
+void AbilityContextAdapter::print(const std::string& message) {
+    NSString * msg = [NSString stringWithCString:message.c_str() encoding:[NSString defaultCStringEncoding]];
+    NSLog(@"AbilityContextAdapter print, msg : %@", msg);
+    StageApplication *application = [StageApplication new];
+    [application print:msg];
+}
+
+size_t AbilityContextAdapter::StringToken(std::string &str, const std::string &sep, std::string &token)
+{
+    token = "";
+    if (str.empty()) {
+        return str.npos;
+    }
+    size_t pos = str.npos;
+    size_t tmp = 0;
+    for (auto &item : sep) {
+        tmp = str.find(item);
+        if (str.npos != tmp) {
+            pos = (std::min)(pos, tmp);
+        }
+    }
+    if (str.npos != pos) {
+        token = str.substr(0, pos);
+        if (str.npos != pos + 1) {
+            str = str.substr(pos + 1, str.npos);
+        }
+        if (pos == 0) {
+            return StringToken(str, sep, token);
+        }
+    } else {
+        token = str;
+        str = "";
+    }
+    return token.size();
+}
+
+size_t AbilityContextAdapter::StringSplit(const std::string &str, const std::string &sep, std::vector<std::string> &vecList)
+{
+    size_t size;
+    auto strs = str;
+    std::string token;
+    while (str.npos != (size = StringToken(strs, sep, token))) {
+            vecList.push_back(token);
+    }
+    return vecList.size();
 }
 
 int32_t AbilityContextAdapter::StartAbility(const std::string& instanceName, const AAFwk::Want& want)
@@ -92,6 +141,80 @@ int32_t AbilityContextAdapter::StartAbility(const std::string& instanceName, con
         return AAFwk::INVALID_PARAMETERS_ERR;
     }
     return ERR_OK;
+}
+
+std::string AbilityContextAdapter::GetTopAbility()
+{
+    StageApplication *application = [StageApplication new];
+    NSString *string = application.getTopAbility;
+    if (string.length == 0) {
+        string = @"GetTopAbility error";
+    }
+    std::string resultString=[string UTF8String];
+    return resultString;
+}
+
+int32_t AbilityContextAdapter::DoAbilityForeground(const std::string &fullname)
+{
+    NSString *result = GetOCstring(fullname);
+    std::vector<std::string> nameStrs;
+    Ace::StringUtils::StringSplitter(fullname, ':', nameStrs);
+    Want want;
+    if (nameStrs.size() == 3) {
+        want.SetBundleName(nameStrs[0]);
+        want.SetModuleName(nameStrs[1]);
+        want.SetAbilityName(nameStrs[2]);
+        want.SetParam(Want::INSTANCE_NAME, fullname);
+    }
+    StartAbility("", want);
+    return ERR_OK;
+}
+
+int32_t AbilityContextAdapter::DoAbilityBackground(const std::string &fullname)
+{
+    NSString *str = GetOCstring(fullname);
+    NSArray *arr =[str componentsSeparatedByString: @":"];
+    NSString *bundleName = arr[0];
+    NSString *moduleName = arr[1];
+    NSString *abilityName = arr[2];
+
+    NSString *tempName = @"Ability";
+    NSString *activityName;
+    
+    NSRange range = [activityName rangeOfString:ABILITY_NAME];
+    NSInteger location = range.location;
+    if (range.length != 0) {
+        activityName = [NSString stringWithFormat:@"%@:%@:%@:1", bundleName, moduleName, abilityName];
+    } else {
+        NSMutableString *mutString = [NSMutableString stringWithString:abilityName];
+        NSRange ran;
+        ran.location = location;
+        ran.length = ABILITY_NAME.length;
+        [mutString replaceCharactersInRange:ran withString:ABILITY_NAME];
+        activityName = [NSString stringWithFormat:@"%@:%@:%@:1", bundleName, moduleName, mutString];
+    }
+    StageApplication *application = [StageApplication new];
+    [application doAbilityBackground];
+    return ERR_OK;
+}
+
+void AbilityContextAdapter::DoAbilityPrint(const std::string& msg)
+{
+    StageApplication *application = [StageApplication new];
+    [application print:GetOCstring(msg)];
+}
+void AbilityContextAdapter::DoAbilityPrintSync(const std::string& msg)
+{
+    StageApplication *application = [StageApplication new];
+    [application printSync:GetOCstring(msg)];
+}
+
+int32_t AbilityContextAdapter::FinishUserTest()
+{
+    StageApplication *application = [StageApplication new];
+    int error = [application finishTest];
+    int32_t erint = error;
+    return error;
 }
 
 void AbilityContextAdapter::TerminateSelf(const std::string& instanceName)

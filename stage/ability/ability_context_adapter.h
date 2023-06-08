@@ -32,7 +32,16 @@ public:
 
     static std::shared_ptr<AbilityContextAdapter> GetInstance();
     int32_t StartAbility(const std::string& instanceName, const AAFwk::Want& want);
+    int32_t DoAbilityForeground(const std::string &fullname);
+    int32_t DoAbilityBackground(const std::string &fullname);
+    size_t StringSplit(const std::string &str, const std::string &sep, std::vector<std::string> &vecList);
+    std::string GetTopAbility();
+    void DoAbilityPrint(const std::string& msg);
+    void DoAbilityPrintSync(const std::string& msg);
     void TerminateSelf(const std::string& instanceName);
+    void print(const std::string& message);
+    int32_t FinishUserTest();
+    size_t StringToken(std::string &str, const std::string &sep, std::string &token);
 
 private:
     std::mutex contextLock_;
