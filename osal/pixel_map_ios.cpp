@@ -150,6 +150,11 @@ RefPtr<PixelMap> PixelMap::CreatePixelMap(void* rawPtr)
     return AceType::MakeRefPtr<PixelMapIOS>(*pixmapPtr);
 }
 
+RefPtr<PixelMap> PixelMap::Create(std::unique_ptr<Media::PixelMap>&& pixmap)
+{
+    return AceType::MakeRefPtr<PixelMapIOS>(std::move(pixmap));
+}
+
 RefPtr<PixelMap> PixelMap::GetFromDrawable(void* ptr)
 {
     return nullptr;

@@ -31,6 +31,7 @@ template("ace_osal_ios_source_set") {
       "file_asset_provider.cpp",
       "frame_report.cpp",
       "frame_trace_adapter_impl.cpp",
+      "image_source_ios.cpp",
       "ios_trace.cpp",
       "layout_inspector.cpp",
       "log_wrapper.cpp",
