@@ -13,6 +13,9 @@
  * limitations under the License.
  */
 
+#ifndef FOUNDATION_ADAPTER_CAPABILITY_VIDEO_ACEVIDEO_H
+#define FOUNDATION_ADAPTER_CAPABILITY_VIDEO_ACEVIDEO_H
+
 #import <Foundation/Foundation.h>
 
 #import "AceTexture.h"
@@ -22,14 +25,17 @@
 NS_ASSUME_NONNULL_BEGIN
 
 @interface AceVideo : NSObject
-
 - (instancetype)init:(int64_t)incId
-     bundleDirectory:(NSString*)bundleDirectory
-             onEvent:(IAceOnResourceEvent)callback texture:(AceTexture *)texture;
-             
+     moudleName:(NSString*)moudleName
+     onEvent:(IAceOnResourceEvent)callback 
+     texture:(AceTexture *)texture
+     abilityInstanceId:(int32_t)abilityInstanceId;
 - (NSDictionary<NSString *, IAceOnCallSyncResourceMethod> *)getSyncCallMethod;
-
+- (void)onActivityResume;
+- (void)onActivityPause;
 - (void)releaseObject;
 @end
 
 NS_ASSUME_NONNULL_END
+
+#endif // FOUNDATION_ADAPTER_CAPABILITY_VIDEO_ACEVIDEO_H

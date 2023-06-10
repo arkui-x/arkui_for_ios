@@ -37,6 +37,10 @@
     return ++self.nextVideoId;
 }
 
+- (int64_t)getcId {
+    return self.nextVideoId;  
+}
+
 
 - (void)setEventCallback:(IAceOnResourceEvent)callback {
     self.callback = callback;
@@ -47,23 +51,26 @@
 }
 
 - (void)registerSyncCallMethod:(NSDictionary<NSString *, IAceOnCallSyncResourceMethod> *)methodMap{
-    if (self.resRegister == nil || methodMap == nil || methodMap.allValues.count == 0) {
+    if (!self.resRegister || !methodMap) {
         return;
     }
-    
     [methodMap enumerateKeysAndObjectsUsingBlock:^(NSString * _Nonnull key, IAceOnCallSyncResourceMethod  _Nonnull callback, BOOL * _Nonnull stop) {
         [self.resRegister registerSyncCallMethod:key callMethod:callback];
     }];
 }
 
 - (void)unregisterSyncCallMethod:(NSDictionary<NSString *, IAceOnCallSyncResourceMethod> *)methodMap{
-    if (self.resRegister == nil || methodMap == nil || methodMap.allValues.count == 0) {
+    if (self.resRegister == nil || methodMap == nil) {
         return;
     }
 
     [methodMap enumerateKeysAndObjectsUsingBlock:^(NSString * _Nonnull key, IAceOnCallSyncResourceMethod  _Nonnull callback, BOOL * _Nonnull stop) {
         [self.resRegister unregisterSyncCallMethod:key];
     }];
+}
+
+- (void)notifyLifecycleChanged:(BOOL)isBackground
+{
 }
 
 @end

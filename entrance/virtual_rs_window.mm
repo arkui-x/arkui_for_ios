@@ -99,7 +99,7 @@ std::shared_ptr<Window> Window::CreateSubWindow(
         return nullptr;
     }
 
-     auto window = std::shared_ptr<Window>(new Window(context, windowId), DummyWindowRelease);
+    auto window = std::shared_ptr<Window>(new Window(context, windowId), DummyWindowRelease);
     WindowView* windowView = [[WindowView alloc]init];
     LOGI("Window::Createsubwindow with %{public}p", windowView);
     window->SetWindowView(windowView);

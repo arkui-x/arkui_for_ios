@@ -13,20 +13,23 @@
  * limitations under the License.
  */
 
+#ifndef FOUNDATION_ADAPTER_CAPABILITY_VIDEO_ACEVIDEORESOURCEPLUGIN_H
+#define FOUNDATION_ADAPTER_CAPABILITY_VIDEO_ACEVIDEORESOURCEPLUGIN_H
+
 #import <Foundation/Foundation.h>
 
 #import "AceResourcePlugin.h"
-#import "AceVideo.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
 @interface AceVideoResourcePlugin : AceResourcePlugin
-
-- (instancetype)initWithBundleDirectory:(NSString *)bundleDirectory;
-- (id)getObject:(NSString *)id;
++ (AceVideoResourcePlugin *)createRegister:(NSString *)moudleName abilityInstanceId:(int32_t)abilityInstanceId;
+- (id)getObject:(NSString *)incId;
 - (int64_t)create:(NSDictionary <NSString *, NSString *> *)param;
-- (BOOL)release:(NSString *)id;
+- (BOOL)release:(NSString *)incId;
 - (void)releaseObject;
 @end
 
 NS_ASSUME_NONNULL_END
+
+#endif // FOUNDATION_ADAPTER_CAPABILITY_VIDEO_ACEVIDEORESOURCEPLUGIN_H

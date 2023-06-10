@@ -22,52 +22,80 @@
 @interface AceVideoResourcePlugin()
 
 @property (nonatomic, strong) NSMutableDictionary<NSString*, AceVideo*> *objectMap;
-@property (nonatomic, weak) NSString* bundleDirectory;
+@property (nonatomic, copy) NSString* moudleName;
+@property (nonatomic, assign) int32_t instanceId;
 
 @end
 
 @implementation AceVideoResourcePlugin
 
-- (instancetype)initWithBundleDirectory:(NSString *)bundleDirectory{
++ (AceVideoResourcePlugin *)createRegister:(NSString *)moudleName abilityInstanceId:(int32_t)abilityInstanceId
+{
+    return [[AceVideoResourcePlugin alloc] initWithMoudleName:moudleName abilityInstanceId:abilityInstanceId];
+}
+
+- (instancetype)initWithMoudleName:(NSString *)moudleName abilityInstanceId:(int32_t)abilityInstanceId
+{
     self = [super init:@"video" version:1];
 
     if (self) {
-        self.bundleDirectory = bundleDirectory;
+        self.moudleName = moudleName;
         self.objectMap = [NSMutableDictionary dictionary];
+        self.instanceId = abilityInstanceId;
     }
 
     return self;
 }
 
-- (void)addResource:(int64_t)incId video:(AceVideo *)video{
+- (void)addResource:(int64_t)incId video:(AceVideo *)video
+{
     [self.objectMap setObject:video forKey:[NSString stringWithFormat:@"%lld", incId]];
     [self registerSyncCallMethod:[video getSyncCallMethod]];
 }
 
-- (int64_t)create:(NSDictionary<NSString *,NSString *> *)param{
-    
+- (int64_t)create:(NSDictionary <NSString *, NSString *> *)param
+{
     if (![param valueForKey:KEY_TEXTURE]) {
         return -1;
     }
     NSString *textureId = [param valueForKey:KEY_TEXTURE];
     id obj = [self.resRegister getObject:KEY_TEXTURE incId:[textureId longLongValue]];
     if (obj == nil || ![obj isKindOfClass:[AceTexture class]]) {
-        return -1;
+        NSLog(@"AceVideoResourcePlugin:not find texture, texture id = %@, should set surface later",textureId);
     }
- 
     int64_t incId = [self getAtomicId];
     AceTexture *texture = (AceTexture*)obj;
-    AceVideo *aceVide = [[AceVideo alloc] init:incId bundleDirectory:self.bundleDirectory onEvent:[self getEventCallback] texture:texture]; 
-    [self addResource:incId video:aceVide];
+    IAceOnResourceEvent callback = [self getEventCallback];
+    if (!callback) {
+         return -1L;
+    }
+    AceVideo *aceVideo = [[AceVideo alloc] init:incId moudleName:self.moudleName onEvent:callback texture:texture abilityInstanceId:self.instanceId];
+    [self addResource:incId video:aceVideo];
     
     return incId;
 }
 
-- (id)getObject:(NSString *)incId{
+- (id)getObject:(NSString *)incId
+{
     return [self.objectMap objectForKey:incId];
 }
 
-- (BOOL)release:(NSString *)incId {
+- (void)notifyLifecycleChanged:(BOOL)isBackground
+{
+    [self.objectMap enumerateKeysAndObjectsUsingBlock:^(NSString * _Nonnull key, AceVideo * _Nonnull video, BOOL * _Nonnull stop) {
+        if (video) {
+            if (isBackground) {
+                [video onActivityPause];
+            }else {
+                [video onActivityResume];
+            }
+        }
+    }];
+}
+
+- (BOOL)release:(NSString *)incId
+{
+    NSLog(@"AceVideoResourcePlugin %s release inceId: %@",__func__,incId);
     AceVideo *video = [self.objectMap objectForKey:incId];
     if (video) {
         [self unregisterSyncCallMethod:[video getSyncCallMethod]];
@@ -78,11 +106,18 @@
     return NO;
 }
 
-- (void)releaseObject{
+- (void)releaseObject
+{
+    NSLog(@"AceVideoResourcePlugin %s",__func__);
     [self.objectMap enumerateKeysAndObjectsUsingBlock:^(NSString * _Nonnull key, AceVideo * _Nonnull video, BOOL * _Nonnull stop) {
         [video releaseObject];
     }];
     [self.objectMap removeAllObjects];
+    self.moudleName = nil;
 }
 
+- (void)dealloc
+{
+    NSLog(@"AceVideoResourcePlugin->%@ dealloc", self); 
+}
 @end

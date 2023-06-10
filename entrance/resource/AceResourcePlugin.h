@@ -13,6 +13,9 @@
  * limitations under the License.
  */
 
+#ifndef FOUNDATION_ACE_ADAPTER_IOS_ENTRANCE_RESOURCE_ACERESOURCEPLUGIN_H
+#define FOUNDATION_ACE_ADAPTER_IOS_ENTRANCE_RESOURCE_ACERESOURCEPLUGIN_H
+
 #import <Foundation/Foundation.h>
 
 #import "AceResourceRegisterDelegate.h"
@@ -35,6 +38,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (int64_t)getAtomicId;
 
+- (int64_t)getcId;
+
 - (void)addResource:(int64_t)incId obj:(id)obj;
 
 - (IAceOnResourceEvent)getEventCallback;
@@ -53,6 +58,10 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void)unregisterSyncCallMethod:(NSDictionary<NSString *, IAceOnCallSyncResourceMethod> *)methodMap;
 
+- (void)notifyLifecycleChanged:(BOOL)isBackground;
+
 @end
 
 NS_ASSUME_NONNULL_END
+
+#endif // FOUNDATION_ACE_ADAPTER_IOS_ENTRANCE_RESOURCE_ACERESOURCEPLUGIN_H
