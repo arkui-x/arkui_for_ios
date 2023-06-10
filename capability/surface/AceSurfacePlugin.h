@@ -12,22 +12,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef FOUNDATION_ACE_ADAPTER_IOS_ENTRANCE_ACE_PLATFORM_PLUGIN_H
-#define FOUNDATION_ACE_ADAPTER_IOS_ENTRANCE_ACE_PLATFORM_PLUGIN_H
 
-#import <Foundation/Foundation.h>
-#import "adapter/ios/entrance/resource/AceResourceRegisterOC.h"
+#ifndef FOUNDATION_ADAPTER_CAPABILITY_SURFACE_ACESURFACEPLUGIN_H
+#define FOUNDATION_ADAPTER_CAPABILITY_SURFACE_ACESURFACEPLUGIN_H
 
+#import <UIKit/UIKit.h>
+#import "AceResourcePlugin.h"
 NS_ASSUME_NONNULL_BEGIN
 
-@interface AcePlatformPlugin : NSObject
-
-- (instancetype)initPlatformPlugin:(id)target
-    instanceId:(int32_t)instanceId moduleName:(NSString *_Nonnull)moduleName;
+@interface AceSurfacePlugin : AceResourcePlugin
++ (AceSurfacePlugin *)createRegister:(UIViewController *)target abilityInstanceId:(int32_t)abilityInstanceId;
+- (int64_t)create:(NSDictionary<NSString *, NSString *> *)param;
+- (id)getObject:(int64_t)incId;
+- (BOOL)release:(NSString *)incId;
 - (void)releaseObject;
-- (void)notifyLifecycleChanged:(BOOL)isBackground;
 @end
 
 NS_ASSUME_NONNULL_END
 
-#endif // FOUNDATION_ACE_ADAPTER_IOS_ENTRANCE_ACE_PLATFORM_PLUGIN_H
+#endif // FOUNDATION_ADAPTER_CAPABILITY_SURFACE_ACESURFACEPLUGIN_H

@@ -61,8 +61,9 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
     } else {
         [self setColorMode:UIUserInterfaceStyleLight];
     }
-    std::string json = [self getJsonString:self.configuration];
     [self updateDensitydpi];
+    std::string json = [self getJsonString:self.configuration];
+    
     if (json.empty()) {
         AppMain::GetInstance()->InitConfiguration(EMPTY_JSON);
     }

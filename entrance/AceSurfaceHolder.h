@@ -12,22 +12,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef FOUNDATION_ACE_ADAPTER_IOS_ENTRANCE_ACE_PLATFORM_PLUGIN_H
-#define FOUNDATION_ACE_ADAPTER_IOS_ENTRANCE_ACE_PLATFORM_PLUGIN_H
 
-#import <Foundation/Foundation.h>
-#import "adapter/ios/entrance/resource/AceResourceRegisterOC.h"
+#ifndef FOUNDATION_ACE_ADAPTER_IOS_ENTRANCE_ACESURFACEHOLDER_H
+#define FOUNDATION_ACE_ADAPTER_IOS_ENTRANCE_ACESURFACEHOLDER_H
+
+#import <UIKit/UIKit.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface AcePlatformPlugin : NSObject
-
-- (instancetype)initPlatformPlugin:(id)target
-    instanceId:(int32_t)instanceId moduleName:(NSString *_Nonnull)moduleName;
-- (void)releaseObject;
-- (void)notifyLifecycleChanged:(BOOL)isBackground;
+@interface AceSurfaceHolder : NSObject
++ (CALayer *)getLayerWithId:(long)layerId inceId:(long)inceId;
++ (void)addLayer:(CALayer *)layer withId:(long)layerId inceId:(long)inceId;
++ (void)removeLayerWithId:(long)layerId inceId:(long)inceId;
 @end
 
 NS_ASSUME_NONNULL_END
 
-#endif // FOUNDATION_ACE_ADAPTER_IOS_ENTRANCE_ACE_PLATFORM_PLUGIN_H
+#endif // FOUNDATION_ACE_ADAPTER_IOS_ENTRANCE_ACESURFACEHOLDER_H

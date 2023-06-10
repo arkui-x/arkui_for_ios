@@ -27,10 +27,11 @@
 @end
 
 @implementation AceResourceRegisterOC
-- (instancetype)initWithParent:(id<IAceOnCallEvent>)parent{
+- (instancetype)initWithParent:(id<IAceOnCallEvent>)parent
+{
     if (self = [super init]) {
         self.parent = parent;
-        self.pluginMap = [NSMapTable mapTableWithKeyOptions:NSMapTableCopyIn valueOptions:NSMapTableWeakMemory];
+        self.pluginMap = [NSMapTable mapTableWithKeyOptions:NSMapTableCopyIn valueOptions:NSMapTableStrongMemory];
        	self.callSyncMethodMap = [NSMutableDictionary dictionary];
  
         __weak AceResourceRegisterOC *weakSelf = self;
@@ -46,33 +47,33 @@
 }
 
 - (void)registerSyncCallMethod:(NSString *)methodId
-                callMethod:(IAceOnCallSyncResourceMethod)callMethod {
+                callMethod:(IAceOnCallSyncResourceMethod)callMethod
+{
     [self.callSyncMethodMap setObject:callMethod forKey:methodId];
 }
 
-- (void)unregisterSyncCallMethod:(NSString *)methodId {
+- (void)unregisterSyncCallMethod:(NSString *)methodId
+{
      [self.callSyncMethodMap removeObjectForKey:methodId];
 }
-
-
 
 - (void)registerPlugin:(AceResourcePlugin *)plugin{
     if (plugin == NULL) {
         return;
     }
-    
+   
     AceResourcePlugin *oldPlugin = [self.pluginMap objectForKey:plugin.tag];
     if (oldPlugin) {
         if (plugin.version <= oldPlugin.version) {
             return;
         }
     }
-    
     [plugin setEventCallback:self.callbackHandler];
     [self.pluginMap setObject:plugin forKey:plugin.tag];
 }
 
-- (int64_t)createResource:(NSString *)resourceType param:(NSString *)param{
+- (int64_t)createResource:(NSString *)resourceType param:(NSString *)param
+{
     AceResourcePlugin *plugin = [self.pluginMap objectForKey:resourceType];
     if (plugin) {
         __weak __typeof(&*self) weakSelf = self;
@@ -82,7 +83,8 @@
     return -1;
 }
 
-- (NSDictionary *)buildParamMap:(NSString *)param{
+- (NSDictionary *)buildParamMap:(NSString *)param
+{
     NSMutableDictionary *paramMap = [NSMutableDictionary dictionary];
     
     NSArray<NSString *> *paramSplit = [param componentsSeparatedByString:PARAM_AND];
@@ -96,7 +98,8 @@
     return paramMap.copy;
 }
 
-- (id)getObject:(NSString *)resourceHash{
+- (id)getObject:(NSString *)resourceHash
+{
     NSArray<NSString *> *split = [resourceHash componentsSeparatedByString:PARAM_AT];
     if (split.count == 2) {
         return [self getObject:split[0] incId:[split[1] longLongValue]];
@@ -104,7 +107,8 @@
     return nil;
 }
 
-- (id)getObject:(NSString *)resourceType incId:(int64_t)incId{
+- (id)getObject:(NSString *)resourceType incId:(int64_t)incId
+{
     AceResourcePlugin *plugin = [self.pluginMap objectForKey:resourceType];
     if (plugin) {
         return [plugin getObject:incId];
@@ -112,7 +116,9 @@
     return nil;
 }
 
-- (NSString *)onCallMethod:(NSString *)methodId param:(NSString *)param{
+- (NSString *)onCallMethod:(NSString *)methodId param:(NSString *)param
+{
+    NSLog(@"AceResourcePlugin methodId  %@ --- %@",methodId,param);
     IAceOnCallSyncResourceMethod resourceMethod = [self.callSyncMethodMap objectForKey:methodId];
     if (resourceMethod) {
         return resourceMethod([self buildParamMap:param]);
@@ -121,7 +127,25 @@
     return @"no method found";
 }
 
-- (BOOL)releaseObject:(NSString *)resourceHash {
+- (void)notifyLifecycleChanged:(BOOL)isBackground
+{
+    if (self.pluginMap) {
+        NSEnumerator *plugins = [self.pluginMap objectEnumerator];
+        id obj;
+        while ((obj = [plugins nextObject])) {
+            if ([obj isKindOfClass:[AceResourcePlugin class]]) {
+                AceResourcePlugin *plugin = (AceResourcePlugin *)obj;
+                if (plugin) {
+                    [plugin notifyLifecycleChanged:isBackground];
+                }
+            }
+        }
+    }
+ 
+}
+
+- (BOOL)releaseObject:(NSString *)resourceHash
+{
     NSArray <NSString *> *split = [resourceHash componentsSeparatedByString:PARAM_AT];
     if (split.count == 2) {
         AceResourcePlugin *plugin = [self.pluginMap objectForKey:split[0]];
@@ -134,17 +158,22 @@
 
 - (BOOL)releaseObject
 {
-    NSEnumerator *plugins = [self.pluginMap objectEnumerator];
-    AceResourcePlugin *plugin;
-    while ((plugin = [plugins nextObject])) {
-        if (plugin) {
-            [plugin releaseObject];
+    if (self.pluginMap) {
+        NSEnumerator *plugins = [self.pluginMap objectEnumerator];
+        AceResourcePlugin *plugin;
+        while ((plugin = [plugins nextObject])) {
+            if (plugin) {
+                [plugin releaseObject];
+                plugin = nil;
+            }
         }
     }
+
     return YES;
 }
 
-- (void)dealloc{
+- (void)dealloc
+{
     NSLog(@"AceResourceRegisterOC dealloc");
 }
 @end

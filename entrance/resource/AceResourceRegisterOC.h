@@ -13,6 +13,9 @@
  * limitations under the License.
  */
 
+#ifndef FOUNDATION_ACE_ADAPTER_IOS_ENTRANCE_RESOURCE_ACERESOURCEREGISTEROC_H
+#define FOUNDATION_ACE_ADAPTER_IOS_ENTRANCE_RESOURCE_ACERESOURCEREGISTEROC_H
+
 #import <Foundation/Foundation.h>
 
 #import "AceResourcePlugin.h"
@@ -51,6 +54,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (NSString *)onCallMethod:(NSString *)methodId param:(NSString *)param;
 
+- (void)notifyLifecycleChanged:(BOOL)isBackground;
+
 - (BOOL)releaseObject:(NSString *)resourceHash;
 
 - (BOOL)releaseObject;
@@ -58,3 +63,5 @@ NS_ASSUME_NONNULL_BEGIN
 @end
 
 NS_ASSUME_NONNULL_END
+
+#endif // FOUNDATION_ACE_ADAPTER_IOS_ENTRANCE_RESOURCE_ACERESOURCEREGISTEROC_H

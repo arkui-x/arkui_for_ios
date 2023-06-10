@@ -57,6 +57,7 @@
         _needNotifySurfaceChangedWithWidth = NO;
         _needCreateSurfaceNode = NO;
         [self setupNotificationCenterObservers];
+        self.backgroundColor = UIColor.clearColor;
     }
     return self;
 }
@@ -282,12 +283,18 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
 }
 
 - (void)applicationDidEnterBackground:(NSNotification *)notification {
+    if ([self.notifyDelegate respondsToSelector:@selector(notifyApplicationDidEnterBackground)]) {
+        [self.notifyDelegate notifyApplicationDidEnterBackground];
+    }
     if (_windowDelegate.lock() != nullptr) {
         _windowDelegate.lock()->Background();
     }
 }
 
 - (void)applicationWillEnterForeground:(NSNotification *)notification {
+    if ([self.notifyDelegate respondsToSelector:@selector(notifyApplicationWillEnterForeground)]) {
+        [self.notifyDelegate notifyApplicationWillEnterForeground];
+    }
     if (_windowDelegate.lock() != nullptr) {
         _windowDelegate.lock()->Foreground();
     }
@@ -325,6 +332,7 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
 
 - (void)dealloc {
     NSLog(@"WindowView->%@ dealloc",self);
+    self.notifyDelegate = nil;
     [[NSNotificationCenter defaultCenter] removeObserver:self];
     [super dealloc];
 }

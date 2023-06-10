@@ -40,6 +40,7 @@ napi_support = false
 enable_rosen_backend = true
 use_external_icu = "static"
 pixel_map_support = true
+video_components_support = true
 
 cflags_cc = [
   "-std=c++17",
@@ -63,4 +64,8 @@ platform_deps = [
 
 if (defined(pixel_map_support) && pixel_map_support) {
   defines += [ "PIXEL_MAP_SUPPORTED" ]
+}
+
+if (defined(video_components_support) && video_components_support) {
+  defines += [ "VIDEO_SUPPORTED" ]
 }

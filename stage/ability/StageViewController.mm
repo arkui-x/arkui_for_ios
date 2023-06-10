@@ -19,6 +19,7 @@
 #import "StageConfigurationManager.h"
 #import "StageAssetManager.h"
 #import "WindowView.h"
+#import "StageApplication.h"
 
 #include "app_main.h"
 #include "window_view_adapter.h"
@@ -26,7 +27,7 @@
 using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
 using WindowViwAdapter = OHOS::AbilityRuntime::Platform::WindowViewAdapter;
 int32_t CURRENT_STAGE_INSTANCE_Id = 0;
-@interface StageViewController () <UITraitEnvironment> {
+@interface StageViewController () <UITraitEnvironment, WindowViewDelegate> {
     int32_t _instanceId;
     std::string _cInstanceName;
     WindowView *_windowView;
@@ -34,6 +35,9 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 }
 
 @property (nonatomic, strong, readwrite) NSString *instanceName;
+@property (nonatomic, strong) NSString *bundleName;
+@property (nonatomic, strong) NSString *moduleName;
+@property (nonatomic, strong) NSString *abilityName;
 
 @property (nonatomic, strong) AcePlatformPlugin *platformPlugin;
 @end
@@ -50,12 +54,20 @@ CGFloat _brightness = 0.0;
         self.instanceName = [NSString stringWithFormat:@"%@:%d", instanceName, _instanceId];
         NSLog(@"StageVC->%@ init, instanceName is : %@", self, self.instanceName);
         _cInstanceName = [self getCPPString:self.instanceName];
+        NSArray * nameArray = [self.instanceName componentsSeparatedByString:@":"];
+        if (nameArray.count >= 3) {
+            self.bundleName = nameArray[0];
+            self.moduleName = nameArray[1];
+            self.abilityName = nameArray[2];
+        }
+        
     }
     return self;
 }
 
 - (void)initWindowView {
     _windowView = [[WindowView alloc] init];
+    _windowView.notifyDelegate = self;
     _windowView.frame = self.view.bounds;
     _windowView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     WindowViwAdapter::GetInstance()->AddWindowView(_cInstanceName, (__bridge void*)_windowView);
@@ -78,6 +90,9 @@ CGFloat _brightness = 0.0;
     [super viewDidAppear:animated];
     NSLog(@"StageVC->%@ viewDidAppear call.", self);
     AppMain::GetInstance()->DispatchOnForeground(_cInstanceName);
+    if (self.platformPlugin) {
+        [self.platformPlugin notifyLifecycleChanged:false];
+    }
 }
 
 - (void)viewDidDisappear:(BOOL)animated {
@@ -85,6 +100,9 @@ CGFloat _brightness = 0.0;
     [UIScreen mainScreen].brightness = _brightness;
     NSLog(@"StageVC->%@ viewDidDisappear call.", self);
     AppMain::GetInstance()->DispatchOnBackground(_cInstanceName);
+    if (self.platformPlugin) {
+        [self.platformPlugin notifyLifecycleChanged:true];
+    }
 }
 
 - (void)didReceiveMemoryWarning {
@@ -100,6 +118,7 @@ CGFloat _brightness = 0.0;
     [_windowView notifySurfaceDestroyed];
     [_windowView notifyWindowDestroyed];
     [_windowView release];
+    [_platformPlugin releaseObject];
     [_platformPlugin release];
     AppMain::GetInstance()->DispatchOnDestroy(_cInstanceName);
     [super dealloc];
@@ -117,19 +136,36 @@ CGFloat _brightness = 0.0;
     return _instanceId;
 }
 
-#pragma mark IAceOnCallEvent
-- (void)onEvent:(NSString *)eventId param:(NSString *)param {
-}
-
 #pragma mark - private method
 - (void)initPlatformPlugin {
-     NSString *bundleDirectory = [[StageAssetManager assetManager] getBundlePath];
      self.platformPlugin = [[AcePlatformPlugin alloc]
-        initPlatformPlugin:self instanceId:_instanceId bundleDirectory:bundleDirectory];
+        initPlatformPlugin:self instanceId:_instanceId moduleName:self.moduleName];
 }
 
 - (std::string)getCPPString:(NSString *)string {
     return [string UTF8String];
+}
+
+- (BOOL)isTopController {
+    StageViewController *controller = [StageApplication getApplicationTopViewController];
+    NSString *topInstanceName = controller.instanceName;
+    if ([self.instanceName isEqualToString:topInstanceName]) {
+        return true;
+    }
+    return false;
+}
+
+#pragma mark - WindowViewDelegate 
+- (void)notifyApplicationWillEnterForeground {
+    if (self.platformPlugin && [self isTopController]) {
+        [self.platformPlugin notifyLifecycleChanged:false];
+    }
+}
+
+- (void)notifyApplicationDidEnterBackground {
+    if (self.platformPlugin && [self isTopController]) {
+        [self.platformPlugin notifyLifecycleChanged:true];
+    }
 }
 
 - (BOOL)prefersStatusBarHidden {

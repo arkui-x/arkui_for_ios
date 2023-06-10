@@ -22,9 +22,16 @@ namespace OHOS::Rosen {
 class Window;
 }
 
+@protocol WindowViewDelegate <NSObject>
+@optional
+- (void)notifyApplicationWillEnterForeground;
+- (void)notifyApplicationDidEnterBackground;
+@end
+
 @interface WindowView : UIView
 @property (nonatomic, assign) UIInterfaceOrientationMask OrientationMask;
 @property (nonatomic, assign) UIViewController*viewController;
+@property (nonatomic, weak) id<WindowViewDelegate> notifyDelegate;
 @property (nonatomic, assign) UIInterfaceOrientation orientation;
 
 - (UIViewController*)getViewController;
