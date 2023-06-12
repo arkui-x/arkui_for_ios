@@ -219,20 +219,28 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
 }
 
 - (void)print:(NSString *)msg {
-    NSLog(@"print: %@",msg);
+    if (msg.length >= 1000) {
+        NSLog(@"print: The total length of the message exceed 1000 characters.");
+    } else {
+        NSLog(@"print: %@",msg);
+    }
 }
 
 - (void)printSync:(NSString *)msg {
-    NSLog(@"printSync: %@",msg);
+    if (msg.length >= 1000) {
+        NSLog(@"printSync: The total length of the message exceed 1000 characters.");
+    } else {
+        NSLog(@"printSync: %@",msg);
+    }
 }
 
 - (int)finishTest {
-    NSLog(@"finishTest");
+    NSLog(@"TestFinished-ResultMsg: your test finished!!!");
     int error = 0;
     @try {
        exit(0);
     } @catch (NSException *exception) {
-        NSLog(@"finishTest :%@",exception);
+        NSLog(@"TestFinished-ResultMsg: %@",exception);
         error = 1;
     } @finally {
         return error;
