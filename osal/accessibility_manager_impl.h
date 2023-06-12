@@ -33,12 +33,12 @@ class ACE_EXPORT AccessibilityManagerImpl : public AccessibilityNodeManager {
 public:
     AccessibilityManagerImpl() = default;
     ~AccessibilityManagerImpl() override = default;
-    bool GetAllComponents(NodeId nodeID, std::vector<OHOS::Ace::Platform::ComponentInfo>& components);
+    bool GetAllComponents(NodeId nodeID, OHOS::Ace::Platform::ComponentInfo& rootComponent);
+
 protected:
     void DumpHandleEvent(const std::vector<std::string>& params) override;
     void DumpProperty(const std::vector<std::string>& params) override;
     void DumpTree(int32_t depth, NodeId nodeID) override;
-    
 
 private:
     RefPtr<NG::PipelineContext> FindPipelineByElementId(const int32_t elementId, RefPtr<NG::FrameNode>& node);
