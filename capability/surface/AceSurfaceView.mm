@@ -126,11 +126,12 @@
         NSLog(@"AceSurfaceView setSurfaceBounds (%f, %f) - (%f x %f) ", 
             _surfaceLeft, _surfaceTop, _surfaceWidth, _surfaceHeight);
         
-        CGRect oldRect = self.playerLayer.frame;
+        CGRect oldRect = self.frame;
         ///Remove animation
         [CATransaction begin];
         [CATransaction setDisableActions:YES];
-        self.playerLayer.frame = CGRectMake(_surfaceLeft, _surfaceTop, _surfaceWidth, _surfaceHeight);
+        self.frame = CGRectMake(_surfaceLeft, _surfaceTop, _surfaceWidth, _surfaceHeight);
+        self.playerLayer.frame = self.bounds;
         [CATransaction commit];
         [self callSurfaceChange:oldRect];
        
@@ -188,6 +189,21 @@
 - (long)getResId
 {
     return self.incId;
+}
+
+- (void)bringSubviewToFront
+{
+    if (self.target){
+        UIViewController* superViewController = (UIViewController*)self.target;
+        if (!superViewController){
+            return;
+        }
+        WindowView *windowView = (WindowView *)[self findWindowViewInView:superViewController.view];
+        if (!windowView){
+            return;
+        }
+        [superViewController.view insertSubview:self belowSubview:windowView];
+    }
 }
 
 - (void)releaseObject
