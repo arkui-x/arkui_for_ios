@@ -78,6 +78,7 @@ CGFloat _brightness = 0.0;
 - (void) viewDidLoad {
     [super viewDidLoad];
     NSLog(@"StageVC->%@ viewDidLoad call. self.params : %@", self, self.params);
+    self.view.backgroundColor = UIColor.whiteColor;
     [self initWindowView];
     [self initPlatformPlugin];
     [_windowView createSurfaceNode];
