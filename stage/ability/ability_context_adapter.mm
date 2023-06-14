@@ -172,6 +172,13 @@ int32_t AbilityContextAdapter::DoAbilityForeground(const std::string &fullname)
 
 int32_t AbilityContextAdapter::DoAbilityBackground(const std::string &fullname)
 {
+    std::string instanceName = GetTopAbility();
+    auto pos = instanceName.find(fullname);
+    if (pos == std::string::npos) {
+        LOGI("Do ability background, already background %{public}s", fullname.c_str());
+        return ERR_OK;
+    }
+
     NSString *str = GetOCstring(fullname);
     NSArray *arr =[str componentsSeparatedByString: @":"];
     NSString *bundleName = arr[0];
