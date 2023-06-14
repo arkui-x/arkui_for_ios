@@ -69,6 +69,7 @@ ohos_shared_library("arkui_ios") {
 
       # for enable debugger
       "//arkcompiler/toolchain/inspector:ark_debugger_static",
+      "//arkcompiler/toolchain/inspector:connectserver_debugger",
       "//arkcompiler/toolchain/tooling:libark_ecma_debugger_set",
     ]
   }
