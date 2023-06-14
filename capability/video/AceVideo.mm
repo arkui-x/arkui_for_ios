@@ -18,6 +18,7 @@
 #import <UIKit/UIKit.h>
 #import <GLKit/GLKit.h>
 #import "AceSurfaceHolder.h"
+#import "AceSurfaceView.h"
 #import "StageAssetManager.h"
 
 #define VIDEO_FLAG      @"video@"
@@ -237,6 +238,13 @@ typedef enum : NSUInteger {
         return [self setUpdateResource:param];
     };
     [callSyncMethodMap setObject:setupdateResource_callback forKey:updateResource_method_hash];
+
+    // setfullscreen callback
+    NSString *fullscreen_method_hash = [self method_hashFormat:@"fullscreen"];
+    IAceOnCallSyncResourceMethod setfullscreen_callback = ^NSString *(NSDictionary * param){
+        return [self setFullscreen:param];
+    };
+    [callSyncMethodMap setObject:setfullscreen_callback forKey:fullscreen_method_hash];
 
     self.callSyncMethodMap = callSyncMethodMap;
 }
@@ -494,7 +502,29 @@ typedef enum : NSUInteger {
     return true;
 }
 
-- (BOOL)initMediaPlayer:(NSDictionary * )param
+- (NSString *)setFullscreen:(NSDictionary *)param
+{
+    NSLog(@"AceVideo: setFullscreen param: %@",param);
+    if (!param[KEY_VALUE]) {
+        NSLog(@"AceVideo: setFullscreen failed: value is illegal");
+        return FAIL;
+    }
+    if (self.surfaceId == 0) {
+        return FAIL;
+    }
+    BOOL isFullScreen = [[param objectForKey:KEY_VALUE] boolValue];
+    if (isFullScreen) {
+        AVPlayerLayer * playerLayer = (AVPlayerLayer *)[AceSurfaceHolder getLayerWithId:self.surfaceId inceId:self.instanceId];
+        CALayer *superLayer = playerLayer.superlayer; 
+        AceSurfaceView * surfaceView = (AceSurfaceView *)superLayer ? superLayer.delegate : nil;
+        if (surfaceView) {
+            [surfaceView bringSubviewToFront];
+        }
+    }
+    return SUCCESS;
+}
+
+- (BOOL)initMediaPlayer:(NSDictionary *)param
 {
     NSLog(@"AceVideo: initMediaPlayer param: %@",param);
     if (!param[KEY_SOURCE]) {
