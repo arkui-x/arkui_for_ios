@@ -163,8 +163,12 @@
         AceResourcePlugin *plugin;
         while ((plugin = [plugins nextObject])) {
             if (plugin) {
-                [plugin releaseObject];
-                plugin = nil;
+                 @try { 
+                    [plugin releaseObject];
+                    plugin = nil;
+                 } @catch (NSException *exception) { 
+
+                 }
             }
         }
     }

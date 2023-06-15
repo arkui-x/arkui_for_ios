@@ -109,10 +109,20 @@
 - (void)releaseObject
 {
     NSLog(@"AceVideoResourcePlugin %s",__func__);
-    [self.objectMap enumerateKeysAndObjectsUsingBlock:^(NSString * _Nonnull key, AceVideo * _Nonnull video, BOOL * _Nonnull stop) {
-        [video releaseObject];
-    }];
-    [self.objectMap removeAllObjects];
+    if (self.objectMap) {
+        [self.objectMap enumerateKeysAndObjectsUsingBlock:^(NSString * _Nonnull key, AceVideo * _Nonnull video, BOOL * _Nonnull stop) {
+        if (video) {
+            @try {
+                [video releaseObject];
+            } @catch (NSException *exception) {
+                NSLog(@"AceVideoResourcePlugin releaseObject releaseObject fail"); 
+            }
+            }else {
+                NSLog(@"AceVideoResourcePlugin releaseObject fail video is null"); 
+            }
+        }];
+        [self.objectMap removeAllObjects];
+    }
     self.moudleName = nil;
 }
 

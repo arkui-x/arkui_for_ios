@@ -75,17 +75,19 @@
 
 - (void)callSurfaceChange:(CGRect)oldRect
 {
-    CGRect newRect = self.playerLayer.frame;
-    if (oldRect.origin.x != newRect.origin.x
-        || oldRect.origin.y != newRect.origin.y
-        || oldRect.size.width != newRect.size.width
-        || oldRect.size.height != newRect.size.height){
-        CGFloat width = newRect.size.width;
-        CGFloat height = newRect.size.height;
-        NSString * param = [NSString stringWithFormat:@"surfaceWidth=%f&surfaceHeight=%f",width,height];
-        NSLog(@"AceSurfaceView callSurfaceChange (%f, %f) - (%f x %f) ", 
-            newRect.origin.x, newRect.origin.y, newRect.size.width, newRect.size.height);
-        [self fireCallback:@"onChanged" params:param];
+    if (self.playerLayer) {
+        CGRect newRect = self.playerLayer.frame;
+        if (oldRect.origin.x != newRect.origin.x
+            || oldRect.origin.y != newRect.origin.y
+            || oldRect.size.width != newRect.size.width
+            || oldRect.size.height != newRect.size.height){
+            CGFloat width = newRect.size.width;
+            CGFloat height = newRect.size.height;
+            NSString * param = [NSString stringWithFormat:@"surfaceWidth=%f&surfaceHeight=%f",width,height];
+            NSLog(@"AceSurfaceView callSurfaceChange (%f, %f) - (%f x %f) ", 
+                newRect.origin.x, newRect.origin.y, newRect.size.width, newRect.size.height);
+            [self fireCallback:@"onChanged" params:param];
+        }
     }
 }
 
@@ -147,6 +149,7 @@
             [superViewController.view addSubview:self];
             [superViewController.view bringSubviewToFront:windowView];
             [self.layer addSublayer:self.playerLayer];
+            [self performSelector:@selector(delaySetClearColor:) withObject:windowView afterDelay:0.5f];
         }
     } @catch (NSException* exception) {
         NSLog(@"AceSurfaceView NumberFormatException, setSurfaceSize failed");
@@ -155,6 +158,12 @@
     return SUCCESS;
 }
 
+- (void)delaySetClearColor:(UIView *)view
+{
+    if (view) {
+        view.backgroundColor = UIColor.clearColor;
+    }
+}
 
 - (UIView *)findWindowViewInView:(UIView *)view {
     for (UIView *subview in view.subviews) {
@@ -208,24 +217,31 @@
 
 - (void)releaseObject
 {
-    if (_viewAdded) {
-        NSLog(@"AceSurfaceView Surface removed");
-        [self removeFromSuperview];
-        _viewAdded = false;
+    @try {
+         NSLog(@"AceSurfaceView releaseObject");
+        if (_viewAdded) {
+            _viewAdded = false;
+        }
+        if (self.playerLayer) {
+            [self.playerLayer removeFromSuperlayer];
+            self.playerLayer = nil;
+            [AceSurfaceHolder removeLayerWithId:self.incId inceId:self.instanceId];
+        }
+
+        if (self.callMethodMap) {
+            self.callMethodMap = nil;
+        }
+        self.callback = nil;
+        
+    } @catch (NSException* exception) {
+        NSLog(@"AceSurfaceView releaseObject failed");
     }
 }
 
 - (void)dealloc
 {
-    if (self.playerLayer) {
-        [self.playerLayer removeFromSuperlayer];
-        self.playerLayer = nil;
-        [AceSurfaceHolder removeLayerWithId:self.incId inceId:self.instanceId];
-    }
-    self.callback = nil;
-    self.callMethodMap = nil;
+    [self releaseObject];
     NSLog(@"AceSurfaceView->%@ dealloc", self);
-    //    [super dealloc];
 }
 
 @end
