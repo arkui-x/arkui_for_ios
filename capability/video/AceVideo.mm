@@ -114,7 +114,6 @@ typedef enum : NSUInteger {
     NSString *init_method_hash = [self method_hashFormat:@"init"];
     IAceOnCallSyncResourceMethod init_callback = ^NSString *(NSDictionary * param){
         return [self initMediaPlayer:param] ? SUCCESS : FAIL;
-        
     };
     [callSyncMethodMap setObject:init_callback forKey:init_method_hash];
 
@@ -257,30 +256,35 @@ typedef enum : NSUInteger {
 - (void)dealloc
 {
     [self releaseObject];
-    NSLog(@"AceVideo->%@ dealloc", self); 
+    NSLog(@"AceVideo->%@ dealloc", self);
 }
 
 - (void)releaseObject
 {
-    NSLog(@"AceVideo releaseObject");
-    if (self.playerItem_) {
-        @try {
-            [self.playerItem_ removeObserver:self forKeyPath:@"status"];
-            [self.playerItem_ removeObserver:self forKeyPath:@"loadedTimeRanges"];
-        } @catch (NSException *exception) {}
-    }
-    [[NSNotificationCenter defaultCenter] removeObserver:self];
-    if (_displayLink) {
-        [self.displayLink invalidate];
-        self.displayLink = nil;
-    }
-    if (self.player_) {
-        if (self.player_.timeControlStatus == AVPlayerTimeControlStatusPlaying) {
-              [self pause];
+    @try {
+        NSLog(@"AceVideo releaseObject");
+        if (self.playerItem_) {
+            @try {
+                [self.playerItem_ removeObserver:self forKeyPath:@"status"];
+                [self.playerItem_ removeObserver:self forKeyPath:@"loadedTimeRanges"];
+            } @catch (NSException *exception) {}
         }
-        self.player_ = nil;
+        [[NSNotificationCenter defaultCenter] removeObserver:self];
+        if (_displayLink) {
+            [self.displayLink invalidate];
+            self.displayLink = nil;
+        }
+        if (self.player_) {
+            if (self.player_.timeControlStatus == AVPlayerTimeControlStatusPlaying) {
+                [self pause];
+            }
+            self.player_ = nil;
+        }
+        self.callSyncMethodMap = nil;
+    } @catch (NSException* exception) {
+        NSLog(@"AceVideo releaseObject failed");
     }
-    self.callSyncMethodMap = nil;
+
 }
 
 - (void)startPlay{
@@ -293,7 +297,7 @@ typedef enum : NSUInteger {
             int64_t duration = FLTCMTimeToMillis([[self.player_ currentItem] duration]);
             if (currentTime.value == duration) {
                 CMTime time = CMTimeMake(0, currentTime.timescale);
-                [self seekTo:time];
+                [self.player_ seekToTime:time toleranceBefore:kCMTimeZero toleranceAfter:kCMTimeZero];
             }
         }
         [self showAvPlayerlayer];
@@ -333,7 +337,7 @@ typedef enum : NSUInteger {
         if (self.state == STOPPED) {
             [self setReset];
         }
-        [self.player_ seekToTime:time];
+        [self.player_ seekToTime:time toleranceBefore:kCMTimeZero toleranceAfter:kCMTimeZero];
     }
     NSString *param = [NSString stringWithFormat:@"currentpos=%f", (float)time.value];
     [self fireCallback:@"seekcomplete" params:param];
@@ -421,7 +425,6 @@ typedef enum : NSUInteger {
     AVPlayerLayer * playerLayer = (AVPlayerLayer *)[AceSurfaceHolder getLayerWithId:self.surfaceId inceId:self.instanceId];
     if (playerLayer && playerLayer.isHidden) {
         playerLayer.hidden = false;
-        // playerLayer.superlayer.backgroundColor = UIColor.blackColor.CGColor;
     }  
 }
 

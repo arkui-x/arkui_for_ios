@@ -73,10 +73,12 @@
 }
 
 - (void)releaseObject{
-    [self.objectMap enumerateKeysAndObjectsUsingBlock:^(NSString*  _Nonnull key, AceCamera * _Nonnull camera, BOOL * _Nonnull stop) {
-        [camera releaseObject];
-    }];
-    [self.objectMap removeAllObjects];
+    if (self.objectMap) {
+        [self.objectMap enumerateKeysAndObjectsUsingBlock:^(NSString*  _Nonnull key, AceCamera * _Nonnull camera, BOOL * _Nonnull stop) {
+            [camera releaseObject];
+        }];
+        [self.objectMap removeAllObjects];
+    }
 }
 
 @end

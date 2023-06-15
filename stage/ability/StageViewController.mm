@@ -60,7 +60,6 @@ CGFloat _brightness = 0.0;
             self.moduleName = nameArray[1];
             self.abilityName = nameArray[2];
         }
-        
     }
     return self;
 }
@@ -75,8 +74,9 @@ CGFloat _brightness = 0.0;
     [self.view addSubview: _windowView];
 }
 
-- (void) viewDidLoad {
+- (void)viewDidLoad {
     [super viewDidLoad];
+    self.view.backgroundColor = UIColor.whiteColor;
     NSLog(@"StageVC->%@ viewDidLoad call. self.params : %@", self, self.params);
     self.view.backgroundColor = UIColor.whiteColor;
     [self initWindowView];

@@ -82,16 +82,27 @@
 - (void)releaseObject
 {
     NSLog(@"AceSurfacePlugin %s",__func__);
-    [self.objectMap enumerateKeysAndObjectsUsingBlock:^(NSString * _Nonnull key, 
+    if (self.objectMap) { 
+        [self.objectMap enumerateKeysAndObjectsUsingBlock:^(NSString * _Nonnull key, 
         AceSurfaceView *_Nonnull aceSurface, BOOL * _Nonnull stop) {
-        [aceSurface releaseObject];
-    }];
-    [self.objectMap removeAllObjects];
+        if (aceSurface) {
+            @try {
+                [aceSurface releaseObject];
+            } @catch (NSException *exception) {
+                NSLog(@"AceSurfacePlugin releaseObject releaseObject fail"); 
+            }
+            }else {
+                NSLog(@"AceSurfacePlugin releaseObject fail aceSurface is null"); 
+            }
+        }];
+        [self.objectMap removeAllObjects];
+    }
     self.target = nil;
 }
 
 - (void)dealloc
 {
+    [self releaseObject];
     NSLog(@"AceSurfacePlugin->%@ dealloc", self);
 }
 
