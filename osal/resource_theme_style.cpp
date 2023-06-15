@@ -19,8 +19,10 @@
 
 namespace OHOS::Ace {
 namespace {
+constexpr char RES_TAG[] = "resource:///";
 constexpr char COLOR_VALUE_PREFIX[] = "$color:";
 constexpr char REF_ATTR_VALUE_KEY_WORD[] = "?theme:";
+constexpr char MEDIA_VALUE_KEY_WORD[] = "/";
 
 double ParseDoubleUnit(const std::string& value, std::string& unit)
 {
@@ -59,6 +61,8 @@ void ResourceThemeStyle::ParseContent()
         if (attrValue.front() == '#' || attrValue.find(COLOR_VALUE_PREFIX) != std::string::npos) {
             // color
             attributes_[attrName] = { .type = ThemeConstantsType::COLOR, .value = Color::FromString(attrValue) };
+        } else if (attrValue.find(MEDIA_VALUE_KEY_WORD) != std::string::npos) {
+            attributes_[attrName] = { .type =  ThemeConstantsType::STRING, .value = std::string(RES_TAG) + attrValue };
         } else if (stringAttrs.find(attrName) != stringAttrs.end()) {
             // string
             attributes_[attrName] = { .type = ThemeConstantsType::STRING, .value = attrValue };
