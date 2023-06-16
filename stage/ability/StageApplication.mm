@@ -37,7 +37,6 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
     [self setLocale];
     [[StageAssetManager assetManager] launchAbility];
     [[StageConfigurationManager configurationManager] registConfiguration];
-    [NSThread sleepForTimeInterval:0.5];
     [self startAbilityDelegator];
 }
 
