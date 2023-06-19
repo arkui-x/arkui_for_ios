@@ -111,6 +111,11 @@
     [self dispatchTouches:touches];
 }
 
+- (float)updateBrightness {
+    if (_windowDelegate.lock() != nullptr) {
+        [UIScreen mainScreen].brightness = _windowDelegate.lock()->GetBrightness();
+    }
+}
 #pragma mark - Touch event handling
 
 static flutter::PointerData::Change PointerDataChangeFromUITouchPhase(UITouchPhase phase) {
