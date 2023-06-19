@@ -56,7 +56,9 @@ Window::Window(const flutter::TaskRunners& taskRunners)
 
 Window::Window(std::shared_ptr<AbilityRuntime::Platform::Context> context, uint32_t windowId)
     : context_(context), windowId_(windowId)
-{}
+{
+    brightness_ = [UIScreen mainScreen].brightness;
+}
 
 Window::~Window()
 {
@@ -304,6 +306,9 @@ std::shared_ptr<Window> Window::FindWindow(const std::string& name)
 std::shared_ptr<Window> Window::GetTopWindow(const std::shared_ptr<OHOS::AbilityRuntime::Platform::Context>& context)
 {
     StageViewController *controller = [StageApplication getApplicationTopViewController];
+    if (![controller isKindOfClass:[StageViewController class]]) {
+        return nullptr;
+    }
     NSString *instanceName = controller.instanceName;
     WindowView *windowView = static_cast<WindowView*>(OHOS::AbilityRuntime::Platform
         ::WindowViewAdapter::GetInstance()->GetWindowView([instanceName UTF8String]));
@@ -658,13 +663,16 @@ WMError Window::SetBackgroundColor(uint32_t color)
 
 WMError Window::SetBrightness(float brightness)
 {
-    [[UIScreen mainScreen] setBrightness:brightness];
+    brightness_ = brightness;
+    if (isWindowShow_) {
+        [[UIScreen mainScreen] setBrightness:brightness];
+    }
     return WMError::WM_OK;
 }
 
 float Window::GetBrightness() const
 {
-    return [UIScreen mainScreen].brightness;
+    return brightness_;
 }
 
 WMError Window::SetKeepScreenOn(bool keepScreenOn)
