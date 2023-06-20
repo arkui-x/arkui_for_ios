@@ -178,7 +178,7 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
 
     NSArray *array = self.allModuleFilePathArray.copy;
     for (NSString *path in array) {
-        if ([path containsString:moduleName]
+       if ([path containsString:[NSString stringWithFormat:@"/%@/",moduleName]]
             && [path containsString:FILTER_FILE_RESOURCES_INDEX]) {
                 *appResIndexPath = path;
                 NSLog(@"%s, moduleName : %@, \n appResIndexPath : %@", __func__, moduleName, path);
