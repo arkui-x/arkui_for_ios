@@ -29,7 +29,7 @@ NS_ASSUME_NONNULL_BEGIN
 @interface AceTexture : NSObject
 
 @property(nonatomic, assign) int64_t incId;
-@property(nonatomic,weak)id<AceTextureDelegate>delegate;
+@property(nonatomic, assign)id<AceTextureDelegate>delegate;
 - (instancetype)initWithRegister:(NSObject<FlutterTextureRegistry> *)textures onEvent:(IAceOnResourceEvent)callback;
 - (void)markTextureFrameAvailable;
 - (void)releaseObject;

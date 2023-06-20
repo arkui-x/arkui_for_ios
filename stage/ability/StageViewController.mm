@@ -35,11 +35,11 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 }
 
 @property (nonatomic, strong, readwrite) NSString *instanceName;
-@property (nonatomic, strong) NSString *bundleName;
-@property (nonatomic, strong) NSString *moduleName;
-@property (nonatomic, strong) NSString *abilityName;
+@property (nonatomic, copy) NSString *bundleName;
+@property (nonatomic, copy) NSString *moduleName;
+@property (nonatomic, copy) NSString *abilityName;
 
-@property (nonatomic, strong) AcePlatformPlugin *platformPlugin;
+@property (nonatomic, retain) AcePlatformPlugin *platformPlugin;
 @end
 
 @implementation StageViewController
@@ -121,7 +121,6 @@ CGFloat _brightness = 0.0;
     [_windowView notifyWindowDestroyed];
     [_windowView release];
     [_platformPlugin releaseObject];
-    [_platformPlugin release];
     AppMain::GetInstance()->DispatchOnDestroy(_cInstanceName);
     [super dealloc];
 }

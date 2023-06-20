@@ -15,7 +15,6 @@
  
 #import "AcePlatformPlugin.h"
 
-#import "AceCameraResoucePlugin.h"
 #import "AceVideoResourcePlugin.h"
 #import "AceSurfacePlugin.h"
 
@@ -25,10 +24,9 @@
 #include "core/common/container_scope.h"
 
 @interface AcePlatformPlugin()<IAceOnCallEvent>
-@property (nonatomic, strong) AceResourceRegisterOC* resRegister;
-@property (nonatomic, strong) AceCameraResoucePlugin* cameraResourcePlugin;
-@property (nonatomic, strong) AceVideoResourcePlugin* videoResourcePlugin;
-@property (nonatomic, strong) AceSurfacePlugin* aceSurfacePlugin;
+@property (nonatomic, retain) AceResourceRegisterOC* resRegister;
+@property (nonatomic, retain) AceVideoResourcePlugin* videoResourcePlugin;
+@property (nonatomic, retain) AceSurfacePlugin* aceSurfacePlugin;
 
 @property (nonatomic, assign) int32_t instanceId;
 @end
@@ -53,8 +51,6 @@
                 _aceSurfacePlugin = [AceSurfacePlugin createRegister:target abilityInstanceId:instanceId];
                 [self addResourcePlugin:_aceSurfacePlugin];
             }
-            _cameraResourcePlugin = [[AceCameraResoucePlugin alloc] init];
-            [self addResourcePlugin:_cameraResourcePlugin];
         }
     }
     return self;
@@ -69,25 +65,20 @@
 
 - (void)releaseObject 
 {
-    if (_resRegister) {
-        [_resRegister releaseObject];
-    }
-    [self releasePlugins];
+   [self performSelector:@selector(delayRelease) withObject:nil afterDelay:2.0f];
 }
 
-- (void)releasePlugins 
+- (void)delayRelease
 {
     if (_resRegister) {
-        _resRegister = nil;
+        [_resRegister releaseObject];
+        [_resRegister release];
     }
-    if (_videoResourcePlugin) {
-        _videoResourcePlugin = nil;
+    if (_videoResourcePlugin){
+        [_videoResourcePlugin release];
     }
-    if (_aceSurfacePlugin) {
-        _aceSurfacePlugin = nil;
-    }
-    if (_cameraResourcePlugin) {
-        _cameraResourcePlugin = nil;
+     if (_aceSurfacePlugin){
+        [_aceSurfacePlugin release];
     }
 }
 

@@ -75,9 +75,9 @@ NS_ASSUME_NONNULL_BEGIN
 
 @property(nonatomic, strong) NSString  *bridgeName;
 
-@property(nonatomic, weak) id <IMethodResult> methodResult; // callmethod result delegate
+@property(nonatomic, assign) id <IMethodResult> methodResult; // callmethod result delegate
 
-@property(nonatomic, weak) id <IMessageListener> messageListener; // message listerner delegate
+@property(nonatomic, assign) id <IMessageListener> messageListener; // message listerner delegate
 
 @property(nonatomic, assign) int32_t instanceId;
 

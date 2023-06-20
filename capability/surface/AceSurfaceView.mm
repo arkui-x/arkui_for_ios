@@ -24,12 +24,12 @@
     float _surfaceHeight;
     BOOL _viewAdded;
 }
-@property (nonatomic, strong) AVPlayerLayer* playerLayer;
+@property (nonatomic, retain) AVPlayerLayer* playerLayer;
 @property (nonatomic, assign) int64_t incId;
 @property (nonatomic, assign) int32_t instanceId;
 @property (nonatomic, copy) IAceOnResourceEvent callback;
-@property (nonatomic, strong) NSMutableDictionary<NSString*, IAceOnCallSyncResourceMethod>* callMethodMap;
-@property (nonatomic, weak) UIViewController* target;
+@property (nonatomic, retain) NSMutableDictionary<NSString*, IAceOnCallSyncResourceMethod>* callMethodMap;
+@property (nonatomic, assign) UIViewController* target;
 @end
 
 @implementation AceSurfaceView
@@ -63,12 +63,12 @@
         self.backgroundColor = UIColor.blackColor;
         [self layerCreate];
 
-        __weak __typeof(&*self) weakSelf = self;
+        __unsafe_unretained __typeof(&*self) weakSelf = self;
         IAceOnCallSyncResourceMethod callSetSurfaceSize = ^NSString*(NSDictionary* param) {
             NSLog(@"AceSurfaceView: setSurfaceBounds");
             return [weakSelf setSurfaceBounds:param];
         };
-        [self.callMethodMap setObject:callSetSurfaceSize forKey: [self method_hashFormat:@"setSurfaceBounds"]];
+        [self.callMethodMap setObject:Block_copy(callSetSurfaceSize) forKey: [self method_hashFormat:@"setSurfaceBounds"]];
     }
     return self;
 }
@@ -108,7 +108,7 @@
 
 - (NSDictionary<NSString*, IAceOnCallSyncResourceMethod>*)getCallMethod
 {
-    return self.callMethodMap;
+    return [self.callMethodMap copy];
 }
 
 - (NSString*)setSurfaceBounds:(NSDictionary*)params
@@ -218,18 +218,18 @@
 - (void)releaseObject
 {
     @try {
-         NSLog(@"AceSurfaceView releaseObject");
+        NSLog(@"AceSurfaceView releaseObject");
         if (_viewAdded) {
             _viewAdded = false;
         }
         if (self.playerLayer) {
             [self.playerLayer removeFromSuperlayer];
-            self.playerLayer = nil;
+            [self.playerLayer release];
             [AceSurfaceHolder removeLayerWithId:self.incId inceId:self.instanceId];
         }
 
         if (self.callMethodMap) {
-            self.callMethodMap = nil;
+            [self.callMethodMap release];
         }
         self.callback = nil;
         
@@ -240,8 +240,8 @@
 
 - (void)dealloc
 {
-    [self releaseObject];
     NSLog(@"AceSurfaceView->%@ dealloc", self);
+    [super dealloc]; 
 }
 
 @end

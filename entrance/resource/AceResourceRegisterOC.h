@@ -33,7 +33,7 @@ NS_ASSUME_NONNULL_BEGIN
 @interface AceResourceRegisterOC : NSObject
 
 @property (nonatomic, weak) id<IAceOnCallEvent> parent;
-@property (nonatomic, strong) IAceOnResourceEvent callbackHandler;
+@property (nonatomic, copy) IAceOnResourceEvent callbackHandler;
 
 - (instancetype)initWithParent:(id<IAceOnCallEvent>)parent;
 
