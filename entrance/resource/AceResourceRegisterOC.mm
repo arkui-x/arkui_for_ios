@@ -31,7 +31,7 @@
 {
     if (self = [super init]) {
         self.parent = parent;
-        self.pluginMap = [NSMapTable mapTableWithKeyOptions:NSMapTableCopyIn valueOptions:NSMapTableStrongMemory];
+        self.pluginMap = [NSMapTable mapTableWithKeyOptions:NSMapTableCopyIn valueOptions:NSMapTableWeakMemory];
        	self.callSyncMethodMap = [NSMutableDictionary dictionary];
  
         __weak AceResourceRegisterOC *weakSelf = self;
@@ -67,6 +67,7 @@
         if (plugin.version <= oldPlugin.version) {
             return;
         }
+        oldPlugin = nil;
     }
     [plugin setEventCallback:self.callbackHandler];
     [self.pluginMap setObject:plugin forKey:plugin.tag];
@@ -141,18 +142,19 @@
             }
         }
     }
- 
 }
 
 - (BOOL)releaseObject:(NSString *)resourceHash
 {
     NSArray <NSString *> *split = [resourceHash componentsSeparatedByString:PARAM_AT];
-    if (split.count == 2) {
+    if (split.count == 2 && self.pluginMap) {
         AceResourcePlugin *plugin = [self.pluginMap objectForKey:split[0]];
         if (plugin) {
-            [plugin release:[NSString stringWithFormat:@"%lld", [split[1] longLongValue]]];
+            BOOL releaseResult = [plugin release:[NSString stringWithFormat:@"%lld", [split[1] longLongValue]]];
+            return releaseResult;
         }
-    }
+     }
+
     return NO;
 }
 
@@ -172,6 +174,8 @@
             }
         }
     }
+    self.pluginMap = nil;
+    self.callSyncMethodMap = nil;
 
     return YES;
 }

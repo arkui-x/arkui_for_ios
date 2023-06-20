@@ -32,7 +32,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @property (nonatomic, copy) NSString* tag;
 
-@property (nonatomic, weak) IAceOnResourceEvent callback;
+@property (nonatomic, copy) IAceOnResourceEvent callback;
 
 - (instancetype)init:(NSString *)tag version:(int64_t)version;
 

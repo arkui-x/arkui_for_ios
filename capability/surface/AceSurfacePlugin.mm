@@ -17,8 +17,8 @@
 #import "AceSurfaceView.h"
 
 @interface AceSurfacePlugin()
-@property (nonatomic, strong) NSMutableDictionary<NSString*, AceSurfaceView*> *objectMap;
-@property (nonatomic, weak) UIViewController *target;
+@property (nonatomic, retain) NSMutableDictionary<NSString*, AceSurfaceView*> *objectMap;
+@property (nonatomic, assign) UIViewController *target;
 @property (nonatomic, assign) int32_t instanceId;
 @end
 @implementation AceSurfacePlugin
@@ -32,7 +32,7 @@
 {
     self = [super init:@"surface" version:1];
     if (self) {
-        self.objectMap = [NSMutableDictionary dictionary];
+        self.objectMap = [[NSMutableDictionary alloc] init];
         self.target = target;
         self.instanceId = abilityInstanceId;
     }
@@ -72,6 +72,8 @@
         AceSurfaceView *aceSurface = [self.objectMap objectForKey:incId];
         if (aceSurface) {
             [aceSurface releaseObject];
+            [aceSurface removeFromSuperview];
+            [aceSurface release];
             [self.objectMap removeObjectForKey:incId];
             return YES;
         }
@@ -88,6 +90,8 @@
         if (aceSurface) {
             @try {
                 [aceSurface releaseObject];
+                [aceSurface removeFromSuperview];
+                [aceSurface release];
             } @catch (NSException *exception) {
                 NSLog(@"AceSurfacePlugin releaseObject releaseObject fail"); 
             }
@@ -96,14 +100,15 @@
             }
         }];
         [self.objectMap removeAllObjects];
+        [self.objectMap release];
     }
     self.target = nil;
 }
 
 - (void)dealloc
 {
-    [self releaseObject];
     NSLog(@"AceSurfacePlugin->%@ dealloc", self);
+    [super dealloc]; 
 }
 
 @end

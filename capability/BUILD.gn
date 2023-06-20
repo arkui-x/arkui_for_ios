@@ -63,16 +63,16 @@ template("ace_capability_ios_source_set") {
 
     cflags_objc = [
       "-fvisibility=default",
-      "-fobjc-arc",
-      "-fobjc-weak",
+      # "-fobjc-arc",
+      # "-fobjc-weak",
     ]
 
     cflags_objcc = cflags_objc
 
     sources = [
       # camera
-      "$ace_root/adapter/ios/capability/camera/AceCamera.m",
-      "$ace_root/adapter/ios/capability/camera/AceCameraResoucePlugin.mm",
+      # "$ace_root/adapter/ios/capability/camera/AceCamera.mm",
+      # "$ace_root/adapter/ios/capability/camera/AceCameraResoucePlugin.mm",
 
       # text_input
       "$ace_root/adapter/ios/capability/editing/text_input_client_handler.cpp",
@@ -96,11 +96,11 @@ template("ace_capability_ios_source_set") {
       "$ace_root/adapter/ios/capability/surface/AceSurfaceView.mm",
 
       # texture
-      "$ace_root/adapter/ios/capability/texture/AceTexture.m",
+      "$ace_root/adapter/ios/capability/texture/AceTexture.mm",
       "$ace_root/adapter/ios/capability/texture/AceTextureResourcePlugin.mm",
 
       # vibrator
-      "$ace_root/adapter/ios/capability/vibrator/iOSVibratorManager.m",
+      "$ace_root/adapter/ios/capability/vibrator/iOSVibratorManager.mm",
       "$ace_root/adapter/ios/capability/vibrator/vibrator_impl.mm",
       "$ace_root/adapter/ios/capability/vibrator/vibrator_proxy_impl.cpp",
 

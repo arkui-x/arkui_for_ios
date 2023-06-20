@@ -50,7 +50,7 @@ BOOL isDebug = NO;
 @property (nonatomic, retain) AceResourceRegisterOC *registerOC;
 /// plugin
 @property (nonatomic, retain) AceVideoResourcePlugin *videoResourcePlugin;
-@property (nonatomic, retain) AceCameraResoucePlugin *cameraResourcePlugin;
+// @property (nonatomic, retain) AceCameraResoucePlugin *cameraResourcePlugin;
 @property (nonatomic, retain) AceTextureResourcePlugin *textureResourcePlugin;
 
 @end
@@ -151,11 +151,11 @@ BOOL isDebug = NO;
 
     // register with plugins
     _videoResourcePlugin = [[AceVideoResourcePlugin alloc] initWithBundleDirectory:self.bundleDirectory];
-    _cameraResourcePlugin = [[AceCameraResoucePlugin alloc] init];
+    // _cameraResourcePlugin = [[AceCameraResoucePlugin alloc] init];
     _textureResourcePlugin = [[AceTextureResourcePlugin alloc] initWithTextures:_flutterVc.engine];
     
     [_registerOC registerPlugin: _videoResourcePlugin];
-    [_registerOC registerPlugin:_cameraResourcePlugin];
+    // [_registerOC registerPlugin:_cameraResourcePlugin];
     [_registerOC registerPlugin:_textureResourcePlugin];
 
     OHOS::Ace::Platform::FlutterAceView::IdleCallback idleNoticeCallback = [view = _aceView](int64_t deadline) { view->ProcessIdleEvent(deadline); };
@@ -278,7 +278,7 @@ BOOL isDebug = NO;
     [_registerOC release];
 
     [_videoResourcePlugin release];
-    [_cameraResourcePlugin release];
+    // [_cameraResourcePlugin release];
     [_textureResourcePlugin release];
     
     [[NSNotificationCenter defaultCenter] removeObserver:self];
