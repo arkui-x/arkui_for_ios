@@ -63,10 +63,16 @@
         self.backgroundColor = UIColor.blackColor;
         [self layerCreate];
 
-        __unsafe_unretained __typeof(&*self) weakSelf = self;
+        __block id weakSelf = self;
         IAceOnCallSyncResourceMethod callSetSurfaceSize = ^NSString*(NSDictionary* param) {
             NSLog(@"AceSurfaceView: setSurfaceBounds");
-            return [weakSelf setSurfaceBounds:param];
+            if (weakSelf) {
+                return [weakSelf setSurfaceBounds:param];
+            }else {
+                 NSLog(@"AceSurfaceView: setSurfaceBounds fail");
+                 return FAIL;
+            }
+           
         };
         [self.callMethodMap setObject:Block_copy(callSetSurfaceSize) forKey: [self method_hashFormat:@"setSurfaceBounds"]];
     }

@@ -111,12 +111,20 @@ typedef enum : NSUInteger {
 
 - (void)initEventCallback
 {
-    __unsafe_unretained __typeof(&*self) weakSelf = self;
+    NSLog(@"AceVideo: initEventCallback");
+    __block id weakSelf = self;
     // init callback
     NSMutableDictionary *callSyncMethodMap = [[NSMutableDictionary alloc] init];
     NSString *init_method_hash = [self method_hashFormat:@"init"];
     IAceOnCallSyncResourceMethod init_callback = ^NSString *(NSDictionary * param){
-        return [weakSelf initMediaPlayer:param] ? SUCCESS : FAIL;
+        NSLog(@"AceVideo: init");
+        if (weakSelf) {
+            return [weakSelf initMediaPlayer:param] ? SUCCESS : FAIL;
+        }else {
+            NSLog(@"AceVideo: init fail");
+            return FAIL;
+        }
+        
 
     };
     [callSyncMethodMap setObject:Block_copy(init_callback) forKey:init_method_hash];
@@ -124,8 +132,13 @@ typedef enum : NSUInteger {
     // start callback
     IAceOnCallSyncResourceMethod start_callback = ^NSString *(NSDictionary * param){
         NSLog(@"AceVideo: startPlay");
-        [weakSelf startPlay];
-        return SUCCESS;
+        if (weakSelf) {
+            [weakSelf startPlay];
+            return SUCCESS;
+        }else {
+            NSLog(@"AceVideo: startPlay fail");
+            return FAIL;
+        }
     };
 
     NSString *start_method_hash = [self method_hashFormat:@"start"];
@@ -135,8 +148,13 @@ typedef enum : NSUInteger {
     NSString *pause_method_hash = [self method_hashFormat:@"pause"];
     IAceOnCallSyncResourceMethod pause_callback = ^NSString *(NSDictionary * param){
         NSLog(@"AceVideo: pause");
-        [weakSelf pause];
-        return SUCCESS;
+        if (weakSelf) {
+            [weakSelf pause];
+            return SUCCESS;
+        }else {
+            NSLog(@"AceVideo: pause fail");
+            return FAIL;
+        }
     };
     [callSyncMethodMap setObject:Block_copy(pause_callback) forKey:pause_method_hash];
 
@@ -144,8 +162,13 @@ typedef enum : NSUInteger {
     NSString *stop_method_hash =  [self method_hashFormat:@"stop"];
     IAceOnCallSyncResourceMethod stop_callback = ^NSString *(NSDictionary * param){
         NSLog(@"AceVideo: stop");
-        [weakSelf stop];
-        return SUCCESS;
+        if (weakSelf) {
+            [weakSelf stop];
+            return SUCCESS;
+        }else {
+            NSLog(@"AceVideo: stop fail");
+            return FAIL;
+        }
     };
     [callSyncMethodMap setObject:Block_copy(stop_callback) forKey:stop_method_hash];
 
@@ -153,9 +176,14 @@ typedef enum : NSUInteger {
     NSString *getposition_method_hash = [self method_hashFormat:@"getposition"];
     IAceOnCallSyncResourceMethod getposition_callback = ^NSString *(NSDictionary * param){
         NSLog(@"AceVideo: currentpos");
-        int64_t position = [weakSelf getPosition];
-        [weakSelf fireCallback:@"ongetcurrenttime" params:[NSString stringWithFormat:@"currentpos=%lld", position]];
-        return [NSString stringWithFormat:@"%@%lld",@"currentpos=", position];
+        if (weakSelf) {
+            int64_t position = [weakSelf getPosition];
+            [weakSelf fireCallback:@"ongetcurrenttime" params:[NSString stringWithFormat:@"currentpos=%lld", position]];
+            return [NSString stringWithFormat:@"%@%lld",@"currentpos=", position];
+        }else {
+            NSLog(@"AceVideo: currentpos fail");
+            return FAIL;
+        }
     };
     
     [callSyncMethodMap setObject:Block_copy(getposition_callback) forKey:getposition_method_hash];
@@ -163,13 +191,19 @@ typedef enum : NSUInteger {
     // seekto callback 
     NSString *seekto_method_hash = [self method_hashFormat:@"seekto"];
     IAceOnCallSyncResourceMethod seekto_callback = ^NSString *(NSDictionary * param){
-        if (!param) {
+        NSLog(@"AceVideo: seekto");
+        if (weakSelf) {
+            if (!param) {
+                return FAIL;
+            }
+            int64_t msec = [[param objectForKey:KEY_VALUE] longLongValue];
+            CMTime time = CMTimeMake(msec/1000, 1);
+            [weakSelf seekTo:time];
+            return SUCCESS;
+        }else {
+            NSLog(@"AceVideo: seekto fail");
             return FAIL;
         }
-        int64_t msec = [[param objectForKey:KEY_VALUE] longLongValue];
-        CMTime time = CMTimeMake(msec/1000, 1);
-        [weakSelf seekTo:time];
-        return SUCCESS;
     };
     [callSyncMethodMap setObject:Block_copy(seekto_callback) forKey:seekto_method_hash];
 
@@ -177,26 +211,37 @@ typedef enum : NSUInteger {
     NSString *setvolume_method_hash = [self method_hashFormat:@"setvolume"];
     IAceOnCallSyncResourceMethod setvolume_callback = ^NSString *(NSDictionary * param){
         NSLog(@"AceVideo: setVolume");
-        if (!param) {
+        if (weakSelf) {
+            if (!param) {
+                return FAIL;
+            }
+            NSLog(@"%@",[param objectForKey:KEY_VALUE]);
+            float volumn = [[param objectForKey:KEY_VALUE] floatValue];
+            [weakSelf setVolume:volumn];
+            return SUCCESS;
+        }else {
+            NSLog(@"AceVideo: setVolume fail");
             return FAIL;
         }
-        NSLog(@"%@",[param objectForKey:KEY_VALUE]);
-        float volumn = [[param objectForKey:KEY_VALUE] floatValue];
-        [weakSelf setVolume:volumn];
-        return SUCCESS;
     };
     [callSyncMethodMap setObject:Block_copy(setvolume_callback) forKey:setvolume_method_hash];
 
     // enablelooping callback
     NSString *enablelooping_method_hash = [self method_hashFormat:@"enablelooping"];
     IAceOnCallSyncResourceMethod enablelooping_callback = ^NSString *(NSDictionary * param){
-        if (!param) {
+        NSLog(@"AceVideo: enablelooping");
+        if (weakSelf) {
+            if (!param) {
+                return FAIL;
+            }
+            
+            BOOL loop = [[param objectForKey:@"loop"] boolValue];
+            [weakSelf enableLooping:loop];
+            return SUCCESS;
+        }else {
+            NSLog(@"AceVideo: enablelooping fail");
             return FAIL;
         }
-        
-        BOOL loop = [[param objectForKey:@"loop"] boolValue];
-        [weakSelf enableLooping:loop];
-        return SUCCESS;
     };
     [callSyncMethodMap setObject:Block_copy(enablelooping_callback) forKey:enablelooping_method_hash];
 
@@ -204,13 +249,18 @@ typedef enum : NSUInteger {
     NSString *setspeed_method_hash = [self method_hashFormat:@"setspeed"];
     IAceOnCallSyncResourceMethod setspeed_callback = ^NSString *(NSDictionary * param){
         NSLog(@"AceVideo: player_ setspeed %@",param);
-        if (!param) {
+        if (weakSelf) {
+            if (!param) {
+                return FAIL;
+            }
+            
+            float speed = [[param objectForKey:KEY_VALUE] floatValue];
+            [weakSelf updateSpeed:speed];
+            return SUCCESS;
+        }else {
+            NSLog(@"AceVideo: setspeed fail");
             return FAIL;
         }
-        
-        float speed = [[param objectForKey:KEY_VALUE] floatValue];
-        [weakSelf setSpeed:speed];
-        return SUCCESS;
     };
     [callSyncMethodMap setObject:Block_copy(setspeed_callback) forKey:setspeed_method_hash];
 
@@ -231,21 +281,40 @@ typedef enum : NSUInteger {
     // setLayer callback 
     NSString *setsurface_method_hash = [self method_hashFormat:@"setsurface"];
     IAceOnCallSyncResourceMethod setsurface_callback = ^NSString *(NSDictionary * param){
-        return [weakSelf setSuerface:param];
+        NSLog(@"AceVideo: setsurface");
+        if (weakSelf) {
+            return [weakSelf setSuerface:param];
+        }else {
+            NSLog(@"AceVideo: setsurface fail");
+            return FAIL;
+        }
     };
     [callSyncMethodMap setObject:Block_copy(setsurface_callback) forKey:setsurface_method_hash];
 
     // setupdateResource callback 
     NSString *updateResource_method_hash = [self method_hashFormat:@"updateresource"];
     IAceOnCallSyncResourceMethod setupdateResource_callback = ^NSString *(NSDictionary * param){
-        return [weakSelf setUpdateResource:param];
+        NSLog(@"AceVideo: updateresource");
+        if (weakSelf) {
+             return [weakSelf setUpdateResource:param];
+        }else {
+            NSLog(@"AceVideo: updateresource fail");
+            return FAIL;
+        }
+       
     };
     [callSyncMethodMap setObject:Block_copy(setupdateResource_callback) forKey:updateResource_method_hash];
 
     // setfullscreen callback
     NSString *fullscreen_method_hash = [self method_hashFormat:@"fullscreen"];
     IAceOnCallSyncResourceMethod setfullscreen_callback = ^NSString *(NSDictionary * param){
-        return [weakSelf setFullscreen:param];
+        NSLog(@"AceVideo: fullscreen");
+        if (weakSelf) {
+             return [weakSelf setFullscreen:param];
+        }else {
+            NSLog(@"AceVideo: fullscreen fail");
+            return FAIL;
+        }
     };
     [callSyncMethodMap setObject:Block_copy(setfullscreen_callback) forKey:fullscreen_method_hash];
 
@@ -275,7 +344,7 @@ typedef enum : NSUInteger {
         self.state = STARTED;
 
         if (self.player_.rate != self.speed) {
-            self.speed = self.speed;
+            [self updateSpeed:self.speed];
         }
 
         NSString *param = [NSString stringWithFormat:@"isplaying=%d", 1];
@@ -337,9 +406,9 @@ typedef enum : NSUInteger {
     }
 }
 
-- (void)setSpeed:(float)speed
+- (void)updateSpeed:(float)speed
 {
-    _speed = speed;
+    self.speed = speed;
     if (self.player_) {
         AVPlayerTimeControlStatus status = self.player_.timeControlStatus;
         if (status == AVPlayerTimeControlStatusPlaying || self.isAutoPlay || self.state == STARTED) {
