@@ -19,6 +19,11 @@
 #import "ParameterHelper.h"
 #import "BridgePluginManager.h"
 
+@interface BridgePlugin () {
+    BOOL _isAvailable;
+}
+@end
+
 @implementation BridgePlugin
 
 #pragma mark - public method
@@ -29,13 +34,18 @@
         self.bridgeName = bridgeName;
         self.instanceId = instanceId;
         NSLog(@"init bridgeplugin bridgeName %@", bridgeName);
-        [[BridgePluginManager shareManager] registerBridgePlugin:bridgeName
-                                                       bridgePlugin:self];
+        BOOL isSuccess = [[BridgePluginManager shareManager] registerBridgePlugin:bridgeName
+                                                                     bridgePlugin:self];
+        _isAvailable = isSuccess;
     }
     return self;
 }
 
 - (void)callMethod:(MethodData *)method {
+    if (!_isAvailable) {
+        NSLog(@"bridgePlugin is available!");
+        return;
+    }
     NSString *jsonString = nil;
     if (method.parameter.count > 0) {
         NSMutableDictionary *mDic = [NSMutableDictionary dictionary];
@@ -57,6 +67,10 @@
 }
 
 - (void)sendMessage:(id)data {
+    if (!_isAvailable) {
+        NSLog(@"bridgePlugin is available!");
+        return;
+    }
     if (!data) {
         return;
     }

@@ -48,11 +48,31 @@
         return NO;
     }
     @synchronized (self) {
+        if ([self.bridgeMap.allKeys containsObject:bridgeName]) {
+            NSLog(@"register failed, bridgePlugin exist");
+            return NO;
+        }
         NSLog(@"register success, bridgeName : %@, plugin : %@", bridgeName, bridgePlugin);
         [self.bridgeMap setObject:bridgePlugin
                            forKey:bridgeName];
     }
     return YES;
+}
+
+- (void)UnRegisterBridgePluginWithInstanceId:(int32_t)instanceId {
+    @synchronized (self) {
+        NSArray *allValues = self.bridgeMap.allValues;
+        if (!allValues.count) {
+            return;
+        }
+        for (BridgePlugin *plugin in allValues) {
+            if (instanceId == plugin.instanceId) {
+                NSUInteger index = [self.bridgeMap.allValues indexOfObject:plugin];
+                NSString *key = [self.bridgeMap.allKeys objectAtIndex:index];
+                [self.bridgeMap removeObjectForKey:key];
+            }
+        }
+    }
 }
 
 - (void)UnRegisterBridgePlugin:(NSString *)bridgeName {
