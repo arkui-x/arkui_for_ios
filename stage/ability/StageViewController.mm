@@ -20,6 +20,7 @@
 #import "StageAssetManager.h"
 #import "WindowView.h"
 #import "StageApplication.h"
+#import "BridgePluginManager.h"
 
 #include "app_main.h"
 #include "window_view_adapter.h"
@@ -122,6 +123,7 @@ CGFloat _brightness = 0.0;
     [_windowView release];
     [_platformPlugin releaseObject];
     AppMain::GetInstance()->DispatchOnDestroy(_cInstanceName);
+    [[BridgePluginManager shareManager] UnRegisterBridgePluginWithInstanceId:_instanceId];
     [super dealloc];
 }
 

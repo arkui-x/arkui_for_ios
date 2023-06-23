@@ -29,6 +29,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (BOOL)registerBridgePlugin:(NSString *)bridgeName
                 bridgePlugin:(BridgePlugin *)bridgePlugin;
 
+- (void)UnRegisterBridgePluginWithInstanceId:(int32_t)instanceId;
+
 - (void)UnRegisterBridgePlugin:(NSString *)name;
 
 - (void)jsCallMethod:(NSString *)bridgeName
