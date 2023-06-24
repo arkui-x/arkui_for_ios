@@ -54,6 +54,7 @@ if (ace_enable_gpu) {
 if (defined(enable_rosen_backend) && enable_rosen_backend) {
   defines += [ "ENABLE_ROSEN_BACKEND" ]
   defines += [ "VIRTUAL_RS_WINDOW" ]
+  defines += [ "QUICK_PUSH_TRANSITION" ]
 }
 platform_deps = [
   "//foundation/arkui/ace_engine/adapter/ios/entrance:ace_ios_entrance",
