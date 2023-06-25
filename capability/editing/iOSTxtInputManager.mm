@@ -158,6 +158,7 @@ static UIReturnKeyType ToUIReturnKeyType(NSString* inputType) {
 @property(nonatomic, strong) UITextRange* markedTextRange;
 @property(nonatomic, copy) NSDictionary* markedTextStyle;
 @property(nonatomic, assign) id<UITextInputDelegate> inputDelegate;
+@property(nonatomic, copy) NSString* inputFilter;
 
 // UITextInputTraits
 @property(nonatomic) UITextAutocapitalizationType autocapitalizationType;
@@ -203,6 +204,7 @@ static UIReturnKeyType ToUIReturnKeyType(NSString* inputType) {
         _keyboardType = UIKeyboardTypeDefault;
         _returnKeyType = UIReturnKeyDone;
         _secureTextEntry = NO;
+        _inputFilter = @"";
     }
     
     return self;
@@ -327,6 +329,21 @@ static UIReturnKeyType ToUIReturnKeyType(NSString* inputType) {
 }
 
 - (BOOL)shouldChangeTextInRange:(UITextRange*)range replacementText:(NSString*)text {
+    if ([self.inputFilter length] > 0) {
+        NSString *filteredText = @"";
+        NSRegularExpression *regex =
+            [NSRegularExpression regularExpressionWithPattern:self.inputFilter options:NSRegularExpressionUseUnixLineSeparators error:nil];
+        auto hits = [regex matchesInString:text options:0 range:NSMakeRange(0, [text length])];
+        for (NSTextCheckingResult* hit in hits) {
+            for(NSUInteger i = 0; i < hit.numberOfRanges; i++) {
+                filteredText = [filteredText stringByAppendingString:[text substringWithRange:[hit rangeAtIndex:i]]];
+            }
+        }
+        if (![filteredText isEqualToString:text]) {
+            return NO;
+        }
+    }
+
     if (self.returnKeyType == UIReturnKeyDefault && [text isEqualToString:@"\n"]) {
         if(self.textPerformBlock){
             self.textPerformBlock(iOSTextInputActionNewline,_textInputClient);
@@ -747,6 +764,7 @@ static UIReturnKeyType ToUIReturnKeyType(NSString* inputType) {
     : UITextAutocorrectionTypeDefault;
     [_activeView setTextInputClient:client];
     [_activeView reloadInputViews];
+    _activeView.inputFilter = configuration[@"inputFilter"];
 }
 
 - (void)setTextInputEditingState:(NSDictionary*)state {
