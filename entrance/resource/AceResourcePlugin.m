@@ -51,22 +51,28 @@
 }
 
 - (void)registerSyncCallMethod:(NSDictionary<NSString *, IAceOnCallSyncResourceMethod> *)methodMap{
-    if (!self.resRegister || !methodMap) {
-        return;
+    @synchronized (self) {
+        if (!self.resRegister || !methodMap) {
+            return;
+        }
+        for (NSString *key in [methodMap allKeys]) {
+            IAceOnCallSyncResourceMethod callback = methodMap[key];
+            [self.resRegister registerSyncCallMethod:key callMethod:callback];
+        }
     }
-    [methodMap enumerateKeysAndObjectsUsingBlock:^(NSString * _Nonnull key, IAceOnCallSyncResourceMethod  _Nonnull callback, BOOL * _Nonnull stop) {
-        [self.resRegister registerSyncCallMethod:key callMethod:callback];
-    }];
 }
 
 - (void)unregisterSyncCallMethod:(NSDictionary<NSString *, IAceOnCallSyncResourceMethod> *)methodMap{
-    if (self.resRegister == nil || methodMap == nil) {
-        return;
+    @synchronized (self) {
+        if (self.resRegister == nil || methodMap == nil) {
+            return;
+        }
+
+        [methodMap enumerateKeysAndObjectsUsingBlock:^(NSString * _Nonnull key, IAceOnCallSyncResourceMethod  _Nonnull callback, BOOL * _Nonnull stop) {
+            [self.resRegister unregisterSyncCallMethod:key];
+        }];
     }
 
-    [methodMap enumerateKeysAndObjectsUsingBlock:^(NSString * _Nonnull key, IAceOnCallSyncResourceMethod  _Nonnull callback, BOOL * _Nonnull stop) {
-        [self.resRegister unregisterSyncCallMethod:key];
-    }];
 }
 
 - (void)notifyLifecycleChanged:(BOOL)isBackground

@@ -37,7 +37,7 @@
 
 @property (nonatomic) CVPixelBufferRef textureRef;
 
-@property (nonatomic, retain) NSObject<FlutterTextureRegistry> *textures_;
+@property (nonatomic, strong) NSObject<FlutterTextureRegistry> *textures_;
 
 @end
 
