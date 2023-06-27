@@ -120,11 +120,10 @@ CGFloat _brightness = 0.0;
     NSLog(@"StageVC->%@ dealloc", self);
     [_windowView notifySurfaceDestroyed];
     [_windowView notifyWindowDestroyed];
-    [_windowView release];
+    _windowView = nil;
     [_platformPlugin releaseObject];
     AppMain::GetInstance()->DispatchOnDestroy(_cInstanceName);
     [[BridgePluginManager shareManager] UnRegisterBridgePluginWithInstanceId:_instanceId];
-    [super dealloc];
 }
 
 - (void)traitCollectionDidChange:(UITraitCollection *)previousTraitCollection {
