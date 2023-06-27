@@ -31,14 +31,13 @@
 {
     if (self = [super init]) {
         self.parent = parent;
-        self.pluginMap = [NSMapTable mapTableWithKeyOptions:NSMapTableCopyIn valueOptions:NSMapTableWeakMemory];
+        self.pluginMap = [NSMapTable mapTableWithKeyOptions:NSMapTableCopyIn valueOptions:NSMapTableStrongMemory];
        	self.callSyncMethodMap = [NSMutableDictionary dictionary];
  
-        __weak AceResourceRegisterOC *weakSelf = self;
+        __weak __typeof(&*self) weakSelf = self;
         self.callbackHandler = ^(NSString* eventId, NSString* param){
-            __strong AceResourceRegisterOC *strongSelf = weakSelf;
-            if (strongSelf.parent) {
-                [strongSelf.parent onEvent:eventId param:param];
+            if (weakSelf.parent) {
+                [weakSelf.parent onEvent:eventId param:param];
             }
         };
     }
@@ -49,7 +48,12 @@
 - (void)registerSyncCallMethod:(NSString *)methodId
                 callMethod:(IAceOnCallSyncResourceMethod)callMethod
 {
-    [self.callSyncMethodMap setObject:callMethod forKey:methodId];
+    if (callMethod != nil) {
+        NSLog(@"registerSyncCallMethod:%@ key:%@",callMethod,methodId);
+        [self.callSyncMethodMap setObject:callMethod forKey:methodId];
+    }else {
+        NSLog(@"registerSyncCallMethod fail methodId:%@",methodId);
+    }
 }
 
 - (void)unregisterSyncCallMethod:(NSString *)methodId
@@ -96,7 +100,7 @@
         }
     }];
     
-    return paramMap.copy;
+    return paramMap;
 }
 
 - (id)getObject:(NSString *)resourceHash
@@ -175,6 +179,7 @@
         }
     }
     self.pluginMap = nil;
+    [self.callSyncMethodMap removeAllObjects];
     self.callSyncMethodMap = nil;
 
     return YES;

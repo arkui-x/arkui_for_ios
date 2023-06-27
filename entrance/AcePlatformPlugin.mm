@@ -75,10 +75,10 @@
         [_resRegister release];
     }
     if (_videoResourcePlugin){
-        [_videoResourcePlugin release];
+       _videoResourcePlugin = nil;
     }
      if (_aceSurfacePlugin){
-        [_aceSurfacePlugin release];
+        _aceSurfacePlugin = nil;
     }
 }
 
@@ -93,7 +93,9 @@
     NSLog(@"IAceOnCallEvent OC call C++: %@ --- %@",eventId,param);
     auto resRegister = OHOS::Ace::Platform::AcePlatformPlugin::GetResRegister(self.instanceId);
     OHOS::Ace::ContainerScope scope(self.instanceId);
-    resRegister->OnEvent([eventId UTF8String], [param UTF8String]);
+    const char* eventIdcString = [eventId UTF8String];
+    const char* paramcString = [param UTF8String];
+    resRegister->OnEvent(eventIdcString, paramcString);
 }
 
 - (void)dealloc

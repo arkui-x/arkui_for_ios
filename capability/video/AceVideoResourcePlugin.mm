@@ -21,7 +21,7 @@
 
 @interface AceVideoResourcePlugin()
 
-@property (nonatomic, retain) NSMutableDictionary<NSString*, AceVideo*> *objectMap;
+@property (nonatomic, strong) NSMutableDictionary<NSString*, AceVideo*> *objectMap;
 @property (nonatomic, copy) NSString* moudleName;
 @property (nonatomic, assign) int32_t instanceId;
 
@@ -40,7 +40,7 @@
 
     if (self) {
         self.moudleName = moudleName;
-        self.objectMap = [NSMutableDictionary dictionary];
+        self.objectMap = [[NSMutableDictionary alloc] init];
         self.instanceId = abilityInstanceId;
     }
 
@@ -50,7 +50,11 @@
 - (void)addResource:(int64_t)incId video:(AceVideo *)video
 {
     [self.objectMap setObject:video forKey:[NSString stringWithFormat:@"%lld", incId]];
-    [self registerSyncCallMethod:[video getSyncCallMethod]];
+    NSDictionary *safeMethodMap = [[video getSyncCallMethod] copy];
+    if (!safeMethodMap) {
+        return;
+    }
+    [self registerSyncCallMethod:safeMethodMap];
 }
 
 - (int64_t)create:(NSDictionary <NSString *, NSString *> *)param
@@ -101,7 +105,7 @@
         [self unregisterSyncCallMethod:[video getSyncCallMethod]];
         [video releaseObject];
         [self.objectMap removeObjectForKey:incId];
-        [video release];
+        video = nil;
         return YES;
     }
     return NO;
@@ -115,7 +119,7 @@
         if (video) {
             @try {
                 [video releaseObject];
-                [video release];
+                video = nil;
             } @catch (NSException *exception) {
                 NSLog(@"AceVideoResourcePlugin releaseObject releaseObject fail"); 
             }
@@ -124,14 +128,12 @@
             }
         }];
         [self.objectMap removeAllObjects];
-        [self.objectMap release];
+        self.objectMap = nil;
     }
-    self.moudleName = nil;
 }
 
 - (void)dealloc
 {
     NSLog(@"AceVideoResourcePlugin->%@ dealloc", self);
-    [super dealloc]; 
 }
 @end
