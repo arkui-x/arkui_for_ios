@@ -32,7 +32,7 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
     int32_t _instanceId;
     std::string _cInstanceName;
     WindowView *_windowView;
-    BOOL _hasLaunch;
+    BOOL _needOnForeground;
 }
 
 @property (nonatomic, strong, readwrite) NSString *instanceName;
@@ -79,20 +79,23 @@ CGFloat _brightness = 0.0;
     [super viewDidLoad];
     self.view.backgroundColor = UIColor.whiteColor;
     NSLog(@"StageVC->%@ viewDidLoad call. self.params : %@", self, self.params);
-    self.view.backgroundColor = UIColor.whiteColor;
     [self initWindowView];
     [self initPlatformPlugin];
     [_windowView createSurfaceNode];
 
     std::string paramsString = [self getCPPString:self.params.length ? self.params : @""];
     AppMain::GetInstance()->DispatchOnCreate(_cInstanceName, paramsString);
+    AppMain::GetInstance()->DispatchOnForeground(_cInstanceName);
 }
 
 - (void)viewDidAppear:(BOOL)animated {
     [super viewDidAppear:animated];
     [_windowView updateBrightness];
     NSLog(@"StageVC->%@ viewDidAppear call.", self);
-    AppMain::GetInstance()->DispatchOnForeground(_cInstanceName);
+    if (!_needOnForeground) {
+        AppMain::GetInstance()->DispatchOnForeground(_cInstanceName);
+        _needOnForeground = true;
+    }
     if (self.platformPlugin) {
         [self.platformPlugin notifyLifecycleChanged:false];
     }
