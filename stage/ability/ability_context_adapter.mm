@@ -156,17 +156,9 @@ std::string AbilityContextAdapter::GetTopAbility()
 
 int32_t AbilityContextAdapter::DoAbilityForeground(const std::string &fullname)
 {
-    NSString *result = GetOCstring(fullname);
-    std::vector<std::string> nameStrs;
-    Ace::StringUtils::StringSplitter(fullname, ':', nameStrs);
-    Want want;
-    if (nameStrs.size() == 3) {
-        want.SetBundleName(nameStrs[0]);
-        want.SetModuleName(nameStrs[1]);
-        want.SetAbilityName(nameStrs[2]);
-        want.SetParam(Want::INSTANCE_NAME, fullname);
-    }
-    StartAbility("", want);
+    NSString *str = GetOCstring(fullname);
+    StageApplication *application = [[StageApplication alloc] init];
+    [application doAbilityForeground:str];
     return ERR_OK;
 }
 
@@ -180,28 +172,8 @@ int32_t AbilityContextAdapter::DoAbilityBackground(const std::string &fullname)
     }
 
     NSString *str = GetOCstring(fullname);
-    NSArray *arr =[str componentsSeparatedByString: @":"];
-    NSString *bundleName = arr[0];
-    NSString *moduleName = arr[1];
-    NSString *abilityName = arr[2];
-
-    NSString *tempName = @"Ability";
-    NSString *activityName;
-    
-    NSRange range = [activityName rangeOfString:ABILITY_NAME];
-    NSInteger location = range.location;
-    if (range.length != 0) {
-        activityName = [NSString stringWithFormat:@"%@:%@:%@:1", bundleName, moduleName, abilityName];
-    } else {
-        NSMutableString *mutString = [NSMutableString stringWithString:abilityName];
-        NSRange ran;
-        ran.location = location;
-        ran.length = ABILITY_NAME.length;
-        [mutString replaceCharactersInRange:ran withString:ABILITY_NAME];
-        activityName = [NSString stringWithFormat:@"%@:%@:%@:1", bundleName, moduleName, mutString];
-    }
     StageApplication *application = [StageApplication new];
-    [application doAbilityBackground];
+    [application doAbilityBackground:str];
     return ERR_OK;
 }
 
