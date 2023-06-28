@@ -59,6 +59,7 @@ ohos_shared_library("arkui_ios") {
     "$ace_root/build:libace_static_ios",
     "//foundation/appframework:appframework_napis",
     "//foundation/appframework/icu_data:static_icudata",
+    "//plugins/interfaces/native:ace_plugin_util_inner_ios",
     "//third_party/jsoncpp:jsoncpp_static",
   ]
   deps += common_plugin_modules_static
