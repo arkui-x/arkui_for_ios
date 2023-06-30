@@ -150,8 +150,8 @@ void UIContentImpl::CommonInitialize(OHOS::Rosen::Window* window, const std::str
         LOGI("hapPath:%{public}s", hapPath.c_str());
         // first use hap provider
         if (flutterAssetManager && !hapPath.empty()) {
-            auto assetBasePathStr = { std::string(""), std::string("ets/"),
-                std::string("ets/share"), std::string("resources/base/profile/") };
+            auto assetBasePathStr = { std::string(""), std::string("ets/"), std::string("ets/share"),
+                std::string("resources/base/profile/") };
             if (flutterAssetManager && !hapPath.empty()) {
                 auto assetProvider = AceType::MakeRefPtr<FileAssetProvider>();
                 if (assetProvider->Initialize(hapPath, assetBasePathStr)) {
@@ -399,7 +399,7 @@ void UIContentImpl::SetBackgroundColor(uint32_t color)
     LOGI("UIContentImpl: SetBackgroundColor color is %{public}u", color);
     auto container = AceEngine::Get().GetContainer(instanceId_);
     CHECK_NULL_VOID(container);
-    
+
     ContainerScope scope(instanceId_);
     auto taskExecutor = container->GetTaskExecutor();
     CHECK_NULL_VOID(taskExecutor);
@@ -472,19 +472,20 @@ void UIContentImpl::UpdateConfiguration(const std::shared_ptr<OHOS::AbilityRunti
     CHECK_NULL_VOID(container);
     auto taskExecutor = container->GetTaskExecutor();
     CHECK_NULL_VOID(taskExecutor);
-    taskExecutor->PostTask(
-        [weakContainer = WeakPtr<Platform::AceContainerSG>(container), config]() {
-            auto container = weakContainer.Upgrade();
-            CHECK_NULL_VOID_NOLOG(container);
-            auto colorMode = config->GetItem(OHOS::AbilityRuntime::Platform::ConfigurationInner::SYSTEM_COLORMODE);
-            auto direction = config->GetItem(OHOS::AbilityRuntime::Platform::ConfigurationInner::APPLICATION_DIRECTION);
-            auto densityDpi = config->GetItem(
-                OHOS::AbilityRuntime::Platform::ConfigurationInner::APPLICATION_DENSITYDPI);
-
-            container->UpdateConfiguration(colorMode, direction, densityDpi);
-        },
-        TaskExecutor::TaskType::UI);
-    LOGI("UIContentImpl: UpdateConfiguration called End");
+    auto colorMode = config->GetItem(OHOS::AbilityRuntime::Platform::ConfigurationInner::SYSTEM_COLORMODE);
+    auto direction = config->GetItem(OHOS::AbilityRuntime::Platform::ConfigurationInner::APPLICATION_DIRECTION);
+    auto densityDpi = config->GetItem(OHOS::AbilityRuntime::Platform::ConfigurationInner::APPLICATION_DENSITYDPI);
+    auto configStr = colorMode + ";" + direction + ";" + densityDpi + ";";
+    if (lastConfig_ != configStr) {
+        lastConfig_ = configStr;
+        taskExecutor->PostTask(
+            [weakContainer = WeakPtr<Platform::AceContainerSG>(container), colorMode, direction, densityDpi]() {
+                auto container = weakContainer.Upgrade();
+                CHECK_NULL_VOID_NOLOG(container);
+                container->UpdateConfiguration(colorMode, direction, densityDpi);
+            },
+            TaskExecutor::TaskType::UI);
+    }
 }
 
 void UIContentImpl::UpdateViewportConfig(const ViewportConfig& config, OHOS::Rosen::WindowSizeChangeReason reason)
