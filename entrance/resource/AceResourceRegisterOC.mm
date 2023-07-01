@@ -179,7 +179,9 @@
         }
     }
     self.pluginMap = nil;
-    [self.callSyncMethodMap removeAllObjects];
+    if (self.callSyncMethodMap) {
+        [self.callSyncMethodMap removeAllObjects];
+    }
     self.callSyncMethodMap = nil;
 
     return YES;

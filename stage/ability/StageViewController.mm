@@ -92,10 +92,10 @@ CGFloat _brightness = 0.0;
     [super viewDidAppear:animated];
     [_windowView updateBrightness];
     NSLog(@"StageVC->%@ viewDidAppear call.", self);
-    if (!_needOnForeground) {
+    if (_needOnForeground) {
         AppMain::GetInstance()->DispatchOnForeground(_cInstanceName);
-        _needOnForeground = true;
     }
+     _needOnForeground = true;
     if (self.platformPlugin) {
         [self.platformPlugin notifyLifecycleChanged:false];
     }
