@@ -250,7 +250,7 @@ Dimension ResourceAdapterImpl::GetDimension(uint32_t resId)
             LOGE("GetDimension error, id=%{public}u", resId);
         }
     }
-    return Dimension(static_cast<double>(dimensionFloat));
+    return Dimension(static_cast<double>(dimensionFloat), ParseDimensionUnit(unit));
 }
 
 Dimension ResourceAdapterImpl::GetDimensionByName(const std::string& resName)

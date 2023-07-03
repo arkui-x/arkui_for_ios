@@ -212,9 +212,36 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
     return tvc.instanceName;
 }
 
-- (void)doAbilityBackground {
-    StageViewController *topVC = [StageApplication getApplicationTopViewController];
-    [topVC.navigationController popViewControllerAnimated:YES];
+- (void)doAbilityForeground:(NSString *)fullname {
+    int index = 0;
+    StageViewController *topViewController = [StageApplication getApplicationTopViewController];
+    NSMutableArray *viewControllers = [NSMutableArray arrayWithArray:topViewController.navigationController.viewControllers];
+    if (viewControllers.count <= 1) {
+        return;
+    }
+    for (int i = 0; i < viewControllers.count; i++) {
+        UIViewController *view = viewControllers[i];
+        if ([view isKindOfClass:[StageViewController class]]) {
+            StageViewController *currentVC = (StageViewController *)view;
+            if ([currentVC.instanceName isEqualToString:fullname]) {
+                index = i;
+                break;
+            }
+        }
+    }
+    [viewControllers exchangeObjectAtIndex:index withObjectAtIndex:viewControllers.count - 1];
+    [topViewController.navigationController setViewControllers:viewControllers animated:YES];
+}
+
+
+- (void)doAbilityBackground:(NSString *)fullname {
+    StageViewController *topViewController = [StageApplication getApplicationTopViewController];
+    NSMutableArray *viewControllers = [NSMutableArray arrayWithArray:topViewController.navigationController.viewControllers];
+    if (viewControllers.count <= 2) {
+        return;
+    }
+    [viewControllers exchangeObjectAtIndex:viewControllers.count - 1 withObjectAtIndex:viewControllers.count - 2];
+    [topViewController.navigationController setViewControllers:viewControllers animated:YES];
 }
 
 - (void)print:(NSString *)msg {

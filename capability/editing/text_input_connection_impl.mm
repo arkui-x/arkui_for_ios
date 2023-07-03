@@ -81,6 +81,8 @@ void TextInputConnectionImpl::Show(bool isFocusViewChanged, int32_t instanceId){
         inputTypeName = @"TextInputType.visiblePassword";
         obscureText = 1;
     }
+
+    NSString* inputFilter = [NSString stringWithFormat:@"%s", config_.inputFilter.c_str()];
     
     int32_t clientId = this->GetClientId();
     LOGE("vailclientid->Show clientId:%d inputaction:%d inputType:%d",clientId,actionType,inputType);
@@ -96,7 +98,8 @@ void TextInputConnectionImpl::Show(bool isFocusViewChanged, int32_t instanceId){
         @"readOnly":@(0),
         @"smartDashesType":@(1),
         @"smartQuotesType":@(1),
-        @"textCapitalization":@"TextCapitalization.none"
+        @"textCapitalization":@"TextCapitalization.none",
+        @"inputFilter" : inputFilter
     };
     
     auto value = renderTextField->GetInputEditingValue();

@@ -63,8 +63,9 @@ template("ace_capability_ios_source_set") {
 
     cflags_objc = [
       "-fvisibility=default",
-      # "-fobjc-arc",
-      # "-fobjc-weak",
+      "-fobjc-arc",
+      "-fobjc-weak",
+      "-O0",
     ]
 
     cflags_objcc = cflags_objc

@@ -57,6 +57,7 @@
         _needNotifySurfaceChangedWithWidth = NO;
         _needCreateSurfaceNode = NO;
         [self setupNotificationCenterObservers];
+        self.backgroundColor = [UIColor clearColor];
     }
     return self;
 }

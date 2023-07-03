@@ -34,7 +34,12 @@
         NSLog(@"%s, parameterArray : %@", __func__, parameterArray);
         if (callMethod.methodName.length != 0) {
             @try {
-                result = [self performeNewSelector:callMethod.methodName
+                NSString * tmep = callMethod.methodName;
+                if ([tmep containsString:@"$"]) {
+                    NSArray *strinMethodNameArr = [tmep componentsSeparatedByString:@"$"];
+                    tmep = strinMethodNameArr[0];
+                }
+                result = [self performeNewSelector:tmep
                                         withParams:parameterArray
                                             target:self];
                 if (result && [result isKindOfClass:NSDictionary.class]) {

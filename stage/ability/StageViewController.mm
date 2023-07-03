@@ -20,6 +20,7 @@
 #import "StageAssetManager.h"
 #import "WindowView.h"
 #import "StageApplication.h"
+#import "BridgePluginManager.h"
 
 #include "app_main.h"
 #include "window_view_adapter.h"
@@ -31,7 +32,7 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
     int32_t _instanceId;
     std::string _cInstanceName;
     WindowView *_windowView;
-    BOOL _hasLaunch;
+    BOOL _needOnForeground;
 }
 
 @property (nonatomic, strong, readwrite) NSString *instanceName;
@@ -78,20 +79,23 @@ CGFloat _brightness = 0.0;
     [super viewDidLoad];
     self.view.backgroundColor = UIColor.whiteColor;
     NSLog(@"StageVC->%@ viewDidLoad call. self.params : %@", self, self.params);
-    self.view.backgroundColor = UIColor.whiteColor;
     [self initWindowView];
     [self initPlatformPlugin];
     [_windowView createSurfaceNode];
 
     std::string paramsString = [self getCPPString:self.params.length ? self.params : @""];
     AppMain::GetInstance()->DispatchOnCreate(_cInstanceName, paramsString);
+    AppMain::GetInstance()->DispatchOnForeground(_cInstanceName);
 }
 
 - (void)viewDidAppear:(BOOL)animated {
     [super viewDidAppear:animated];
     [_windowView updateBrightness];
     NSLog(@"StageVC->%@ viewDidAppear call.", self);
-    AppMain::GetInstance()->DispatchOnForeground(_cInstanceName);
+    if (_needOnForeground) {
+        AppMain::GetInstance()->DispatchOnForeground(_cInstanceName);
+    }
+     _needOnForeground = true;
     if (self.platformPlugin) {
         [self.platformPlugin notifyLifecycleChanged:false];
     }
@@ -119,10 +123,10 @@ CGFloat _brightness = 0.0;
     NSLog(@"StageVC->%@ dealloc", self);
     [_windowView notifySurfaceDestroyed];
     [_windowView notifyWindowDestroyed];
-    [_windowView release];
+    _windowView = nil;
     [_platformPlugin releaseObject];
     AppMain::GetInstance()->DispatchOnDestroy(_cInstanceName);
-    [super dealloc];
+    [[BridgePluginManager shareManager] UnRegisterBridgePluginWithInstanceId:_instanceId];
 }
 
 - (void)traitCollectionDidChange:(UITraitCollection *)previousTraitCollection {

@@ -20,7 +20,7 @@
 
 @interface AceTextureResourcePlugin()
 
-@property (nonatomic, retain) NSMutableDictionary<NSString*, AceTexture*> *objectMap;
+@property (nonatomic, strong) NSMutableDictionary<NSString*, AceTexture*> *objectMap;
 
 @property (nonatomic, assign) NSObject<FlutterTextureRegistry> *_textures;
 @end

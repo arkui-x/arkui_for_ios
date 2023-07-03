@@ -39,7 +39,9 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (NSString *)getTopAbility;
 
-- (void)doAbilityBackground;
+- (void)doAbilityForeground:(NSString *)fullname;
+
+- (void)doAbilityBackground:(NSString *)fullname;
 
 - (void)print:(NSString *)msg;
 

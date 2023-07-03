@@ -32,6 +32,7 @@ template("stage_ios_standard_source_set") {
       "./",
       "//foundation/arkui/ace_engine/adapter/ios/entrance",
       "//foundation/appframework/ability/ability_runtime/cross_platform/interfaces/kits/native/appkit",
+      "//foundation/arkui/ace_engine/adapter/ios/capability/bridge",
       "//third_party/",
       "//third_party/flutter/engine",
       "$ace_root/frameworks",
@@ -46,8 +47,10 @@ template("stage_ios_standard_source_set") {
 
     cflags_objc = [
       "-fvisibility=default",
-      # "-fobjc-arc",
-      # "-fobjc-weak",
+      "-fobjc-arc",
+      "-fobjc-weak",
+      "-Wno-nullability-completeness",
+      "-O0",
     ]
 
     cflags_objcc = cflags_objc

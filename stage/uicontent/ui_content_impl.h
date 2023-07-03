@@ -86,6 +86,7 @@ private:
     void* runtime_ = nullptr;
     sptr<OHOS::Rosen::Window> window_ = nullptr;
     std::string startUrl_;
+    std::string lastConfig_;
     int32_t instanceId_ = -1;
 };
 } // namespace OHOS::Ace::Platform
