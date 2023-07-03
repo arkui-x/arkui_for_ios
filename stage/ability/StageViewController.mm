@@ -32,6 +32,7 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
     int32_t _instanceId;
     std::string _cInstanceName;
     WindowView *_windowView;
+    AcePlatformPlugin *_platformPlugin;
     BOOL _needOnForeground;
 }
 
@@ -39,8 +40,6 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 @property (nonatomic, copy) NSString *bundleName;
 @property (nonatomic, copy) NSString *moduleName;
 @property (nonatomic, copy) NSString *abilityName;
-
-@property (nonatomic, retain) AcePlatformPlugin *platformPlugin;
 @end
 
 @implementation StageViewController
@@ -95,9 +94,9 @@ CGFloat _brightness = 0.0;
     if (_needOnForeground) {
         AppMain::GetInstance()->DispatchOnForeground(_cInstanceName);
     }
-     _needOnForeground = true;
-    if (self.platformPlugin) {
-        [self.platformPlugin notifyLifecycleChanged:false];
+    _needOnForeground = true;
+    if (_platformPlugin) {
+        [_platformPlugin notifyLifecycleChanged:false];
     }
 }
 
@@ -106,8 +105,8 @@ CGFloat _brightness = 0.0;
     [UIScreen mainScreen].brightness = _brightness;
     NSLog(@"StageVC->%@ viewDidDisappear call.", self);
     AppMain::GetInstance()->DispatchOnBackground(_cInstanceName);
-    if (self.platformPlugin) {
-        [self.platformPlugin notifyLifecycleChanged:true];
+    if (_platformPlugin) {
+        [_platformPlugin notifyLifecycleChanged:true];
     }
 }
 
@@ -124,7 +123,7 @@ CGFloat _brightness = 0.0;
     [_windowView notifySurfaceDestroyed];
     [_windowView notifyWindowDestroyed];
     _windowView = nil;
-    [_platformPlugin releaseObject];
+    _platformPlugin = nil;
     AppMain::GetInstance()->DispatchOnDestroy(_cInstanceName);
     [[BridgePluginManager shareManager] UnRegisterBridgePluginWithInstanceId:_instanceId];
 }
@@ -143,7 +142,7 @@ CGFloat _brightness = 0.0;
 
 #pragma mark - private method
 - (void)initPlatformPlugin {
-     self.platformPlugin = [[AcePlatformPlugin alloc]
+     _platformPlugin = [[AcePlatformPlugin alloc]
         initPlatformPlugin:self instanceId:_instanceId moduleName:self.moduleName];
 }
 
@@ -162,14 +161,14 @@ CGFloat _brightness = 0.0;
 
 #pragma mark - WindowViewDelegate 
 - (void)notifyApplicationWillEnterForeground {
-    if (self.platformPlugin && [self isTopController]) {
-        [self.platformPlugin notifyLifecycleChanged:false];
+    if (_platformPlugin && [self isTopController]) {
+        [_platformPlugin notifyLifecycleChanged:false];
     }
 }
 
 - (void)notifyApplicationDidEnterBackground {
-    if (self.platformPlugin && [self isTopController]) {
-        [self.platformPlugin notifyLifecycleChanged:true];
+    if (_platformPlugin && [self isTopController]) {
+        [_platformPlugin notifyLifecycleChanged:true];
     }
 }
 

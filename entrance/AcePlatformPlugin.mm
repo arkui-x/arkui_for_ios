@@ -24,10 +24,11 @@
 #include "core/common/container_scope.h"
 
 @interface AcePlatformPlugin()<IAceOnCallEvent>
-@property (nonatomic, retain) AceResourceRegisterOC* resRegister;
-@property (nonatomic, retain) AceVideoResourcePlugin* videoResourcePlugin;
-@property (nonatomic, retain) AceSurfacePlugin* aceSurfacePlugin;
-
+{
+    AceVideoResourcePlugin* _videoResourcePlugin;
+    AceSurfacePlugin* _aceSurfacePlugin;
+    AceResourceRegisterOC* _resRegister;
+}
 @property (nonatomic, assign) int32_t instanceId;
 @end
 @implementation AcePlatformPlugin
@@ -63,25 +64,6 @@
     }
 }
 
-- (void)releaseObject 
-{
-   [self performSelector:@selector(delayRelease) withObject:nil afterDelay:2.0f];
-}
-
-- (void)delayRelease
-{
-    if (_resRegister) {
-        [_resRegister releaseObject];
-        [_resRegister release];
-    }
-    if (_videoResourcePlugin){
-       _videoResourcePlugin = nil;
-    }
-     if (_aceSurfacePlugin){
-        _aceSurfacePlugin = nil;
-    }
-}
-
 - (void)notifyLifecycleChanged:(BOOL)isBackground
 {
     [_resRegister notifyLifecycleChanged:isBackground];
@@ -101,5 +83,6 @@
 - (void)dealloc
 {
     NSLog(@"AcePlatformPlugin dealloc");
+    [super dealloc];
 }
 @end
