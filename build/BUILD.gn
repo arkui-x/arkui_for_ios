@@ -122,11 +122,11 @@ foreach(module, common_napi_libs) {
   }
   common_napi_modules += [ ":${lib_name}" ]
 }
+
 # plugin target
 common_plugin_modules = []
 
 foreach(module, common_plugin_libs) {
-
   plugin_name = module
   target_name_ext = string_replace(module, "_", "")
   target_name_ext = string_replace(target_name_ext, "/", "_")
@@ -140,17 +140,26 @@ foreach(module, common_plugin_libs) {
     ]
     deps = [ "//plugins/$module:${plugin_name_ext}_static_ios" ]
     deps += [ ":arkui_ios" ]
-    frameworks = [ 
+    frameworks = [
       "AVFoundation.framework",
       "Foundation.framework",
-      "UIKit.framework"
-    ]    
+      "UIKit.framework",
+    ]
+
     # relative_install_dir = "module"
     subsystem_name = "arkui"
     part_name = "plugins"
   }
   ohos_combine_darwin_framework(lib_name) {
     deps = [ ":$target_name_ext" ]
+
+    if (lib_name == "libndkrawfile") {
+      _export_framework_headers = [
+        "//base/global/resource_management/interfaces/native/resource/include/raw_dir.h",
+        "//base/global/resource_management/interfaces/native/resource/include/raw_file.h",
+        "//base/global/resource_management/interfaces/native/resource/include/raw_file_manager.h",
+      ]
+    }
 
     subsystem_name = "arkui"
     part_name = "plugins"
