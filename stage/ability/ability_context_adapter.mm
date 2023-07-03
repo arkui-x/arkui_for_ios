@@ -236,4 +236,14 @@ void AbilityContextAdapter::TerminateSelf(const std::string& instanceName)
         NSLog(@"%s, failed", __func__);
     });
 }
+int32_t AbilityContextAdapter::StartAbilityForResult(
+    const std::string& instanceName, const AAFwk::Want& want, int32_t requestCode)
+{
+    return ERR_OK;
+}
+int32_t AbilityContextAdapter::TerminateAbilityWithResult(
+    const std::string& instanceName, const AAFwk::Want& resultWant, int32_t resultCode)
+{
+    return ERR_OK;
+}
 }
