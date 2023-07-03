@@ -105,6 +105,7 @@ void AceContainerSG::Initialize()
 
 void AceContainerSG::Destroy()
 {
+    LOGI("AceContainerSG: destroy");
     CHECK_NULL_VOID(pipelineContext_);
     CHECK_NULL_VOID(taskExecutor_);
 
@@ -136,7 +137,6 @@ void AceContainerSG::Destroy()
     resRegister_.Reset();
     assetManager_.Reset();
     pipelineContext_.Reset();
-    aceView_ = nullptr;
 }
 
 void AceContainerSG::InitializeFrontend()
@@ -527,7 +527,7 @@ void AceContainerSG::AttachView(
 
     auto resResgister = AcePlatformPlugin::GetResRegister(instanceId);
     if (resResgister == nullptr) {
-        LOGW("AcePlatformPluginJni::GetResRegister fail.");
+        LOGW("AcePlatformPlugin::GetResRegister fail.");
     }
     auto* aceViewSG = static_cast<AceViewSG*>(aceView_);
     aceViewSG->SetPlatformResRegister(resResgister);
