@@ -104,7 +104,7 @@
     playerLayer.hidden = true;
     NSMutableDictionary *newActions = [[NSMutableDictionary alloc] initWithObjectsAndKeys:[NSNull null], @"bounds", [NSNull null], @"position", nil];
     playerLayer.actions = newActions;
-    // playerLayer.videoGravity = AVLayerVideoGravityResizeAspect;
+    playerLayer.videoGravity = AVLayerVideoGravityResize;
     self.playerLayer = playerLayer;
     if (self.playerLayer) {
         [AceSurfaceHolder addLayer:self.playerLayer  withId:self.incId inceId:self.instanceId]; 
