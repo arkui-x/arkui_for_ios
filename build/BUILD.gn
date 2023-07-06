@@ -153,14 +153,6 @@ foreach(module, common_plugin_libs) {
   ohos_combine_darwin_framework(lib_name) {
     deps = [ ":$target_name_ext" ]
 
-    if (lib_name == "libndkrawfile") {
-      _export_framework_headers = [
-        "//base/global/resource_management/interfaces/native/resource/include/raw_dir.h",
-        "//base/global/resource_management/interfaces/native/resource/include/raw_file.h",
-        "//base/global/resource_management/interfaces/native/resource/include/raw_file_manager.h",
-      ]
-    }
-
     subsystem_name = "arkui"
     part_name = "plugins"
   }
