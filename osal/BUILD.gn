@@ -45,6 +45,7 @@ template("ace_osal_ios_source_set") {
       "ressched_report.cpp",
       "subwindow.cpp",
       "system_properties.cpp",
+      "socperf_client_impl.cpp",
     ]
 
     cflags_cc = [
