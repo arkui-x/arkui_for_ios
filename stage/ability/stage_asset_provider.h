@@ -44,6 +44,10 @@ public:
     std::string GetFilesDir();
     std::string GetDatabaseDir();
     std::string GetPreferencesDir();
+    std::string GetAppLibDir()
+    {
+        return "";
+    }
 
 private:
     std::mutex providerLock_;
