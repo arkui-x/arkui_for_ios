@@ -188,4 +188,9 @@ bool SystemProperties::GetImageFrameworkEnabled()
     return false;
 }
 
+bool SystemProperties::IsSceneBoardEnabled()
+{
+    return false;
+}
+
 } // namespace OHOS::Ace
