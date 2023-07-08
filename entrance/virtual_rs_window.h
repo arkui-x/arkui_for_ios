@@ -112,6 +112,7 @@ public:
     WMError MoveWindowTo(int32_t x, int32_t y);
     WMError ResizeWindowTo(int32_t width, int32_t height);
 
+   
     bool CreateVSyncReceiver(std::shared_ptr<AppExecFwk::EventHandler> handler);
     void RequestNextVsync(std::function<void(int64_t, void*)> callback);
 
@@ -206,6 +207,10 @@ public:
     WMError RegisterLifeCycleListener(const sptr<IWindowLifeCycle>& listener);
     WMError UnregisterLifeCycleListener(const sptr<IWindowLifeCycle>& listener);
     bool ProcessBasicEvent(const std::vector<Ace::TouchEvent>& touchEvents);
+    int64_t GetVSyncPeriod()
+    {
+        return static_cast<int64_t>(1000000000.0f / 60); // SyncPeriod of 60 fps
+    }
 private:
     void SetWindowView(WindowView* windowView);
     void SetWindowName(const std::string& windowName);
