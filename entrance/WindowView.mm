@@ -308,6 +308,7 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
 - (void)keyboardWillChangeFrame:(NSNotification*)notification {
     NSDictionary* info = [notification userInfo];
     CGFloat keyboardY = [info[UIKeyboardFrameEndUserInfoKey] CGRectValue].origin.y;
+    CGFloat keyboardHeight = [info[UIKeyboardFrameEndUserInfoKey] CGRectValue].size.height;
 
     CGRect screenRect = [[UIScreen mainScreen] bounds];
     CGFloat screenHeight = screenRect.size.height;
@@ -319,7 +320,8 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
                              [iOSTxtInputManager shareintance].inputBoxTopY;
     CGFloat ty = keyboardY - [iOSTxtInputManager shareintance].inputBoxTopY -inputBoxHeight;
     if (isEts) {
-        ty = keyboardY - ([iOSTxtInputManager shareintance].inputBoxTopY + inputBoxHeight) / scale;
+        CGFloat inputViewBottom = [iOSTxtInputManager shareintance].inputBoxY / scale;
+        ty = _height / scale - keyboardHeight - inputViewBottom;
     }
     [UIView animateWithDuration:duration animations:^{
         if (ty < 0) {

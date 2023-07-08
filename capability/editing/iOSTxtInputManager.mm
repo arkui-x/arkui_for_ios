@@ -704,6 +704,9 @@ static UIReturnKeyType ToUIReturnKeyType(NSString* inputType) {
     NSAssert([UIApplication sharedApplication].keyWindow != nullptr,
              @"The application must have a key window since the keyboard client "
              @"must be part of the responder chain to function");
+    if ([_activeView isFirstResponder]) {
+       return;
+    }
     _activeView.textInputBlock = _textInputBlock;
     _activeView.textPerformBlock = _textPerformBlock;
     [self addToInputParentViewIfNeeded:_activeView];
