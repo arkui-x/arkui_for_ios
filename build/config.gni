@@ -41,11 +41,16 @@ enable_rosen_backend = true
 use_external_icu = "static"
 pixel_map_support = true
 video_components_support = true
+use_components_lib = true
 
 cflags_cc = [
   "-std=c++17",
   "-Wno-thread-safety-attributes",
 ]
+
+if (use_components_lib) {
+  defines += [ "USE_COMPONENTS_LIB" ]
+}
 
 if (ace_enable_gpu) {
   defines += [ "ACE_ENABLE_GL" ]
