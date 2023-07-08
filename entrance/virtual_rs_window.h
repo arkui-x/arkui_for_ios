@@ -209,7 +209,7 @@ public:
     bool ProcessBasicEvent(const std::vector<Ace::TouchEvent>& touchEvents);
     int64_t GetVSyncPeriod()
     {
-      return static_cast<int64_t> (1000000000.0f/60);
+      return static_cast<int64_t>(1000000000.0f / 60); // SyncPeriod of 60 fps
     }
 private:
     void SetWindowView(WindowView* windowView);
