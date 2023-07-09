@@ -14,6 +14,8 @@
 import("//build/config/config.gni")
 import("//build/ohos.gni")
 import("//foundation/arkui/ace_engine/ace_config.gni")
+import(
+    "//foundation/arkui/ace_engine/frameworks/core/components_ng/components_plugin.gni")
 import("//foundation/arkui/ace_engine/interfaces/napi/kits/napi_lib.gni")
 import("//plugins/plugin_lib.gni")
 import("config.gni")
@@ -159,9 +161,46 @@ foreach(module, common_plugin_libs) {
   common_plugin_modules += [ ":${lib_name}" ]
 }
 
+# components target
+component_plugin_modules = []
+
+foreach(module, component_plugins) {
+  sub_name = string_replace(module, "_", "")
+  module_name = "arkui_$sub_name"
+  lib_name = "lib" + module_name
+  ohos_shared_library(module_name) {
+    ldflags = [
+      "-Wl",
+      "-install_name",
+      "@rpath/${lib_name}.framework/$lib_name",
+    ]
+    deps = [ "$ace_root/frameworks/core/components_ng/pattern/${module}:components_plugins_${module}_source_ios" ]
+    deps += [ ":arkui_ios" ]
+    frameworks = [
+      "AVFoundation.framework",
+      "Foundation.framework",
+      "UIKit.framework",
+    ]
+
+    # relative_install_dir = "module"
+    subsystem_name = "arkui"
+    part_name = "arkui_components"
+  }
+  ohos_combine_darwin_framework(lib_name) {
+    deps = [ ":$module_name" ]
+
+    subsystem_name = "arkui"
+    part_name = "arkui_components"
+  }
+  component_plugin_modules += [ ":${lib_name}" ]
+}
+
 # Install packages
 group("ace_packages") {
   deps = [ ":libarkui_ios" ]
   deps += common_napi_modules
   deps += common_plugin_modules
+  if (defined(use_components_lib) && use_components_lib) {
+    deps += component_plugin_modules
+  }
 }
