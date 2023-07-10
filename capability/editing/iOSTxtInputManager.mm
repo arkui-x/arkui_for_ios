@@ -329,18 +329,20 @@ static UIReturnKeyType ToUIReturnKeyType(NSString* inputType) {
 }
 
 - (BOOL)shouldChangeTextInRange:(UITextRange*)range replacementText:(NSString*)text {
-    if ([self.inputFilter length] > 0) {
-        NSString *filteredText = @"";
-        NSRegularExpression *regex =
-            [NSRegularExpression regularExpressionWithPattern:self.inputFilter options:NSRegularExpressionUseUnixLineSeparators error:nil];
-        auto hits = [regex matchesInString:text options:0 range:NSMakeRange(0, [text length])];
-        for (NSTextCheckingResult* hit in hits) {
-            for(NSUInteger i = 0; i < hit.numberOfRanges; i++) {
-                filteredText = [filteredText stringByAppendingString:[text substringWithRange:[hit rangeAtIndex:i]]];
+    if ((self.returnKeyType != UIReturnKeyDefault && ![text isEqualToString:@"\n"]) || self.returnKeyType == UIReturnKeyDefault) { 
+        if ([self.inputFilter length] > 0) {
+            NSString *filteredText = @"";
+            NSRegularExpression *regex =
+                [NSRegularExpression regularExpressionWithPattern:self.inputFilter options:NSRegularExpressionUseUnixLineSeparators error:nil];
+            auto hits = [regex matchesInString:text options:0 range:NSMakeRange(0, [text length])];
+            for (NSTextCheckingResult* hit in hits) {
+                for(NSUInteger i = 0; i < hit.numberOfRanges; i++) {
+                    filteredText = [filteredText stringByAppendingString:[text substringWithRange:[hit rangeAtIndex:i]]];
+                }
             }
-        }
-        if (![filteredText isEqualToString:text]) {
-            return NO;
+            if (![filteredText isEqualToString:text]) {
+                return NO;
+            }
         }
     }
 
