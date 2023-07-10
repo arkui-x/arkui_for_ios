@@ -38,6 +38,7 @@
 #include "core/common/container_scope.h"
 #include "core/common/flutter/flutter_asset_manager.h"
 #include "core/event/touch_event.h"
+#include "adapter/android/osal/accessibility_manager_impl.h"
 
 namespace OHOS::Ace::Platform {
 namespace {
@@ -514,6 +515,26 @@ void UIContentImpl::UpdateViewportConfig(const ViewportConfig& config, OHOS::Ros
             Platform::AceViewSG::SurfacePositionChanged(aceView, config.Left(), config.Top());
         },
         TaskExecutor::TaskType::PLATFORM);
+}
+
+// Control filtering
+bool UIContentImpl::GetAllComponents(NodeId nodeID, OHOS::Ace::Platform::ComponentInfo& components)
+{
+    LOGI("UIContentImpl::GetAllComponents enter.");
+    auto container = Platform::AceContainerSG::GetContainer(instanceId_);
+    CHECK_NULL_RETURN(container, false);
+    if (container->GetPipelineContext()) {
+        auto abManager = container->GetPipelineContext()->GetAccessibilityManager();
+        if (abManager) {
+            auto abNodeManager = AceType::DynamicCast<OHOS::Ace::Framework::AccessibilityNodeManager>(abManager);
+            auto abManagerImpl = AceType::DynamicCast<OHOS::Ace::Framework::AccessibilityManagerImpl>(abNodeManager);
+            auto ret =  abManagerImpl->GetAllComponents(nodeID, components);
+            LOGI("UIContentImpl::GetAllComponents ret = %d", ret);
+            return ret;
+        }
+    }
+    LOGI("UIContentImpl::GetAllComponents exit.");
+    return false;
 }
 
 void UIContentImpl::DumpInfo(const std::vector<std::string>& params, std::vector<std::string>& info)

@@ -24,6 +24,8 @@
 #include "native_engine/native_value.h"
 #include "refbase.h"
 #include "core/event/touch_event.h"
+#include "core/accessibility/accessibility_node.h"
+#include "foundation/appframework/arkui/uicontent/component_info.h"
 
 namespace OHOS {
 class Window;
@@ -62,6 +64,9 @@ public:
     // Window color
     uint32_t GetBackgroundColor() override;
     void SetBackgroundColor(uint32_t color) override;
+
+    // Control filtering
+    bool GetAllComponents(NodeId nodeID, OHOS::Ace::Platform::ComponentInfo& components) override;
 
     void DumpInfo(const std::vector<std::string>& params, std::vector<std::string>& info) override;
 
