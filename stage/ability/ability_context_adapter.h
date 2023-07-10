@@ -46,6 +46,7 @@ public:
         const std::string& instanceName, const AAFwk::Want& want, int32_t requestCode);
     int32_t TerminateAbilityWithResult(
         const std::string& instanceName, const AAFwk::Want& resultWant, int32_t resultCode);
+    std::string GetPlatformBundleName();
 private:
     std::mutex contextLock_;
     static std::shared_ptr<AbilityContextAdapter> instance_;

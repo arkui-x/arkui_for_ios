@@ -248,4 +248,9 @@ int32_t AbilityContextAdapter::TerminateAbilityWithResult(
 {
     return ERR_OK;
 }
+
+std::string AbilityContextAdapter::GetPlatformBundleName()
+{
+    return "";
+}
 }
