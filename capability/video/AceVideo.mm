@@ -380,7 +380,7 @@ typedef enum : NSUInteger {
 {
     if (self.player_) {
         if (self.state == STOPPED) {
-            [self setReset];
+            return;
         }
         [self.player_ seekToTime:time toleranceBefore:kCMTimeZero toleranceAfter:kCMTimeZero];
     }
