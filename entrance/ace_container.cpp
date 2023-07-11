@@ -453,6 +453,7 @@ void AceContainer::OnDeviceOrientationChange(DeviceOrientation orientation)
         return;
     }
     const std::string dataStr = data;
+    OnConfigurationChange configurationChange;
     if (front->GetType() == FrontendType::DECLARATIVE_JS) {
         front->OnConfigurationUpdated(dataStr);
         auto resConfig = resourceInfo_.GetResourceConfiguration();
@@ -472,9 +473,9 @@ void AceContainer::OnDeviceOrientationChange(DeviceOrientation orientation)
         }
         themeManager->UpdateConfig(resConfig);
         taskExecutor_->PostTask(
-            [weakContext = WeakPtr<PipelineBase>(pipelineContext_)]() {
+            [weakContext = WeakPtr<PipelineBase>(pipelineContext_), configurationChange]() {
                 auto context = weakContext.Upgrade();
-                context->NotifyConfigurationChange();
+                context->NotifyConfigurationChange(configurationChange);
                 context->FlushReload();
             },
             TaskExecutor::TaskType::UI);
@@ -488,6 +489,8 @@ void AceContainer::OnColorModeChange(ColorMode colorMode)
 {
     auto resConfig = resourceInfo_.GetResourceConfiguration();
     ContainerScope scope(instanceId_);
+    OnConfigurationChange configurationChange;
+    configurationChange.colorModeUpdate = true;
     SystemProperties::SetColorMode(colorMode);
     if (colorMode == ColorMode::DARK) {
         SetColorScheme(ColorScheme::SCHEME_DARK);
@@ -506,7 +509,7 @@ void AceContainer::OnColorModeChange(ColorMode colorMode)
     themeManager->UpdateConfig(resConfig);
     taskExecutor_->PostTask(
         [weakThemeManager = WeakPtr<ThemeManager>(themeManager), colorScheme = colorScheme_,
-            weakContext = WeakPtr<PipelineBase>(pipelineContext_)]() {
+            weakContext = WeakPtr<PipelineBase>(pipelineContext_), configurationChange]() {
             auto themeManager = weakThemeManager.Upgrade();
             auto context = weakContext.Upgrade();
             if (!themeManager || !context) {
@@ -521,7 +524,7 @@ void AceContainer::OnColorModeChange(ColorMode colorMode)
                 context->SetAppBgColor(Color::WHITE);
             }
             context->RefreshRootBgColor();
-            context->NotifyConfigurationChange();
+            context->NotifyConfigurationChange(configurationChange);
             context->FlushReload();
         },
         TaskExecutor::TaskType::UI);
