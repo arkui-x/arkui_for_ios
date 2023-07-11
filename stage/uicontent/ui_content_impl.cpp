@@ -373,6 +373,11 @@ void UIContentImpl::OnNewWant(const OHOS::AAFwk::Want& want)
     Platform::AceContainerSG::OnNewRequest(instanceId_, params);
 }
 
+void UIContentImpl::Finish()
+{
+    LOGI("UIContentImpl Finish");
+}
+
 uint32_t UIContentImpl::GetBackgroundColor()
 {
     auto container = Platform::AceContainerSG::GetContainer(instanceId_);
