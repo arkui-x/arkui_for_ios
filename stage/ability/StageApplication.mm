@@ -237,7 +237,7 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
 - (void)doAbilityBackground:(NSString *)fullname {
     StageViewController *topViewController = [StageApplication getApplicationTopViewController];
     NSMutableArray *viewControllers = [NSMutableArray arrayWithArray:topViewController.navigationController.viewControllers];
-    if (viewControllers.count <= 2) {
+    if (viewControllers.count <= 1) {
         return;
     }
     [viewControllers exchangeObjectAtIndex:viewControllers.count - 1 withObjectAtIndex:viewControllers.count - 2];
