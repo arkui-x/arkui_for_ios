@@ -40,9 +40,7 @@ namespace OHOS::Rosen {
 
 void DummyWindowRelease(Window* window)
 {
-    if (!window->GetIsUIContentInitialize()) {
-        delete window;
-    }
+    window->DecStrongRef(window);
     LOGI("Rosenwindow rsWindow_Window: dummy release");
 }
 std::map<uint32_t, std::vector<std::shared_ptr<Window>>> Window::subWindowMap_;
@@ -81,6 +79,7 @@ std::shared_ptr<Window> Window::Create(
     auto window = std::shared_ptr<Window>(new Window(context, windowId), DummyWindowRelease);
     window->SetWindowView((WindowView*)windowView);
     window->SetWindowName(windowName);
+    window->IncStrongRef(window.get());
     [(WindowView*)windowView setWindowDelegate:window];
     AddToWindowMap(window);
     return window;
@@ -107,7 +106,7 @@ std::shared_ptr<Window> Window::CreateSubWindow(
     window->SetWindowView(windowView);
     [windowView setWindowDelegate:window]; 
     [windowView createSurfaceNode];
-    [windowView setBackgroundColor:[UIColor redColor]];   // Jason: Test for set color
+    window->IncStrongRef(window.get());
     window->SetWindowName(option->GetWindowName());
     window->SetWindowType(option->GetWindowType());
     LOGI("Window::Createsubwindow with name:%s, parentId=%{public}u", window->GetWindowName().c_str(), option->GetParentId());
@@ -557,7 +556,6 @@ int Window::SetUIContent(const std::string& contentInfo,
 
     uiContent_->Foreground();
     isWindowShow_ = true;
-    isUIContentInitialize_ = true;
 
     DelayNotifyUIContentIfNeeded();
     LOGI("Window::SetUIContent : End!!!");
