@@ -164,6 +164,12 @@
     return SUCCESS;
 }
 
+- (void)layoutSubviews {
+    [super layoutSubviews];
+    self.frame = CGRectMake(_surfaceLeft, _surfaceTop, _surfaceWidth, _surfaceHeight);
+    self.playerLayer.frame = self.bounds;
+}
+
 - (void)delaySetClearColor:(UIView *)view
 {
     if (view) {
