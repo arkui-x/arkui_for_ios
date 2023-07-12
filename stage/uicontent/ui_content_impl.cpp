@@ -178,6 +178,7 @@ void UIContentImpl::CommonInitialize(OHOS::Rosen::Window* window, const std::str
     if (info) {
         instanceId_ = window->IsSubWindow() ? window->GetWindowId() : info->instanceId;
         LOGI("acecontainer init instanceId_:%{public}d", instanceId_);
+        Ace::Platform::UIContent::AddUIContent(instanceId_, this);
     }
 
     auto container = AceType::MakeRefPtr<Platform::AceContainerSG>(instanceId_, FrontendType::DECLARATIVE_JS, context_,
@@ -375,7 +376,10 @@ void UIContentImpl::OnNewWant(const OHOS::AAFwk::Want& want)
 
 void UIContentImpl::Finish()
 {
-    LOGI("UIContentImpl Finish");
+    LOGI("UIContent Finish");
+    auto container = Platform::AceContainerSG::GetContainer(instanceId_);
+    CHECK_NULL_VOID(container);
+    container->OnFinish();
 }
 
 uint32_t UIContentImpl::GetBackgroundColor()

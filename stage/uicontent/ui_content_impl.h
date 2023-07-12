@@ -38,6 +38,7 @@ public:
     ~UIContentImpl()
     {
         DestroyCallback();
+        Ace::Platform::UIContent::RemoveUIContent(instanceId_);
     }
     std::unique_ptr<NativeEngine> nativeEngine_;
     // UI content lifecycles
