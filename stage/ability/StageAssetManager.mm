@@ -118,7 +118,8 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
     NSArray *array = self.allModuleFilePathArray.copy;
     NSString *moduleString = esmodule ? MODULE_STAGE_ABC_NAME : FILTER_FILE_ABILITYSTAGE_ABC;
     for (NSString *path in array) {
-        if ([path containsString:moduleName] && [path containsString:moduleString]) {
+        if ([path containsString:[NSString stringWithFormat:@"/%@/", moduleName]]
+            && [path containsString:moduleString]) {
             NSLog(@"%s, moduleName : %@, \n AbilityStage.abc  : %@", __func__, moduleName, path);
             *modulePath = path;
             return path;
@@ -143,7 +144,7 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
     NSArray *array = self.allModuleFilePathArray.copy;
     if (!esmodule) {
         for (NSString *path in array) {
-            if ([path containsString:moduleName]
+            if ([path containsString:[NSString stringWithFormat:@"/%@/", moduleName]]
                 && [path containsString:abilityName]
                 && [path containsString:FILTER_FILE_MODULE_ABC]) {
                 NSLog(@"%s, moduleName : %@, abilityName : %@, \n path : %@", __func__, moduleName, abilityName, path);
@@ -153,7 +154,7 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
         }
     } else {
         for (NSString *path in array) {
-        if ([path containsString:moduleName]
+        if ([path containsString:[NSString stringWithFormat:@"/%@/", moduleName]]
                 && [path containsString:MODULE_STAGE_ABC_NAME]) {
                 NSLog(@"%s, moduleName : %@, abilityName : %@, \n path : %@", __func__, moduleName, abilityName, path);
                 *modulePath = path;
