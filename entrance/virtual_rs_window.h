@@ -197,11 +197,6 @@ public:
         return state_;
     }
 
-    bool GetIsUIContentInitialize() const
-    {
-        return isUIContentInitialize_;
-    }
-
     SystemBarProperty GetSystemBarPropertyByType(WindowType type) const;
     void SetRequestedOrientation(Orientation);
     WMError RegisterLifeCycleListener(const sptr<IWindowLifeCycle>& listener);
@@ -310,7 +305,6 @@ private:
     WindowMode windowMode_;
     WindowType windowType_;
     uint32_t backgroundColor_;
-    bool isUIContentInitialize_ = false;
     float brightness_ = 0.0;
     WindowState state_ { WindowState::STATE_INITIAL };
 
