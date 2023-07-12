@@ -25,6 +25,7 @@
 
 #include "adapter/ios/entrance/ace_application_info_impl.h"
 #include "adapter/ios/entrance/capability_registry.h"
+#include "adapter/ios/osal/accessibility_manager_impl.h"
 #include "adapter/ios/osal/file_asset_provider.h"
 #include "adapter/ios/stage/uicontent/ace_container_sg.h"
 #include "adapter/ios/stage/uicontent/ace_view_sg.h"
@@ -372,6 +373,11 @@ void UIContentImpl::OnNewWant(const OHOS::AAFwk::Want& want)
     Platform::AceContainerSG::OnNewRequest(instanceId_, params);
 }
 
+void UIContentImpl::Finish()
+{
+    LOGI("UIContentImpl Finish");
+}
+
 uint32_t UIContentImpl::GetBackgroundColor()
 {
     auto container = Platform::AceContainerSG::GetContainer(instanceId_);
@@ -514,6 +520,28 @@ void UIContentImpl::UpdateViewportConfig(const ViewportConfig& config, OHOS::Ros
             Platform::AceViewSG::SurfacePositionChanged(aceView, config.Left(), config.Top());
         },
         TaskExecutor::TaskType::PLATFORM);
+}
+
+// Control filtering
+bool UIContentImpl::GetAllComponents(NodeId nodeID, OHOS::Ace::Platform::ComponentInfo& components)
+{
+    LOGI("UIContentImpl::GetAllComponents enter.");
+    auto container = Platform::AceContainerSG::GetContainer(instanceId_);
+    CHECK_NULL_RETURN(container, false);
+    if (container->GetPipelineContext()) {
+        auto accessibilityManager = container->GetPipelineContext()->GetAccessibilityManager();
+        if (accessibilityManager) {
+            auto accessibilityNodeManager =
+                AceType::DynamicCast<OHOS::Ace::Framework::AccessibilityNodeManager>(accessibilityManager);
+            auto accessibilityManagerImpl =
+                AceType::DynamicCast<OHOS::Ace::Framework::AccessibilityManagerImpl>(accessibilityNodeManager);
+            auto ret =  accessibilityManagerImpl->GetAllComponents(nodeID, components);
+            LOGI("UIContentImpl::GetAllComponents ret = %d", ret);
+            return ret;
+        }
+    }
+    LOGI("UIContentImpl::GetAllComponents exit.");
+    return false;
 }
 
 void UIContentImpl::DumpInfo(const std::vector<std::string>& params, std::vector<std::string>& info)
