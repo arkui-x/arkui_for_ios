@@ -230,7 +230,7 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
         }
     }
     [viewControllers exchangeObjectAtIndex:index withObjectAtIndex:viewControllers.count - 1];
-    [topViewController.navigationController setViewControllers:viewControllers animated:YES];
+    [topViewController.navigationController setViewControllers:viewControllers.copy];
 }
 
 
@@ -241,7 +241,7 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
         return;
     }
     [viewControllers exchangeObjectAtIndex:viewControllers.count - 1 withObjectAtIndex:viewControllers.count - 2];
-    [topViewController.navigationController setViewControllers:viewControllers animated:YES];
+    [topViewController.navigationController setViewControllers:viewControllers.copy];
 }
 
 - (void)print:(NSString *)msg {
