@@ -26,6 +26,7 @@ class Window;
 @optional
 - (void)notifyApplicationWillEnterForeground;
 - (void)notifyApplicationDidEnterBackground;
+- (void)notifyApplicationWillTerminateNotification;
 @end
 
 @interface WindowView : UIView

@@ -26,6 +26,9 @@
 #include "core/common/flutter/flutter_task_executor.h"
 
 @interface BridgePluginManager ()
+{
+    BOOL _willTerminate;
+}
 @property (nonatomic, strong) NSMutableDictionary<NSString *, BridgePlugin *> *bridgeMap;
 @end
 
@@ -280,6 +283,14 @@
     std::string c_bridgeName = [bridgeName UTF8String];
     std::string c_data = [string UTF8String];
     OHOS::Ace::Platform::BridgeManager::PlatformSendMessageResponse(c_bridgeName, c_data);
+}
+
+- (void)platformWillTerminate {
+    if (_willTerminate){
+        return;
+    }
+    _willTerminate = true;
+    OHOS::Ace::Platform::BridgeManager::PlatformSendWillTerminate();
 }
 
 #pragma mark - private method

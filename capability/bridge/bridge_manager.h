@@ -46,7 +46,7 @@ public:
     static void PlatformSendMessage(const std::string& bridgeName, const std::string& data);
     static void PlatformSendMessageResponse(const std::string& bridgeName, const std::string& data);
     static void JSCancelMethod(const std::string& bridgeName, const std::string& methodName);
-    
+    static void PlatformSendWillTerminate();
 private:
     static std::map<std::string, std::shared_ptr<BridgeReceiver>> bridgeList_;
     static std::mutex bridgeLock_;

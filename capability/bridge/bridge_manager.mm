@@ -179,4 +179,16 @@ void BridgeManager::PlatformSendMessageResponse(const std::string& bridgeName,
     }
 }
 
+void BridgeManager::PlatformSendWillTerminate() {
+    if (!bridgeList_.empty()) {
+        auto iter = bridgeList_.begin();
+        while (iter != bridgeList_.end()) {
+            auto receiver = iter->second;
+            if (receiver && receiver->sendWillTerminateResponseCallback_) {
+                receiver->sendWillTerminateResponseCallback_(true);
+            }
+            ++iter;
+        }
+    }
+}
 } // namespace OHOS::Ace::Platform

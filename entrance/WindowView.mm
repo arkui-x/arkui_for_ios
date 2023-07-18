@@ -271,6 +271,11 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
                selector:@selector(keyboardWillBeHidden:)
                    name:UIKeyboardWillHideNotification
                  object:nil];
+
+        [center addObserver:self
+               selector:@selector(handleWillTerminate:)
+                   name:UIApplicationWillTerminateNotification
+                 object:nil];
 }
 
 #pragma mark - Application lifecycle notifications
@@ -335,6 +340,12 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
     [UIView animateWithDuration:duration animations:^{
         self.transform = CGAffineTransformMakeTranslation(0, 0);
     }];
+}
+
+- (void)handleWillTerminate:(NSNotification*)notification {
+    if ([self.notifyDelegate respondsToSelector:@selector(notifyApplicationWillTerminateNotification)]) {
+        [self.notifyDelegate notifyApplicationWillTerminateNotification];
+    }
 }
 
 - (void)dealloc {

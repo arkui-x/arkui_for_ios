@@ -70,6 +70,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void)platformSendMessageResponseErrorInfo:(NSString *)bridgeName errorCode:(ErrorCode)errorCode;
 
+- (void)platformWillTerminate;
 @end
 
 NS_ASSUME_NONNULL_END
