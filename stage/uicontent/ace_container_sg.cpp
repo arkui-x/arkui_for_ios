@@ -32,7 +32,7 @@
 #include "core/common/flutter/flutter_task_executor.h"
 #include "core/common/font_manager.h"
 #include "core/common/platform_window.h"
-#include "core/common/text_field_manager.h"
+#include "core/components_ng/pattern/text_field/text_field_manager.h"
 #include "core/common/thread_checker.h"
 #include "core/common/watch_dog.h"
 #include "core/common/window.h"
@@ -189,7 +189,7 @@ void AceContainerSG::InitPiplineContext(std::unique_ptr<Window> window, double d
         std::move(window), taskExecutor_, assetManager_, resRegister_, frontend_, instanceId);
 
     pipelineContext_->SetRootSize(density, width, height);
-    pipelineContext_->SetTextFieldManager(AceType::MakeRefPtr<TextFieldManager>());
+    pipelineContext_->SetTextFieldManager(AceType::MakeRefPtr<NG::TextFieldManagerNG>());
     pipelineContext_->SetIsRightToLeft(AceApplicationInfo::GetInstance().IsRightToLeft());
     pipelineContext_->SetMessageBridge(messageBridge_);
     pipelineContext_->SetWindowModal(windowModal_);
