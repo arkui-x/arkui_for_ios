@@ -300,7 +300,7 @@ typedef enum : NSUInteger {
     IAceOnCallSyncResourceMethod setupdateResource_callback = ^NSString *(NSDictionary * param){
         NSLog(@"AceVideo: updateresource");
         __strong __typeof(weakSelf)strongSelf = weakSelf;
-        if (weakSelf) {
+        if (strongSelf) {
              return [strongSelf setUpdateResource:param];
         }else {
             NSLog(@"AceVideo: updateresource fail");
@@ -382,10 +382,15 @@ typedef enum : NSUInteger {
         if (self.state == STOPPED) {
             return;
         }
-        [self.player_ seekToTime:time toleranceBefore:kCMTimeZero toleranceAfter:kCMTimeZero];
+        __weak __typeof(self)weakSelf = self;
+        [self.player_ seekToTime:time toleranceBefore:kCMTimeZero toleranceAfter:kCMTimeZero completionHandler:^(BOOL finished) {
+            __strong __typeof(weakSelf)strongSelf = weakSelf;
+            if (finished && strongSelf) {
+                NSString *param = [NSString stringWithFormat:@"currentpos=%f", (float)time.value];
+                [strongSelf fireCallback:@"seekcomplete" params:param];
+            }
+        }];
     }
-    NSString *param = [NSString stringWithFormat:@"currentpos=%f", (float)time.value];
-    [self fireCallback:@"seekcomplete" params:param];
 }
 
 - (int64_t)getPosition
