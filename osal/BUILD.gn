@@ -23,6 +23,7 @@ template("ace_osal_ios_source_set") {
 
     sources = [
       "accessibility_manager_impl.cpp",
+      "ace_checker.cpp",
       "ace_engine_ext.cpp",
       "drag_window.cpp",
       "event_report.cpp",
@@ -46,6 +47,7 @@ template("ace_osal_ios_source_set") {
       "socperf_client_impl.cpp",
       "subwindow.cpp",
       "system_properties.cpp",
+      "ui_extension_helper_impl.cpp",
     ]
 
     cflags_cc = [
