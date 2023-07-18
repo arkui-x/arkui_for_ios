@@ -562,6 +562,10 @@ int Window::SetUIContent(const std::string& contentInfo,
     return 0;
 }
 
+Ace::Platform::UIContent* Window::GetUIContent() {
+    return uiContent_.get();
+}
+
 void Window::SetWindowView(WindowView* windowView)
 {
     if (windowView == nullptr) {
