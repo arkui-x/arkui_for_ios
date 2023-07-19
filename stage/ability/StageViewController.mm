@@ -172,6 +172,10 @@ CGFloat _brightness = 0.0;
     }
 }
 
+- (void)notifyApplicationWillTerminateNotification {
+   [[BridgePluginManager shareManager] platformWillTerminate];
+}
+
 - (BOOL)prefersStatusBarHidden {
     return self.statusBarHidden;
 }
