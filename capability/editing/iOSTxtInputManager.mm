@@ -159,6 +159,9 @@ static UIReturnKeyType ToUIReturnKeyType(NSString* inputType) {
 @property(nonatomic, copy) NSDictionary* markedTextStyle;
 @property(nonatomic, assign) id<UITextInputDelegate> inputDelegate;
 @property(nonatomic, copy) NSString* inputFilter;
+@property(nonatomic) NSUInteger maxLength;
+@property(nonatomic) NSUInteger markedTextLocation;
+@property(nonatomic) NSUInteger markedTextLength;
 
 // UITextInputTraits
 @property(nonatomic) UITextAutocapitalizationType autocapitalizationType;
@@ -194,6 +197,8 @@ static UIReturnKeyType ToUIReturnKeyType(NSString* inputType) {
         _text = [[NSMutableString alloc] init];
         _markedText = [[NSMutableString alloc] init];
         _selectedTextRange = [[iOSTextRange alloc] initWithNSRange:NSMakeRange(0, 0)];
+        _markedTextLocation = 0;
+        _markedTextLength = 0;
         
         // UITextInputTraits
         _autocapitalizationType = UITextAutocapitalizationTypeSentences;
@@ -303,6 +308,12 @@ static UIReturnKeyType ToUIReturnKeyType(NSString* inputType) {
 
 - (NSString*)textInRange:(UITextRange*)range {
     NSRange textRange = ((iOSTextRange*)range).range;
+    if (textRange.location < 0) {
+        textRange.location = 0;
+    }
+    if (textRange.length + textRange.location > self.text.length) {
+        textRange.length = self.text.length - textRange.location;
+    }
     return [self.text substringWithRange:textRange];
 }
 
@@ -329,6 +340,15 @@ static UIReturnKeyType ToUIReturnKeyType(NSString* inputType) {
 }
 
 - (BOOL)shouldChangeTextInRange:(UITextRange*)range replacementText:(NSString*)text {
+    if (self.returnKeyType != UIReturnKeyDefault && text.length > 0 && ![text isEqualToString:@"\n"]) {
+        NSRange markedTextRange = ((iOSTextRange*)self.markedTextRange).range;
+        NSRange selectedRange = _selectedTextRange.range;
+        if (markedTextRange.length == 0 && selectedRange.length == 0) {
+            if (self.text.length >= self.maxLength) {
+                return NO;
+            }
+        }
+    }
     if ((self.returnKeyType != UIReturnKeyDefault && ![text isEqualToString:@"\n"]) || self.returnKeyType == UIReturnKeyDefault) { 
         if ([self.inputFilter length] > 0) {
             NSString *filteredText = @"";
@@ -598,6 +618,44 @@ static UIReturnKeyType ToUIReturnKeyType(NSString* inputType) {
         composingBase = ((iOSTextPosition*)self.markedTextRange.start).index;
         composingExtent = ((iOSTextPosition*)self.markedTextRange.end).index;
     }
+
+    NSRange markedTextRange = ((iOSTextRange*)self.markedTextRange).range;          
+    if (markedTextRange.length == 0) {
+        if (self.text.length > self.maxLength) {
+            if (self.markedTextLength > 0) {
+                NSString *prefixText = @"";
+                NSString *insertText = @"";
+                NSString *suffixText = @"";
+                if (self.text.length >= self.markedTextLocation) {
+                    prefixText = [self.text substringWithRange:NSMakeRange(0, self.markedTextLocation)];
+                }
+                if (self.text.length >= self.markedTextLocation + self.markedTextLocation) {
+                    insertText = [self.text substringWithRange:NSMakeRange(self.markedTextLocation, self.markedTextLength)];
+                    suffixText = [self.text substringWithRange:NSMakeRange(self.markedTextLocation + self.markedTextLength, self.text.length - (self.markedTextLocation + self.markedTextLength))];
+                }
+                NSUInteger insertLength = self.maxLength - (self.text.length - self.markedTextLength);
+                if (insertLength < insertText.length) {
+                    insertText = [insertText substringWithRange:NSMakeRange(0, insertLength)];
+                }
+
+                NSString *newText = [prefixText stringByAppendingString: insertText];
+                selectionBase = newText.length;
+                selectionExtent = newText.length;
+                newText = [newText stringByAppendingString: suffixText];
+                [self.text setString:newText];                
+            } else {
+                NSString *newText = [self.text substringWithRange:NSMakeRange(0, self.maxLength)];
+                [self.text setString:newText];
+                selectionBase = self.maxLength;
+                selectionExtent = self.maxLength;
+            }
+        }
+        self.markedTextLocation = 0;
+        self.markedTextLength = 0;
+    } else {
+        self.markedTextLocation = markedTextRange.location;
+        self.markedTextLength = markedTextRange.length;
+    }
     
     NSDictionary *dict = @{
         @"selectionBase" : @(selectionBase),
@@ -620,6 +678,10 @@ static UIReturnKeyType ToUIReturnKeyType(NSString* inputType) {
 }
 
 - (void)insertText:(NSString*)text {
+    if (self.text.length + text.length > self.maxLength && self.maxLength - self.text.length > 0) {
+        text = [text substringWithRange:NSMakeRange(0, self.maxLength - self.text.length)];
+    }
+
     _selectionAffinity = _kTextAffinityDownstream;
     [self replaceRange:_selectedTextRange withText:text];
 }
@@ -770,6 +832,7 @@ static UIReturnKeyType ToUIReturnKeyType(NSString* inputType) {
     [_activeView setTextInputClient:client];
     [_activeView reloadInputViews];
     _activeView.inputFilter = configuration[@"inputFilter"];
+    _activeView.maxLength = [configuration[@"maxLength"] intValue];
 }
 
 - (void)setTextInputEditingState:(NSDictionary*)state {
