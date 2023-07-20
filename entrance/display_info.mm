@@ -21,21 +21,20 @@
 
 
 namespace OHOS::Rosen {
-
-std::map<UIDeviceOrientation, Orientation> gUIDeviceOrientationToOrientationMap = {
-    {UIDeviceOrientationUnknown, Orientation::UNSPECIFIED},
-    {UIDeviceOrientationPortrait, Orientation::VERTICAL},
-    {UIDeviceOrientationPortraitUpsideDown, Orientation::REVERSE_VERTICAL},
-    {UIDeviceOrientationLandscapeLeft, Orientation::HORIZONTAL},
-    {UIDeviceOrientationLandscapeRight, Orientation::REVERSE_HORIZONTAL},
-    {UIDeviceOrientationFaceUp, Orientation::UNSPECIFIED},
-    {UIDeviceOrientationFaceDown, Orientation::UNSPECIFIED}
+std::map<UIDeviceOrientation, DisplayOrientation> gUIDeviceOrientationToOrientationMap = {
+    {UIDeviceOrientationUnknown, DisplayOrientation::UNKNOWN},
+    {UIDeviceOrientationPortrait, DisplayOrientation::PORTRAIT},
+    {UIDeviceOrientationPortraitUpsideDown, DisplayOrientation::PORTRAIT_INVERTED},
+    {UIDeviceOrientationLandscapeLeft, DisplayOrientation::LANDSCAPE},
+    {UIDeviceOrientationLandscapeRight, DisplayOrientation::LANDSCAPE_INVERTED},
+    {UIDeviceOrientationFaceUp, DisplayOrientation::UNKNOWN},
+    {UIDeviceOrientationFaceDown, DisplayOrientation::UNKNOWN}
 };
 
 DisplayInfo::DisplayInfo()
 {
     id_ = 0;
-    orientation_ = gUIDeviceOrientationToOrientationMap[[UIDevice currentDevice].orientation];
+    displayOrientation_ = gUIDeviceOrientationToOrientationMap[[UIDevice currentDevice].orientation];
 
     UIScreen *screen = [UIScreen mainScreen];
     CGFloat scale = screen.scale;
@@ -45,7 +44,6 @@ DisplayInfo::DisplayInfo()
 
 DisplayInfo::~DisplayInfo()
 {
-
 }
 
 DisplayId DisplayInfo::GetDisplayId() const

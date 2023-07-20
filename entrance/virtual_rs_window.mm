@@ -538,7 +538,7 @@ void Window::DelayNotifyUIContentIfNeeded()
     }
 }
 
-int Window::SetUIContent(const std::string& contentInfo,
+WMError Window::SetUIContent(const std::string& contentInfo,
     NativeEngine* engine, NativeValue* storage, bool isdistributed, AbilityRuntime::Platform::Ability* ability)
 {
     LOGI("Window::SetUIContent : Start");
@@ -548,7 +548,7 @@ int Window::SetUIContent(const std::string& contentInfo,
     uiContent = UIContent::Create(context_.get(), engine);
     if (uiContent == nullptr) {
         LOGE("Window::SetUIContent : Create UIContent Failed!");
-        return -1;
+        return WMError::WM_ERROR_NULLPTR;
     }
     uiContent->Initialize(this, contentInfo, storage);
     // make uiContent available after Initialize/Restore
@@ -559,7 +559,7 @@ int Window::SetUIContent(const std::string& contentInfo,
 
     DelayNotifyUIContentIfNeeded();
     LOGI("Window::SetUIContent : End!!!");
-    return 0;
+    return WMError::WM_OK;
 }
 
 Ace::Platform::UIContent* Window::GetUIContent() {
@@ -659,12 +659,17 @@ WMError Window::SetBackgroundColor(uint32_t color)
     backgroundColor_ = color;
     if (uiContent_) {
         uiContent_->SetBackgroundColor(color);
+        return WMError::WM_OK;
     }
-    return WMError::WM_OK;
+    return WMError::WM_ERROR_INVALID_OPERATION;
 }
 
 WMError Window::SetBrightness(float brightness)
 {
+    if (brightness < MINIMUM_BRIGHTNESS || brightness > MAXIMUM_BRIGHTNESS) {
+        LOGE("invalid brightness value: %{public}f", brightness);
+        return WMError::WM_ERROR_INVALID_PARAM;
+    }
     brightness_ = brightness;
     if (isWindowShow_) {
         [[UIScreen mainScreen] setBrightness:brightness];
