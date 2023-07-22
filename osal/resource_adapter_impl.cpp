@@ -492,10 +492,26 @@ std::string ResourceAdapterImpl::GetRawfile(const std::string& fileName)
 bool ResourceAdapterImpl::GetRawFileData(const std::string& rawFile, size_t& len, std::unique_ptr<uint8_t[]>& dest)
 {
     std::shared_lock<std::shared_mutex> lock(resourceMutex_);
-    CHECK_NULL_RETURN_NOLOG(resourceManager_, false);
-    auto state = resourceManager_->GetRawFileFromHap(rawFile, len, dest);
+    auto manager = GetResourceManager();
+    CHECK_NULL_RETURN_NOLOG(manager, false);
+    auto state = manager->GetRawFileFromHap(rawFile, len, dest);
     if (state != Global::Resource::SUCCESS || !dest) {
-        LOGE("GetRawFileFromHap error, raw filename:%{public}s, error:%{public}u", rawFile.c_str(), state);
+        LOGW("GetRawFileFromHap error, raw filename:%{public}s, error:%{public}u", rawFile.c_str(), state);
+        return false;
+    }
+    return true;
+}
+
+bool ResourceAdapterImpl::GetRawFileData(const std::string& rawFile, size_t& len, std::unique_ptr<uint8_t[]>& dest,
+    const std::string& bundleName, const std::string& moduleName)
+{
+    auto manager = GetResourceManager(bundleName, moduleName);
+    CHECK_NULL_RETURN_NOLOG(manager, false);
+    auto state = manager->GetRawFileFromHap(rawFile, len, dest);
+    if (state != Global::Resource::SUCCESS || !dest) {
+        LOGW("GetRawFileFromHap error, raw filename:%{public}s, bundleName:%{public}s, moduleName:%{public}s, "
+             "error:%{public}u",
+            rawFile.c_str(), bundleName.c_str(), moduleName.c_str(), state);
         return false;
     }
     return true;
@@ -504,10 +520,27 @@ bool ResourceAdapterImpl::GetRawFileData(const std::string& rawFile, size_t& len
 bool ResourceAdapterImpl::GetMediaData(uint32_t resId, size_t& len, std::unique_ptr<uint8_t[]>& dest)
 {
     std::shared_lock<std::shared_mutex> lock(resourceMutex_);
-    CHECK_NULL_RETURN_NOLOG(resourceManager_, false);
-    auto state = resourceManager_->GetMediaDataById(resId, len, dest);
+    auto manager = GetResourceManager();
+    CHECK_NULL_RETURN_NOLOG(manager, false);
+    auto state = manager->GetMediaDataById(resId, len, dest);
     if (state != Global::Resource::SUCCESS) {
-        LOGE("GetMediaDataById error, id=%{public}u, error:%{public}u", resId, state);
+        LOGW("GetMediaDataById error, id=%{public}u, error:%{public}u", resId, state);
+        return false;
+    }
+    return true;
+    
+}
+
+bool ResourceAdapterImpl::GetMediaData(uint32_t resId, size_t& len, std::unique_ptr<uint8_t[]>& dest,
+    const std::string& bundleName, const std::string& moduleName)
+{
+    std::shared_lock<std::shared_mutex> lock(resourceMutex_);
+    auto manager = GetResourceManager(bundleName, moduleName);
+    CHECK_NULL_RETURN_NOLOG(manager, false);
+    auto state = manager->GetMediaDataById(resId, len, dest);
+    if (state != Global::Resource::SUCCESS) {
+        LOGW("GetMediaDataById error, id=%{public}u, bundleName:%{public}s, moduleName:%{public}s, error:%{public}u",
+            resId, bundleName.c_str(), moduleName.c_str(), state);
         return false;
     }
     return true;
@@ -516,13 +549,35 @@ bool ResourceAdapterImpl::GetMediaData(uint32_t resId, size_t& len, std::unique_
 bool ResourceAdapterImpl::GetMediaData(const std::string& resName, size_t& len, std::unique_ptr<uint8_t[]>& dest)
 {
     std::shared_lock<std::shared_mutex> lock(resourceMutex_);
-    CHECK_NULL_RETURN_NOLOG(resourceManager_, false);
-    auto state = resourceManager_->GetMediaDataByName(resName.c_str(), len, dest);
+    auto manager = GetResourceManager();
+    CHECK_NULL_RETURN_NOLOG(manager, false);
+    auto state = manager->GetMediaDataByName(resName.c_str(), len, dest);
     if (state != Global::Resource::SUCCESS) {
-        LOGE("GetMediaDataByName error, res=%{public}s, error:%{public}u", resName.c_str(), state);
+        LOGW("GetMediaDataByName error, res=%{public}s, error:%{public}u", resName.c_str(), state);
         return false;
     }
     return true;
+}
+
+bool ResourceAdapterImpl::GetMediaData(const std::string& resName, size_t& len, std::unique_ptr<uint8_t[]>& dest,
+    const std::string& bundleName, const std::string& moduleName)
+{
+    std::shared_lock<std::shared_mutex> lock(resourceMutex_);
+    auto manager = GetResourceManager(bundleName, moduleName);
+    CHECK_NULL_RETURN_NOLOG(manager, false);
+    auto state = manager->GetMediaDataByName(resName.c_str(), len, dest);
+    if (state != Global::Resource::SUCCESS) {
+        LOGW("GetMediaDataByName error, res=%{public}s, bundleName:%{public}s, moduleName:%{public}s, error:%{public}u",
+            resName.c_str(), bundleName.c_str(), moduleName.c_str(), state);
+        return false;
+    }
+    return true;
+}
+
+std::shared_ptr<Global::Resource::ResourceManager> ResourceAdapterImpl::GetResourceManager(
+    const std::string& bundleName, const std::string& moduleName)
+{
+    return resourceManager_;
 }
 
 void ResourceAdapterImpl::UpdateResourceManager(const std::string& bundleName, const std::string& moduleName)
