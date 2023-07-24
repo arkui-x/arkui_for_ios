@@ -138,7 +138,7 @@ int32_t AbilityContextAdapter::StartAbility(const std::string& instanceName, con
         });
     } else {
         NSLog(@"startAbility failed, can't open app");
-        return AAFwk::INVALID_PARAMETERS_ERR;
+        return AAFwk::RESOLVE_ABILITY_ERR;
     }
     return ERR_OK;
 }
