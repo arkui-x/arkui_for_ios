@@ -115,7 +115,7 @@ int32_t AbilityContextAdapter::StartAbility(const std::string& instanceName, con
     if (!bundleName.length || !moduleName.length || !abilityName.length) {
         NSLog(@"startAbility failed, bundleName : %@, moduleName : %@, abilityName : %@",
             bundleName, moduleName, abilityName);
-        return AAFwk::INVALID_PARAMETERS_ERR;
+        return AAFwk::RESOLVE_ABILITY_ERR;
     }
 
     NSString *urlString = [NSString stringWithFormat:@"%@://%@", bundleName, moduleName];
