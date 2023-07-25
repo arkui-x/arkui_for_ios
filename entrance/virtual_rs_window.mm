@@ -279,7 +279,7 @@ void Window::RegisterWindowDestroyedListener(const NotifyNativeWinDestroyFunc& f
     notifyNativefunc_ = std::move(func);
 }
 
-const std::vector<std::shared_ptr<Window>>& Window::GetSubWindow(uint32_t parentId)
+std::vector<std::shared_ptr<Window>> Window::GetSubWindow(uint32_t parentId)
 {
     HILOG_INFO("Window::GetSubWindow : Start... / parentId = %{public}u, subWIndowMapSize=%{public}u",
         parentId, subWindowMap_.size());
