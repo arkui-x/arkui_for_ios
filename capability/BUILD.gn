@@ -38,6 +38,16 @@ config("capability_config") {
     "//foundation/graphic/graphic_2d/rosen/modules",
   ]
 
+  if (ace_use_new_skia) {
+    include_dirs -= [
+      "//third_party/flutter",
+      "//third_party/flutter/skia",
+      "//third_party/flutter/engine/flutter/shell/common",
+    ]
+
+    include_dirs += [ "//third_party/skia" ]
+  }
+
   cflags_objc = [ "-fvisibility=default" ]
 
   cflags_objcc = cflags_objc
