@@ -22,13 +22,13 @@
 
 namespace OHOS::Rosen {
 std::map<UIDeviceOrientation, DisplayOrientation> gUIDeviceOrientationToOrientationMap = {
-    {UIDeviceOrientationUnknown, DisplayOrientation::UNKNOWN},
+    {UIDeviceOrientationUnknown, DisplayOrientation::PORTRAIT},
     {UIDeviceOrientationPortrait, DisplayOrientation::PORTRAIT},
     {UIDeviceOrientationPortraitUpsideDown, DisplayOrientation::PORTRAIT_INVERTED},
     {UIDeviceOrientationLandscapeLeft, DisplayOrientation::LANDSCAPE},
     {UIDeviceOrientationLandscapeRight, DisplayOrientation::LANDSCAPE_INVERTED},
-    {UIDeviceOrientationFaceUp, DisplayOrientation::UNKNOWN},
-    {UIDeviceOrientationFaceDown, DisplayOrientation::UNKNOWN}
+    {UIDeviceOrientationFaceUp, DisplayOrientation::PORTRAIT},
+    {UIDeviceOrientationFaceDown, DisplayOrientation::PORTRAIT}
 };
 
 DisplayInfo::DisplayInfo()
