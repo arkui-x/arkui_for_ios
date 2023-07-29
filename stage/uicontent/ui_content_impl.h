@@ -16,6 +16,7 @@
 #ifndef FOUNDATION_ACE_ADAPTER_IOS_STAGE_UI_CONTENT_IMPL_H
 #define FOUNDATION_ACE_ADAPTER_IOS_STAGE_UI_CONTENT_IMPL_H
 
+#include "adapter/ios/entrance/virtual_rs_window.h"
 #include "base/utils/macros.h"
 #include "core/accessibility/accessibility_node.h"
 #include "core/event/key_event.h"
@@ -96,6 +97,7 @@ private:
     std::string startUrl_;
     std::string lastConfig_;
     int32_t instanceId_ = -1;
+    OHOS::Rosen::IOccupiedAreaChangeListener *occupiedAreaChangeListener_ = nullptr;
 };
 } // namespace OHOS::Ace::Platform
 #endif // FOUNDATION_ACE_ADAPTER_IOS_STAGE_UI_CONTENT_IMPL_H

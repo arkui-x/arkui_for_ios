@@ -312,34 +312,18 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
 
 - (void)keyboardWillChangeFrame:(NSNotification*)notification {
     NSDictionary* info = [notification userInfo];
-    CGFloat keyboardY = [info[UIKeyboardFrameEndUserInfoKey] CGRectValue].origin.y;
     CGFloat keyboardHeight = [info[UIKeyboardFrameEndUserInfoKey] CGRectValue].size.height;
-
-    CGRect screenRect = [[UIScreen mainScreen] bounds];
-    CGFloat screenHeight = screenRect.size.height;
     CGFloat scale = [UIScreen mainScreen].scale;
-
-    double duration = [info[UIKeyboardAnimationDurationUserInfoKey] doubleValue];
-    bool isEts = [iOSTxtInputManager shareintance].isDeclarative;
-    CGFloat inputBoxHeight = [iOSTxtInputManager shareintance].inputBoxY -
-                             [iOSTxtInputManager shareintance].inputBoxTopY;
-    CGFloat ty = keyboardY - [iOSTxtInputManager shareintance].inputBoxTopY -inputBoxHeight;
-    if (isEts) {
-        CGFloat inputViewBottom = [iOSTxtInputManager shareintance].inputBoxY / scale;
-        ty = _height / scale - keyboardHeight - inputViewBottom;
+    keyboardHeight = keyboardHeight * scale;
+    if (_windowDelegate.lock() != nullptr) {
+        _windowDelegate.lock()->NotifyKeyboardHeightChanged(keyboardHeight);
     }
-    [UIView animateWithDuration:duration animations:^{
-        if (ty < 0) {
-            self.transform = CGAffineTransformMakeTranslation(0, ty);
-        }
-    }];
 }
 
 - (void)keyboardWillBeHidden:(NSNotification*)notification {
-    double duration = [notification.userInfo[UIKeyboardAnimationDurationUserInfoKey] doubleValue];
-    [UIView animateWithDuration:duration animations:^{
-        self.transform = CGAffineTransformMakeTranslation(0, 0);
-    }];
+    if (_windowDelegate.lock() != nullptr) {
+        _windowDelegate.lock()->NotifyKeyboardHeightChanged(0);
+    }
 }
 
 - (void)handleWillTerminate:(NSNotification*)notification {

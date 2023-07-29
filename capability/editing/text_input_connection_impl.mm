@@ -216,13 +216,14 @@ void TextInputConnectionImpl::SetEditingState(const TextEditingValue& value, int
 
 void TextInputConnectionImpl::Close(int32_t instanceId){
     LOGE("vail->iOSTxtInput::Close");
-    dispatch_async(dispatch_get_main_queue(), ^{
+    TextInputNoParamsBlock closeCallback = ^{
         [[iOSTxtInputManager shareintance] clearTextInputClient];
         [[iOSTxtInputManager shareintance] hideTextInput];
         [iOSTxtInputManager shareintance].inputBoxY = 0.0;
         [iOSTxtInputManager shareintance].inputBoxTopY = 0.0;
         [iOSTxtInputManager shareintance].isDeclarative = false;
-    });
+    };
+    dispatch_main_async_safe(closeCallback);
 }
 
 }
