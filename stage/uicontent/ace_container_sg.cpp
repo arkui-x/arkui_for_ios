@@ -110,33 +110,17 @@ void AceContainerSG::Destroy()
     CHECK_NULL_VOID(taskExecutor_);
 
     ContainerScope scope(instanceId_);
-    // 1. Destroy Pipeline on UI Thread
-    auto weak = AceType::WeakClaim(AceType::RawPtr(pipelineContext_));
-    taskExecutor_->PostTask(
-        [weak, taskExecutor = taskExecutor_]() {
-            auto context = weak.Upgrade();
-            CHECK_NULL_VOID(context);
-            context->Destroy();
-        },
-        TaskExecutor::TaskType::UI);
-    // 2.Destroy Frontend on JS Thread
-    RefPtr<Frontend> frontend;
-    frontend_.Swap(frontend);
-    if (frontend) {
-        taskExecutor_->PostTask(
-            [frontend, id = instanceId_]() {
-                frontend->UpdateState(Frontend::State::ON_DESTROY);
-                frontend->Destroy();
-                EngineHelper::RemoveEngine(id);
-            },
-            TaskExecutor::TaskType::JS);
+
+    if (frontend_) {
+        frontend_->UpdateState(Frontend::State::ON_DESTROY);
     }
 
-    // 3. Clear the data of this container
+    // Clear the data of this container
     messageBridge_.Reset();
     resRegister_.Reset();
     assetManager_.Reset();
     pipelineContext_.Reset();
+    LOGI("AceContainerSG: destroy end");
 }
 
 void AceContainerSG::InitializeFrontend()
