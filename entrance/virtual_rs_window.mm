@@ -47,6 +47,7 @@ std::map<uint32_t, std::vector<std::shared_ptr<Window>>> Window::subWindowMap_;
 std::map<std::string, std::pair<uint32_t, std::shared_ptr<Window>>> Window::windowMap_;
 std::map<uint32_t, std::vector<sptr<IWindowLifeCycle>>> Window::lifecycleListeners_;
 std::recursive_mutex Window::globalMutex_;
+std::map<uint32_t, std::vector<sptr<IOccupiedAreaChangeListener>>> Window::occupiedAreaChangeListeners_;
 
 Window::Window(const flutter::TaskRunners& taskRunners)
     : vsyncWaiter_(std::make_shared<flutter::VsyncWaiterIOS>(taskRunners))
@@ -784,6 +785,31 @@ void Window::ClearListenersById(uint32_t winId)
 {
     std::lock_guard<std::recursive_mutex> lock(globalMutex_);
     ClearUselessListeners(lifecycleListeners_, winId); 
+}
+
+void Window::NotifyKeyboardHeightChanged(int32_t height)
+{
+    auto occupiedAreaChangeListeners = GetListeners<IOccupiedAreaChangeListener>();
+    for (auto& listener : occupiedAreaChangeListeners) {
+        if (listener != nullptr) {
+            Rect rect = { 0, 0, 0, height };
+            listener->OnSizeChange(rect, OccupiedAreaType::TYPE_INPUT);
+        }
+    }
+}
+
+WMError Window::RegisterOccupiedAreaChangeListener(const sptr<IOccupiedAreaChangeListener>& listener)
+{
+    LOGD("Start register");
+    std::lock_guard<std::recursive_mutex> lock(globalMutex_);
+    return RegisterListener(occupiedAreaChangeListeners_[GetWindowId()], listener);
+}
+
+WMError Window::UnregisterOccupiedAreaChangeListener(const sptr<IOccupiedAreaChangeListener>& listener)
+{
+    LOGD("Start unregister");
+    std::lock_guard<std::recursive_mutex> lock(globalMutex_);
+    return UnregisterListener(occupiedAreaChangeListeners_[GetWindowId()], listener);
 }
 
 WMError Window::RegisterLifeCycleListener(const sptr<IWindowLifeCycle>& listener)

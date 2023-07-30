@@ -84,6 +84,28 @@ enum class WindowSizeChangeReason : uint32_t {
     END,
 };
 
+/**
+ * @brief Enumerates occupied area type.
+ */
+enum class OccupiedAreaType : uint32_t {
+    TYPE_INPUT, // area of input window
+};
+
+/**
+ * @class IOccupiedAreaChangeListener
+ *
+ * @brief IOccupiedAreaChangeListener is used to observe OccupiedArea change.
+ */
+class IOccupiedAreaChangeListener : public RefBase {
+public:
+    /**
+     * @brief Notify caller when OccupiedArea size change.
+     *
+     * @param info Occupied area info when occupied changed.
+     */
+    virtual void OnSizeChange(const Rect &rect, OccupiedAreaType type) {}
+};
+
 class Window : public RefBase {
 #define CALL_LIFECYCLE_LISTENER(windowLifecycleCb, listeners) \
     do {                                                      \
@@ -120,6 +142,7 @@ public:
 
     void CreateSurfaceNode(void* layer);
     void NotifySurfaceChanged(int32_t width, int32_t height, float density);
+    void NotifyKeyboardHeightChanged(int32_t height);
     void NotifySurfaceDestroyed();
 
     bool ProcessPointerEvent(const std::vector<uint8_t>& data);
@@ -146,6 +169,8 @@ public:
     void Background();
     WMError Destroy();
     void RegisterWindowDestroyedListener(const NotifyNativeWinDestroyFunc& func);
+    WMError RegisterOccupiedAreaChangeListener(const sptr<IOccupiedAreaChangeListener> &listener);
+    WMError UnregisterOccupiedAreaChangeListener(const sptr<IOccupiedAreaChangeListener> &listener);
 
     bool IsSubWindow() const
     {
@@ -225,6 +250,18 @@ private:
     {
         listeners.erase(winId);
     }
+    template <typename T>
+    inline EnableIfSame<T, IOccupiedAreaChangeListener, std::vector<sptr<IOccupiedAreaChangeListener>>> GetListeners()
+    {
+        std::vector<sptr<IOccupiedAreaChangeListener>> occupiedAreaChangeListeners;
+        {
+            std::lock_guard<std::recursive_mutex> lock(globalMutex_);
+            for (auto &listener : occupiedAreaChangeListeners_[GetWindowId()]) {
+                occupiedAreaChangeListeners.push_back(listener);
+            }
+        }
+        return occupiedAreaChangeListeners;
+    }
     template<typename T>
     inline EnableIfSame<T, IWindowLifeCycle, std::vector<wptr<IWindowLifeCycle>>> GetListeners()
     {
@@ -297,6 +334,7 @@ private:
     };
 
     NotifyNativeWinDestroyFunc notifyNativefunc_;
+    static std::map<uint32_t, std::vector<sptr<IOccupiedAreaChangeListener>>> occupiedAreaChangeListeners_;
     static std::recursive_mutex globalMutex_;
     bool delayNotifySurfaceCreated_ = false;
     bool delayNotifySurfaceChanged_ = false;
