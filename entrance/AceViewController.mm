@@ -50,7 +50,6 @@ BOOL isDebug = NO;
 @property (nonatomic, retain) AceResourceRegisterOC *registerOC;
 /// plugin
 @property (nonatomic, retain) AceVideoResourcePlugin *videoResourcePlugin;
-// @property (nonatomic, retain) AceCameraResoucePlugin *cameraResourcePlugin;
 @property (nonatomic, retain) AceTextureResourcePlugin *textureResourcePlugin;
 
 @end

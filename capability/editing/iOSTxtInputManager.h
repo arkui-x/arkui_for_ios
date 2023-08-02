@@ -22,7 +22,7 @@ NS_ASSUME_NONNULL_BEGIN
 @interface iOSTxtInputManager : NSObject
 
 + (instancetype)shareintance;
-@property(nonatomic, assign) id<iOSTextInputDelegate> textInputDelegate;
+@property(nonatomic, weak) id<iOSTextInputDelegate> textInputDelegate;
 @property (nonatomic, copy) updateEditingClientBlock textInputBlock;
 @property (nonatomic, copy) performActionBlock textPerformBlock;
 @property (nonatomic, assign) CGFloat inputBoxY;

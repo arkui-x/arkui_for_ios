@@ -17,6 +17,7 @@
 
 #include "iOSTextInputDelegate.h"
 #include "iOSTxtInputManager.h"
+#import "KeyboardTypeMapper.h"
 
 #include "adapter/ios/capability/editing/text_input_client_handler.h"
 #include "frameworks/base/json/json_util.h"
@@ -45,40 +46,40 @@ void TextInputConnectionImpl::Show(bool isFocusViewChanged, int32_t instanceId){
     }
     
     TextInputAction actionType = config_.action;
-    NSString *inputAction = @"TextInputAction.unspecified";
+    NSString *inputAction = TextInputActionUnspecified;
     if(actionType == TextInputAction::UNSPECIFIED){
-        inputAction = @"TextInputAction.unspecified";
+        inputAction = TextInputActionUnspecified;
     }else if(actionType == TextInputAction::GO){
-        inputAction = @"TextInputAction.go";
+        inputAction = TextInputActionGo;
     }else if(actionType == TextInputAction::SEARCH){
-        inputAction = @"TextInputAction.search";
+        inputAction = TextInputActionSearch;
     }else if(actionType == TextInputAction::SEND){
-        inputAction = @"TextInputAction.send";
+        inputAction = TextInputActionSend;
     }else if(actionType == TextInputAction::NEXT){
-        inputAction = @"TextInputAction.next";
+        inputAction = TextInputActionNext;
     }else if(actionType == TextInputAction::DONE){
-        inputAction = @"TextInputAction.done";
+        inputAction = TextInputActionDone;
     }
     
     TextInputType inputType = config_.type;
-    NSString *inputTypeName = @"TextInputType.text";
+    NSString *inputTypeName = TextInputTypeText;
     NSInteger obscureText = 0;
     if(inputType == TextInputType::TEXT){
-        inputTypeName = @"TextInputType.text";
+        inputTypeName = TextInputTypeText;
     }else if(inputType == TextInputType::MULTILINE){
-        inputTypeName = @"TextInputType.multiline";
+        inputTypeName = TextInputTypeMultiline;
     }else if(inputType == TextInputType::NUMBER){
-        inputTypeName = @"TextInputType.number";
+        inputTypeName = TextInputTypeNumber;
     }else if(inputType == TextInputType::DATETIME){
-        inputTypeName = @"TextInputType.datetime";
+        inputTypeName = TextInputTypeDatetime;
     }else if(inputType == TextInputType::PHONE){
-        inputTypeName = @"TextInputType.phone";
+        inputTypeName = TextInputTypePhone;
     }else if(inputType == TextInputType::EMAIL_ADDRESS){
-        inputTypeName = @"TextInputType.emailAddress";
+        inputTypeName = TextInputTypeEmailAddress;
     }else if(inputType == TextInputType::URL){
-        inputTypeName = @"TextInputType.url";
+        inputTypeName = TextInputTypeURL;
     }else if(inputType == TextInputType::VISIBLE_PASSWORD){
-        inputTypeName = @"TextInputType.visiblePassword";
+        inputTypeName = TextInputTypeVisiblePassword;
         obscureText = 1;
     }
 
