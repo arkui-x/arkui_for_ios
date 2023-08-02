@@ -299,18 +299,14 @@
         NSLog(@"no register bridge, %@", bridgeName);
         return nil;
     }
-    @synchronized (self) {
-        BridgePlugin * bridgePlugin = (BridgePlugin *)[self.bridgeMap objectForKey:bridgeName];
-        NSLog(@"bridgePlugin : %@, bridgeMap : %@", bridgePlugin, self.bridgeMap);
-        return bridgePlugin;
-    }
+    BridgePlugin * bridgePlugin = (BridgePlugin *)[self.bridgeMap objectForKey:bridgeName];
+    NSLog(@"bridgePlugin : %@, bridgeMap : %@", bridgePlugin, self.bridgeMap);
+    return bridgePlugin;
 }
 
 - (NSMutableDictionary *)bridgeMap {
     if (!_bridgeMap) {
-        @synchronized (self) {
-            _bridgeMap = [[NSMutableDictionary alloc] init];
-        }
+        _bridgeMap = [[NSMutableDictionary alloc] init];
     }
     return _bridgeMap;
 }

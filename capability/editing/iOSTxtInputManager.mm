@@ -14,6 +14,7 @@
  */
 
 #import "iOSTxtInputManager.h"
+#import "KeyboardTypeMapper.h"
 
 #include <Foundation/Foundation.h>
 #include <UIKit/UIKit.h>
@@ -22,81 +23,6 @@
 
 static const char _kTextAffinityDownstream[] = "TextAffinity.downstream";
 static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
-
-static UIKeyboardType ToUIKeyboardType(NSDictionary* type) {
-    NSString* inputType = type[@"name"];
-    if ([inputType isEqualToString:@"TextInputType.text"])
-        return UIKeyboardTypeDefault;
-    if ([inputType isEqualToString:@"TextInputType.multiline"])
-        return UIKeyboardTypeDefault;
-    if ([inputType isEqualToString:@"TextInputType.datetime"])
-        return UIKeyboardTypeNumbersAndPunctuation;
-    if ([inputType isEqualToString:@"TextInputType.number"]) {
-        if ([type[@"signed"] boolValue])
-            return UIKeyboardTypeNumbersAndPunctuation;
-        if ([type[@"decimal"] boolValue])
-            return UIKeyboardTypeDecimalPad;
-        return UIKeyboardTypeNumberPad;
-    }
-    if ([inputType isEqualToString:@"TextInputType.phone"])
-        return UIKeyboardTypePhonePad;
-    if ([inputType isEqualToString:@"TextInputType.emailAddress"])
-        return UIKeyboardTypeEmailAddress;
-    if ([inputType isEqualToString:@"TextInputType.url"])
-        return UIKeyboardTypeURL;
-    return UIKeyboardTypeDefault;
-}
-
-static UITextAutocapitalizationType ToUITextAutoCapitalizationType(NSDictionary* type) {
-    NSString* textCapitalization = type[@"textCapitalization"];
-    if ([textCapitalization isEqualToString:@"TextCapitalization.characters"]) {
-        return UITextAutocapitalizationTypeAllCharacters;
-    } else if ([textCapitalization isEqualToString:@"TextCapitalization.sentences"]) {
-        return UITextAutocapitalizationTypeSentences;
-    } else if ([textCapitalization isEqualToString:@"TextCapitalization.words"]) {
-        return UITextAutocapitalizationTypeWords;
-    }
-    return UITextAutocapitalizationTypeNone;
-}
-
-static UIReturnKeyType ToUIReturnKeyType(NSString* inputType) {
-    if ([inputType isEqualToString:@"TextInputAction.unspecified"])
-        return UIReturnKeyDefault;
-    
-    if ([inputType isEqualToString:@"TextInputAction.done"])
-        return UIReturnKeyDone;
-    
-    if ([inputType isEqualToString:@"TextInputAction.go"])
-        return UIReturnKeyGo;
-    
-    if ([inputType isEqualToString:@"TextInputAction.send"])
-        return UIReturnKeySend;
-    
-    if ([inputType isEqualToString:@"TextInputAction.search"])
-        return UIReturnKeySearch;
-    
-    if ([inputType isEqualToString:@"TextInputAction.next"])
-        return UIReturnKeyNext;
-    
-    if (@available(iOS 9.0, *))
-        if ([inputType isEqualToString:@"TextInputAction.continueAction"])
-            return UIReturnKeyContinue;
-    
-    if ([inputType isEqualToString:@"TextInputAction.join"])
-        return UIReturnKeyJoin;
-    
-    if ([inputType isEqualToString:@"TextInputAction.route"])
-        return UIReturnKeyRoute;
-    
-    if ([inputType isEqualToString:@"TextInputAction.emergencyCall"])
-        return UIReturnKeyEmergencyCall;
-    
-    if ([inputType isEqualToString:@"TextInputAction.newline"])
-        return UIReturnKeyDefault;
-    
-    // Present default key if bad input type is given.
-    return UIReturnKeyDefault;
-}
 
 #pragma mark - iOSTextPosition
 @implementation iOSTextPosition
@@ -704,12 +630,12 @@ static UIReturnKeyType ToUIReturnKeyType(NSString* inputType) {
 @end
 
 
-@interface iOSTextInputViewAccessibilityHider : UIView {
+@interface TextInputHideView : UIView {
 }
 
 @end
 
-@implementation iOSTextInputViewAccessibilityHider {
+@implementation TextInputHideView {
 }
 
 - (BOOL)accessibilityElementsHidden {
@@ -722,7 +648,7 @@ static UIReturnKeyType ToUIReturnKeyType(NSString* inputType) {
     iOSTextInputView* _view;
     iOSTextInputView* _secureView;
     iOSTextInputView* _activeView;
-    iOSTextInputViewAccessibilityHider* _inputHider;
+    TextInputHideView* _inputHider;
 }
 
 @synthesize textInputBlock = _textInputBlock;
@@ -746,7 +672,7 @@ static UIReturnKeyType ToUIReturnKeyType(NSString* inputType) {
         _secureView = [[iOSTextInputView alloc] init];
         _secureView.secureTextEntry = YES;
         _activeView = _view;
-        _inputHider = [[iOSTextInputViewAccessibilityHider alloc] init];
+        _inputHider = [[TextInputHideView alloc] init];
     }
     return self;
 }
@@ -778,7 +704,18 @@ static UIReturnKeyType ToUIReturnKeyType(NSString* inputType) {
 }
 
 - (UIView*)keyWindow {
-  UIWindow* keyWindow = [UIApplication sharedApplication].keyWindow;
+    UIApplication *sharedApplication = [UIApplication sharedApplication];
+    UIWindow *keyWindow = nil;
+    if (@available(iOS 13.0, *)) {
+        for (UIWindowScene *windowScene in sharedApplication.connectedScenes) {
+            if (windowScene.activationState == UISceneActivationStateForegroundActive && [windowScene isKindOfClass:UIWindowScene.class]) {
+                keyWindow = windowScene.windows.firstObject;
+                break;
+            }
+        }
+    } else {
+        keyWindow = sharedApplication.keyWindow;
+    }
   NSAssert(keyWindow != nullptr,
            @"The application must have a key window since the keyboard client "
            @"must be part of the responder chain to function");
@@ -786,18 +723,16 @@ static UIReturnKeyType ToUIReturnKeyType(NSString* inputType) {
 }
 
 - (void)addToInputParentViewIfNeeded:(iOSTextInputView*)inputView {
-  if ([_inputHider viewWithTag:8342021601]) {
-      [inputView removeFromSuperview];
-  }
-  inputView.tag = 8342021601;
-  [_inputHider addSubview:inputView];
+    if ([inputView isDescendantOfView:_inputHider]) {
+        [inputView removeFromSuperview];
+    }
+    [_inputHider addSubview:inputView];
     
-  UIView* parentView = self.keyWindow;
-  if ([parentView viewWithTag:8342021602]) {
-     [_inputHider removeFromSuperview];
-  }
-  _inputHider.tag = 8342021602;
-  [parentView addSubview:_inputHider];
+    UIView* parentView = self.keyWindow;
+    if ([_inputHider isDescendantOfView:parentView]) {
+         [_inputHider removeFromSuperview];
+      }
+    [parentView addSubview:_inputHider];
 }
 
 - (void)hideTextInput {
@@ -815,9 +750,24 @@ static UIReturnKeyType ToUIReturnKeyType(NSString* inputType) {
         _activeView = _view;
     }
     
-    _activeView.keyboardType = ToUIKeyboardType(inputType);
-    _activeView.returnKeyType = ToUIReturnKeyType(configuration[@"inputAction"]);
-    _activeView.autocapitalizationType = ToUITextAutoCapitalizationType(configuration);
+    NSString* inputTypeName = inputType[@"name"];
+    UIKeyboardType keyboardType = [KeyboardTypeMapper toUIKeyboardType:inputTypeName];
+    if (keyboardType == UIKeyboardTypeNumberPad) {
+        if ([inputType[@"signed"] boolValue]){
+            keyboardType = UIKeyboardTypeNumbersAndPunctuation;
+        }
+        if ([inputType[@"decimal"] boolValue]){
+            keyboardType = UIKeyboardTypeDecimalPad;
+        }   
+    }
+    _activeView.keyboardType = keyboardType;
+
+    NSString* inputActionName = configuration[@"inputAction"];
+    _activeView.returnKeyType = [KeyboardTypeMapper toUIReturnKeyType:inputActionName];
+
+    NSString* textCapitalizationName = configuration[@"textCapitalization"];
+    _activeView.autocapitalizationType = [KeyboardTypeMapper toUITextAutoCapitalizationType:textCapitalizationName];
+
     if ([keyboardAppearance isEqualToString:@"Brightness.dark"]) {
         _activeView.keyboardAppearance = UIKeyboardAppearanceDark;
     } else if ([keyboardAppearance isEqualToString:@"Brightness.light"]) {

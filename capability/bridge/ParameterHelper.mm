@@ -25,7 +25,7 @@
     NSData *jsonData = [jsonString dataUsingEncoding:NSUTF8StringEncoding];
     NSError *error;
     id jsonObj = [NSJSONSerialization JSONObjectWithData:jsonData
-                                                 options:NSJSONReadingMutableContainers
+                                                 options:kNilOptions
                                                    error:&error];
     if (error) {
         NSLog(@"json -> objct faild, error : %@", error);

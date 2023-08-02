@@ -48,14 +48,20 @@ config("capability_config") {
     include_dirs += [ "//third_party/skia" ]
   }
 
-  cflags_objc = [ "-fvisibility=default" ]
+  cflags_objc = [
+    "-fvisibility=default",
+    "-fobjc-weak" 
+  ]
 
   cflags_objcc = cflags_objc
 }
 
 ohos_source_set("text_input") {
   configs = [ ":capability_config" ]
-  sources = [ "$ace_root/adapter/ios/capability/editing/iOSTxtInputManager.mm" ]
+  sources = [ 
+    "$ace_root/adapter/ios/capability/editing/iOSTxtInputManager.mm",
+    "$ace_root/adapter/ios/capability/editing/KeyboardTypeMapper.m" 
+  ]
 }
 
 # build static
@@ -81,10 +87,6 @@ template("ace_capability_ios_source_set") {
     cflags_objcc = cflags_objc
 
     sources = [
-      # camera
-      # "$ace_root/adapter/ios/capability/camera/AceCamera.mm",
-      # "$ace_root/adapter/ios/capability/camera/AceCameraResoucePlugin.mm",
-
       # text_input
       "$ace_root/adapter/ios/capability/editing/text_input_client_handler.cpp",
       "$ace_root/adapter/ios/capability/editing/text_input_connection_impl.mm",

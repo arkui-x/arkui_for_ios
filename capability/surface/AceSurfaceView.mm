@@ -29,7 +29,7 @@
 @property (nonatomic, assign) int32_t instanceId;
 @property (nonatomic, copy) IAceOnResourceEvent callback;
 @property (nonatomic, strong) NSMutableDictionary<NSString*, IAceOnCallSyncResourceMethod>* callMethodMap;
-@property (nonatomic, assign) UIViewController* target;
+@property (nonatomic, weak) UIViewController* target;
 @end
 
 @implementation AceSurfaceView
@@ -106,15 +106,13 @@
     playerLayer.actions = newActions;
     playerLayer.videoGravity = AVLayerVideoGravityResize;
     self.playerLayer = playerLayer;
-    if (self.playerLayer) {
-        [AceSurfaceHolder addLayer:self.playerLayer  withId:self.incId inceId:self.instanceId]; 
-    }
+    [AceSurfaceHolder addLayer:self.playerLayer  withId:self.incId inceId:self.instanceId];
     NSLog(@"AceSurfaceView Surface Created");
 }
 
 - (NSDictionary<NSString*, IAceOnCallSyncResourceMethod>*)getCallMethod
 {
-    return self.callMethodMap;
+    return [self.callMethodMap copy];
 }
 
 - (NSString*)setSurfaceBounds:(NSDictionary*)params
