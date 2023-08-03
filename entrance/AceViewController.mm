@@ -15,7 +15,6 @@
 
 #import "adapter/ios/entrance/AceViewController.h"
 
-#import "AceCameraResoucePlugin.h"
 #import "AceResourceRegisterOC.h"
 #import "AceTextureResourcePlugin.h"
 #import "AceVideoResourcePlugin.h"
@@ -150,11 +149,9 @@ BOOL isDebug = NO;
 
     // register with plugins
     _videoResourcePlugin = [[AceVideoResourcePlugin alloc] initWithBundleDirectory:self.bundleDirectory];
-    // _cameraResourcePlugin = [[AceCameraResoucePlugin alloc] init];
     _textureResourcePlugin = [[AceTextureResourcePlugin alloc] initWithTextures:_flutterVc.engine];
     
     [_registerOC registerPlugin: _videoResourcePlugin];
-    // [_registerOC registerPlugin:_cameraResourcePlugin];
     [_registerOC registerPlugin:_textureResourcePlugin];
 
     OHOS::Ace::Platform::FlutterAceView::IdleCallback idleNoticeCallback = [view = _aceView](int64_t deadline) { view->ProcessIdleEvent(deadline); };
@@ -277,7 +274,6 @@ BOOL isDebug = NO;
     [_registerOC release];
 
     [_videoResourcePlugin release];
-    // [_cameraResourcePlugin release];
     [_textureResourcePlugin release];
     
     [[NSNotificationCenter defaultCenter] removeObserver:self];
