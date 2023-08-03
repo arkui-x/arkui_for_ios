@@ -54,19 +54,6 @@ Note:If the text contains special characters, please escape them according to th
 <configuration>
     <oatconfig>
         <licensefile></licensefile>
-        <filefilterlist>
-            <filefilter name="binaryFileTypePolicyFilter" desc="xctest二进制文件校验策略的过滤条件" >
-                <filteritem type="filepath" name="test/iOS_TestHost.xcodeproj/.*.xcuserstate" desc="iOS工程固定配置文件"/>
-            </filefilter>
-            <filefilter name="copyrightPolicyFilter" desc="Copyright文件头校验策略的过滤条件" >
-                <filteritem type="filepath" name="test/.*.js" desc="ios工程编译生成文件无需添加版权头"/>
-                <filteritem type="filepath" name="test/.*.plist|.*.modulemap|.*.storyboard|.*.pbxproj|.*.xcworkspacedata|.*.podspec|.*.m" desc="ios工程文件无需添加版权头"/>
-            </filefilter>
-            <filefilter name="defaultPolicyFilter" desc="License文件头校验策略的过滤条件" >
-                <filteritem type="filepath" name="test/.*.js" desc="ios工程编译生成文件无需添加License头"/>
-                <filteritem type="filepath" name="test/.*.plist|.*.modulemap|.*.storyboard|.*.pbxproj|.*.xcworkspacedata|.*.podspec|.*.m" desc="ios工程文件无需添加License头"/>
-            </filefilter>
-        </filefilterlist>
-
+        <filefilterlist></filefilterlist>
     </oatconfig>
 </configuration>
