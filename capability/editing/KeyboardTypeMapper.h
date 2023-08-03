@@ -53,7 +53,7 @@ FOUNDATION_EXPORT NSString *const TextInputActionNewline;
 + (UIKeyboardType)toUIKeyboardType:(NSString *)inputType;
 + (UITextAutocapitalizationType)toUITextAutoCapitalizationType:(NSString *)textCapitalization;
 + (UIReturnKeyType)toUIReturnKeyType:(NSString *)inputType;
-@end 
+@end
 
 NS_ASSUME_NONNULL_END
 

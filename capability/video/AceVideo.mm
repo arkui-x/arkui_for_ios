@@ -339,7 +339,7 @@ typedef enum : NSUInteger {
             [self.player_ replaceCurrentItemWithPlayerItem:playerItem];
         }else {
             CMTime currentTime = self.player_.currentTime;
-            int64_t duration = FLTCMTimeToMillis([[self.player_ currentItem] duration]);
+            int64_t duration = [self getMediaDuration];
             if (currentTime.value == duration) {
                 CMTime time = CMTimeMake(0, currentTime.timescale);
                 [self seekTo:time];
@@ -754,8 +754,7 @@ typedef enum : NSUInteger {
         if (height == CGSizeZero.height && width == CGSizeZero.width) {
             return;
         }
-        
-        int64_t duration = FLTCMTimeToMillis([[self.player_ currentItem] duration]);
+        int64_t duration = [self getMediaDuration];
         if (duration == 0) {
             return;
         }
@@ -823,14 +822,18 @@ typedef enum : NSUInteger {
     }
 }
 
-const int64_t TIME_UNSET = -9223372036854775807;
-static inline int64_t FLTCMTimeToMillis(CMTime time)
-{
-    // When CMTIME_IS_INDEFINITE return a value that matches TIME_UNSET from ExoPlayer2 on Android.
-    // Fixes https://github.com/flutter/flutter/issues/48670
-    if (CMTIME_IS_INDEFINITE(time)) return TIME_UNSET;
-    if (time.timescale == 0) return 0;
-    return time.value * 1000 / time.timescale;
+- (int64_t)getMediaDuration{
+   return [AceVideo convertCMTimetoMillis:[[self.player_ currentItem] duration]];
 }
 
++ (int64_t)convertCMTimetoMillis:(CMTime)cmtime {
+    if (CMTIME_IS_INDEFINITE(cmtime)) {
+        return -9223372036854775807;
+    }
+    if (cmtime.timescale == 0) {
+        return 0;
+    }
+    
+    return cmtime.value * 1000 / cmtime.timescale;
+}
 @end
