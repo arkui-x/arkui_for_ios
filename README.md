@@ -1,40 +1,18 @@
-# ArkUI iOS平台适配层 <a name="ZH-CN_TOPIC_0000001076213364"></a>
+# ArkUI iOS平台适配层
 
--   [简介](#section15701932113019)
--   [目录介绍](#section1791423143211)
--   [使用说明](#section171384529150)
+-   [简介]
+-   [目录介绍]
+-   [使用说明]
 
-## 简介<a name="section15701932113019"></a>
+## 简介
 
-ArkUI框架是OpenHarmony UI开发框架，提供基础类、容器类、画布类等UI组件，当前支持类Web编程范式和声明式编程范式。
+ArkUI是一套构建分布式应用的声明式UI开发框架。它具备简洁自然的UI信息语法、丰富的UI组件、多维的状态管理，以及实时界面预览等相关能力，帮助您提升应用开发效率，并能在多种设备上实现生动而流畅的用户体验。详情可参考[ArkUI框架介绍](https://gitee.com/openharmony/docs/blob/master/zh-cn/application-dev/ui/arkui-overview.md)。
 
+ArkUI-X进一步将ArkUI扩展到iOS平台，实现对接iOS平台的适配，开发者基于一套ArkTS主代码，就可以构建iOS平台的精美、高性能应用。
 
-**图 1**  ArkUI框架架构<a name="fig2606133765017"></a>  
-![](https://gitee.com/openharmony/arkui_ace_engine/raw/master/figures/JS-UI%E6%A1%86%E6%9E%B6%E6%9E%B6%E6%9E%84.png "JS-UI框架架构")
+## 目录介绍
 
-ArkUI框架包括应用层（Application）、前端框架层（Framework）、引擎层（Engine）和平台适配层（Porting Layer）。
-
--   **Application**
-
-    应用层表示开发者使用JS UI框架开发的FA应用，这里的FA应用特指JS FA应用。
-
--   **Framework**
-
-    前端框架层主要完成前端页面解析，以及提供MVVM（Model-View-ViewModel）开发模式、页面路由机制和自定义组件等能力。
-
--   **Engine**
-
-    引擎层主要提供动画解析、DOM（Document Object Model）树构建、布局计算、渲染命令构建与绘制、事件管理等能力。
-
--   **Porting Layer**
-
-    适配层主要完成对平台层进行抽象，提供抽象接口，可以对接到系统平台。比如：事件对接、渲染管线对接和系统生命周期对接等。
-
-本项目基于上述**平台适配层**的接口，实现对接iOS平台的适配，可以帮助开发者将基于ArkUI开发的应用运行在标准的iOS设备上。
-
-## 目录介绍<a name="section1791423143211"></a>
-
-ArkUI开发框架的源代码结构参见[代码工程结构及构建说明](https://gitee.com/arkui-x/docs/blob/master/zh-cn/framework-dev/quick-start/project-structure-guide.md), iOS平台的适配代码在/foundation/arkui/ace\_engine/adapter/ios下，目录结构如下图所示：
+ArkUI开发框架的源代码结构参见[代码工程结构及构建说明](https://gitee.com/arkui-x/docs/blob/master/zh-cn/framework-dev/quick-start/project-structure-guide.md)，iOS平台的适配代码在/foundation/arkui/ace\_engine/adapter/ios下，目录结构如下图所示：
 
 ```
 /foundation/arkui/ace_engine/adapter/ios
@@ -42,55 +20,128 @@ ArkUI开发框架的源代码结构参见[代码工程结构及构建说明](htt
 ├── capability                    # 系统平台能力适配
 ├── entrance                      # 启动入口相关适配
 ├── osal                          # 操作系统抽象层
-└── test                          # 测试相关
+└── stage                         # Stage开发模型适配
 ```
 
-## 使用说明<a name="section171384529150"></a>
+## 使用说明
 
-参考[应用开发者文档](https://gitee.com/arkui-x/docs/blob/master/zh-cn/application-dev/README.md)可以创建出跨平台应用工程，其中在iOS平台中集成使用AceViewController两种构造函数之一，传入开发范式类型以及ArkUI模块实例名称或JSBundle具体路径名，即可构建ArkUI跨iOS平台应用，具体如下：
+### iOS 工程创建
 
-**构造函数一**
+通过ACE Tools或DevEco Studio创建一个ArkUI-X应用工程（示例工程名为HelloWorld），其工程目录下的.arkui-x/ios目录代表对应的iOS工程。iOS应用的入口AppDelegate和ViewController类，其中ViewController需要继承自ArkUI提供的基类StageViewController，详情参见[使用说明](https://gitee.com/arkui-x/docs/tree/master/zh-cn/application-dev/reference/arkui-for-ios)。
 
-```objective-c
-/**
- * Initializes this AceViewController with the specified instance name.
- *
- *  This is used for pure ace application. It will combine the js/`instanceName` as the
- *  bundleDirectory.
- *
- * @param version  Ace version.
- * @param instanceName instance name.
- */
-- (instancetype)initWithVersion:(ACE_VERSION)version
-                  instanceName:(nonnull NSString*)instanceName;
+* ViewController类
+该类名通过通过module名和ability名拼接而得，一个ability对应一个iOS工程侧的ViewController类。详情参见[Ability使用说明](https://gitee.com/arkui-x/docs/blob/master/zh-cn/application-dev/quick-start/start-with-ability-on-ios.md):\
+EntryEntryAbilityViewController.h 
+    ``` objective-c
+    #ifndef EntryEntryAbilityViewController_h
+    #define EntryEntryAbilityViewController_h
+    #import <UIKit/UIKit.h>
+    #import <libarkui_ios/StageViewController.h>
+    @interface EntryEntryAbilityViewController : StageViewController
+
+
+    @end
+
+    #endif /* EntryEntryAbilityViewController_h */
+    ```
+    EntryEntryAbilityViewController.m
+    ``` objective-c
+    #import "EntryEntryAbilityViewController.h"
+
+    @interface EntryEntryAbilityViewController ()
+
+    @end
+
+    @implementation EntryEntryAbilityViewController
+    - (instancetype)initWithInstanceName:(NSString *)instanceName {
+        self = [super initWithInstanceName:instanceName];
+        if (self) {
+
+        }
+        return self;
+    }
+
+    - (void)viewDidLoad {
+        [super viewDidLoad];
+        self.edgesForExtendedLayout = UIRectEdgeNone;
+        self.extendedLayoutIncludesOpaqueBars = YES;
+    }
+    @end
+
+    ```
+
+* AppDelegate类
+
+    AppDelegate.m中实例化EntryEntryAbilityViewController，并加载ArkUI页面。
+
+    ```objective-c
+    #import "AppDelegate.h"
+    #import "EntryEntryAbilityViewController.h"
+    #import <libarkui_ios/StageApplication.h>
+
+    #define BUNDLE_DIRECTORY @"arkui-x"
+    #define BUNDLE_NAME @"com.example.helloworld"
+
+    @interface AppDelegate ()
+
+    @end
+
+    @implementation AppDelegate
+
+    - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+        [StageApplication configModuleWithBundleDirectory:BUNDLE_DIRECTORY];
+        [StageApplication launchApplication];
+        
+        NSString *instanceName = [NSString stringWithFormat:@"%@:%@:%@",BUNDLE_NAME, @"entry", @"EntryAbility"];
+        EntryEntryAbilityViewController *mainView = [[EntryEntryAbilityViewController alloc] initWithInstanceName:instanceName];//instanceName为ArkUI-X应用编译产物在应用工程中存放的目录
+        [self setNavRootVC:mainView];
+        return YES;
+    }
+
+    - (void)setNavRootVC:(id)viewController {
+        self.window = [[UIWindow alloc] initWithFrame:[UIScreen mainScreen].bounds];
+        self.window.backgroundColor = [UIColor whiteColor];
+        [self.window makeKeyAndVisible];
+        UINavigationController *navi = [[UINavigationController alloc]initWithRootViewController:viewController];
+        [self setNaviAppearance:navi];
+        self.window.rootViewController = navi;
+    }
+
+    - (void)setNaviAppearance:(UINavigationController *)navi {
+        UINavigationBarAppearance *appearance = [UINavigationBarAppearance new];
+        [appearance configureWithOpaqueBackground];
+        appearance.backgroundColor = UIColor.whiteColor;
+        navi.navigationBar.standardAppearance = appearance;
+        navi.navigationBar.scrollEdgeAppearance = navi.navigationBar.standardAppearance;
+    }
+
+    @end
+    ```
+
+### iOS 工程编译
+
+对iOS工程编译时，ACE Tools或DevEco Studio会完成两个步骤：
+* 集成ArkUI-X SDK
+
+  iOS工程集成ArkUI跨平台SDK遵循iOS应用工程集成Framework规则，SDK中Framework(libarkui_ios.xcframework\libhilog.xcframework\libresourcemanager.xcframework)会自动拷贝到工程目frameworks录下，并引入到工程目录。
+* 集成ArkUI-X应用编译产物
+
+  ArkUI-X编译产物生成后，自动拷贝到iOS应用工程arkui-x目录下。这里“arkui-x”目录名称是固定的，不能更改；详情参见[ArkUI-X应用工程结构说明](https://gitee.com/arkui-x/docs/blob/master/zh-cn/application-dev/quick-start/package-structure-guide.md)
+
 ```
-
-使用方法
-```objective-c
-AceViewController *controller = [[AceViewController alloc] initWithVersion:(ACE_VERSION_ETS) instanceName:@"MainAbility"];
+    arkui-x
+        ├── entry
+        |   ├── ets
+        |   |   ├── modules.abc
+        |   |   └── sourceMaps.map
+        |   ├── resouces.index
+        |   ├── resouces
+        |   └── module.json
+        └── systemres
 ```
+完成上述步骤后即可按照iOS应用构建流程，构建ArkUI iOS应用，并且可以安装至iOS手机后运行。
 
-注：参数instanceName为模块实例名称，AceViewController内部会加载xcode工程中路径为js/instanceName的JSBundle。如需自定义JSBundle路径，可以使用构造函数二
 
-**构造函数二**
+### 参考
 
-```objective-c
-/**
- * Initializes this AceViewController with the specified JS bundle directory.
- *
- * @param version  Ace version.
- * @param bundleDirectory js bundle directory.
- */
-- (instancetype)initWithVersion:(ACE_VERSION)version
-               bundleDirectory:(nonnull NSString*)bundleDirectory;
-```
-
-使用方法
-
-```objective-c
-//开发者自定义的JSBunlde路径
-NSString* bundleDirectory = @"xxxxx";
-AceViewController *controller = [[AceViewController alloc] initWithVersion::(ACE_VERSION_ETS)
-               bundleDirectory:bundleDirectory
-```
-经过上述配置，该应用启动时会自动加载对应的ArkUI模块源码执行并渲染显示。
+【1】[ArkUI-X Samples仓](https://gitee.com/arkui-x/samples)
