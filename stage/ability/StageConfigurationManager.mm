@@ -28,6 +28,9 @@
 #define UNKNOWN @""
 #define SYSTEM_COLORMODE @"ohos.system.colorMode"
 #define APPLICATION_DENSITY @"ohos.application.densitydpi"
+#define DEVICE_TYPE @"const.build.characteristics"
+#define DEVICE_TYPE_PHONE @"Phone"
+#define DEVICE_TYPE_TABLET @"Tablet"
 using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
 @interface StageConfigurationManager () <UITraitEnvironment>
 
@@ -55,6 +58,8 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
     NSLog(@"initConfiguration called");
     UIDeviceOrientation orientation = [UIDevice currentDevice].orientation;
     [self setDirection:orientation];
+    UIUserInterfaceIdiom deviceType = [UIDevice currentDevice].userInterfaceIdiom;
+    [self setDeviceType:deviceType];
     if (@available(iOS 13.0, *)) {
         UITraitCollection *trait = [UITraitCollection currentTraitCollection];
         [self setColorMode:trait.userInterfaceStyle];
@@ -130,6 +135,19 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
         break;
         default: {
             [self.configuration setObject:UNKNOWN forKey:APPLICATION_DIRECTION];
+        }
+        break;
+    }
+}
+
+- (void)setDeviceType:(UIUserInterfaceIdiom)deviceType {
+    switch (deviceType) {
+        case UIUserInterfaceIdiomPhone: {
+            [self.configuration setObject:DEVICE_TYPE_PHONE forKey:DEVICE_TYPE];
+        }
+        break;
+        case UIUserInterfaceIdiomPad: {
+            [self.configuration setObject:DEVICE_TYPE_TABLET forKey:DEVICE_TYPE];
         }
         break;
     }
