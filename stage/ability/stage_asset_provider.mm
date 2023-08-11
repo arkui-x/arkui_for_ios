@@ -97,6 +97,20 @@ std::vector<uint8_t> StageAssetProvider::GetModuleBuffer(const std::string& modu
                                                                                               esmodule:esmodule];
     if (!abilityStageAbcPath.length) {
         printf("%s, abilityStageAbcPath null", __func__);
+
+        std::string fullAbilityName = esmodule ? "modules.abc" : "AbilityStage.abc";
+        auto path = GetAppDataModuleDir() + "/" + moduleName;
+        std::vector<std::string> fileFullPaths;
+        GetAppDataModuleAssetList(path, fileFullPaths, false);
+        for (auto& path : fileFullPaths) {
+            if (path.find("/" + moduleName + "/") != std::string::npos && path.find(fullAbilityName) != std::string::npos) {
+                modulePath = path;
+                break;
+            }
+        }
+        NSString *oc_dataAppPath = GetOCstring(modulePath);
+        NSData *oc_dataAppPathData = [NSData dataWithContentsOfFile:oc_dataAppPath];
+        buffer = GetVectorFromNSData(oc_dataAppPathData);
         return buffer;
     }
     modulePath = [oc_modulePath UTF8String];
@@ -123,6 +137,22 @@ void StageAssetProvider::GetResIndexPath(const std::string& moduleName,
                                                        sysResIndexPath:&oc_sysResIndexPath];
     appResIndexPath = [oc_appResIndexPath UTF8String];
     sysResIndexPath = [oc_sysResIndexPath UTF8String];
+
+    if (!oc_appResIndexPath.length) {
+        auto path = GetAppDataModuleDir() + "/" + moduleName;
+        std::vector<std::string> fileFullPaths;
+        GetAppDataModuleAssetList(path, fileFullPaths, false);
+        for (auto& file : fileFullPaths) {
+            if (file.find("/" + moduleName + "/resources.index") != std::string::npos) {
+                appResIndexPath = file;
+                continue;
+            }
+            if (!oc_sysResIndexPath.length && file.find("/systemres/resources.index") != std::string::npos) {
+                sysResIndexPath = file;
+                continue;
+            }
+        }
+    }
 }
 
 std::vector<uint8_t> StageAssetProvider::GetModuleAbilityBuffer (
@@ -152,6 +182,20 @@ std::vector<uint8_t> StageAssetProvider::GetModuleAbilityBuffer (
                                                                                              esmodule:esmodule];
     if (!moduleAbilityPath.length) {
         printf("%s, moduleAbilityPath null", __func__);
+
+        std::string fullAbilityName = esmodule ? "modules.abc" : abilityName + ".abc";
+        auto path = GetAppDataModuleDir() + "/" + moduleName;
+        std::vector<std::string> fileFullPaths;
+        GetAppDataModuleAssetList(path, fileFullPaths, false);
+        for (auto& file : fileFullPaths) {
+            if (file.find("/" + moduleName + "/") != std::string::npos && file.find(fullAbilityName) != std::string::npos) {
+                modulePath = file;
+                break;
+            }
+        }
+        NSString *oc_dataAppPath = GetOCstring(modulePath);        
+        NSData *oc_dataAppPathData = [NSData dataWithContentsOfFile:oc_dataAppPath];
+        buffer = GetVectorFromNSData(oc_dataAppPathData);
         return buffer;
     }
     modulePath = [oc_modulePath UTF8String];
@@ -207,6 +251,62 @@ std::string StageAssetProvider::GetPreferencesDir()
                                                          stringByAppendingPathComponent:@"Preferences"];
     std::string preferencesDir = [preferencesDirectory UTF8String];
     return preferencesDir;
+}
+
+std::string StageAssetProvider::GetAppDataModuleDir() const
+{
+    NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    NSString *documentsDirectory = [paths objectAtIndex:0];
+    NSString *filesDirectory = [[documentsDirectory stringByAppendingPathComponent:@"files"]
+                                                         stringByAppendingPathComponent:@"arkui-x"];    
+    std::string stageDynamicDir = [filesDirectory UTF8String];
+    return stageDynamicDir;
+}
+
+std::vector<std::string> StageAssetProvider::GetAllFilePath()
+{
+    std::vector<std::string> fileFullPaths;
+
+    NSArray *filePathArray = [[StageAssetManager assetManager] getAssetAllFilePathList];
+    for (NSString *filePath in filePathArray) {        
+        std::string file = [filePath UTF8String];
+        fileFullPaths.emplace_back(file);
+    }
+    return fileFullPaths;
+}
+
+bool StageAssetProvider::GetAppDataModuleAssetList(
+    const std::string& path, std::vector<std::string>& fileFullPaths, bool onlyChild)
+{
+    NSError *error = nil;
+    NSString *bundlePath = GetOCstring(path);
+    NSFileManager *fileMgr = [NSFileManager defaultManager];
+    BOOL isDirectroy = NO;
+    NSArray *moduleArray = [fileMgr subpathsOfDirectoryAtPath:bundlePath error:&error];    
+
+    if (error || moduleArray.count <= 0) {
+        return false;
+    }
+    // onlyChild no use
+    for (NSString *subFile in moduleArray) {
+        NSString *filePath = [NSString stringWithFormat:@"%@/%@", bundlePath, subFile];
+        BOOL result = [fileMgr fileExistsAtPath:filePath isDirectory:&isDirectroy];
+        if (!isDirectroy && result) {
+            std::string file = [filePath UTF8String];
+            fileFullPaths.emplace_back(file);
+        }
+    }
+    return true;
+}
+
+std::vector<uint8_t> StageAssetProvider::GetBufferByAppDataPath(const std::string& fileFullPath)
+{
+    std::vector<uint8_t> buffer;
+        
+    NSString *oc_dataAppPath = GetOCstring(fileFullPath);
+    NSData *oc_dataAppPathData = [NSData dataWithContentsOfFile:oc_dataAppPath];
+    buffer = GetVectorFromNSData(oc_dataAppPathData);
+    return buffer;
 }
 } // namespace Platform
 } // namespace AbilityRuntime

@@ -27,6 +27,7 @@
 #include "adapter/ios/entrance/capability_registry.h"
 #include "adapter/ios/osal/accessibility_manager_impl.h"
 #include "adapter/ios/osal/file_asset_provider.h"
+#include "adapter/ios/stage/ability/stage_asset_provider.h"
 #include "adapter/ios/stage/uicontent/ace_container_sg.h"
 #include "adapter/ios/stage/uicontent/ace_view_sg.h"
 #include "adapter/ios/stage/uicontent/platform_event_callback.h"
@@ -195,6 +196,21 @@ void UIContentImpl::CommonInitialize(OHOS::Rosen::Window* window, const std::str
         LOGI("hapPath:%{public}s", hapPath.c_str());
         // first use hap provider
         if (flutterAssetManager && !hapPath.empty()) {
+            auto assetProvider = AbilityRuntime::Platform::StageAssetProvider::GetInstance();
+            CHECK_NULL_VOID(assetProvider);
+            auto dynamicLoadFlag = true;
+            std::string moduleNameMark = "/" + moduleName + "/";
+            auto allFilePath = assetProvider->GetAllFilePath();
+            for (auto& path : allFilePath) {
+                if (path.find(moduleNameMark) != std::string::npos) {
+                    dynamicLoadFlag = false;
+                    break;
+                }
+            }
+            if (dynamicLoadFlag) {
+                hapPath = assetProvider->GetAppDataModuleDir() + "/" + moduleName + "/";
+            }
+            
             auto assetBasePathStr = { std::string(""), std::string("ets/"), std::string("ets/share"),
                 std::string("resources/base/profile/") };
             if (flutterAssetManager && !hapPath.empty()) {
