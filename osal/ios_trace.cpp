@@ -24,7 +24,6 @@
 #include "base/log/ace_trace.h"
 #include "base/utils/time_util.h"
 #include "frameworks/base/log/trace_id.h"
-
 namespace OHOS::Ace {
 
 class TraceIdImpl : public TraceId {};
@@ -63,4 +62,7 @@ void AceAsyncTraceBegin(int32_t taskId, const char* name) {}
 
 void AceAsyncTraceEnd(int32_t taskId, const char* name) {}
 
+void AceCountTrace(const char *key, int32_t count)
+{
+}
 } // namespace OHOS::Ace
