@@ -32,6 +32,8 @@ typedef enum : int {
     BRIDGE_METHOD_EXISTS,
     BRIDGE_DATA_ERROR,
     BRIDGE_BOTTOM_COMMUNICATION_ERROR,
+    BRIDGE_CODEC_TYPE_MISMATCH,
+    BRIDGE_CODEC_INVALID,
     BRIDGE_END,
 } ErrorCode;
 
@@ -46,7 +48,11 @@ extern NSString *const BRIDGE_METHOD_PARAM_ERROR_MESSAGE;
 extern NSString *const BRIDGE_METHOD_EXISTS_MESSAGE;
 extern NSString *const BRIDGE_DATA_ERROR_MESSAGE;
 extern NSString *const BRIDGE_BOTTOM_COMMUNICATION_ERROR_MESSAGE;
+extern NSString *const BRIDGE_CODEC_TYPE_MISMATCH_MESSAGE;
+extern NSString *const BRIDGE_CODEC_INVALID_MESSAGE;
 extern NSString *const BRIDGE_END_MESSAGE;
+
+extern NSString *const ResultValueError(ErrorCode type);
 
 @interface ResultValue : NSObject
 
@@ -62,7 +68,6 @@ extern NSString *const BRIDGE_END_MESSAGE;
                             result:(NSString *)result
                          errorCode:(ErrorCode)errorCode
                       errorMessage:(NSString *)errorMessage;
-
 @end
 
 NS_ASSUME_NONNULL_END

@@ -32,6 +32,7 @@ config("capability_config") {
     "$ace_root/adapter/ios/capability/texture",
     "$ace_root/adapter/ios/capability/video",
     "$ace_root/adapter/ios/capability/bridge",
+    "$ace_root/adapter/ios/capability/bridge/codec",
     "$ace_root/adapter/ios/capability/surface",
     "$ace_root/adapter/ios/stage/ability",
     "//foundation/graphic/graphic_2d/rosen/modules",
@@ -49,7 +50,7 @@ config("capability_config") {
 
   cflags_objc = [
     "-fvisibility=default",
-    "-fobjc-weak" 
+    "-fobjc-weak",
   ]
 
   cflags_objcc = cflags_objc
@@ -57,9 +58,9 @@ config("capability_config") {
 
 ohos_source_set("text_input") {
   configs = [ ":capability_config" ]
-  sources = [ 
+  sources = [
+    "$ace_root/adapter/ios/capability/editing/KeyboardTypeMapper.m",
     "$ace_root/adapter/ios/capability/editing/iOSTxtInputManager.mm",
-    "$ace_root/adapter/ios/capability/editing/KeyboardTypeMapper.m" 
   ]
 }
 
@@ -125,9 +126,14 @@ template("ace_capability_ios_source_set") {
       "$ace_root/adapter/ios/capability/bridge/BridgePlugin.mm",
       "$ace_root/adapter/ios/capability/bridge/BridgePluginManager.mm",
       "$ace_root/adapter/ios/capability/bridge/MethodData.mm",
-      "$ace_root/adapter/ios/capability/bridge/ParameterHelper.mm",
       "$ace_root/adapter/ios/capability/bridge/ResultValue.mm",
       "$ace_root/adapter/ios/capability/bridge/bridge_manager.mm",
+      "$ace_root/adapter/ios/capability/bridge/codec/BridgeArray.m",
+      "$ace_root/adapter/ios/capability/bridge/codec/BridgeBinaryCodec.mm",
+      "$ace_root/adapter/ios/capability/bridge/codec/BridgeCodecUtil.h",
+      "$ace_root/adapter/ios/capability/bridge/codec/BridgeCodecUtil.mm",
+      "$ace_root/adapter/ios/capability/bridge/codec/BridgeJsonCodec.mm",
+      "$ace_root/adapter/ios/capability/bridge/codec/BridgeSerializer.mm",
     ]
 
     deps = [ ":text_input" ]

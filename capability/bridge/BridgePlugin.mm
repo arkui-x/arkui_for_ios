@@ -14,21 +14,28 @@
  */
 
 #import "BridgePlugin.h"
-#import <objc/runtime.h>
-#import <objc/message.h>
-#import "ParameterHelper.h"
 #import "BridgePluginManager.h"
+#import "ResultValue.h"
+#import <objc/message.h>
+#import <objc/runtime.h>
 
 @interface BridgePlugin () {
     BOOL _isAvailable;
+    BridgeType _bridgeType;
 }
 @end
 
 @implementation BridgePlugin
 
 #pragma mark - public method
-- (instancetype)initBridgePlugin:(NSString *_Nonnull)bridgeName
+- (instancetype)initBridgePlugin:(NSString* _Nonnull)bridgeName
                       instanceId:(int32_t)instanceId {
+    return [self initBridgePlugin:bridgeName instanceId:instanceId bridgeType:JSON_TYPE];
+}
+
+- (instancetype)initBridgePlugin:(NSString* _Nonnull)bridgeName
+                      instanceId:(int32_t)instanceId
+                      bridgeType:(BridgeType)type {
     self = [super init];
     if (self) {
         self.bridgeName = bridgeName;
@@ -37,32 +44,40 @@
         BOOL isSuccess = [[BridgePluginManager shareManager] registerBridgePlugin:bridgeName
                                                                      bridgePlugin:self];
         _isAvailable = isSuccess;
+        _bridgeType = type;
     }
     return self;
 }
 
-- (void)callMethod:(MethodData *)method {
+- (void)callMethod:(MethodData*)method {
     if (!_isAvailable) {
         NSLog(@"bridgePlugin is available!");
         return;
     }
-    NSString *jsonString = nil;
-    if (method.parameter.count > 0) {
-        NSMutableDictionary *mDic = [NSMutableDictionary dictionary];
-        for (int i = 0; i < method.parameter.count; i++) {
-            [mDic setObject:method.parameter[i] forKey:[NSString stringWithFormat:@"%d",i]];
-        }
-        jsonString = [ParameterHelper jsonStringWithObject:mDic.copy];
+
+    NSLog(@"%s, method : %@", __func__, method);
+    ResultValue* result;
+    if (self.type == JSON_TYPE) {
+        result = [[BridgePluginManager shareManager] platformCallMethod:self.bridgeName
+                                                             methodName:method.methodName
+                                                                  param:method.parameter
+                                                             instanceId:self.instanceId];
+    } else {
+        result = [[BridgePluginManager shareManager] platformCallMethodBinary:self.bridgeName
+                                                                   methodName:method.methodName
+                                                                        param:method.parameter
+                                                                   instanceId:self.instanceId];
     }
-    NSLog(@"%s, method : %@, jsonString : %@", __func__, method, jsonString);
-    ResultValue *result = [[BridgePluginManager shareManager] platformCallMethod:self.bridgeName
-                                                                            methodName:method.methodName
-                                                                                 param:jsonString
-                                                                            instanceId:self.instanceId];
+
     if (result) {
-        [self.methodResult onError:method.methodName
-                         errorCode:result.errorCode
-                      errorMessage:result.errorMessage];
+         if (self.methodResult &&
+                [self.methodResult respondsToSelector:@selector(onError:errorCode:errorMessage:)])
+            {
+                [self.methodResult onError:method.methodName
+                        errorCode:result.errorCode
+                    errorMessage:result.errorMessage];
+            }
+        
     }
 }
 
@@ -71,15 +86,30 @@
         NSLog(@"bridgePlugin is available!");
         return;
     }
-    if (!data) {
-        return;
+    if (self.type == JSON_TYPE) {
+        [[BridgePluginManager shareManager] platformSendMessage:self.bridgeName
+                                                           data:data
+                                                     instanceId:self.instanceId];
+    } else {
+        // BINARY_TYPE
+        if ([data isKindOfClass:[NSArray class]]) {
+            if (self.methodResult &&
+                [self.methodResult respondsToSelector:@selector(onError:errorCode:errorMessage:)]) {
+                [self.methodResult onError:@"please use BridgeArray"
+                                 errorCode:BRIDGE_DATA_ERROR
+                              errorMessage:BRIDGE_DATA_ERROR_MESSAGE];
+            }
+            return;
+        }
+
+        [[BridgePluginManager shareManager] platformSendMessageBinary:self.bridgeName
+                                                                 data:data
+                                                           instanceId:self.instanceId];
     }
-    NSDictionary *dic = @{@"result":data, @"errorcode":@(0)};
-    NSString *string = (NSString *)[ParameterHelper jsonStringWithObject:dic];
-    NSLog(@"%s, string : %@", __func__, string);
-    [[BridgePluginManager shareManager] platformSendMessage:self.bridgeName
-                                                          data:string
-                                                    instanceId:self.instanceId];
+}
+
+- (BridgeType)type {
+    return _bridgeType;
 }
 
 @end

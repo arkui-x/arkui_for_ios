@@ -28,6 +28,7 @@ ohos_combine_darwin_framework("libarkui_ios") {
     "$ace_root/adapter/ios/capability/bridge/BridgePlugin.h",
     "$ace_root/adapter/ios/capability/bridge/ResultValue.h",
     "$ace_root/adapter/ios/capability/bridge/MethodData.h",
+    "$ace_root/adapter/ios/capability/bridge/codec/BridgeArray.h",
     "$ace_root/adapter/ios/stage/ability/StageViewController.h",
     "$ace_root/adapter/ios/stage/ability/StageApplication.h",
   ]
