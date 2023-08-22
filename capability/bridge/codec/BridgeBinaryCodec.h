@@ -13,29 +13,19 @@
  * limitations under the License.
  */
 
-#ifndef FOUNDATION_ADAPTER_CAPABILITY_BRIDGE_BridgePlugin_JSMESSAGE_H
-#define FOUNDATION_ADAPTER_CAPABILITY_BRIDGE_BridgePlugin_JSMESSAGE_H
+#ifndef FOUNDATION_ADAPTER_CAPABILITY_BRIDGE_CODEC_BridgeBinaryCodec_H
+#define FOUNDATION_ADAPTER_CAPABILITY_BRIDGE_CODEC_BridgeBinaryCodec_H
 
-#import "BridgePlugin.h"
-
+#import "BridgeCodesDelegate.h"
+#import <Foundation/Foundation.h>
 NS_ASSUME_NONNULL_BEGIN
 
-@interface BridgePlugin (jsMessage)
+@interface BridgeBinaryCodec : NSObject <BridgeCodesDelegate>
++ (instancetype)sharedInstance;
 
-- (void)jsCallMethod:(MethodData*)method;
-
-- (void)jsSendMethodResult:(ResultValue*)object;
-
-- (void)jsSendMessage:(id)data;
-
-- (void)jsSendMessageResponse:(id)data;
-
-- (void)jsCancelMethod:(NSString*)bridgeName
-            methodName:(NSString*)methodName;
-
-- (void)callPlatformError:(ResultValue*)object;
+// get binary type
+- (NSInteger)getBinaryType:(NSData* _Nullable)message;
 @end
 
 NS_ASSUME_NONNULL_END
-
-#endif // FOUNDATION_ADAPTER_CAPABILITY_BRIDGE_BridgePlugin_JSMESSAGE_H
+#endif // FOUNDATION_ADAPTER_CAPABILITY_BRIDGE__CODEC_BridgeBinaryCodec_H

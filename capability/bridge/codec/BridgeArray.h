@@ -13,29 +13,22 @@
  * limitations under the License.
  */
 
-#ifndef FOUNDATION_ADAPTER_CAPABILITY_BRIDGE_BridgePlugin_JSMESSAGE_H
-#define FOUNDATION_ADAPTER_CAPABILITY_BRIDGE_BridgePlugin_JSMESSAGE_H
-
-#import "BridgePlugin.h"
+#import <Foundation/Foundation.h>
 
 NS_ASSUME_NONNULL_BEGIN
+typedef enum {
+    BridgeArrayTypeBooL = 1,
+    BridgeArrayTypeInt32,
+    BridgeArrayTypeInt64,
+    BridgeArrayTypeDouble,
+    BridgeArrayTypeString,
+} BridgeArrayType;
 
-@interface BridgePlugin (jsMessage)
+@interface BridgeArray : NSObject
++ (instancetype)bridgeArray:(NSArray*)array type:(BridgeArrayType)type;
+@property (readonly, nonatomic, assign) BridgeArrayType arrayType;
+@property (readonly, nonatomic) NSArray* array;
 
-- (void)jsCallMethod:(MethodData*)method;
-
-- (void)jsSendMethodResult:(ResultValue*)object;
-
-- (void)jsSendMessage:(id)data;
-
-- (void)jsSendMessageResponse:(id)data;
-
-- (void)jsCancelMethod:(NSString*)bridgeName
-            methodName:(NSString*)methodName;
-
-- (void)callPlatformError:(ResultValue*)object;
 @end
 
 NS_ASSUME_NONNULL_END
-
-#endif // FOUNDATION_ADAPTER_CAPABILITY_BRIDGE_BridgePlugin_JSMESSAGE_H

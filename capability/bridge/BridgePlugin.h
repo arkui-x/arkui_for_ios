@@ -16,9 +16,9 @@
 #ifndef FOUNDATION_ADAPTER_CAPABILITY_BRIDGE_BRIDGEPLUGIN_H
 #define FOUNDATION_ADAPTER_CAPABILITY_BRIDGE_BRIDGEPLUGIN_H
 
-#import <Foundation/Foundation.h>
 #import "MethodData.h"
 #import "ResultValue.h"
+#import <Foundation/Foundation.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -30,7 +30,7 @@ NS_ASSUME_NONNULL_BEGIN
  * @param methodName  method name.
  * @param resultValue method resultValue.
  */
-- (void)onSuccess:(NSString *)methodName
+- (void)onSuccess:(NSString*)methodName
       resultValue:(id)resultValue;
 
 /**
@@ -40,16 +40,16 @@ NS_ASSUME_NONNULL_BEGIN
  * @param errorCode errorCode. success : 0
  * @param errorMessage errorMessage.
  */
-- (void)onError:(NSString *)methodName
-      errorCode:(ErrorCode)errorCode
-   errorMessage:(NSString *)errorMessage;
+- (void)onError:(NSString*)methodName
+       errorCode:(ErrorCode)errorCode
+    errorMessage:(NSString*)errorMessage;
 
 /**
  * Method cancel callback.
  *
  * @param methodName  method name.
  */
-- (void)onMethodCancel:(NSString *)methodName;
+- (void)onMethodCancel:(NSString*)methodName;
 
 @end
 
@@ -71,15 +71,22 @@ NS_ASSUME_NONNULL_BEGIN
 
 @end
 
+typedef enum : int {
+    JSON_TYPE,
+    BINARY_TYPE,
+} BridgeType;
+
 @interface BridgePlugin : NSObject
 
-@property(nonatomic, strong) NSString  *bridgeName;
+@property (nonatomic, strong) NSString* bridgeName;
 
-@property(nonatomic, assign) id <IMethodResult> methodResult; // callmethod result delegate
+@property (nonatomic, assign) id<IMethodResult> methodResult;       // callmethod result delegate
 
-@property(nonatomic, assign) id <IMessageListener> messageListener; // message listerner delegate
+@property (nonatomic, assign) id<IMessageListener> messageListener; // message listerner delegate
 
-@property(nonatomic, assign) int32_t instanceId;
+@property (nonatomic, assign) int32_t instanceId;
+
+@property (nonatomic, assign, readonly) BridgeType type; // default JSON_TYPE
 
 /**
  * Initializes this BridgePlugin.
@@ -87,15 +94,26 @@ NS_ASSUME_NONNULL_BEGIN
  * @param bridgeName  bridgeName.
  * @param instanceId instanceId.
  */
-- (instancetype)initBridgePlugin:(NSString *_Nonnull)bridgeName
+- (instancetype)initBridgePlugin:(NSString* _Nonnull)bridgeName
                       instanceId:(int32_t)instanceId;
+
+/**
+ * Initializes this BridgePlugin.
+ *
+ * @param bridgeName  bridgeName.
+ * @param instanceId instanceId.
+ * @param type type.
+ */
+- (instancetype)initBridgePlugin:(NSString* _Nonnull)bridgeName
+                      instanceId:(int32_t)instanceId
+                      bridgeType:(BridgeType)type;
 
 /**
  * platform callMethod.
  *
  * @param method  methodData model.
  */
-- (void)callMethod:(MethodData *)method;
+- (void)callMethod:(MethodData*)method;
 
 /**
  * sendMessage to js.
