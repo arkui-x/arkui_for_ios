@@ -141,6 +141,13 @@ void TextInputConnectionImpl::Show(bool isFocusViewChanged, int32_t instanceId){
             }
         };
         [iOSTxtInputManager shareintance].textInputBlock = textInputCallback;
+        updateErrorTextBlock errorTextCallback = ^(int client, NSDictionary *state){
+            if(clientId == client && [state objectForKey:@"errorText"]){
+                NSString *errorText = [state objectForKey:@"errorText"];
+                TextInputClientHandler::GetInstance().UpdateInputFilterErrorText(client, [errorText UTF8String]);
+            }
+        };
+        [iOSTxtInputManager shareintance].errorTextBlock = errorTextCallback;
         performActionBlock textPerformCallback = ^(int action, int client){
             if(clientId == client){
                 TextInputAction actionType = TextInputAction::DONE; 
