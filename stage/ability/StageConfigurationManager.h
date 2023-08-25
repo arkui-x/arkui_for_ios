@@ -35,6 +35,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void)colorModeUpdate:(UIUserInterfaceStyle)colorMode;
 
+- (void)setDeviceType:(UIUserInterfaceIdiom)deviceType;
+
 - (void)registConfiguration;
 @end
 
