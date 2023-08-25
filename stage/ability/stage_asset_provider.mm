@@ -223,6 +223,7 @@ std::string StageAssetProvider::GetCacheDir()
 std::string StageAssetProvider::GetTempDir()
 {
     NSString *tempDirectory = NSTemporaryDirectory();
+    tempDirectory = [tempDirectory substringToIndex:tempDirectory.length - 1];
     std::string tempDir = [tempDirectory UTF8String];
     return tempDir;
 }
