@@ -89,6 +89,7 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
 @property(nonatomic, getter=isSecureTextEntry) BOOL secureTextEntry;
 
 @property (nonatomic, copy) updateEditingClientBlock textInputBlock;
+@property (nonatomic, copy) updateErrorTextBlock errorTextBlock;
 @property (nonatomic, copy) performActionBlock textPerformBlock;
 
 @end
@@ -264,18 +265,25 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
             }
         }
     }
-    if ((self.returnKeyType != UIReturnKeyDefault && ![text isEqualToString:@"\n"]) || self.returnKeyType == UIReturnKeyDefault) { 
+    if ((self.returnKeyType != UIReturnKeyDefault && ![text isEqualToString:@"\n"]) || self.returnKeyType == UIReturnKeyDefault) {
         if ([self.inputFilter length] > 0) {
             NSString *filteredText = @"";
+            NSString *errorText = @"";
             NSRegularExpression *regex =
                 [NSRegularExpression regularExpressionWithPattern:self.inputFilter options:NSRegularExpressionUseUnixLineSeparators error:nil];
-            auto hits = [regex matchesInString:text options:0 range:NSMakeRange(0, [text length])];
-            for (NSTextCheckingResult* hit in hits) {
-                for(NSUInteger i = 0; i < hit.numberOfRanges; i++) {
-                    filteredText = [filteredText stringByAppendingString:[text substringWithRange:[hit rangeAtIndex:i]]];
+
+            NSString *temp = nil;
+            for(int i = 0; i < [text length]; i++) {
+                temp = [text substringWithRange:NSMakeRange(i, 1)];
+                auto hits = [regex matchesInString:temp options:0 range:NSMakeRange(0, [temp length])];                
+                if ([hits count] > 0) {
+                    filteredText = [filteredText stringByAppendingString: temp];
+                } else {
+                    errorText = [errorText stringByAppendingString: temp];
                 }
             }
             if (![filteredText isEqualToString:text]) {
+                [self updateInputFilterErrorText:errorText];
                 return NO;
             }
         }
@@ -588,11 +596,42 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
     
 }
 
+- (void)updateInputFilterErrorText: (NSString*)errorText {
+    NSDictionary *dict = @{
+        @"errorText" : errorText,
+    };
+    if(self.errorTextBlock){
+        self.errorTextBlock(_textInputClient, dict);
+    }
+}
+
 - (BOOL)hasText {
     return self.text.length > 0;
 }
 
 - (void)insertText:(NSString*)text {
+    if ([self.inputFilter length] > 0) {
+        NSString *filteredText = @"";
+        NSString *errorText = @"";
+        NSRegularExpression *regex =
+            [NSRegularExpression regularExpressionWithPattern:self.inputFilter options:NSRegularExpressionUseUnixLineSeparators error:nil];
+
+        NSString *temp = nil;
+        for(int i = 0; i < [text length]; i++) {
+            temp = [text substringWithRange:NSMakeRange(i, 1)];
+            auto hits = [regex matchesInString:temp options:0 range:NSMakeRange(0, [temp length])];                
+            if ([hits count] > 0) {
+                filteredText = [filteredText stringByAppendingString: temp];
+            } else {
+                errorText = [errorText stringByAppendingString: temp];
+            }
+        }
+        if (![filteredText isEqualToString:text]) {
+            [self updateInputFilterErrorText:errorText];
+        }
+        text = filteredText;
+    }
+
     if (self.text.length + text.length > self.maxLength && self.maxLength - self.text.length > 0) {
         text = [text substringWithRange:NSMakeRange(0, self.maxLength - self.text.length)];
     }
@@ -641,6 +680,7 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
 }
 
 @synthesize textInputBlock = _textInputBlock;
+@synthesize errorTextBlock = _errorTextBlock;
 @synthesize textPerformBlock = _textPerformBlock;
 
 + (instancetype)shareintance{
@@ -687,6 +727,7 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
        return;
     }
     _activeView.textInputBlock = _textInputBlock;
+    _activeView.errorTextBlock = _errorTextBlock;
     _activeView.textPerformBlock = _textPerformBlock;
     [self addToInputParentViewIfNeeded:_activeView];
     [_activeView becomeFirstResponder];

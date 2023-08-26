@@ -13,6 +13,7 @@ NS_ASSUME_NONNULL_BEGIN
 + (instancetype)shareintance;
 @property(nonatomic, weak) id<iOSTextInputDelegate> textInputDelegate;
 @property (nonatomic, copy) updateEditingClientBlock textInputBlock;
+@property (nonatomic, copy) updateErrorTextBlock errorTextBlock;
 @property (nonatomic, copy) performActionBlock textPerformBlock;
 @property (nonatomic, assign) CGFloat inputBoxY;
 @property (nonatomic, assign) CGFloat inputBoxTopY;
