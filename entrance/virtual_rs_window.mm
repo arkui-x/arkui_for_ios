@@ -280,6 +280,11 @@ void Window::RegisterWindowDestroyedListener(const NotifyNativeWinDestroyFunc& f
     notifyNativefunc_ = std::move(func);
 }
 
+void Window::RegisterWillTerminateListener(const NotifyWillTerminateFunc& func)
+{
+    notifyWillTerminatefunc_ = std::move(func);
+}
+
 std::vector<std::shared_ptr<Window>> Window::GetSubWindow(uint32_t parentId)
 {
     HILOG_INFO("Window::GetSubWindow : Start... / parentId = %{public}u, subWIndowMapSize=%{public}u",
@@ -785,6 +790,13 @@ void Window::ClearListenersById(uint32_t winId)
 {
     std::lock_guard<std::recursive_mutex> lock(globalMutex_);
     ClearUselessListeners(lifecycleListeners_, winId); 
+}
+
+void Window::NotifyWillTeminate()
+{
+    if (notifyWillTerminatefunc_) {
+        notifyWillTerminatefunc_();
+    }
 }
 
 void Window::NotifyKeyboardHeightChanged(int32_t height)
