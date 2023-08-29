@@ -38,6 +38,8 @@
     float _density;
     BOOL _needNotifySurfaceChangedWithWidth;
     BOOL _needCreateSurfaceNode;
+    std::map<int64_t, int32_t> _deviceMap;
+    int32_t _deviceId;
 }
 
 +(Class)layerClass{
@@ -58,6 +60,8 @@
         _needCreateSurfaceNode = NO;
         [self setupNotificationCenterObservers];
         self.backgroundColor = [UIColor clearColor];
+        _deviceMap = std::map<int64_t, int32_t>{};
+        _deviceId = 0;
     }
     return self;
 }
@@ -153,12 +157,37 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
     return flutter::PointerData::DeviceKind::kTouch;
 }
 
+- (int32_t)getTouchDevice:(UITouch *)touch {
+    UITouchPhase phase = touch.phase;
+    int64_t device = reinterpret_cast<int64_t>(touch);
+    HILOG_INFO("[NEU] getTouchDevice: device = %llu, phase = %d.", device, phase);
+
+    int32_t deviceId;
+    auto iter = _deviceMap.find(device);
+    if (iter == _deviceMap.end()) {
+        _deviceMap[device] = _deviceId;
+        deviceId = _deviceId;
+        _deviceId++;
+    } else {
+        deviceId = _deviceMap[device];
+        if (phase == UITouchPhaseEnded || phase == UITouchPhaseCancelled) {
+            _deviceMap.erase(iter);
+            HILOG_INFO("[NEU] getTouchDevice: device = %llu, phase = %d, deviceId = %d, erase.", device, phase, deviceId);
+        }
+        if (_deviceMap.size() == 0) {
+            _deviceId = 0;
+            HILOG_INFO("[NEU] getTouchDevice: clear.");
+        }
+    }
+    HILOG_INFO("[NEU] getTouchDevice: device = %llu, phase = %d, deviceId = %d.", device, phase, deviceId);
+    return deviceId;
+}
+
 - (void)dispatchTouches:(NSSet *)touches {
     const CGFloat scale = [UIScreen mainScreen].scale;
     std::unique_ptr<flutter::PointerDataPacket> packet = std::make_unique<flutter::PointerDataPacket>(touches.count);
-    
+
     size_t pointer_index = 0;
-    
     for (UITouch *touch in touches) {
         CGPoint windowCoordinates = [touch locationInView:self];
         
@@ -172,7 +201,8 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
         
         pointer_data.kind = DeviceKindFromTouchType(touch);
         
-        pointer_data.device = reinterpret_cast<int64_t>(touch);
+        int32_t device = [self getTouchDevice:touch];
+        pointer_data.device = device;
         
         pointer_data.physical_x = windowCoordinates.x * scale;
         pointer_data.physical_y = windowCoordinates.y * scale;
