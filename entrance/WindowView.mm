@@ -160,7 +160,6 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
 - (int32_t)getTouchDevice:(UITouch *)touch {
     UITouchPhase phase = touch.phase;
     int64_t device = reinterpret_cast<int64_t>(touch);
-    HILOG_INFO("[NEU] getTouchDevice: device = %llu, phase = %d.", device, phase);
 
     int32_t deviceId;
     auto iter = _deviceMap.find(device);
@@ -172,14 +171,11 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
         deviceId = _deviceMap[device];
         if (phase == UITouchPhaseEnded || phase == UITouchPhaseCancelled) {
             _deviceMap.erase(iter);
-            HILOG_INFO("[NEU] getTouchDevice: device = %llu, phase = %d, deviceId = %d, erase.", device, phase, deviceId);
         }
         if (_deviceMap.size() == 0) {
             _deviceId = 0;
-            HILOG_INFO("[NEU] getTouchDevice: clear.");
         }
     }
-    HILOG_INFO("[NEU] getTouchDevice: device = %llu, phase = %d, deviceId = %d.", device, phase, deviceId);
     return deviceId;
 }
 
