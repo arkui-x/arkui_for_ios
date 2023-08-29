@@ -60,6 +60,7 @@ namespace Rosen {
 class IWindowLifeCycle;
 class WindowOption;
 using NotifyNativeWinDestroyFunc = std::function<void(std::string windowName)>;
+using NotifyWillTerminateFunc = std::function<void()>;
 using OnCallback = std::function<void(int64_t)>;
 struct VsyncCallback {
     OnCallback onCallback;
@@ -169,6 +170,8 @@ public:
     void Background();
     WMError Destroy();
     void RegisterWindowDestroyedListener(const NotifyNativeWinDestroyFunc& func);
+    void RegisterWillTerminateListener(const NotifyWillTerminateFunc& func);
+
     WMError RegisterOccupiedAreaChangeListener(const sptr<IOccupiedAreaChangeListener> &listener);
     WMError UnregisterOccupiedAreaChangeListener(const sptr<IOccupiedAreaChangeListener> &listener);
 
@@ -232,6 +235,7 @@ public:
     {
         return static_cast<int64_t>(1000000000.0f / 60); // SyncPeriod of 60 fps
     }
+    void NotifyWillTeminate();
 private:
     void SetWindowView(WindowView* windowView);
     void SetWindowName(const std::string& windowName);
@@ -334,6 +338,7 @@ private:
     };
 
     NotifyNativeWinDestroyFunc notifyNativefunc_;
+    NotifyWillTerminateFunc notifyWillTerminatefunc_;
     static std::map<uint32_t, std::vector<sptr<IOccupiedAreaChangeListener>>> occupiedAreaChangeListeners_;
     static std::recursive_mutex globalMutex_;
     bool delayNotifySurfaceCreated_ = false;

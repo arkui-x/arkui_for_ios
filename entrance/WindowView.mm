@@ -330,6 +330,9 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
     if ([self.notifyDelegate respondsToSelector:@selector(notifyApplicationWillTerminateNotification)]) {
         [self.notifyDelegate notifyApplicationWillTerminateNotification];
     }
+    if (_windowDelegate.lock() != nullptr) {
+        _windowDelegate.lock()->NotifyWillTeminate();
+    }
 }
 
 - (void)dealloc {
