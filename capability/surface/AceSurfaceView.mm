@@ -108,6 +108,12 @@
     self.playerLayer = playerLayer;
     [AceSurfaceHolder addLayer:self.playerLayer  withId:self.incId inceId:self.instanceId];
     NSLog(@"AceSurfaceView Surface Created");
+
+    UIViewController* superViewController = (UIViewController*)self.target;
+    WindowView *windowView = (WindowView *)[self findWindowViewInView:superViewController.view];
+    [superViewController.view addSubview:self];
+    superViewController.view.backgroundColor = UIColor.blackColor;
+    self.hidden = true;
 }
 
 - (NSDictionary<NSString*, IAceOnCallSyncResourceMethod>*)getCallMethod
@@ -145,12 +151,12 @@
             [self layoutIfNeeded];
         } else {
             _viewAdded = YES;
+            self.hidden = false;
             NSLog(@"AceSurfaceView AceSurfaceView added");
             UIViewController* superViewController = (UIViewController*)self.target;
             self.frame = superViewController.view.bounds;
             self.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
             WindowView *windowView = (WindowView *)[self findWindowViewInView:superViewController.view];
-            [superViewController.view addSubview:self];
             [superViewController.view bringSubviewToFront:windowView];
             [self.layer addSublayer:self.playerLayer];
             [self performSelector:@selector(delaySetClearColor:) withObject:windowView afterDelay:0.5f];
@@ -239,6 +245,11 @@
         }
         
         if (self.callMethodMap) {
+            for (id key in self.callMethodMap) {
+                IAceOnCallSyncResourceMethod block = [self.callMethodMap objectForKey:key];
+                block = nil;
+            }
+            [self.callMethodMap removeAllObjects];
             self.callMethodMap = nil;
         }
         self.callback = nil;

@@ -67,7 +67,6 @@
 
 - (BOOL)release:(NSString *)incId
 {
-    NSLog(@"AceSurfacePlugin %s release inceId: %@",__func__,incId);
     if([self.objectMap.allKeys containsObject:incId]) {
         AceSurfaceView *aceSurface = [self.objectMap objectForKey:incId];
         if (aceSurface) {
@@ -87,14 +86,10 @@
     if (self.objectMap) { 
         [self.objectMap enumerateKeysAndObjectsUsingBlock:^(NSString * _Nonnull key, 
         AceSurfaceView *_Nonnull aceSurface, BOOL * _Nonnull stop) {
-        if (aceSurface) {
-            @try {
+            if (aceSurface) {
                 [aceSurface releaseObject];
                 [aceSurface removeFromSuperview];
                 aceSurface = nil;
-            } @catch (NSException *exception) {
-                NSLog(@"AceSurfacePlugin releaseObject releaseObject fail"); 
-            }
             }else {
                 NSLog(@"AceSurfacePlugin releaseObject fail aceSurface is null"); 
             }
