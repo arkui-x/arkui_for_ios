@@ -13,8 +13,9 @@
 import("//foundation/graphic/graphic_2d/graphic_config.gni")
 defines = [
   "IOS_PLATFORM",
-  "SK_BUILD_FOR_IOS",
+  "NG_BUILD",
   "PANDA_TARGET_IOS",
+  "SK_BUILD_FOR_IOS",
 ]
 
 js_engines = []

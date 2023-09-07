@@ -26,6 +26,7 @@ template("ace_osal_ios_source_set") {
       "ace_checker.cpp",
       "ace_engine_ext.cpp",
       "app_bar_helper_impl.cpp",
+      "download_manager_ios.cpp",
       "drag_window.cpp",
       "event_report.cpp",
       "exception_handler.cpp",

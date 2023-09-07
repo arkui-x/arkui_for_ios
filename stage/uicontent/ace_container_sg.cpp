@@ -587,8 +587,8 @@ void AceContainerSG::UpdateConfiguration(
     } else {
         pipelineContext_->SetAppBgColor(Color::WHITE);
     }
-    pipelineContext_->NotifyConfigurationChange(configurationChange);
-    pipelineContext_->FlushReload();
+    pipelineContext_->NotifyConfigurationChange();
+    pipelineContext_->FlushReload(configurationChange);
     pipelineContext_->FlushReloadTransition();
 }
 

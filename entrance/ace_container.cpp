@@ -475,8 +475,8 @@ void AceContainer::OnDeviceOrientationChange(DeviceOrientation orientation)
         taskExecutor_->PostTask(
             [weakContext = WeakPtr<PipelineBase>(pipelineContext_), configurationChange]() {
                 auto context = weakContext.Upgrade();
-                context->NotifyConfigurationChange(configurationChange);
-                context->FlushReload();
+                context->NotifyConfigurationChange();
+                context->FlushReload(configurationChange);
             },
             TaskExecutor::TaskType::UI);
         if (frontend_) {
@@ -524,8 +524,8 @@ void AceContainer::OnColorModeChange(ColorMode colorMode)
                 context->SetAppBgColor(Color::WHITE);
             }
             context->RefreshRootBgColor();
-            context->NotifyConfigurationChange(configurationChange);
-            context->FlushReload();
+            context->NotifyConfigurationChange();
+            context->FlushReload(configurationChange);
         },
         TaskExecutor::TaskType::UI);
     if (frontend_) {
