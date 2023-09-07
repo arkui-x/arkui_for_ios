@@ -454,9 +454,10 @@ typedef enum : NSUInteger {
     @try {
         self.surfaceId = [params[KEY_VALUE] longLongValue];
         NSLog(@"AceVideo: setSurface id:%ld", self.surfaceId);
-        AVPlayerLayer * playerLayer = (AVPlayerLayer *)[AceSurfaceHolder getLayerWithId:self.surfaceId inceId:self.instanceId];
-        if (playerLayer && self.player_) {
+        AceSurfaceView * surfaceView = (AceSurfaceView *)[AceSurfaceHolder getLayerWithId:self.surfaceId inceId:self.instanceId];
+        if (surfaceView && self.player_) {
             NSLog(@"AceVideo: MediaPlayer SetSurface");
+            AVPlayerLayer * playerLayer = (AVPlayerLayer *)surfaceView.layer;
             playerLayer.player = self.player_;
         }
     } @catch (NSException *exception) {
@@ -472,8 +473,12 @@ typedef enum : NSUInteger {
     if (self.surfaceId == 0) {
         return;
     }
-    AVPlayerLayer * playerLayer = (AVPlayerLayer *)[AceSurfaceHolder getLayerWithId:self.surfaceId inceId:self.instanceId];
-    if (playerLayer && playerLayer.isHidden) {
+    AceSurfaceView * surfaceView = (AceSurfaceView *)[AceSurfaceHolder getLayerWithId:self.surfaceId inceId:self.instanceId];
+    if (!surfaceView) {
+        return;
+    }
+    AVPlayerLayer * playerLayer = (AVPlayerLayer *)surfaceView.layer;
+    if (playerLayer.isHidden) {
         playerLayer.hidden = false;
     }  
 }
@@ -568,9 +573,7 @@ typedef enum : NSUInteger {
     }
     BOOL isFullScreen = [[param objectForKey:KEY_VALUE] boolValue];
     if (isFullScreen) {
-        AVPlayerLayer * playerLayer = (AVPlayerLayer *)[AceSurfaceHolder getLayerWithId:self.surfaceId inceId:self.instanceId];
-        CALayer *superLayer = playerLayer.superlayer; 
-        AceSurfaceView * surfaceView = (AceSurfaceView *)superLayer ? superLayer.delegate : nil;
+        AceSurfaceView * surfaceView = (AceSurfaceView *)[AceSurfaceHolder getLayerWithId:self.surfaceId inceId:self.instanceId];
         if (surfaceView) {
             [surfaceView bringSubviewToFront];
         }
