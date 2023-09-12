@@ -23,6 +23,8 @@
 #include "core/common/container.h"
 #endif
 
+#import <os/log.h>
+
 namespace OHOS::Ace {
 namespace {
 
@@ -73,6 +75,9 @@ std::string GetTimeStamp()
     return std::string(time);
 }
 
+constexpr os_log_type_t LOG_TYPE[] = { OS_LOG_TYPE_DEBUG, OS_LOG_TYPE_INFO, OS_LOG_TYPE_DEFAULT, OS_LOG_TYPE_ERROR,
+    OS_LOG_TYPE_FAULT };
+    
 void LogWrapper::PrintLog(LogDomain domain, LogLevel level, const char* fmt, va_list args)
 {
     std::string newFmt(fmt);
@@ -84,17 +89,9 @@ void LogWrapper::PrintLog(LogDomain domain, LogLevel level, const char* fmt, va_
         return;
     }
 
-    std::string newTimeFmt("[%s %s] %s %-6d");
-    char timeBuf[MAX_BUFFER_SIZE];
-
-    if (snprintf_s(timeBuf, sizeof(timeBuf), sizeof(timeBuf) - 1, newTimeFmt.c_str(),
-            LOG_TAGS[static_cast<uint32_t>(domain)], GetNameForLogLevel(level), GetTimeStamp().c_str(),
-            std::this_thread::get_id()) < 0) {
-        return;
-    }
-
-    printf("%s %s\r\n", timeBuf, buf);
-    fflush(stdout);
+    os_log_type_t logType = LOG_TYPE[static_cast<int>(level)];
+    os_log_t log = os_log_create(LOG_TAGS[static_cast<uint32_t>(domain)], GetNameForLogLevel(level));
+    os_log(log, "[%{public}s] %{public}s", GetNameForLogLevel(level), buf);
 }
 
 int32_t LogWrapper::GetId()
