@@ -63,14 +63,14 @@ public:
     void OnFinish() const override
     {
         LOGI("UIContent OnFinish");
-        CHECK_NULL_VOID_NOLOG(onFinish_);
+        CHECK_NULL_VOID(onFinish_);
         onFinish_();
     }
 
     void OnStartAbility(const std::string& address) override
     {
         LOGI("UIContent OnStartAbility");
-        CHECK_NULL_VOID_NOLOG(onStartAbility_);
+        CHECK_NULL_VOID(onStartAbility_);
         onStartAbility_(address);
     }
 
@@ -101,7 +101,7 @@ public:
             taskExecutor->PostTask(
                 [container, keyboardRect] {
                     auto context = container->GetPipelineContext();
-                    CHECK_NULL_VOID_NOLOG(context);
+                    CHECK_NULL_VOID(context);
                     context->OnVirtualKeyboardAreaChange(keyboardRect);
                 },
                 TaskExecutor::TaskType::UI);
@@ -490,7 +490,7 @@ bool UIContentImpl::ProcessBackPressed()
 {
     LOGI("UIContentImpl: ProcessBackPressed: Platform::AceContainerSG::OnBackPressed called");
     auto container = AceEngine::Get().GetContainer(instanceId_);
-    CHECK_NULL_RETURN_NOLOG(container, false);
+    CHECK_NULL_RETURN(container, false);
 
     LOGI("UIContentImpl::ProcessBackPressed AceContainerSG");
     if (Platform::AceContainerSG::OnBackPressed(instanceId_)) {
@@ -504,10 +504,10 @@ bool UIContentImpl::ProcessBackPressed()
 bool UIContentImpl::ProcessBasicEvent(const std::vector<TouchEvent>& touchEvents)
 {
     auto container = AceEngine::Get().GetContainer(instanceId_);
-    CHECK_NULL_RETURN_NOLOG(container, false);
+    CHECK_NULL_RETURN(container, false);
 
     auto aceView = static_cast<Platform::AceViewSG*>(container->GetView());
-    CHECK_NULL_RETURN_NOLOG(aceView, false);
+    CHECK_NULL_RETURN(aceView, false);
 
     return aceView->DispatchBasicEvent(touchEvents);
 }
@@ -516,10 +516,10 @@ bool UIContentImpl::ProcessPointerEvent(const std::vector<uint8_t>& data)
 {
     LOGI("UIContentImpl::ProcessPointerEvent called");
     auto container = AceEngine::Get().GetContainer(instanceId_);
-    CHECK_NULL_RETURN_NOLOG(container, false);
+    CHECK_NULL_RETURN(container, false);
 
     auto aceView = static_cast<Platform::AceViewSG*>(container->GetView());
-    CHECK_NULL_RETURN_NOLOG(aceView, false);
+    CHECK_NULL_RETURN(aceView, false);
 
     return aceView->DispatchTouchEvent(data);
 }
@@ -529,10 +529,10 @@ bool UIContentImpl::ProcessKeyEvent(int32_t keyCode, int32_t keyAction, int32_t 
 {
     LOGI("UIContentImpl: OnKeyUp called");
     auto container = AceEngine::Get().GetContainer(instanceId_);
-    CHECK_NULL_RETURN_NOLOG(container, false);
+    CHECK_NULL_RETURN(container, false);
 
     auto aceView = static_cast<Platform::AceViewSG*>(container->GetView());
-    CHECK_NULL_RETURN_NOLOG(aceView, false);
+    CHECK_NULL_RETURN(aceView, false);
 
     return aceView->DispatchKeyEvent(
         { keyCode, keyAction, repeatTime, timeStamp, timeStampStart, metaKey, sourceDevice, deviceId });
@@ -555,7 +555,7 @@ void UIContentImpl::UpdateConfiguration(const std::shared_ptr<OHOS::AbilityRunti
         taskExecutor->PostTask(
             [weakContainer = WeakPtr<Platform::AceContainerSG>(container), colorMode, direction, densityDpi]() {
                 auto container = weakContainer.Upgrade();
-                CHECK_NULL_VOID_NOLOG(container);
+                CHECK_NULL_VOID(container);
                 container->UpdateConfiguration(colorMode, direction, densityDpi);
             },
             TaskExecutor::TaskType::UI);
