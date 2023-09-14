@@ -78,7 +78,7 @@ std::string GetTimeStamp()
 constexpr os_log_type_t LOG_TYPE[] = { OS_LOG_TYPE_DEBUG, OS_LOG_TYPE_INFO, OS_LOG_TYPE_DEFAULT, OS_LOG_TYPE_ERROR,
     OS_LOG_TYPE_FAULT };
     
-void LogWrapper::PrintLog(LogDomain domain, LogLevel level, const char* fmt, va_list args)
+void LogWrapper::PrintLog(LogDomain domain, LogLevel level, AceLogTag tag, const char* fmt, va_list args)
 {
     std::string newFmt(fmt);
     StripFormatString("{public}", newFmt);
