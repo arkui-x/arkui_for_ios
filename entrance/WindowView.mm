@@ -25,6 +25,8 @@
 #include "flutter/lib/ui/window/pointer_data_packet.h"
 #include "virtual_rs_window.h"
 #include "UINavigationController+StatusBar.h"
+#import "AceWebResourcePlugin.h"
+#import "AceWeb.h"
 #define ACE_ENABLE_GL
 @interface WindowView()
 
@@ -83,6 +85,22 @@
         layer.rasterizationScale = screenScale;
     }
     [self notifySurfaceChangedWithWidth:width height:height density:scale];
+}
+
+- (UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event
+{
+    UIView *view = [super hitTest:point withEvent:event];
+    __block bool isPointWebView = false;
+    [AceWebResourcePlugin.getObjectMap enumerateKeysAndObjectsUsingBlock:^(
+        NSString * _Nonnull key, AceWeb * _Nonnull aceWeb, BOOL * _Nonnull stop) {
+        UIView *uiview = [aceWeb getWeb];
+        CGPoint webPoint = [self convertPoint:point toView:uiview];
+        if ([uiview pointInside:webPoint withEvent:event]) {
+            isPointWebView = true;
+        }
+    }];
+
+    return isPointWebView?nil:view;
 }
 
 - (void)setWindowDelegate:(std::shared_ptr<OHOS::Rosen::Window>)window {

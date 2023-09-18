@@ -34,6 +34,7 @@
 #import "AceResourceRegisterOC.h"
 #import "AceTextureResourcePlugin.h"
 #import "AceVideoResourcePlugin.h"
+#import "AceWebResourcePlugin.h"
 
 const std::string PAGE_URI = "url";
 std::map <std::string, std::string> params_;
@@ -286,6 +287,7 @@ NSString * ASSER_PATH  = @"js";
     [_registerOC registerPlugin:[[AceVideoResourcePlugin alloc] init]];
     [_registerOC registerPlugin:[[AceTextureResourcePlugin alloc] initWithTextures:_engine.get()]];
 
+    [_registerOC registerPlugin:[[AceWebResourcePlugin alloc] init]];
     OHOS::Ace::Platform::FlutterAceView::IdleCallback idleNoticeCallback = [view = _aceView](int64_t deadline) {
         view->ProcessIdleEvent(deadline);
 

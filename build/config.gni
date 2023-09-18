@@ -43,6 +43,7 @@ use_external_icu = "static"
 pixel_map_support = true
 video_components_support = true
 use_components_lib = true
+web_components_support = true
 
 cflags_cc = [
   "-std=c++17",
@@ -75,4 +76,8 @@ if (defined(pixel_map_support) && pixel_map_support) {
 
 if (defined(video_components_support) && video_components_support) {
   defines += [ "VIDEO_SUPPORTED" ]
+}
+
+if (defined(web_components_support) && web_components_support) {
+  defines += [ "WEB_SUPPORTED" ]
 }

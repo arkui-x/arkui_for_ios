@@ -18,6 +18,7 @@
 #import "AceResourceRegisterOC.h"
 #import "AceTextureResourcePlugin.h"
 #import "AceVideoResourcePlugin.h"
+#import "AceWebResourcePlugin.h"
 
 #include "adapter/ios/capability/editing/iOSTxtInputManager.h"
 #include "adapter/ios/entrance/ace_application_info_impl.h"
@@ -50,6 +51,7 @@ BOOL isDebug = NO;
 /// plugin
 @property (nonatomic, retain) AceVideoResourcePlugin *videoResourcePlugin;
 @property (nonatomic, retain) AceTextureResourcePlugin *textureResourcePlugin;
+@property (nonatomic, retain) AceWebResourcePlugin *webResourcePlugin;
 
 @end
 
@@ -154,6 +156,8 @@ BOOL isDebug = NO;
     [_registerOC registerPlugin: _videoResourcePlugin];
     [_registerOC registerPlugin:_textureResourcePlugin];
 
+    _webResourcePlugin = [[AceWebResourcePlugin alloc] initWithTextures:_flutterVc.engine];
+    [_registerOC registerPlugin: _webResourcePlugin];
     OHOS::Ace::Platform::FlutterAceView::IdleCallback idleNoticeCallback = [view = _aceView](int64_t deadline) { view->ProcessIdleEvent(deadline); };
     [controller setIdleCallBack:idleNoticeCallback];
     
@@ -275,7 +279,8 @@ BOOL isDebug = NO;
 
     [_videoResourcePlugin release];
     [_textureResourcePlugin release];
-    
+    [_webResourcePlugin release];
+
     [[NSNotificationCenter defaultCenter] removeObserver:self];
     OHOS::Ace::Platform::AceContainer::RemoveContainer(_aceInstanceId);
     

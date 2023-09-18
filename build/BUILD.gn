@@ -147,6 +147,7 @@ foreach(module, common_plugin_libs) {
       "AVFoundation.framework",
       "Foundation.framework",
       "UIKit.framework",
+      "WebKit.framework",
     ]
 
     # relative_install_dir = "module"
@@ -181,6 +182,7 @@ foreach(module, component_plugins) {
       "AVFoundation.framework",
       "Foundation.framework",
       "UIKit.framework",
+      "WebKit.framework",
     ]
 
     # relative_install_dir = "module"
