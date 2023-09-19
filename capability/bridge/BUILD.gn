@@ -50,6 +50,5 @@ ohos_source_set("bridge") {
   libs = [
     "AVFoundation.framework",
     "UIKit.framework",
-    "WebKit.framework",
   ]
 }

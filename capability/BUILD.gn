@@ -37,7 +37,7 @@ config("capability_config") {
     "$ace_root/adapter/ios/stage/ability",
     "$ace_root/adapter/ios/capability/web",
     "//foundation/graphic/graphic_2d/rosen/modules",
-    "//foundation/arkui/ace_engine/frameworks/core/components_ng/pattern/web/cross_platform/",
+    "$ace_root/frameworks/core/components_ng/pattern/web/cross_platform",
   ]
 
   if (ace_use_new_skia) {
@@ -139,10 +139,10 @@ template("ace_capability_ios_source_set") {
 
       # web
       "$ace_root/adapter/ios/capability/web/AceWeb.mm",
-      "$ace_root/adapter/ios/capability/web/AceWebBridgeCPP.cpp",
       "$ace_root/adapter/ios/capability/web/AceWebCallbackObjectWrapper.cpp",
-      "$ace_root/adapter/ios/capability/web/AceWebControllerOC.mm",
+      "$ace_root/adapter/ios/capability/web/AceWebControllerBridge.mm",
       "$ace_root/adapter/ios/capability/web/AceWebErrorReceiveInfoObject.cpp",
+      "$ace_root/adapter/ios/capability/web/AceWebPatternBridge.cpp",
       "$ace_root/adapter/ios/capability/web/AceWebResourcePlugin.mm",
     ]
 
