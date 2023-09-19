@@ -65,7 +65,7 @@
     if (plugin == NULL) {
         return;
     }
-   
+
     AceResourcePlugin *oldPlugin = [self.pluginMap objectForKey:plugin.tag];
     if (oldPlugin) {
         if (plugin.version <= oldPlugin.version) {

@@ -34,6 +34,7 @@ template("ace_ios_standard_source_set") {
       "$ace_root/adapter/ios/capability/texture",
       "$ace_root/adapter/ios/capability/video",
       "$ace_root/adapter/ios/capability/surface",
+      "$ace_root/adapter/ios/capability/web",
       "//foundation/arkui/ace_engine/adapter/ios/stage/ability",
       "//foundation/appframework/window_manager/interfaces/innerkits/wm",
       "//foundation/appframework/window_manager/interfaces/innerkits/dm",
