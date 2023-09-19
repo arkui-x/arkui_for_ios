@@ -14,7 +14,7 @@
  */
 
 #import "AceWeb.h"
-#import "AceWebBridgeCpp.h"
+#import "AceWebPatternBridge.h"
 #import "AceWebErrorReceiveInfoObject.h"
 #include "AceWebCallbackObjectWrapper.h"
 

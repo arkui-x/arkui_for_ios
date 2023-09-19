@@ -16,7 +16,7 @@
 #include <string>
 #include <map>
 #import "AceWebResourcePlugin.h"
-#import "AceWebControllerOC.h"
+#import "AceWebControllerBridge.h"
 
 #import <Foundation/Foundation.h>
 

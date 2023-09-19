@@ -83,6 +83,3 @@ void InjectAceWebResourceObject()
     auto aceWebResourceErrorObject = OHOS::Ace::Referenced::MakeRefPtr<AceWebResourceErrorObject>();
     OHOS::Ace::WebObjectEventManager::GetInstance().SetResourceErrorObject(aceWebResourceErrorObject);
 }
-
-// }
-
