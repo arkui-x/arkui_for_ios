@@ -138,23 +138,26 @@
 {
     __weak __typeof(self)weakSelf = self;
     
-    NSString *javascriptAccess_method_hash = [self method_hashFormat:NTC_JAVASCRIPT_ACCESS];
+   NSString *javascriptAccess_method_hash = [self method_hashFormat:NTC_JAVASCRIPT_ACCESS];
     IAceOnCallSyncResourceMethod javascriptAccess_callback =
     ^NSString *(NSDictionary * param){
         __strong __typeof(weakSelf)strongSelf = weakSelf;
         if (strongSelf) {
             bool isJavaScriptEnable = [[param objectForKey:NTC_JAVASCRIPT_ACCESS] boolValue];
-
-            if(!isJavaScriptEnable) {
-                self.javascriptAccessSwitch = NO;
-                if (@available(iOS 14.0, *)) {
-                    self.webView.configuration.defaultWebpagePreferences.allowsContentJavaScript = NO;
-                    self.webView.configuration.preferences.javaScriptEnabled = NO;
-                } else {
-                    self.webView.configuration.preferences.javaScriptEnabled = NO;
-                }
-                [self.webView reload];
+            if(self.javascriptAccessSwitch == isJavaScriptEnable) {
+                NSLog(@"AceWeb: javaScriptEnabled same");
+                return SUCCESS;
             }
+            BOOL jsWillOpen = isJavaScriptEnable ? YES : NO;
+            if (@available(iOS 14.0, *)) {
+                self.webView.configuration.defaultWebpagePreferences.allowsContentJavaScript = jsWillOpen;
+                self.webView.configuration.preferences.javaScriptEnabled = jsWillOpen;
+            } else {
+                self.webView.configuration.preferences.javaScriptEnabled = jsWillOpen;
+            }
+            [self.webView reload];
+            self.javascriptAccessSwitch = isJavaScriptEnable? YES : NO;
+
             return SUCCESS;
         } else {
             NSLog(@"AceWeb: javaScriptAccess fail");
@@ -170,9 +173,29 @@
         bool isZoomEnable = [[param objectForKey:NTC_ZOOM_ACCESS] boolValue];
         __strong __typeof(weakSelf)strongSelf = weakSelf;
         if (strongSelf) {
-            if(!isZoomEnable) {
-                self.allowZoom = isZoomEnable;
+            if(self.allowZoom == isZoomEnable) {
+                NSLog(@"AceWeb: isZoomEnable same");
+                return SUCCESS;
             }
+            [self.webView reload];
+            self.allowZoom = isZoomEnable;
+            WKUserContentController *userController = [WKUserContentController new];
+            NSString *injectionJSString;
+            if(!self.allowZoom) {
+                injectionJSString = @"var script = document.createElement('meta');"
+                "script.name = 'viewport';"
+                "script.content=\"width=device-width, initial-scale=1.0,maximum-scale-1.0,user-scalable=no\";"
+                "document.getElementsByTagName('head')[0].appendChild(script);";
+            } else {
+                injectionJSString = @"var script = document.createElement('meta');"
+                "script.name = 'viewport';"
+                "script.content=\"width=device-width, initial-scale=1.0,user-scalable=yes\";"
+                "document.getElementsByTagName('head')[0].appendChild(script);";
+            }
+            WKUserScript *script = [[WKUserScript alloc] initWithSource:injectionJSString injectionTime:
+                                    WKUserScriptInjectionTimeAtDocumentEnd forMainFrameOnly:NO];
+            [userController addUserScript:script];
+            [self.webView.configuration.userContentController addUserScript:script];
             return SUCCESS;
         } else {
             return FAIL;
@@ -295,15 +318,6 @@
 - (void)webView:(WKWebView *)webView didFinishNavigation:(WKNavigation *)navigation {
     NSString *param = [NSString stringWithFormat:@"%@",webView.URL];
     [self fireCallback:@"onPageFinished" params:param];
-    
-    if(!self.allowZoom){
-        NSLog(@"didFinishNavigation allowZoom disable  === ");
-        NSString *injectionJSString = @"var script = document.createElement('meta');"
-        "script.name = 'viewport';"
-        "script.content=\"width=device-width, user-scalable=no\";"
-        "document.getElementsByTagName('head')[0].appendChild(script);";
-        [webView evaluateJavaScript:injectionJSString completionHandler:nil];
-    }
 }
 
 - (void)webView:(WKWebView *)webView didFailProvisionalNavigation:( WKNavigation *)navigation withError:(NSError *)error {
