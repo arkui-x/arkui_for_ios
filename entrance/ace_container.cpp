@@ -197,7 +197,7 @@ bool AceContainer::RunPage(int32_t instanceId, int32_t pageId, const std::string
     auto front = container->GetFrontend();
     if (front) {
         LOGI("RunPage url=[%{private}s]", url.c_str());
-        front->RunPage(pageId, url, params);
+        front->RunPage(url, params);
         return true;
     }
     return false;
