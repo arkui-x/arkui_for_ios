@@ -153,6 +153,17 @@ void StageAssetProvider::GetResIndexPath(const std::string& moduleName,
             }
         }
     }
+    if (!oc_sysResIndexPath.length ) {
+        auto path = GetAppDataModuleDir() + "/" + "systemres";
+        std::vector<std::string> fileFullPaths;
+        GetAppDataModuleAssetList(path, fileFullPaths, false);
+        for (auto& file : fileFullPaths) {
+            if (file.find("/systemres/resources.index") != std::string::npos) {
+                sysResIndexPath = file;
+                continue;
+            }
+        }
+    }
 }
 
 std::vector<uint8_t> StageAssetProvider::GetModuleAbilityBuffer (

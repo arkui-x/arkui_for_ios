@@ -27,6 +27,7 @@
 #include "adapter/ios/entrance/capability_registry.h"
 #include "adapter/ios/osal/accessibility_manager_impl.h"
 #include "adapter/ios/osal/file_asset_provider.h"
+#include "adapter/ios/osal/page_url_checker_ios.h"
 #include "adapter/ios/stage/ability/stage_asset_provider.h"
 #include "adapter/ios/stage/uicontent/ace_container_sg.h"
 #include "adapter/ios/stage/uicontent/ace_view_sg.h"
@@ -295,11 +296,12 @@ void UIContentImpl::CommonInitialize(OHOS::Rosen::Window* window, const std::str
     container->SetFilesDataPath(context->GetFilesDir());
     container->SetModuleName(moduleName);
     container->SetIsModule(info->compileMode == AppExecFwk::CompileMode::ES_MODULE);
+    container->SetPageUrlChecker(AceType::MakeRefPtr<PageUrlCheckerIos>());
 
-    std::string hapResPath { "" };
+    std::vector<std::string> resourcePaths;
     std::string sysResPath { "" };
-    abilityContext->GetResourcePaths(hapResPath, sysResPath);
-    container->SetResPaths(hapResPath, sysResPath, SystemProperties::GetColorMode());
+    abilityContext->GetResourcePaths(resourcePaths, sysResPath);
+    container->SetResPaths(resourcePaths, sysResPath, SystemProperties::GetColorMode());
 
     auto aceView = Platform::AceViewSG::CreateView(instanceId_);
     if (!window_) {
