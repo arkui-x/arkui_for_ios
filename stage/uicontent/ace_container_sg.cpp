@@ -15,6 +15,8 @@
 
 #include "adapter/ios/stage/uicontent/ace_container_sg.h"
 
+#include <numeric>
+
 #include "adapter/ios/entrance/ace_application_info_impl.h"
 #include "adapter/ios/entrance/ace_platform_plugin.h"
 #include "adapter/ios/osal/file_asset_provider.h"
@@ -897,10 +899,11 @@ bool AceContainerSG::RunPage(int32_t instanceId, int32_t pageId, const std::stri
 }
 
 void AceContainerSG::SetResPaths(
-    const std::string& hapResPath, const std::string& sysResPath, const ColorMode& colorMode)
+    const std::vector<std::string>& hapResPath, const std::string& sysResPath, const ColorMode& colorMode)
 {
     LOGI("SetResPaths, Use hap path to load resource");
-    resourceInfo_.SetHapPath(hapResPath);
+    resourceInfo_.SetHapPath(std::accumulate(hapResPath.begin(), hapResPath.end(), std::string(),
+        [](const std::string& acc, const std::string& element) { return acc + (acc.empty() ? "" : ":") + element;}));
     // use package path to load system resource.
     auto sysFisrtPos = sysResPath.find_last_of('/');
     auto sysResourcePath = sysResPath.substr(0, sysFisrtPos);
