@@ -53,7 +53,6 @@ template("ace_ios_standard_source_set") {
       "ace_resource_register.cpp",
       "capability_registry.cpp",
       "display_info.mm",
-      "flutter_ace_view.cpp",
       "virtual_rs_window.mm",
     ]
 
@@ -97,7 +96,6 @@ template("ace_ios_standard_source_set") {
       "//third_party/flutter/engine/flutter/shell/common",
       "//base/global/resource_management/interfaces/inner_api/include",
     ]
-    sources += [ "rosen_ace_view.mm" ]
 
     if (ace_use_new_skia) {
       deps += [ "$ace_flutter_engine_root:flutter_for_ng" ]
