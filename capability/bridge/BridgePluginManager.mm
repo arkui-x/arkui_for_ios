@@ -22,7 +22,6 @@
 
 #include "adapter/ios/capability/bridge/bridge_manager.h"
 #include "adapter/ios/capability/bridge/buffer_mapping.h"
-#include "adapter/ios/entrance/ace_container.h"
 #include "base/log/log.h"
 #include "core/common/ace_engine.h"
 #include "core/common/container.h"
