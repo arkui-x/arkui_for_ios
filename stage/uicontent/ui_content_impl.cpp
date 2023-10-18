@@ -158,7 +158,7 @@ NativeValue* UIContentImpl::GetUIContext()
     if (frontend->GetType() == FrontendType::DECLARATIVE_JS) {
         auto declarativeFrontend = AceType::DynamicCast<DeclarativeFrontendNG>(frontend);
         CHECK_NULL_RETURN(declarativeFrontend, nullptr);
-        return declarativeFrontend->GetContextValue();
+        return reinterpret_cast<NativeValue*>(declarativeFrontend->GetContextValue());
     }
 
     return nullptr;
