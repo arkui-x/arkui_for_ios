@@ -67,12 +67,16 @@ ohos_shared_library("arkui_ios") {
     deps += [
       "//arkcompiler/runtime_core/libpandabase:libarkbase_static",
       "//arkcompiler/runtime_core/libpandafile:libarkfile_static",
-
-      # for enable debugger
-      "//arkcompiler/toolchain/inspector:ark_debugger_static",
-      "//arkcompiler/toolchain/inspector:connectserver_debugger_static",
-      "//arkcompiler/toolchain/tooling:libark_ecma_debugger_set",
     ]
+
+    if (runtime_mode != "release") {
+      deps += [
+        # for enable debugger
+        "//arkcompiler/toolchain/inspector:ark_debugger_static",
+        "//arkcompiler/toolchain/inspector:connectserver_debugger_static",
+        "//arkcompiler/toolchain/tooling:libark_ecma_debugger_set",
+      ]
+    }
   }
 
   deps +=
