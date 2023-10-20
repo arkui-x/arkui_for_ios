@@ -93,7 +93,6 @@ ohos_shared_library("arkui_ios") {
 
 # napi target
 common_napi_modules = []
-
 foreach(module, common_napi_libs) {
   module_path_names = []
   module_path_names = string_split(module, "/")
@@ -132,7 +131,6 @@ foreach(module, common_napi_libs) {
 
 # plugin target
 common_plugin_modules = []
-
 foreach(module, common_plugin_libs) {
   plugin_name = module
   target_name_ext = string_replace(module, "_", "")
@@ -169,7 +167,6 @@ foreach(module, common_plugin_libs) {
 
 # components target
 component_plugin_modules = []
-
 foreach(module, component_plugins) {
   sub_name = string_replace(module, "_", "")
   module_name = "arkui_$sub_name"
@@ -202,6 +199,41 @@ foreach(module, component_plugins) {
   component_plugin_modules += [ ":${lib_name}" ]
 }
 
+#thirty_party target
+common_thirty_party_modules = []
+component_thirty_party = [ "third_party/curl/:curl" ]
+foreach(module, component_thirty_party) {
+  target_list = ""
+  target_list = string_split(module, ":")
+  directory_path = target_list[0]
+  library_name = target_list[1]
+  module_name = "arkui_$library_name"
+  lib_name = "lib" + module_name
+
+  ohos_shared_library(module_name) {
+    ldflags = [
+      "-Wl",
+      "-install_name",
+      "@rpath/${lib_name}.framework/$lib_name",
+    ]
+    frameworks = [
+      "AVFoundation.framework",
+      "Foundation.framework",
+      "UIKit.framework",
+      "WebKit.framework",
+    ]
+    deps = [ "//${directory_path}:$library_name" ]
+    subsystem_name = "arkui"
+    part_name = "thirty_party"
+  }
+  ohos_combine_darwin_framework(lib_name) {
+    deps = [ ":$module_name" ]
+    subsystem_name = "arkui"
+    part_name = "thirty_party"
+  }
+  common_thirty_party_modules += [ ":${lib_name}" ]
+}
+
 # Install packages
 group("ace_packages") {
   deps = [ ":libarkui_ios" ]
@@ -210,4 +242,5 @@ group("ace_packages") {
   if (defined(use_components_lib) && use_components_lib) {
     deps += component_plugin_modules
   }
+  deps += common_thirty_party_modules
 }
