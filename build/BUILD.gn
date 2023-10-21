@@ -145,6 +145,9 @@ foreach(module, common_plugin_libs) {
     ]
     deps = [ "//plugins/$module:${plugin_name_ext}_static_ios" ]
     deps += [ ":arkui_ios" ]
+    if (target_name_ext == "net_utils") {
+      deps += [ "//third_party/jsoncpp:jsoncpp_static" ]
+    }
     frameworks = [
       "AVFoundation.framework",
       "Foundation.framework",
