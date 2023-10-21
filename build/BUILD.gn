@@ -201,7 +201,13 @@ foreach(module, component_plugins) {
 
 #thirty_party target
 common_thirty_party_modules = []
-component_thirty_party = [ "third_party/curl/:curl" ]
+component_thirty_party = [
+  "third_party/curl/:curl",
+  "third_party/libxml2:xml2",
+  "third_party/openssl:libcrypto_shared",
+  "third_party/openssl:libssl_shared",
+  "third_party/zlib:shared_libz",
+]
 foreach(module, component_thirty_party) {
   target_list = ""
   target_list = string_split(module, ":")
