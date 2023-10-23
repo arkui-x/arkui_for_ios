@@ -65,7 +65,7 @@ template("ace_osal_ios_source_set") {
       "//third_party/flutter/engine/",
     ]
 
-    deps = [ "//foundation/arkui/ace_engine/adapter/ios/build:arkui_curl" ]
+    deps = [ "//third_party/curl:curl_shared" ]
 
     deps += [
       "$ace_root/frameworks/core/components/theme:build_theme_code",
