@@ -20,7 +20,7 @@
 #define PAGE_URL @"pageUrl"
 
 @interface AceWebResourcePlugin()
-@property (nonatomic, strong) UIViewController *target;
+@property (nonatomic, weak) UIViewController *target;
 @property (nonatomic, assign) int32_t instanceId;
 @end
 
@@ -99,6 +99,7 @@ static NSMutableDictionary<NSString*, AceWeb*> *objectMap;
         [objectMap removeAllObjects];
         objectMap = nil;
     }
+    self.target = nil;
 }
 
 - (void)dealloc

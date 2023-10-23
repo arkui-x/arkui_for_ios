@@ -45,7 +45,7 @@
 @property (nonatomic, assign) int64_t incId;
 @property (nonatomic, strong) WKPreferences *preferences;
 @property (nonatomic, strong) WKWebpagePreferences *webpagePreferences;
-@property (nonatomic, strong) UIViewController *target;
+@property (nonatomic, weak) UIViewController *target;
 @property (nonatomic, strong) NSSet<UITouch *> *currentUiTouchs;
 @property (nonatomic, strong) UIEvent  *currentEvent;
 @property (nonatomic, assign) int8_t  currentType;
@@ -99,7 +99,7 @@
         return;
     }
     
-    if ([url hasSuffix:@".html"] && ![url hasPrefix:@"file://"]) {
+    if ([url hasSuffix:@".html"] && ![url hasPrefix:@"file://"] && ![url hasPrefix:@"http"]) {
         url = [NSString stringWithFormat:@"file://%@", url];
     }
     
@@ -300,6 +300,7 @@
     self.webView = nil;
     self.preferences = nil;
     self.webpagePreferences = nil;
+    self.target = nil;
 }
 
 - (NSDictionary<NSString *, IAceOnCallSyncResourceMethod> *)getSyncCallMethod{
