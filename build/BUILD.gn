@@ -145,9 +145,6 @@ foreach(module, common_plugin_libs) {
     ]
     deps = [ "//plugins/$module:${plugin_name_ext}_static_ios" ]
     deps += [ ":arkui_ios" ]
-    if (target_name_ext == "net_utils") {
-      deps += [ "//third_party/jsoncpp:jsoncpp_static" ]
-    }
     frameworks = [
       "AVFoundation.framework",
       "Foundation.framework",
@@ -202,50 +199,6 @@ foreach(module, component_plugins) {
   component_plugin_modules += [ ":${lib_name}" ]
 }
 
-#thirty_party target
-common_thirty_party_modules = []
-component_thirty_party = [
-  "third_party/curl:curl",
-  "third_party/libxml2:xml2",
-  "third_party/openssl:libcrypto_shared",
-  "third_party/openssl:libssl_shared",
-  "third_party/zlib:shared_libz",
-  "third_party/nghttp2/lib:libnghttp2_shared",
-]
-foreach(module, component_thirty_party) {
-  target_dep = ""
-  target_dep = string_split(module, ":")
-  directory_path = target_dep[0]
-  library_name = target_dep[1]
-  target_library_name = ""
-  target_library_name = string_split(string_replace(module, ":lib", ":"), ":")
-  module_name = target_library_name[1]
-  lib_name = "lib" + module_name
-
-  ohos_shared_library(module_name) {
-    ldflags = [
-      "-Wl",
-      "-install_name",
-      "@rpath/${lib_name}.framework/$lib_name",
-    ]
-    frameworks = [
-      "AVFoundation.framework",
-      "Foundation.framework",
-      "UIKit.framework",
-      "WebKit.framework",
-    ]
-    deps = [ "//${directory_path}:$library_name" ]
-    subsystem_name = "arkui"
-    part_name = "thirty_party"
-  }
-  ohos_combine_darwin_framework(lib_name) {
-    deps = [ ":$module_name" ]
-    subsystem_name = "arkui"
-    part_name = "thirty_party"
-  }
-  common_thirty_party_modules += [ ":${lib_name}" ]
-}
-
 # Install packages
 group("ace_packages") {
   deps = [ ":libarkui_ios" ]
@@ -254,5 +207,4 @@ group("ace_packages") {
   if (defined(use_components_lib) && use_components_lib) {
     deps += component_plugin_modules
   }
-  deps += common_thirty_party_modules
 }
