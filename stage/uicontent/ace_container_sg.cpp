@@ -687,6 +687,31 @@ void AceContainerSG::NotifyAppStorage(const std::string& key, const std::string&
     }
 }
 
+void AceContainerSG::SetLocalStorage(NativeReference* storage, NativeReference* context)
+{
+    ContainerScope scope(instanceId_);
+    taskExecutor_->PostTask(
+        [frontend = WeakPtr<Frontend>(frontend_), storage, context, id = instanceId_] {
+            auto sp = frontend.Upgrade();
+            CHECK_NULL_VOID(sp);
+#ifdef NG_BUILD
+            auto declarativeFrontend = AceType::DynamicCast<DeclarativeFrontendNG>(sp);
+#else
+            auto declarativeFrontend = AceType::DynamicCast<DeclarativeFrontend>(sp);
+#endif
+            CHECK_NULL_VOID(declarativeFrontend);
+            auto jsEngine = declarativeFrontend->GetJsEngine();
+            CHECK_NULL_VOID(jsEngine);
+            if (context) {
+                jsEngine->SetContext(id, context);
+            }
+            if (storage) {
+                jsEngine->SetLocalStorage(id, storage);
+            }
+        },
+        TaskExecutor::TaskType::JS);
+}
+
 bool AceContainerSG::OnBackPressed(int32_t instanceId)
 {
     auto container = AceEngine::Get().GetContainer(instanceId);

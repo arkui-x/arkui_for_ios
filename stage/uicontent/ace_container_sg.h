@@ -32,6 +32,7 @@
 #include "core/common/platform_bridge.h"
 
 #include "adapter/ios/entrance/virtual_rs_window.h"
+#include "native_engine/native_engine.h"
 
 namespace OHOS::Ace::Platform {
 using UIEnvCallback = std::function<void(const OHOS::Ace::RefPtr<OHOS::Ace::PipelineContext>& context)>;
@@ -185,6 +186,8 @@ public:
     void NotifyFontNodes() override;
 
     void NotifyAppStorage(const std::string& key, const std::string& value) override;
+
+    void SetLocalStorage(NativeReference* storage, NativeReference* context);
 
     void OnFinish()
     {
