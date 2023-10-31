@@ -171,4 +171,9 @@ RefPtr<PixelMap> PixelMap::ConvertSkImageToPixmap(
     return nullptr;
 }
 
+void* PixelMapIOS::GetWritablePixels() const
+{
+    return pixmap_->GetWritablePixels();
+}
+
 } // namespace OHOS::Ace
