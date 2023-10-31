@@ -45,6 +45,7 @@ template("ace_osal_ios_source_set") {
       "pixel_map_ios.cpp",
       "resource_adapter_impl.cpp",
       "resource_convertor.cpp",
+      "resource_path_util.mm",
       "resource_theme_style.cpp",
       "response_data.cpp",
       "ressched_report.cpp",
