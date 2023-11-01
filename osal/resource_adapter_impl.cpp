@@ -599,7 +599,7 @@ std::shared_ptr<Global::Resource::ResourceManager> ResourceAdapterImpl::GetResou
     if (it != resourceManagers_.end()) {
         packagePathStr_ = rawFilePaths_[moduleName];
         resourceManager_ = it->second;
-    } else {
+    } else if (!moduleName.empty()) {
         AddResourceManagerByModuleName(moduleName);
     }
     return resourceManager_;
@@ -611,7 +611,7 @@ void ResourceAdapterImpl::UpdateResourceManager(const std::string& bundleName, c
     if (it != resourceManagers_.end()) {
         packagePathStr_ = rawFilePaths_[moduleName];
         resourceManager_ = it->second;
-    } else {
+    } else if (!moduleName.empty()) {
         AddResourceManagerByModuleName(moduleName);
     }
 }
