@@ -15,4 +15,12 @@
 
 void loadUrlOC(int id, const std::string& url, std::map<std::string, std::string> httpHeaders);
 
+bool saveHttpAuthCredentialsOC(
+    const std::string& host, const std::string& realm, const std::string& username, const char* password);
 
+bool getHttpAuthCredentialsOC(const std::string& host, const std::string& realm,
+    std::string& username, char* password, uint32_t passwordSize);
+
+bool existHttpAuthCredentialsOC();
+
+bool deleteHttpAuthCredentialsOC();

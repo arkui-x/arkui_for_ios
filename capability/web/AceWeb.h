@@ -24,6 +24,13 @@
      onEvent:(IAceOnResourceEvent)callback
      abilityInstanceId:(int32_t)abilityInstanceId;
 -(void)loadUrl:(NSString*)url header:(NSDictionary*)httpHeaders;
++ (bool)saveHttpAuthCredentials:(NSString*)host
+                          realm:(NSString*)realm
+                       username:(NSString*)username
+                       password:(NSString*)password;
++ (NSURLCredential*)getHttpAuthCredentials:(NSString*)host realm:(NSString*)realm;
++ (bool)existHttpAuthCredentials;
++ (bool)deleteHttpAuthCredentials;
 -(NSDictionary<NSString *, IAceOnCallSyncResourceMethod> *)getSyncCallMethod;
 -(void)releaseObject;
 -(int64_t)getWebId;
