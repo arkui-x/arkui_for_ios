@@ -36,8 +36,12 @@
 #define WEBVIEW_SRC      @"event"
 #define S_Scale      @"event"
 
-#define NTC_ZOOM_ACCESS            @"zoomAccess"
-#define NTC_JAVASCRIPT_ACCESS      @"javascriptAccess"
+#define NTC_ZOOM_ACCESS                   @"zoomAccess"
+#define NTC_JAVASCRIPT_ACCESS             @"javascriptAccess"
+#define NTC_MINFONTSIZE                   @"minFontSize"
+#define NTC_HORIZONTALSCROLLBAR_ACCESS    @"horizontalScrollBarAccess"
+#define NTC_VERTICALSCROLLBAR_ACCESS      @"verticalScrollBarAccess"
+#define NTC_BACKGROUNDCOLOR               @"backgroundColor"
 
 @interface AceWeb()<WKScriptMessageHandler, WKUIDelegate, WKNavigationDelegate>
 /**webView*/
@@ -77,6 +81,7 @@
 -(void)initWeb{
     WKWebViewConfiguration *config = [[WKWebViewConfiguration alloc] init];
     WKPreferences *preference = [[WKPreferences alloc]init];
+    preference.minimumFontSize = 8;
     preference.javaScriptEnabled = self.javascriptAccessSwitch;
     
     config.preferences = preference;
@@ -136,37 +141,32 @@
 
 - (void)initEventCallback
 {
-    __weak __typeof(self)weakSelf = self;
-    
-   NSString *javascriptAccess_method_hash = [self method_hashFormat:NTC_JAVASCRIPT_ACCESS];
-    IAceOnCallSyncResourceMethod javascriptAccess_callback =
-    ^NSString *(NSDictionary * param){
-        __strong __typeof(weakSelf)strongSelf = weakSelf;
-        if (strongSelf) {
-            bool isJavaScriptEnable = [[param objectForKey:NTC_JAVASCRIPT_ACCESS] boolValue];
-            if(self.javascriptAccessSwitch == isJavaScriptEnable) {
-                NSLog(@"AceWeb: javaScriptEnabled same");
-                return SUCCESS;
-            }
-            BOOL jsWillOpen = isJavaScriptEnable ? YES : NO;
-            if (@available(iOS 14.0, *)) {
-                self.webView.configuration.defaultWebpagePreferences.allowsContentJavaScript = jsWillOpen;
-                self.webView.configuration.preferences.javaScriptEnabled = jsWillOpen;
-            } else {
-                self.webView.configuration.preferences.javaScriptEnabled = jsWillOpen;
-            }
-            [self.webView reload];
-            self.javascriptAccessSwitch = isJavaScriptEnable? YES : NO;
+    // zoomAccess callback
+    [self setZoomAccessCallback];
+    // javaScriptAccess callback
+    [self setJavaScriptAccessCallback];
+    // minFontSize callback
+    [self setMinFontSizeCallback];
+    // horizontalScrollBarAccess callback
+    [self setHorizontalScrollBarAccessCallback];
+    // verticalScrollBarAccesss callback
+    [self setVerticalScrollBarAccessCallback];
+    // backgroundColor callback
+    [self setBackGroundColorCallback];
+    // updateLayout callback
+    [self setUpdateLayout];
+    // touchDown callback
+    [self setTouchDownCallback];
+    // touchMove callback
+    [self setTouchMoveCallback];
+    // touchUp callback
+    [self setTouchUpCallback];
+}
 
-            return SUCCESS;
-        } else {
-            NSLog(@"AceWeb: javaScriptAccess fail");
-            return FAIL;
-        }
-    };
-    [self.callSyncMethodMap setObject:[javascriptAccess_callback copy] forKey:javascriptAccess_method_hash];
-    
+- (void)setZoomAccessCallback
+{
     // zoom callback
+    __weak __typeof(self) weakSelf = self;
     NSString *zoom_method_hash = [self method_hashFormat:NTC_ZOOM_ACCESS];
     IAceOnCallSyncResourceMethod zoom_callback =
     ^NSString *(NSDictionary * param){
@@ -202,8 +202,43 @@
         }
     };
     [self.callSyncMethodMap setObject:[zoom_callback copy] forKey:zoom_method_hash];
-    
-    // updateLayout callback
+}
+
+- (void)setJavaScriptAccessCallback
+{
+    __weak __typeof(self) weakSelf = self;
+     NSString *javascriptAccess_method_hash = [self method_hashFormat:NTC_JAVASCRIPT_ACCESS];
+    IAceOnCallSyncResourceMethod javascriptAccess_callback =
+    ^NSString *(NSDictionary * param){
+        __strong __typeof(weakSelf)strongSelf = weakSelf;
+        if (strongSelf) {
+            bool isJavaScriptEnable = [[param objectForKey:NTC_JAVASCRIPT_ACCESS] boolValue];
+            if(self.javascriptAccessSwitch == isJavaScriptEnable) {
+                NSLog(@"AceWeb: javaScriptEnabled same");
+                return SUCCESS;
+            }
+            BOOL jsWillOpen = isJavaScriptEnable ? YES : NO;
+            if (@available(iOS 14.0, *)) {
+                self.webView.configuration.defaultWebpagePreferences.allowsContentJavaScript = jsWillOpen;
+                self.webView.configuration.preferences.javaScriptEnabled = jsWillOpen;
+            } else {
+                self.webView.configuration.preferences.javaScriptEnabled = jsWillOpen;
+            }
+            [self.webView reload];
+            self.javascriptAccessSwitch = isJavaScriptEnable? YES : NO;
+
+            return SUCCESS;
+        } else {
+            NSLog(@"AceWeb: javaScriptAccess fail");
+            return FAIL;
+        }
+    };
+    [self.callSyncMethodMap setObject:[javascriptAccess_callback copy] forKey:javascriptAccess_method_hash];
+}
+
+- (void)setUpdateLayout
+{
+    __weak __typeof(self) weakSelf = self;
     NSString *layout_method_hash = [self method_hashFormat:@"updateLayout"];
     IAceOnCallSyncResourceMethod layout_callback = ^NSString *(NSDictionary * param){
         NSLog(@"AceWeb: updateLayout called");
@@ -217,7 +252,111 @@
         }
     };
     [self.callSyncMethodMap setObject:[layout_callback copy] forKey:layout_method_hash];
-    
+}
+
+- (void)setMinFontSizeCallback
+{
+    __weak __typeof(self) weakSelf = self;
+    NSString* minfontsize_method_hash = [self method_hashFormat:NTC_MINFONTSIZE];
+    IAceOnCallSyncResourceMethod minFontSize_callback = ^NSString*(NSDictionary* param)
+    {
+        float minFontSize = [[param objectForKey:NTC_MINFONTSIZE] floatValue];
+        __strong __typeof(weakSelf) strongSelf = weakSelf;
+        if (strongSelf) {
+            self.webView.configuration.preferences.minimumFontSize = (minFontSize / 96) * 72;
+            return SUCCESS;
+        } else {
+            NSLog(@"AceWeb: minFontSize fail");
+            return FAIL;
+        }
+    };
+    [self.callSyncMethodMap setObject:[minFontSize_callback copy] forKey:minfontsize_method_hash];
+}
+
+- (void)setHorizontalScrollBarAccessCallback
+{
+    __weak __typeof(self) weakSelf = self;
+    NSString* horizontalScrollBarAccess_method_hash = [self method_hashFormat:NTC_HORIZONTALSCROLLBAR_ACCESS];
+    IAceOnCallSyncResourceMethod horizontalScrollBarAccess_callback = ^NSString*(NSDictionary* param)
+    {
+        bool isHorizontalScrollBarEnable = [[param objectForKey:NTC_HORIZONTALSCROLLBAR_ACCESS] boolValue];
+        __strong __typeof(weakSelf) strongSelf = weakSelf;
+        if (strongSelf) {
+            if (!isHorizontalScrollBarEnable) {
+                self.webView.scrollView.showsHorizontalScrollIndicator = NO;
+            } else {
+                self.webView.scrollView.showsHorizontalScrollIndicator = YES;
+            }
+            return SUCCESS;
+        } else {
+            NSLog(@"AceWeb: horizontalScrollBar fail");
+            return FAIL;
+        }
+    };
+    [self.callSyncMethodMap setObject:[horizontalScrollBarAccess_callback copy]
+                               forKey:horizontalScrollBarAccess_method_hash];
+}
+
+- (void)setVerticalScrollBarAccessCallback
+{
+    __weak __typeof(self) weakSelf = self;
+    NSString* verticalScrollBarAccess_method_hash = [self method_hashFormat:NTC_VERTICALSCROLLBAR_ACCESS];
+    IAceOnCallSyncResourceMethod verticalScrollBarAccess_callback = ^NSString*(NSDictionary* param)
+    {
+        bool isVerticalScrollBarEnable = [[param objectForKey:NTC_VERTICALSCROLLBAR_ACCESS] boolValue];
+        __strong __typeof(weakSelf) strongSelf = weakSelf;
+        if (strongSelf) {
+            if (!isVerticalScrollBarEnable) {
+                self.webView.scrollView.showsVerticalScrollIndicator = NO;
+            } else {
+                self.webView.scrollView.showsVerticalScrollIndicator = YES;
+            }
+            return SUCCESS;
+        } else {
+            NSLog(@"AceWeb: horizontalScrollBar fail");
+            return FAIL;
+        }
+    };
+    [self.callSyncMethodMap setObject:[verticalScrollBarAccess_callback copy]
+                               forKey:verticalScrollBarAccess_method_hash];
+}
+
+- (UIColor*)hexToColor:(int)hex
+{
+    return [UIColor colorWithRed:(hex >> 16 & 0xff) / 255.f
+                           green:(hex >> 8 & 0xff) / 255.f
+                            blue:(hex & 0xff) / 255.f
+                           alpha:1];
+}
+
+- (void)setBackGroundColorCallback
+{
+    __weak __typeof(self) weakSelf = self;
+    NSString* backGroundColor_method_hash = [self method_hashFormat:NTC_BACKGROUNDCOLOR];
+    IAceOnCallSyncResourceMethod backGroundColor_callback = ^NSString*(NSDictionary* param)
+    {
+        int backgroundColor = [[param objectForKey:NTC_BACKGROUNDCOLOR] intValue];
+        __strong __typeof(weakSelf) strongSelf = weakSelf;
+        if (strongSelf) {
+            if (@available(iOS 15.0, *)) {
+                self.webView.underPageBackgroundColor = [self hexToColor:backgroundColor];
+            } else {
+                self.webView.backgroundColor = [self hexToColor:backgroundColor];
+            }
+            [self.webView setOpaque:NO];
+            self.webView.scrollView.backgroundColor = [self hexToColor:backgroundColor];
+            return SUCCESS;
+        } else {
+            NSLog(@"AceWeb: backgroundColor fail");
+            return FAIL;
+        }
+    };
+    [self.callSyncMethodMap setObject:[backGroundColor_callback copy] forKey:backGroundColor_method_hash];
+}
+
+- (void)setTouchDownCallback
+{
+    __weak __typeof(self) weakSelf = self;
     IAceOnCallSyncResourceMethod touchDown_callback = ^NSString *(NSDictionary * param){
         __strong __typeof(weakSelf)strongSelf = weakSelf;
         if (strongSelf) {
@@ -229,7 +368,11 @@
         }
     };
     [self.callSyncMethodMap setObject:[touchDown_callback copy] forKey:[self method_hashFormat:@"touchDown"]];
-    
+}
+
+- (void)setTouchMoveCallback
+{
+    __weak __typeof(self) weakSelf = self;
     IAceOnCallSyncResourceMethod touchMove_callback = ^NSString *(NSDictionary * param){
         __strong __typeof(weakSelf)strongSelf = weakSelf;
         if (strongSelf) {
@@ -241,7 +384,11 @@
         }
     };
     [self.callSyncMethodMap setObject:[touchMove_callback copy] forKey:[self method_hashFormat:@"touchMove"]];
-    
+}
+
+- (void)setTouchUpCallback
+{
+    __weak __typeof(self) weakSelf = self;
     IAceOnCallSyncResourceMethod touchUp_callback = ^NSString *(NSDictionary * param){
         __strong __typeof(weakSelf)strongSelf = weakSelf;
         if (strongSelf) {
