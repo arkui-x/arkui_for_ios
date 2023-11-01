@@ -205,12 +205,12 @@ foreach(module, component_plugins) {
 #third_party target
 third_party_modules = []
 common_third_party_libs = [
-  "//third_party/curl:curl",
   ":arkui_xml2",
   ":arkui_nghttp2",
   ":arkui_shared_libz",
-  ":arkui_crypto_openssl",
-  ":arkui_ssl_openssl",
+  "//third_party/curl:curl",
+  "//third_party/openssl:crypto_source",
+  "//third_party/openssl:ssl_source",
 ]
 
 ohos_source_set("arkui_xml2") {
@@ -223,14 +223,6 @@ ohos_source_set("arkui_nghttp2") {
 
 ohos_source_set("arkui_shared_libz") {
   deps = [ "//third_party/zlib:libz" ]
-}
-
-ohos_source_set("arkui_crypto_openssl") {
-  deps = [ "//third_party/openssl:libcrypto_static" ]
-}
-
-ohos_source_set("arkui_ssl_openssl") {
-  deps = [ "//third_party/openssl:libssl_static" ]
 }
 
 foreach(module, common_third_party_libs) {
@@ -253,6 +245,10 @@ foreach(module, common_third_party_libs) {
       "WebKit.framework",
     ]
     deps = [ "${directory_path}:$library_name" ]
+    if (module_name == "ssl_source") {
+      deps += [ "${directory_path}:libcrypto_static" ]
+      public_configs = [ "${directory_path}:crypto_config_public" ]
+    }
     subsystem_name = "arkui"
     part_name = "thirty_party"
   }
