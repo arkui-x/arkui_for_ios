@@ -21,6 +21,7 @@
 #include "adapter/ios/osal/resource_convertor.h"
 #include "adapter/ios/osal/resource_theme_style.h"
 #include "core/components/theme/theme_attributes.h"
+#include "resource_path_util.h"
 
 namespace OHOS::Ace {
 
@@ -129,7 +130,9 @@ void ResourceAdapterImpl::Init(const ResourceInfo& resourceInfo)
 {
     std::string packagePath = resourceInfo.GetPackagePath();
     std::string sysResIndexPath = packagePath + DELIMITER + "systemres" + DELIMITER + "resources.index";
+    sysResIndexPath_ = sysResIndexPath;
     auto resConfig = ConvertConfigToGlobal(resourceInfo.GetResourceConfiguration());
+    resConfig_ = resConfig;
     auto hapPath = resourceInfo.GetHapPath();
     if (hapPath.empty()) {
         LOGI("sysResIndexPath: %s", sysResIndexPath.c_str());
@@ -596,6 +599,8 @@ std::shared_ptr<Global::Resource::ResourceManager> ResourceAdapterImpl::GetResou
     if (it != resourceManagers_.end()) {
         packagePathStr_ = rawFilePaths_[moduleName];
         resourceManager_ = it->second;
+    } else {
+        AddResourceManagerByModuleName(moduleName);
     }
     return resourceManager_;
 }
@@ -606,6 +611,8 @@ void ResourceAdapterImpl::UpdateResourceManager(const std::string& bundleName, c
     if (it != resourceManagers_.end()) {
         packagePathStr_ = rawFilePaths_[moduleName];
         resourceManager_ = it->second;
+    } else {
+        AddResourceManagerByModuleName(moduleName);
     }
 }
 
@@ -648,4 +655,27 @@ std::string ResourceAdapterImpl::GetActualResourceName(const std::string& resNam
     return resName.substr(index + 1, resName.length() - index - 1);
 }
 
+void ResourceAdapterImpl::AddResourceManagerByModuleName(const std::string moduleName)
+{
+    std::shared_ptr<Global::Resource::ResourceManager> newResMgr(Global::Resource::CreateResourceManager());
+    if (!newResMgr) {
+        LOGE("create resource manager from Global::Resource::CreateResourceManager() failed!");
+    }
+    std::string appResPath = IsDirExist(ResourcePathUtil::GetBundlePath() + DELIMITER + moduleName)
+                                 ? ResourcePathUtil::GetBundlePath() + DELIMITER + moduleName
+                                 : ResourcePathUtil::GetSandboxPath() + DELIMITER + moduleName;
+    std::string appResIndexPath = appResPath + DELIMITER + "resources.index";
+    auto appResRet = newResMgr->AddResource(appResIndexPath.c_str());
+    LOGI("sysResIndexPath: %s", sysResIndexPath_.c_str());
+    auto sysResRet = newResMgr->AddResource(sysResIndexPath_.c_str());
+    auto configRet = newResMgr->UpdateResConfig(*resConfig_);
+    LOGI("AddAppRes result=%{public}d, AddSysRes result=%{public}d, UpdateResConfig result=%{public}d,"
+         "ori=%{public}d, dpi=%{public}d, device=%{public}d, colorMode=%{public}d,",
+        appResRet, sysResRet, configRet, resConfig_->GetDirection(), resConfig_->GetScreenDensity(),
+        resConfig_->GetDeviceType(), resConfig_->GetColorMode());
+    resourceManager_ = newResMgr;
+    resourceManagers_[moduleName] = resourceManager_;
+    packagePathStr_ = appResPath;
+    rawFilePaths_[moduleName] = packagePathStr_;
+}
 } // namespace OHOS::Ace
