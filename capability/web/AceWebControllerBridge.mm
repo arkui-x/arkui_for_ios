@@ -39,5 +39,84 @@ void loadUrlOC(int id, const std::string& url, std::map<std::string, std::string
     [web loadUrl:ocUrl header:nd];
 }
 
+void loadDataOC(int id, const std::string& data, const std::string& mimeType, const std::string& encoding,
+    const std::string& baseUrl, const std::string& historyUrl)
+{
+    AceWeb* web = [AceWebResourcePlugin.getObjectMap objectForKey:[NSString stringWithFormat:@"%d", id]];
+    if (web == nil) {
+        return;
+    }
+    NSString* ocData = [NSString stringWithCString:data.c_str() encoding:NSUTF8StringEncoding];
+    NSString* ocMimeType = [NSString stringWithCString:mimeType.c_str() encoding:NSUTF8StringEncoding];
+    NSString* ocEncoding = [NSString stringWithCString:encoding.c_str() encoding:NSUTF8StringEncoding];
+    NSString* ocBaseUrl = [NSString stringWithCString:baseUrl.c_str() encoding:NSUTF8StringEncoding];
+    NSString* ocHistoryUrl = [NSString stringWithCString:historyUrl.c_str() encoding:NSUTF8StringEncoding];
+    [web loadData:ocData mimeType:ocMimeType encoding:ocEncoding baseUrl:ocBaseUrl historyUrl:ocHistoryUrl];
+}
 
+void EvaluateJavaScriptOC(int id, const std::string& script, void (*callbackOC)(const std::string& result))
+{
+    AceWeb* web = [AceWebResourcePlugin.getObjectMap objectForKey:[NSString stringWithFormat:@"%d", id]];
+    if (web == nil) {
+        return;
+    }
+    NSString* ocScript = [NSString stringWithCString:script.c_str() encoding:NSUTF8StringEncoding];
+    [web EvaluateJavaScript:ocScript
+                   callback:^(NSString* ocResult) {
+                     callbackOC([ocResult UTF8String]);
+                   }];
+}
 
+std::string getUrlOC(int id)
+{
+    AceWeb* web = [AceWebResourcePlugin.getObjectMap objectForKey:[NSString stringWithFormat:@"%d", id]];
+    if (web == nil) {
+        return "";
+    }
+    return [[web getUrl] UTF8String];
+}
+
+bool accessBackwardOC(int id)
+{
+    AceWeb* web = [AceWebResourcePlugin.getObjectMap objectForKey:[NSString stringWithFormat:@"%d", id]];
+    if (web == nil) {
+        return false;
+    }
+    return [web accessBackward];
+}
+
+bool accessForwardOC(int id)
+{
+    AceWeb* web = [AceWebResourcePlugin.getObjectMap objectForKey:[NSString stringWithFormat:@"%d", id]];
+    if (web == nil) {
+        return false;
+    }
+    return [web accessForward];
+}
+
+void backwardOC(int id)
+{
+    AceWeb* web = [AceWebResourcePlugin.getObjectMap objectForKey:[NSString stringWithFormat:@"%d", id]];
+    if (web == nil) {
+        return;
+    }
+    [web backward];
+}
+
+void forwardOC(int id)
+{
+    AceWeb* web = [AceWebResourcePlugin.getObjectMap objectForKey:[NSString stringWithFormat:@"%d", id]];
+    if (web == nil) {
+        return;
+    }
+    [web forward];
+}
+
+void refreshOC(int id)
+{
+    AceWeb* web = [AceWebResourcePlugin.getObjectMap objectForKey:[NSString stringWithFormat:@"%d", id]];
+    if (web == nil) {
+        return;
+    }
+    [web refresh];
+}

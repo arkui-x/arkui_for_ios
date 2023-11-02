@@ -24,6 +24,18 @@
      onEvent:(IAceOnResourceEvent)callback
      abilityInstanceId:(int32_t)abilityInstanceId;
 -(void)loadUrl:(NSString*)url header:(NSDictionary*)httpHeaders;
+- (void)loadData:(NSString*)data
+        mimeType:(NSString*)mimeType
+        encoding:(NSString*)encoding
+         baseUrl:(NSString*)baseUrl
+      historyUrl:(NSString*)historyUrl;
+- (NSString*)getUrl;
+- (void)EvaluateJavaScript:(NSString*)script callback:(void (^)(NSString* ocResult))callback;
+- (bool)accessBackward;
+- (bool)accessForward;
+- (void)backward;
+- (void)forward;
+- (void)refresh;
 -(NSDictionary<NSString *, IAceOnCallSyncResourceMethod> *)getSyncCallMethod;
 -(void)releaseObject;
 -(int64_t)getWebId;

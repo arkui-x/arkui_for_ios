@@ -15,4 +15,19 @@
 
 void loadUrlOC(int id, const std::string& url, std::map<std::string, std::string> httpHeaders);
 
+void loadDataOC(int id, const std::string& data, const std::string& mimeType, const std::string& encoding,
+    const std::string& baseUrl, const std::string& historyUrl);
 
+void EvaluateJavaScriptOC(int id, const std::string& script, void (*callbackOC)(const std::string& ocResult));
+
+void backwardOC(int id);
+
+void forwardOC(int id);
+
+void refreshOC(int id);
+
+std::string getUrlOC(int id);
+
+bool accessBackwardOC(int id);
+
+bool accessForwardOC(int id);
