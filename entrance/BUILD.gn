@@ -45,14 +45,17 @@ template("ace_ios_standard_source_set") {
     sources = [
       "AcePlatformPlugin.mm",
       "AceSurfaceHolder.mm",
+      "DownloadManager.mm",
       "UINavigationController+StatusBar.mm",
       "WindowView.mm",
       "ace_application_info_impl.cpp",
       "ace_bridge.mm",
+      "ace_download_bridge.mm",
       "ace_platform_plugin.cpp",
       "ace_resource_register.cpp",
       "capability_registry.cpp",
       "display_info.mm",
+      "download_manager.cpp",
       "virtual_rs_window.mm",
     ]
 
