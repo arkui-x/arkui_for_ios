@@ -39,5 +39,35 @@ void loadUrlOC(int id, const std::string& url, std::map<std::string, std::string
     [web loadUrl:ocUrl header:nd];
 }
 
+bool saveHttpAuthCredentialsOC(
+    const std::string& host, const std::string& realm, const std::string& username, const char* password)
+{
+    NSString* ocHost = [NSString stringWithCString:host.c_str() encoding:NSUTF8StringEncoding];
+    NSString* ocRealm = [NSString stringWithCString:realm.c_str() encoding:NSUTF8StringEncoding];
+    NSString* ocUsername = [NSString stringWithCString:username.c_str() encoding:NSUTF8StringEncoding];
+    NSString* ocPassword = [NSString stringWithUTF8String:password];
+    return [AceWeb saveHttpAuthCredentials:ocHost realm:ocRealm username:ocUsername password:ocPassword];
+}
 
+bool getHttpAuthCredentialsOC(const std::string& host, const std::string& realm, std::string& username, char* password, uint32_t passwordSize)
+{
+    NSString* ocHost = [NSString stringWithCString:host.c_str() encoding:NSUTF8StringEncoding];
+    NSString* ocRealm = [NSString stringWithCString:realm.c_str() encoding:NSUTF8StringEncoding];
+    NSURLCredential* value = [AceWeb getHttpAuthCredentials:ocHost realm:ocRealm];
+    if (value == nil) {
+        return false;
+    }
+    username = [value.user UTF8String];
+    strlcpy(password, (char*)[value.password UTF8String], passwordSize);
+    return true;
+}
 
+bool existHttpAuthCredentialsOC()
+{
+    return [AceWeb existHttpAuthCredentials];
+}
+
+bool deleteHttpAuthCredentialsOC()
+{
+    return [AceWeb deleteHttpAuthCredentials];
+}
