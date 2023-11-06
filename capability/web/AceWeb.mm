@@ -46,6 +46,10 @@
 
 #define NTC_ZOOM_ACCESS                   @"zoomAccess"
 #define NTC_JAVASCRIPT_ACCESS             @"javascriptAccess"
+#define NTC_MINFONTSIZE                   @"minFontSize"
+#define NTC_HORIZONTALSCROLLBAR_ACCESS    @"horizontalScrollBarAccess"
+#define NTC_VERTICALSCROLLBAR_ACCESS      @"verticalScrollBarAccess"
+#define NTC_BACKGROUNDCOLOR               @"backgroundColor"
 #define NTC_UPDATELAYOUT                  @"updateLayout"
 #define NTC_ONLOADINTERCEPT               @"onLoadIntercept"
 #define NTC_ONHTTPERRORRECEIVE            @"onHttpErrorReceive"
@@ -97,6 +101,7 @@
 -(void)initWeb{
     WKWebViewConfiguration* config = [[WKWebViewConfiguration alloc] init];
     WKPreferences* preference = [[WKPreferences alloc] init];
+    preference.minimumFontSize = 8;
     WKUserContentController* userContentController = [[WKUserContentController alloc] init];
     [self initConsole:CONSOLELOG controller:userContentController];
     [self initConsole:CONSOLEINFO controller:userContentController];
@@ -196,6 +201,14 @@
     [self setZoomAccessCallback];
     // javaScriptAccess callback
     [self setJavaScriptAccessCallback];
+    // minFontSize callback
+    [self setMinFontSizeCallback];
+    // horizontalScrollBarAccess callback
+    [self setHorizontalScrollBarAccessCallback];
+    // verticalScrollBarAccesss callback
+    [self setVerticalScrollBarAccessCallback];
+    // backgroundColor callback
+    [self setBackGroundColorCallback];
     // updateLayout callback
     [self setUpdateLayout];
     // touchDown callback
@@ -295,6 +308,106 @@
         }
     };
     [self.callSyncMethodMap setObject:[layout_callback copy] forKey:layout_method_hash];
+}
+
+- (void)setMinFontSizeCallback
+{
+    __weak __typeof(self) weakSelf = self;
+    NSString* minfontsize_method_hash = [self method_hashFormat:NTC_MINFONTSIZE];
+    IAceOnCallSyncResourceMethod minFontSize_callback = ^NSString*(NSDictionary* param)
+    {
+        float minFontSize = [[param objectForKey:NTC_MINFONTSIZE] floatValue];
+        __strong __typeof(weakSelf) strongSelf = weakSelf;
+        if (strongSelf) {
+            self.webView.configuration.preferences.minimumFontSize = (minFontSize / 96) * 72;
+            return SUCCESS;
+        } else {
+            NSLog(@"AceWeb: minFontSize fail");
+            return FAIL;
+        }
+    };
+    [self.callSyncMethodMap setObject:[minFontSize_callback copy] forKey:minfontsize_method_hash];
+}
+
+- (void)setHorizontalScrollBarAccessCallback
+{
+    __weak __typeof(self) weakSelf = self;
+    NSString* horizontalScrollBarAccess_method_hash = [self method_hashFormat:NTC_HORIZONTALSCROLLBAR_ACCESS];
+    IAceOnCallSyncResourceMethod horizontalScrollBarAccess_callback = ^NSString*(NSDictionary* param)
+    {
+        bool isHorizontalScrollBarEnable = [[param objectForKey:NTC_HORIZONTALSCROLLBAR_ACCESS] boolValue];
+        __strong __typeof(weakSelf) strongSelf = weakSelf;
+        if (strongSelf) {
+            if (!isHorizontalScrollBarEnable) {
+                self.webView.scrollView.showsHorizontalScrollIndicator = NO;
+            } else {
+                self.webView.scrollView.showsHorizontalScrollIndicator = YES;
+            }
+            return SUCCESS;
+        } else {
+            NSLog(@"AceWeb: horizontalScrollBar fail");
+            return FAIL;
+        }
+    };
+    [self.callSyncMethodMap setObject:[horizontalScrollBarAccess_callback copy]
+                               forKey:horizontalScrollBarAccess_method_hash];
+}
+
+- (void)setVerticalScrollBarAccessCallback
+{
+    __weak __typeof(self) weakSelf = self;
+    NSString* verticalScrollBarAccess_method_hash = [self method_hashFormat:NTC_VERTICALSCROLLBAR_ACCESS];
+    IAceOnCallSyncResourceMethod verticalScrollBarAccess_callback = ^NSString*(NSDictionary* param)
+    {
+        bool isVerticalScrollBarEnable = [[param objectForKey:NTC_VERTICALSCROLLBAR_ACCESS] boolValue];
+        __strong __typeof(weakSelf) strongSelf = weakSelf;
+        if (strongSelf) {
+            if (!isVerticalScrollBarEnable) {
+                self.webView.scrollView.showsVerticalScrollIndicator = NO;
+            } else {
+                self.webView.scrollView.showsVerticalScrollIndicator = YES;
+            }
+            return SUCCESS;
+        } else {
+            NSLog(@"AceWeb: horizontalScrollBar fail");
+            return FAIL;
+        }
+    };
+    [self.callSyncMethodMap setObject:[verticalScrollBarAccess_callback copy]
+                               forKey:verticalScrollBarAccess_method_hash];
+}
+
+- (UIColor*)hexToColor:(int)hex
+{
+    return [UIColor colorWithRed:(hex >> 16 & 0xff) / 255.f
+                           green:(hex >> 8 & 0xff) / 255.f
+                            blue:(hex & 0xff) / 255.f
+                           alpha:1];
+}
+
+- (void)setBackGroundColorCallback
+{
+    __weak __typeof(self) weakSelf = self;
+    NSString* backGroundColor_method_hash = [self method_hashFormat:NTC_BACKGROUNDCOLOR];
+    IAceOnCallSyncResourceMethod backGroundColor_callback = ^NSString*(NSDictionary* param)
+    {
+        int backgroundColor = [[param objectForKey:NTC_BACKGROUNDCOLOR] intValue];
+        __strong __typeof(weakSelf) strongSelf = weakSelf;
+        if (strongSelf) {
+            if (@available(iOS 15.0, *)) {
+                self.webView.underPageBackgroundColor = [self hexToColor:backgroundColor];
+            } else {
+                self.webView.backgroundColor = [self hexToColor:backgroundColor];
+            }
+            [self.webView setOpaque:NO];
+            self.webView.scrollView.backgroundColor = [self hexToColor:backgroundColor];
+            return SUCCESS;
+        } else {
+            NSLog(@"AceWeb: backgroundColor fail");
+            return FAIL;
+        }
+    };
+    [self.callSyncMethodMap setObject:[backGroundColor_callback copy] forKey:backGroundColor_method_hash];
 }
 
 - (void)setTouchDownCallback
