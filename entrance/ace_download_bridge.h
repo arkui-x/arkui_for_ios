@@ -13,14 +13,19 @@
  * limitations under the License.
  */
 
-#include <string>
-#include <map>
-#include "AceWebPatternBridge.h"
-#include "frameworks/core/components_ng/pattern/web/cross_platform/web_object_event.h"
+#ifndef FOUNDATION_ACE_ADAPTER_IOS_ENTRANCE_ACE_DOWNLOAD_BRIDGE_H
+#define FOUNDATION_ACE_ADAPTER_IOS_ENTRANCE_ACE_DOWNLOAD_BRIDGE_H
 
-void AceWebObject(const std::string& id, const std::string& event, void* object) {
-    OHOS::Ace::WebObjectEventManager::GetInstance().OnObjectEvent(id, event, (void *)object);
-}
-bool AceWebObjectWithBoolReturn(const std::string& id, const std::string& event, void* object) {
-    return OHOS::Ace::WebObjectEventManager::GetInstance().OnObjectEventWithBoolReturn(id, event, (void*)object);
-}
+#include <memory>
+#include <map>
+
+namespace OHOS::Ace::Platform {
+class AceDownloadBridge {
+public:
+    AceDownloadBridge() = delete;
+    ~AceDownloadBridge() = delete;
+
+    static bool download(const std::string& url, std::vector<uint8_t>& dataOut);
+};
+} // namespace OHOS::Ace::Platform
+#endif // FOUNDATION_ACE_ADAPTER_IOS_ACE_DOWNLOAD_BRIDGE_H

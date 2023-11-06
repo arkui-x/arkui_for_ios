@@ -336,21 +336,26 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
     }
 }
 
+- (void)notifyForeground {
+    if (_windowDelegate.lock() != nullptr) {
+        _windowDelegate.lock()->Foreground();
+    }
+}
+- (void)notifyBackground {
+    if (_windowDelegate.lock() != nullptr) {
+        _windowDelegate.lock()->Background();
+    }
+}
+
 - (void)applicationDidEnterBackground:(NSNotification *)notification {
     if ([self.notifyDelegate respondsToSelector:@selector(notifyApplicationDidEnterBackground)]) {
         [self.notifyDelegate notifyApplicationDidEnterBackground];
-    }
-    if (_windowDelegate.lock() != nullptr) {
-        _windowDelegate.lock()->Background();
     }
 }
 
 - (void)applicationWillEnterForeground:(NSNotification *)notification {
     if ([self.notifyDelegate respondsToSelector:@selector(notifyApplicationWillEnterForeground)]) {
         [self.notifyDelegate notifyApplicationWillEnterForeground];
-    }
-    if (_windowDelegate.lock() != nullptr) {
-        _windowDelegate.lock()->Foreground();
     }
 }
 

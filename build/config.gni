@@ -28,7 +28,7 @@ js_engines += [ ark_engine ]
 build_for_ios = true
 build_container_scope_lib = true
 
-use_curl_download = true
+use_curl_download = false
 use_build_in_js_engine = true
 accessibility_support = false
 rich_components_support = true
