@@ -13,14 +13,21 @@
  * limitations under the License.
  */
 
-#include <string>
-#include <map>
-#include "AceWebPatternBridge.h"
-#include "frameworks/core/components_ng/pattern/web/cross_platform/web_object_event.h"
+#ifndef FOUNDATION_ACE_ADAPTER_IOS_ENTRANCE_DOWNLOADMANAGER_H
+#define FOUNDATION_ACE_ADAPTER_IOS_ENTRANCE_DOWNLOADMANAGER_H
 
-void AceWebObject(const std::string& id, const std::string& event, void* object) {
-    OHOS::Ace::WebObjectEventManager::GetInstance().OnObjectEvent(id, event, (void *)object);
-}
-bool AceWebObjectWithBoolReturn(const std::string& id, const std::string& event, void* object) {
-    return OHOS::Ace::WebObjectEventManager::GetInstance().OnObjectEventWithBoolReturn(id, event, (void*)object);
-}
+#import <Foundation/Foundation.h>
+
+NS_ASSUME_NONNULL_BEGIN
+
+@interface DownloadManager : NSObject
+
++ (DownloadManager *)sharedManage;
+
+- (NSData *)download:(NSString*)urlStr;
+
+@end
+
+NS_ASSUME_NONNULL_END
+
+#endif // FOUNDATION_ACE_ADAPTER_IOS_ENTRANCE_DOWNLOADMANAGER_H

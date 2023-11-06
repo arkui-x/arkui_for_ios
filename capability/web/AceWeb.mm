@@ -16,6 +16,7 @@
 #import "AceWeb.h"
 #import "AceWebPatternBridge.h"
 #import "AceWebErrorReceiveInfoObject.h"
+#import "AceWebObject.h"
 #include "AceWebCallbackObjectWrapper.h"
 
 #define WEBVIEW_WIDTH  @"width"
@@ -33,8 +34,15 @@
 #define PARAM_BEGIN     @"#HWJS-?-#"
 #define METHOD          @"method"
 #define EVENT           @"event"
-#define WEBVIEW_SRC      @"event"
-#define S_Scale      @"event"
+#define WEBVIEW_SRC     @"event"
+#define S_Scale         @"event"
+#define CONSOLELOG      @"log"
+#define CONSOLEERROR    @"error"
+#define CONSOLEINFO     @"info"
+#define CONSOLEDEBUG    @"debug"
+#define CONSOLEWARN     @"warn"
+#define ESTIMATEDPROGRESS  @"estimatedProgress"
+#define TITLE           @"title"
 
 #define NTC_ZOOM_ACCESS                   @"zoomAccess"
 #define NTC_JAVASCRIPT_ACCESS             @"javascriptAccess"
@@ -42,8 +50,16 @@
 #define NTC_HORIZONTALSCROLLBAR_ACCESS    @"horizontalScrollBarAccess"
 #define NTC_VERTICALSCROLLBAR_ACCESS      @"verticalScrollBarAccess"
 #define NTC_BACKGROUNDCOLOR               @"backgroundColor"
+#define NTC_UPDATELAYOUT                  @"updateLayout"
+#define NTC_ONLOADINTERCEPT               @"onLoadIntercept"
+#define NTC_ONHTTPERRORRECEIVE            @"onHttpErrorReceive"
+#define NTC_ONPROGRESSCHANGED             @"onProgressChanged"
+#define NTC_ONRECEIVEDTITLE               @"onReceivedTitle"
+#define NTC_ONSCROLL                      @"onScroll"
+#define NTC_ONSCALECHANGE                 @"onScaleChange"
+#define NTC_ONCONSOLEMESSAGE              @"onConsoleMessage"
 
-@interface AceWeb()<WKScriptMessageHandler, WKUIDelegate, WKNavigationDelegate>
+@interface AceWeb()<WKScriptMessageHandler, WKUIDelegate, WKNavigationDelegate, UIScrollViewDelegate>
 /**webView*/
 @property (nonatomic, assign) WKWebView *webView;
 @property (nonatomic, assign) int64_t incId;
@@ -54,6 +70,8 @@
 @property (nonatomic, strong) UIEvent  *currentEvent;
 @property (nonatomic, assign) int8_t  currentType;
 @property (nonatomic, assign) CGFloat screenScale;
+@property (nonatomic, assign) CGFloat oldScale;
+@property (nonatomic, assign) int httpErrorCode;
 @property (nonatomic, assign) bool allowZoom;
 @property (nonatomic, assign) BOOL javascriptAccessSwitch;
 @property (nonatomic, copy) IAceOnResourceEvent onEvent;
@@ -72,6 +90,8 @@
     self.target = target;
     self.javascriptAccessSwitch = YES;
     self.allowZoom = true;
+    self.oldScale = 100.0f;
+    self.httpErrorCode = 400;
     [self initConfigure];
     [self initEventCallback];
     [self initWeb];
@@ -79,18 +99,54 @@
 }
 
 -(void)initWeb{
-    WKWebViewConfiguration *config = [[WKWebViewConfiguration alloc] init];
-    WKPreferences *preference = [[WKPreferences alloc]init];
+    WKWebViewConfiguration* config = [[WKWebViewConfiguration alloc] init];
+    WKPreferences* preference = [[WKPreferences alloc] init];
     preference.minimumFontSize = 8;
+    WKUserContentController* userContentController = [[WKUserContentController alloc] init];
+    [self initConsole:CONSOLELOG controller:userContentController];
+    [self initConsole:CONSOLEINFO controller:userContentController];
+    [self initConsole:CONSOLEERROR controller:userContentController];
+    [self initConsole:CONSOLEDEBUG controller:userContentController];
+    [self initConsole:CONSOLEWARN controller:userContentController];
     preference.javaScriptEnabled = self.javascriptAccessSwitch;
-    
+
     config.preferences = preference;
+    config.userContentController = userContentController;
     self.webView = [[WKWebView alloc] initWithFrame:CGRectZero configuration:config];
     self.webView.UIDelegate = self;
     self.webView.navigationDelegate = self;
+    self.webView.scrollView.delegate = self;
+    [self.webView addObserver:self forKeyPath:ESTIMATEDPROGRESS options:NSKeyValueObservingOptionNew context:nil];
+    [self.webView addObserver:self forKeyPath:TITLE options:NSKeyValueObservingOptionNew context:nil];
 }
 -(WKWebView*)getWeb {
     return self.webView;
+}
+
+- (void)initConsole:(NSString*)consoleLevel controller:(WKUserContentController*)controller
+{
+    NSString* jsConsole = @"";
+    if ([consoleLevel isEqualToString:CONSOLELOG]) {
+        jsConsole = @"console.log = (function(oriLogFunc){ return function(str){ oriLogFunc.call(console,str); "
+                    "window.webkit.messageHandlers.log.postMessage(str); } })(console.log);";
+    } else if ([consoleLevel isEqualToString:CONSOLEINFO]) {
+        jsConsole = @"console.info = (function(oriLogFunc){ return function(str){ oriLogFunc.call(console,str); "
+                    "window.webkit.messageHandlers.info.postMessage(str); } })(console.info);";
+    } else if ([consoleLevel isEqualToString:CONSOLEERROR]) {
+        jsConsole = @"console.error = (function(oriLogFunc){ return function(str){ oriLogFunc.call(console,str); "
+                    "window.webkit.messageHandlers.error.postMessage(str); } })(console.error);";
+    } else if ([consoleLevel isEqualToString:CONSOLEDEBUG]) {
+        jsConsole = @"console.debug = (function(oriLogFunc){ return function(str){ oriLogFunc.call(console,str); "
+                    "window.webkit.messageHandlers.debug.postMessage(str); } })(console.debug);";
+    } else if ([consoleLevel isEqualToString:CONSOLEWARN]) {
+        jsConsole = @"console.warn = (function(oriLogFunc){ return function(str){ oriLogFunc.call(console,str); "
+                    "window.webkit.messageHandlers.warn.postMessage(str); } })(console.warn);";
+    }
+    WKUserScript* script = [[WKUserScript alloc] initWithSource:jsConsole
+                                                  injectionTime:WKUserScriptInjectionTimeAtDocumentEnd
+                                               forMainFrameOnly:NO];
+    [controller addUserScript:script];
+    [controller addScriptMessageHandler:self name:consoleLevel];
 }
 
 -(void)loadUrl:(NSString*)url{
@@ -120,7 +176,7 @@
     [self.webView loadRequest:mutableRequest];
 }
 
--(void)initConfigure {
+- (void)initConfigure {
     self.callSyncMethodMap = [[NSMutableDictionary alloc] init];
     self.screenScale = [UIScreen mainScreen].scale;
     InjectAceWebResourceObject();
@@ -435,6 +491,13 @@
 
 - (void)releaseObject {
     NSLog(@"AceWeb releaseObject");
+    [self.webView removeObserver:self forKeyPath:ESTIMATEDPROGRESS];
+    [self.webView removeObserver:self forKeyPath:TITLE];
+    [self.webView.configuration.userContentController removeScriptMessageHandlerForName:CONSOLELOG];
+    [self.webView.configuration.userContentController removeScriptMessageHandlerForName:CONSOLEINFO];
+    [self.webView.configuration.userContentController removeScriptMessageHandlerForName:CONSOLEERROR];
+    [self.webView.configuration.userContentController removeScriptMessageHandlerForName:CONSOLEDEBUG];
+    [self.webView.configuration.userContentController removeScriptMessageHandlerForName:CONSOLEWARN];
     if (self.callSyncMethodMap) {
         for (id key in self.callSyncMethodMap) {
             IAceOnCallSyncResourceMethod block = [self.callSyncMethodMap objectForKey:key];
@@ -466,6 +529,107 @@
 - (void)webView:(WKWebView *)webView didFinishNavigation:(WKNavigation *)navigation {
     NSString *param = [NSString stringWithFormat:@"%@",webView.URL];
     [self fireCallback:@"onPageFinished" params:param];
+    
+    if(!self.allowZoom){
+        NSLog(@"didFinishNavigation allowZoom disable  === ");
+        NSString *injectionJSString = @"var script = document.createElement('meta');"
+        "script.name = 'viewport';"
+        "script.content=\"width=device-width, user-scalable=no\";"
+        "document.getElementsByTagName('head')[0].appendChild(script);";
+        [webView evaluateJavaScript:injectionJSString completionHandler:nil];
+    }
+}
+
+- (void)webView:(WKWebView*)webView
+    decidePolicyForNavigationAction:(WKNavigationAction*)navigationAction
+                    decisionHandler:(void (^)(WKNavigationActionPolicy))decisionHandler
+{
+    NSString* requestURL =
+        navigationAction.request.URL.absoluteString ? navigationAction.request.URL.absoluteString : @"";
+    AceWebErrorReceiveInfoObject* obj = new AceWebErrorReceiveInfoObject(std::string([requestURL UTF8String]), "", 0);
+    if (AceWebObjectWithBoolReturn(
+            [[self event_hashFormat:NTC_ONLOADINTERCEPT] UTF8String], [NTC_ONLOADINTERCEPT UTF8String], obj)) {
+        decisionHandler(WKNavigationActionPolicyCancel);
+    } else {
+        decisionHandler(WKNavigationActionPolicyAllow);
+    }
+}
+
+- (void)webView:(WKWebView*)webView
+    decidePolicyForNavigationResponse:(WKNavigationResponse*)navigationResponse
+                      decisionHandler:(void (^)(WKNavigationResponsePolicy))decisionHandler
+{
+    NSHTTPURLResponse* response = (NSHTTPURLResponse*)navigationResponse.response;
+    if (response && response.statusCode >= self.httpErrorCode) {
+        NSString* requestURL = response.URL.absoluteString ? response.URL.absoluteString : @"";
+        NSString* mineType = response.MIMEType ? response.MIMEType : @"";
+        NSString* encodingName = response.textEncodingName ? response.textEncodingName : @"";
+        AceWebHttpErrorReceiveObject* obj = new AceWebHttpErrorReceiveObject(std::string([requestURL UTF8String]),
+            std::string([mineType UTF8String]), std::string([encodingName UTF8String]), response.statusCode);
+        AceWebObject(
+            [[self event_hashFormat:NTC_ONHTTPERRORRECEIVE] UTF8String], [NTC_ONHTTPERRORRECEIVE UTF8String], obj);
+    }
+    decisionHandler(WKNavigationResponsePolicyAllow);
+}
+
+- (void)observeValueForKeyPath:(NSString*)keyPath
+                      ofObject:(id)object
+                        change:(NSDictionary<NSKeyValueChangeKey, id>*)change
+                       context:(void*)context
+{
+    if ([keyPath isEqualToString:NSStringFromSelector(@selector(estimatedProgress))] && object == _webView) {
+        NSString* param = [NSString stringWithFormat:@"%.f", _webView.estimatedProgress * 100];
+        [self fireCallback:NTC_ONPROGRESSCHANGED params:param];
+    } else if ([keyPath isEqualToString:TITLE] && object == _webView) {
+        _webView.title == nil ? [self fireCallback:NTC_ONRECEIVEDTITLE params:@""]
+                              : [self fireCallback:NTC_ONRECEIVEDTITLE params:_webView.title];
+    }
+}
+
+- (void)scrollViewDidScroll:(UIScrollView*)scrollView
+{
+    float x = 0.f;
+    float y = 0.f;
+    if (scrollView.contentOffset.x) {
+        x = scrollView.contentOffset.x;
+    }
+    if (scrollView.contentOffset.y) {
+        y = scrollView.contentOffset.y;
+    }
+    AceWebOnScrollObject* obj = new AceWebOnScrollObject(x, y);
+    AceWebObject([[self event_hashFormat:NTC_ONSCROLL] UTF8String], [NTC_ONSCROLL UTF8String], obj);
+}
+
+- (void)scrollViewDidZoom:(UIScrollView*)scrollView
+{
+    float newScale = 0.f;
+    if (scrollView.zoomScale) {
+        newScale = scrollView.zoomScale * 100;
+        AceWebOnScaleChangeObject* obj = new AceWebOnScaleChangeObject(newScale, self.oldScale);
+        AceWebObject([[self event_hashFormat:NTC_ONSCALECHANGE] UTF8String], [NTC_ONSCALECHANGE UTF8String], obj);
+        if (newScale != self.oldScale) {
+            self.oldScale = newScale;
+        }
+    }
+}
+
+- (void)userContentController:(WKUserContentController*)userContentController
+      didReceiveScriptMessage:(WKScriptMessage*)message
+{
+    int messageLevel = 2;
+    NSString* messageBody = message.body ? (NSString*)message.body : @"";
+    if ([message.name hasPrefix:CONSOLEDEBUG]) {
+        messageLevel = 1;
+    } else if ([message.name hasPrefix:CONSOLEERROR]) {
+        messageLevel = 4;
+    } else if ([message.name hasPrefix:CONSOLEINFO] || [message.name hasPrefix:CONSOLELOG]) {
+        messageLevel = 2;
+    } else if ([message.name hasPrefix:CONSOLEWARN]) {
+        messageLevel = 3;
+    }
+    AceWebOnConsoleObject* obj = new AceWebOnConsoleObject(std::string([messageBody UTF8String]), messageLevel);
+    AceWebObjectWithBoolReturn(
+        [[self event_hashFormat:NTC_ONCONSOLEMESSAGE] UTF8String], [NTC_ONCONSOLEMESSAGE UTF8String], obj);
 }
 
 - (void)webView:(WKWebView *)webView didFailProvisionalNavigation:( WKNavigation *)navigation withError:(NSError *)error {
@@ -482,7 +646,7 @@
     if(errorStr && error.description) {
         AceWebErrorReceiveInfoObject *obj = new AceWebErrorReceiveInfoObject(std::string([errorStr UTF8String]),
                                                                              std::string([error.description UTF8String]), error.code);
-        errorReceiveObject([[self event_hashFormat:@"onErrorReceive"] UTF8String], [@"onErrorReceive" UTF8String], obj);
+        AceWebObject([[self event_hashFormat:@"onErrorReceive"] UTF8String], [@"onErrorReceive" UTF8String], obj);
     }
 }
 

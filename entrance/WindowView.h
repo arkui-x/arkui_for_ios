@@ -42,6 +42,8 @@ class Window;
 - (void)createSurfaceNode;
 - (void)notifySurfaceChangedWithWidth:(int32_t)width height:(int32_t)height density:(float)density;
 - (void)notifySurfaceDestroyed;
+- (void)notifyForeground;
+- (void)notifyBackground;
 /* only for main window */
 - (void)notifyWindowDestroyed;
 - (std::shared_ptr<OHOS::Rosen::Window>)getWindow;

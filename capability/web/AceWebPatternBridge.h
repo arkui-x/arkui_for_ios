@@ -16,5 +16,6 @@
 #include <string>
 #include <map>
 
-void errorReceiveObject(const std::string& id, const std::string& event,void* object);
+void AceWebObject(const std::string& id, const std::string& event,void* object);
+bool AceWebObjectWithBoolReturn(const std::string& id, const std::string& event, void* object);
 

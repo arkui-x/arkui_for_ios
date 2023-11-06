@@ -142,6 +142,7 @@ template("ace_capability_ios_source_set") {
       "$ace_root/adapter/ios/capability/web/AceWebCallbackObjectWrapper.cpp",
       "$ace_root/adapter/ios/capability/web/AceWebControllerBridge.mm",
       "$ace_root/adapter/ios/capability/web/AceWebErrorReceiveInfoObject.cpp",
+      "$ace_root/adapter/ios/capability/web/AceWebObject.cpp",
       "$ace_root/adapter/ios/capability/web/AceWebPatternBridge.cpp",
       "$ace_root/adapter/ios/capability/web/AceWebResourcePlugin.mm",
     ]
