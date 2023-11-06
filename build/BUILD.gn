@@ -208,7 +208,6 @@ common_third_party_libs = [
   ":arkui_xml2",
   ":arkui_nghttp2",
   ":arkui_shared_libz",
-  "//third_party/curl:curl",
   "//third_party/openssl:crypto_source",
   "//third_party/openssl:ssl_source",
 ]
