@@ -18,6 +18,7 @@
 #import "AceWebErrorReceiveInfoObject.h"
 #import "AceWebObject.h"
 #include "AceWebCallbackObjectWrapper.h"
+#import "AceWebControllerBridge.h"
 
 #define WEBVIEW_WIDTH  @"width"
 #define WEBVIEW_HEIGHT  @"height"
@@ -174,6 +175,62 @@
     NSMutableURLRequest *mutableRequest = [request mutableCopy];
     [mutableRequest setAllHTTPHeaderFields:headerFields];
     [self.webView loadRequest:mutableRequest];
+}
+
+- (void)loadData:(NSString*)data
+        mimeType:(NSString*)mimeType
+        encoding:(NSString*)encoding
+         baseUrl:(NSString*)baseUrl
+      historyUrl:(NSString*)historyUrl
+{
+    if (@available(iOS 9.0, *)) {
+        [self.webView loadData:[data dataUsingEncoding:NSUTF8StringEncoding]
+                         MIMEType:mimeType
+            characterEncodingName:encoding
+                          baseURL:[NSURL fileURLWithPath:baseUrl]];
+    } else {
+        [self.webView loadHTMLString:data baseURL:[NSURL URLWithString:baseUrl]];
+    }
+}
+
+- (void)EvaluateJavaScript:(NSString*)script callback:(void (^)(NSString* ocResult))callback
+{
+    NSLog(@"AceWeb: ExecuteJavaScript called");
+    [self.webView evaluateJavaScript:script
+                   completionHandler:^(id _Nullable obj, NSError* _Nullable error) {
+                     NSString* result = [NSString stringWithFormat:@"%@", obj];
+                     callback(result);
+                   }];
+}
+
+- (NSString*)getUrl
+{
+    return self.webView.URL == nil ? @"" : [self.webView.URL absoluteString];
+}
+
+- (bool)accessBackward
+{
+    return self.webView.canGoBack;
+}
+
+- (bool)accessForward
+{
+    return self.webView.canGoForward;
+}
+
+- (void)backward
+{
+    [self.webView goBack];
+}
+
+- (void)forward
+{
+    [self.webView goForward];
+}
+
+- (void)refresh
+{
+    [self.webView reload];
 }
 
 + (bool)saveHttpAuthCredentials:(NSString*)host
