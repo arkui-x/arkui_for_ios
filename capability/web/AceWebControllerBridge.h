@@ -31,3 +31,13 @@ std::string getUrlOC(int id);
 bool accessBackwardOC(int id);
 
 bool accessForwardOC(int id);
+
+bool saveHttpAuthCredentialsOC(
+    const std::string& host, const std::string& realm, const std::string& username, const char* password);
+
+bool getHttpAuthCredentialsOC(const std::string& host, const std::string& realm,
+    std::string& username, char* password, uint32_t passwordSize);
+
+bool existHttpAuthCredentialsOC();
+
+bool deleteHttpAuthCredentialsOC();

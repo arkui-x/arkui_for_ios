@@ -233,6 +233,74 @@
     [self.webView reload];
 }
 
++ (bool)saveHttpAuthCredentials:(NSString*)host
+                          realm:(NSString*)realm
+                       username:(NSString*)username
+                       password:(NSString*)password
+{
+    NSLog(@"AceWeb: saveHttpAuthCredentials called");
+    if (host == nil || realm == nil || username == nil || password == nil) {
+        return false;
+    }
+
+    NSURLCredential* credential =
+        [NSURLCredential credentialWithUser:username password:password persistence:NSURLCredentialPersistencePermanent];
+    NSURLProtectionSpace* protectionSpace =
+        [[NSURLProtectionSpace alloc] initWithHost:host
+                                              port:0
+                                          protocol:NSURLProtectionSpaceHTTP
+                                             realm:realm
+                              authenticationMethod:NSURLAuthenticationMethodDefault];
+    [[NSURLCredentialStorage sharedCredentialStorage] setDefaultCredential:credential
+                                                        forProtectionSpace:protectionSpace];
+    return true;
+}
+
++ (NSURLCredential*)getHttpAuthCredentials:(NSString*)host realm:(NSString*)realm
+{
+    if (host == nil || realm == nil) {
+        return nil;
+    }
+    NSURLProtectionSpace* protectionSpace =
+        [[NSURLProtectionSpace alloc] initWithHost:host
+                                              port:0
+                                          protocol:NSURLProtectionSpaceHTTP
+                                             realm:realm
+                              authenticationMethod:NSURLAuthenticationMethodDefault];
+    NSDictionary* userToCredentialMap =
+        [[NSURLCredentialStorage sharedCredentialStorage] credentialsForProtectionSpace:protectionSpace];
+    return userToCredentialMap.allValues.lastObject;
+}
+
++ (bool)existHttpAuthCredentials
+{
+    NSLog(@"AceWeb: existHttpAuthCredentials called");
+    NSURLCredentialStorage* store = [NSURLCredentialStorage sharedCredentialStorage];
+    if ([[store allCredentials] count] > 0) {
+        return true;
+    }
+    return false;
+}
+
++ (bool)deleteHttpAuthCredentials
+{
+    NSLog(@"AceWeb: deleteHttpAuthCredentials called");
+    NSURLCredentialStorage* store = [NSURLCredentialStorage sharedCredentialStorage];
+    if (store == nil) {
+        return false;
+    }
+
+    for (NSURLProtectionSpace* protectionSpace in [store allCredentials]) {
+        NSDictionary* userToCredentialMap =
+            [[NSURLCredentialStorage sharedCredentialStorage] credentialsForProtectionSpace:protectionSpace];
+        for (NSString* user in userToCredentialMap) {
+            NSURLCredential* credential = [userToCredentialMap objectForKey:user];
+            [store removeCredential:credential forProtectionSpace:protectionSpace];
+        }
+    }
+    return true;
+}
+
 - (void)initConfigure {
     self.callSyncMethodMap = [[NSMutableDictionary alloc] init];
     self.screenScale = [UIScreen mainScreen].scale;

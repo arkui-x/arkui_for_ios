@@ -36,6 +36,13 @@
 - (void)backward;
 - (void)forward;
 - (void)refresh;
++ (bool)saveHttpAuthCredentials:(NSString*)host
+                          realm:(NSString*)realm
+                       username:(NSString*)username
+                       password:(NSString*)password;
++ (NSURLCredential*)getHttpAuthCredentials:(NSString*)host realm:(NSString*)realm;
++ (bool)existHttpAuthCredentials;
++ (bool)deleteHttpAuthCredentials;
 -(NSDictionary<NSString *, IAceOnCallSyncResourceMethod> *)getSyncCallMethod;
 -(void)releaseObject;
 -(int64_t)getWebId;
