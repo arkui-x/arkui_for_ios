@@ -234,7 +234,6 @@
 }
 
 - (void)initConfigure {
-- (void)initConfigure {
     self.callSyncMethodMap = [[NSMutableDictionary alloc] init];
     self.screenScale = [UIScreen mainScreen].scale;
     InjectAceWebResourceObject();
