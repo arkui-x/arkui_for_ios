@@ -1,0 +1,75 @@
+From 4a81cfa714405d30113c73090b401755228e289b Mon Sep 17 00:00:00 2001
+From: txzhang94 <zhangtianxiang4@huawei.com>
+Date: Wed, 8 Nov 2023 07:07:02 +0000
+Subject: [PATCH] update to oh weekly_1031
+
+Change-Id: Icc4cb76408bb79279e8c135bb81d408111e86359
+---
+ osal/image_source_ios.cpp      | 10 ++++++++++
+ osal/resource_adapter_impl.cpp |  6 ++++++
+ osal/system_properties.cpp     |  6 ++++++
+ 3 files changed, 22 insertions(+)
+
+diff --git a/osal/image_source_ios.cpp b/osal/image_source_ios.cpp
+index fda10716..52535c70 100644
+--- a/osal/image_source_ios.cpp
++++ b/osal/image_source_ios.cpp
+@@ -45,6 +45,16 @@ RefPtr<ImageSource> ImageSource::Create(const uint8_t* data, uint32_t size)
+     return MakeRefPtr<ImageSourceIOS>(std::move(src));
+ }
+ 
++bool ImageSource::IsAstc(const uint8_t* data, size_t size)
++{
++    return false;
++}
++
++ImageSource::Size ImageSource::GetASTCInfo(const uint8_t* data, size_t size)
++{
++    return { 0, 0 };
++}
++
+ std::string ImageSourceIOS::GetProperty(const std::string& key)
+ {
+     std::string value;
+diff --git a/osal/resource_adapter_impl.cpp b/osal/resource_adapter_impl.cpp
+index ca0aefc4..362e42bd 100644
+--- a/osal/resource_adapter_impl.cpp
++++ b/osal/resource_adapter_impl.cpp
+@@ -171,6 +171,12 @@ void ResourceAdapterImpl::Init(const ResourceInfo& resourceInfo)
+     Platform::AceApplicationInfoImpl::GetInstance().SetResourceManager(resourceManager_);
+ }
+ 
++RefPtr<ResourceAdapter> ResourceAdapter::CreateNewResourceAdapter(
++    const std::string& bundleName, const std::string& moduleName)
++{
++    return nullptr;
++}
++
+ void ResourceAdapterImpl::UpdateConfig(const ResourceConfiguration& config)
+ {
+     LOGI("UpdateConfig ori=%{public}d, dpi=%{public}d, device=%{public}d, colorMode=%{public}d,",
+diff --git a/osal/system_properties.cpp b/osal/system_properties.cpp
+index 7e084cbb..06735604 100644
+--- a/osal/system_properties.cpp
++++ b/osal/system_properties.cpp
+@@ -51,6 +51,7 @@ LongScreenType SystemProperties::LongScreen_ { LongScreenType::NOT_LONG };
+ bool SystemProperties::unZipHap_ = true;
+ bool SystemProperties::rosenBackendEnabled_ = true;
+ bool SystemProperties::svgTraceEnable_ = false;
++bool SystemProperties::downloadByNetworkEnabled_ = false;
+ bool SystemProperties::isHookModeEnabled_ = false;
+ bool SystemProperties::accessibilityEnabled_ = false;
+ bool SystemProperties::windowAnimationEnabled_ = false;
+@@ -175,4 +176,9 @@ bool SystemProperties::GetImageFrameworkEnabled()
+     return false;
+ }
+ 
++bool SystemProperties::GetResourceDecoupling()
++{
++    return true;
++}
++
+ } // namespace OHOS::Ace
+-- 
+Gitee
+
