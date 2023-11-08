@@ -51,6 +51,7 @@ LongScreenType SystemProperties::LongScreen_ { LongScreenType::NOT_LONG };
 bool SystemProperties::unZipHap_ = true;
 bool SystemProperties::rosenBackendEnabled_ = true;
 bool SystemProperties::svgTraceEnable_ = false;
+bool SystemProperties::downloadByNetworkEnabled_ = false;
 bool SystemProperties::isHookModeEnabled_ = false;
 bool SystemProperties::accessibilityEnabled_ = false;
 bool SystemProperties::windowAnimationEnabled_ = false;
@@ -173,6 +174,11 @@ bool SystemProperties::IsFormAnimationLimited()
 bool SystemProperties::GetImageFrameworkEnabled()
 {
     return false;
+}
+
+bool SystemProperties::GetResourceDecoupling()
+{
+    return true;
 }
 
 } // namespace OHOS::Ace
