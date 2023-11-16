@@ -25,6 +25,7 @@
 #include "flutter/lib/ui/window/pointer_data_packet.h"
 #include "virtual_rs_window.h"
 #include "UINavigationController+StatusBar.h"
+#include "core/event/key_event.h"
 #import "AceWebResourcePlugin.h"
 #import "AceWeb.h"
 #define ACE_ENABLE_GL
@@ -118,6 +119,23 @@
 - (std::shared_ptr<OHOS::Rosen::Window>)getWindow {
     return _windowDelegate.lock();
 }
+
+- (void)pressesBegan:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event {
+    [self dispatchKeys:presses];
+}
+
+- (void)pressesChanged:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event {
+    [self dispatchKeys:presses];
+}
+
+- (void)pressesEnded:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event {
+    [self dispatchKeys:presses];
+}
+
+- (void)pressesCancelled:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event {
+    [self dispatchKeys:presses];
+}
+
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event {
     [self dispatchTouches:touches];
 }
@@ -250,7 +268,38 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
         
         _windowDelegate.lock()->ProcessPointerEvent(packet->data());
     }
-    
+}
+
+#pragma mark - Key event handling
+
+static OHOS::Ace::KeyAction KeyActionChangeFromUIPressPhase(UIPressPhase phase) {
+    switch (phase) {
+        case UIPressPhaseBegan:
+            return OHOS::Ace::KeyAction::DOWN;
+        case UIPressPhaseChanged:
+        case UIPressPhaseStationary:
+        case UIPressPhaseEnded:
+        case UIPressPhaseCancelled:
+            return OHOS::Ace::KeyAction::UP;
+    }
+    return OHOS::Ace::KeyAction::UNKNOWN;
+}
+
+- (void)dispatchKeys:(NSSet<UIPress *> *)presses {
+    for (UIPress *press in presses) {
+        UIKey *pressKey = press.key;
+        UIKeyboardHIDUsage pressKeyCode = [pressKey keyCode];
+        OHOS::Ace::KeyAction keyAction = KeyActionChangeFromUIPressPhase(press.phase);
+        UIKeyModifierFlags modifierFlags = [pressKey modifierFlags];
+
+        int32_t repeatTime = 0;
+        // trans NSTimeInterval(double) to int64_t
+        int64_t timestamp = static_cast<int64_t>(press.timestamp * 1000);
+        if (_windowDelegate.lock() != nullptr) {
+            _windowDelegate.lock()->ProcessKeyEvent(
+                static_cast<int32_t>(pressKeyCode), static_cast<int32_t>(keyAction), repeatTime, timestamp, timestamp);
+        }
+    }
 }
 
 - (void)createSurfaceNode {
