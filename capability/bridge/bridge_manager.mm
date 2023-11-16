@@ -16,7 +16,8 @@
 #import "BridgeBinaryCodec.h"
 #import "BridgeCodecUtil.h"
 #import "BridgeJsonCodec.h"
-#import "BridgePluginManager.h"
+#import "BridgePluginManager+internal.h"
+#import "BridgeManagerHolder.h"
 
 #include "adapter/ios/capability/bridge/bridge_manager.h"
 #include "base/log/log.h"
@@ -24,7 +25,7 @@
 #include <memory>
 
 namespace OHOS::Ace::Platform {
-std::map<std::string, std::shared_ptr<BridgeReceiver>> BridgeManager::bridgeList_;
+std::map<int32_t, std::map<std::string, std::shared_ptr<BridgeReceiver>>> BridgeManager::bridgeList_;
 std::mutex BridgeManager::bridgeLock_;
 
 NSString* getOCstring(const std::string& c_string) {
@@ -48,140 +49,156 @@ NSData* ConvertUniqueUNint8ToNSData(std::unique_ptr<std::vector<uint8_t>> result
     return [NSData dataWithBytes:bytes length:length];
 }
 
-std::shared_ptr<BridgeReceiver> BridgeManager::FindReceiver(const std::string& bridgeName) {
+BridgePluginManager* getBridgePluginManagerWithInstanceId(int32_t instanceId) {
+    BridgePluginManager * bridgePluginManager = [BridgeManagerHolder getBridgeManagerWithInceId:instanceId];
+    return bridgePluginManager;
+}
+
+std::shared_ptr<BridgeReceiver> BridgeManager::FindReceiver(int32_t instanceId, const std::string& bridgeName) {
     if (bridgeName.empty()) {
         return nullptr;
     }
     std::lock_guard<std::mutex> lock(bridgeLock_);
-    auto iter = bridgeList_.find(bridgeName);
-
-    if (iter != bridgeList_.end()) {
-        return iter->second;
+    auto instanceIdIter = bridgeList_.find(instanceId);
+    if (instanceIdIter != bridgeList_.end()) {
+        auto bridgeIter = instanceIdIter->second.find(bridgeName);
+        if (bridgeIter != instanceIdIter->second.end()) {
+            return bridgeIter->second;
+        }
     }
     return nullptr;
 }
 
-bool BridgeManager::JSBridgeExists(const std::string& bridgeName) {
-    return (FindReceiver(bridgeName) != nullptr);
+bool BridgeManager::JSBridgeExists(int32_t instanceId, const std::string& bridgeName) {
+    return FindReceiver(instanceId, bridgeName) != nullptr;
 }
 
-bool BridgeManager::JSRegisterBridge(const std::string& bridgeName,
-                                     std::shared_ptr<BridgeReceiver> callback) {
-    if (bridgeName.empty()) {
+bool BridgeManager::JSRegisterBridge(int32_t instanceId, std::shared_ptr<BridgeReceiver> callback) {
+    if (callback->bridgeName_.empty() || instanceId < 0) {
         return false;
     }
     std::lock_guard<std::mutex> lock(bridgeLock_);
-    auto iter = bridgeList_.find(bridgeName);
-    if (iter == bridgeList_.end()) {
-        bridgeList_[bridgeName] = callback;
-        NSLog(@"%s, register success, bridgeName : %@", __func__, getOCstring(bridgeName));
+    auto instanceIdIter = bridgeList_.find(instanceId);
+    if (instanceIdIter == bridgeList_.end()) {
+        std::map<std::string, std::shared_ptr<BridgeReceiver>> bridgeList;
+        bridgeList[callback->bridgeName_] = callback;
+        bridgeList_[instanceId] = bridgeList;
         return true;
+    } else {
+        auto bridgeIter = instanceIdIter->second.find(callback->bridgeName_);
+        if (bridgeIter == instanceIdIter->second.end()) {
+            instanceIdIter->second[callback->bridgeName_] = callback;
+            return true;
+        }
     }
     return false;
 }
 
-void BridgeManager::JSUnRegisterBridge(const std::string& bridgeName) {
-    std::lock_guard<std::mutex> lock(bridgeLock_);
-    auto iter = bridgeList_.find(bridgeName);
-    if (iter != bridgeList_.end()) {
-        bridgeList_.erase(iter);
-        NSLog(@"%s, unregister success, bridgeName : %@", __func__, getOCstring(bridgeName));
+void BridgeManager::JSUnRegisterBridge(int32_t instanceId, const std::string& bridgeName) {
+    if (bridgeName.empty() || instanceId < 0) {
+        NSLog(@"%s, bridgeName or instanceId is null",__func__);
+        return;
+    }
+    auto instanceIdIter = bridgeList_.find(instanceId);
+    if (instanceIdIter == bridgeList_.end()) {
+        return;
+    }
+    auto bridgeIter = instanceIdIter->second.find(bridgeName);
+    if (bridgeIter != instanceIdIter->second.end()) {
+        instanceIdIter->second.erase(bridgeIter);
+    }
+    if (!instanceIdIter->second.empty()) {
+        bridgeList_.erase(instanceIdIter);
     }
 }
 
-void BridgeManager::JSCallMethod(const std::string& bridgeName, 
+void BridgeManager::JSCallMethod(int32_t instanceId, const std::string& bridgeName,
                 const std::string& methodName, const std::string& parameter) {
     NSString* oc_bridgeName = getOCstring(bridgeName);
     NSString* oc_methodName = getOCstring(methodName);
     NSString* oc_parameter = getOCstring(parameter);
-    NSLog(@"%s, oc_bridgeName : %@, oc_methodName : %@, oc_parameter : %@", __func__, 
-                oc_bridgeName, oc_methodName, oc_parameter);
-    [[BridgePluginManager shareManager] jsCallMethod:oc_bridgeName
-                                          methodName:oc_methodName
-                                               param:oc_parameter];
+    BridgePluginManager * bridgePluginManager = getBridgePluginManagerWithInstanceId(instanceId);
+    if (bridgePluginManager) {
+        [bridgePluginManager jsCallMethod:oc_bridgeName methodName:oc_methodName param:oc_parameter];
+    }
 }
 
-void BridgeManager::JSSendMethodResult(const std::string& bridgeName, 
+void BridgeManager::JSSendMethodResult(int32_t instanceId, const std::string& bridgeName,
                 const std::string& methodName, const std::string& resultValue) {
     NSString* oc_bridgeName = getOCstring(bridgeName);
     NSString* oc_methodName = getOCstring(methodName);
     NSString* oc_resultValue = getOCstring(resultValue);
-    NSLog(@"%s, oc_bridgeName : %@, oc_methodName : %@, oc_resultValue : %@", __func__, 
-                oc_bridgeName, oc_methodName, oc_resultValue);
-    [[BridgePluginManager shareManager] jsSendMethodResult:oc_bridgeName
-                                                methodName:oc_methodName
-                                                    result:oc_resultValue];
+    BridgePluginManager * bridgePluginManager = getBridgePluginManagerWithInstanceId(instanceId);
+    if (bridgePluginManager) {
+        [bridgePluginManager jsSendMethodResult:oc_bridgeName methodName:oc_methodName result:oc_resultValue];
+    }
 }
 
-void BridgeManager::JSSendMessage(const std::string& bridgeName, const std::string& data) {
+void BridgeManager::JSSendMessage(int32_t instanceId, const std::string& bridgeName, const std::string& data) {
     NSString* oc_bridgeName = getOCstring(bridgeName);
     NSString* oc_data = getOCstring(data);
-    NSLog(@"%s, oc_bridgeName : %@, oc_data : %@", __func__, oc_bridgeName, oc_data);
     RawValue* rawValue = [[BridgeJsonCodec sharedInstance] decode:oc_data];
-    [[BridgePluginManager shareManager] jsSendMessage:oc_bridgeName
-                                                 data:rawValue.result];
+    BridgePluginManager * bridgePluginManager = getBridgePluginManagerWithInstanceId(instanceId);
+    if (bridgePluginManager) {
+        [bridgePluginManager jsSendMessage:oc_bridgeName data:rawValue.result];
+    }
 }
 
-void BridgeManager::JSSendMessageResponse(const std::string& bridgeName, const std::string& data) {
+void BridgeManager::JSSendMessageResponse(int32_t instanceId, const std::string& bridgeName, const std::string& data) {
     NSString* oc_bridgeName = getOCstring(bridgeName);
     NSString* oc_data = getOCstring(data);
-    NSLog(@"%s, oc_bridgeName : %@, oc_data : %@", __func__, oc_bridgeName, oc_data);
-    [[BridgePluginManager shareManager] jsSendMessageResponse:oc_bridgeName
-                                                         data:oc_data];
+    BridgePluginManager * bridgePluginManager = getBridgePluginManagerWithInstanceId(instanceId);
+    if (bridgePluginManager) {
+        [bridgePluginManager jsSendMessageResponse:oc_bridgeName data:oc_data];
+    }   
 }
 
-void BridgeManager::JSCancelMethod(const std::string& bridgeName, const std::string& methodName) {
+void BridgeManager::JSCancelMethod(int32_t instanceId, const std::string& bridgeName, const std::string& methodName) {
     NSString* oc_bridgeName = getOCstring(bridgeName);
     NSString* oc_methodName = getOCstring(methodName);
-    NSLog(@"%s, oc_bridgeName : %@, oc_methodName : %@", __func__, oc_bridgeName, oc_methodName);
-    [[BridgePluginManager shareManager] jsCancelMethod:oc_bridgeName
-                                            methodName:oc_methodName];
+    BridgePluginManager * bridgePluginManager = getBridgePluginManagerWithInstanceId(instanceId);
+    if (bridgePluginManager) {
+        [bridgePluginManager jsCancelMethod:oc_bridgeName methodName:oc_methodName];
+    }
 }
 
-void BridgeManager::PlatformCallMethod(const std::string& bridgeName,
+void BridgeManager::PlatformCallMethod(int32_t instanceId, const std::string& bridgeName,
                 const std::string& methodName, const std::string& parameter) {
-    NSLog(@"%s, bridgeName : %@, methodName : %@,para : %@", __func__, 
-            getOCstring(bridgeName), getOCstring(methodName), getOCstring(parameter));
-
-    if (!JSBridgeExists(bridgeName)) {
+    if (!JSBridgeExists(instanceId, bridgeName)) {
         std::string errorData = "{\"result\":\"errorcode\",\"errorcode\":1}";
-        JSSendMethodResult(bridgeName, methodName, errorData);
+        JSSendMethodResult(instanceId, bridgeName, methodName, errorData);
         return;
     }
-    auto receiver = FindReceiver(bridgeName);
+    auto receiver = FindReceiver(instanceId, bridgeName);
     if (receiver && receiver->callMethodCallback_) {
         receiver->callMethodCallback_(methodName, parameter);
     }
 }
 
-void BridgeManager::PlatformSendMethodResult(const std::string& bridgeName,
+void BridgeManager::PlatformSendMethodResult(int32_t instanceId, const std::string& bridgeName,
                 const std::string& methodName,
                 const std::string& result) {
-    NSLog(@"%s, bridgeName : %@, methodName : %@, result : %@", __func__, 
-            getOCstring(bridgeName), getOCstring(methodName), getOCstring(result));
-    auto receiver = FindReceiver(bridgeName);
+    auto receiver = FindReceiver(instanceId, bridgeName);
     if (receiver && receiver->methodResultCallback_) {
         receiver->methodResultCallback_(methodName, result);
     }
 }
 
-void BridgeManager::PlatformSendMessage(const std::string& bridgeName, const std::string& data) {
-    NSLog(@"%s, bridgeName : %@, data : %@", __func__, getOCstring(bridgeName), getOCstring(data));
-    if (!JSBridgeExists(bridgeName)) {
+void BridgeManager::PlatformSendMessage(int32_t instanceId, const std::string& bridgeName, const std::string& data) {
+    if (!JSBridgeExists(instanceId, bridgeName)) {
         std::string errorData = "{\"result\":\"errorcode\",\"errorcode\":1}";
-        JSSendMessageResponse(bridgeName, errorData);
+        JSSendMessageResponse(instanceId, bridgeName, errorData);
         return;
     }
-    auto receiver = FindReceiver(bridgeName);
+    auto receiver = FindReceiver(instanceId, bridgeName);
     if (receiver && receiver->sendMessageCallback_) {
         receiver->sendMessageCallback_(data);
     }
 }
 
-void BridgeManager::PlatformSendMessageResponse(const std::string& bridgeName,
+void BridgeManager::PlatformSendMessageResponse(int32_t instanceId, const std::string& bridgeName,
                                                 const std::string& data) {
-    NSLog(@"%s, bridgeName : %@, data : %@", __func__, getOCstring(bridgeName), getOCstring(data));
-    auto receiver = FindReceiver(bridgeName);
+    auto receiver = FindReceiver(instanceId, bridgeName);
     if (receiver && receiver->sendMessageResponseCallback_) {
         receiver->sendMessageResponseCallback_(data);
     }
@@ -191,67 +208,81 @@ void BridgeManager::PlatformSendWillTerminate() {
     if (!bridgeList_.empty()) {
         auto iter = bridgeList_.begin();
         while (iter != bridgeList_.end()) {
-            auto receiver = iter->second;
-            if (receiver && receiver->sendWillTerminateResponseCallback_) {
-                receiver->sendWillTerminateResponseCallback_(true);
+            auto mapIter = iter->second;
+            auto receiverIter = mapIter.begin();
+            while (receiverIter != mapIter.end()) {
+                auto receiver = receiverIter->second;
+                if (receiver && receiver->sendWillTerminateResponseCallback_) {
+                    receiver->sendWillTerminateResponseCallback_(true);
+                }
+                ++receiverIter;
             }
             ++iter;
         }
     }
 }
 
-void BridgeManager::JSSendMessageBinary(const std::string& bridgeName, const std::vector<uint8_t>& data) {
+void BridgeManager::JSSendMessageBinary(int32_t instanceId,
+    const std::string& bridgeName, const std::vector<uint8_t>& data) {
     NSString* oc_bridgeName = getOCstring(bridgeName);
-    [[BridgePluginManager shareManager] jsSendMessageBinary:oc_bridgeName
-                                                       data:convertToNSData(data)];
+    BridgePluginManager * bridgePluginManager = getBridgePluginManagerWithInstanceId(instanceId);
+    if (bridgePluginManager) {
+        [bridgePluginManager jsSendMessageBinary:oc_bridgeName data:convertToNSData(data)];
+    }
+
 }
 
-void BridgeManager::JSCallMethodBinary(const std::string& bridgeName,
-                                       const std::string& methodName,
-                                       const std::vector<uint8_t>& data) {
+void BridgeManager::JSCallMethodBinary(int32_t instanceId, const std::string& bridgeName,
+                                        const std::string& methodName,
+                                        const std::vector<uint8_t>& data) {
     NSString* oc_bridgeName = getOCstring(bridgeName);
     NSString* oc_methodName = getOCstring(methodName);
     NSData* oc_data = convertToNSData(data);
-    [[BridgePluginManager shareManager] jsCallMethodBinary:oc_bridgeName
-                                                methodName:oc_methodName
-                                                     param:oc_data];
+    BridgePluginManager * bridgePluginManager = getBridgePluginManagerWithInstanceId(instanceId);
+    if (bridgePluginManager) {
+        [bridgePluginManager jsCallMethodBinary:oc_bridgeName methodName:oc_methodName param:oc_data];
+    }
 }
 
-void BridgeManager::JSSendMethodResultBinary(const std::string& bridgeName, 
-                const std::string& methodName, 
-                int errorCode, 
+void BridgeManager::JSSendMethodResultBinary(int32_t instanceId, const std::string& bridgeName,
+                const std::string& methodName,
+                int errorCode,
                 const std::string& errorMessage, std::unique_ptr<std::vector<uint8_t>> result) {
     NSString* oc_bridgeName = getOCstring(bridgeName);
     NSString* oc_methodName = getOCstring(methodName);
     NSString* oc_errorMessage = getOCstring(errorMessage);
     NSData* oc_data = ConvertUniqueUNint8ToNSData(std::move(result));
-    [[BridgePluginManager shareManager] jsSendMethodResultBinary:oc_bridgeName
-                                                      methodName:oc_methodName
-                                                       errorCode:errorCode
+    BridgePluginManager * bridgePluginManager = getBridgePluginManagerWithInstanceId(instanceId);
+    if (bridgePluginManager) {
+        [bridgePluginManager jsSendMethodResultBinary:oc_bridgeName
+                                                    methodName:oc_methodName
+                                                    errorCode:errorCode
                                                     errorMessage:oc_errorMessage
-                                                          result:oc_data];
+                                                    result:oc_data];
+    }
 }
 
-void BridgeManager::PlatformSendMethodResultBinary(const std::string& bridgeName,
+void BridgeManager::PlatformSendMethodResultBinary(int32_t instanceId, const std::string& bridgeName,
                 const std::string& methodName,
                 int errorCode, const std::string& errorMessage, std::unique_ptr<BufferMapping> result) {
-    auto receiver = FindReceiver(bridgeName);
+    auto receiver = FindReceiver(instanceId, bridgeName);
     if (receiver && receiver->methodResultBinaryCallback_) {
         receiver->methodResultBinaryCallback_(methodName, errorCode, errorMessage, std::move(result));
     }
 }
 
-void BridgeManager::PlatformCallMethodBinary(const std::string& bridgeName,
-                                             const std::string& methodName,
-                                             std::unique_ptr<BufferMapping> parameter) {
-    auto receiver = FindReceiver(bridgeName);
+void BridgeManager::PlatformCallMethodBinary(int32_t instanceId, const std::string& bridgeName,
+                                            const std::string& methodName,
+                                            std::unique_ptr<BufferMapping> parameter) {
+    auto receiver = FindReceiver(instanceId, bridgeName);
     if (receiver && receiver->callMethodBinaryCallback_) {
         receiver->callMethodBinaryCallback_(methodName, std::move(parameter));
     }
 }
 
-void BridgeManager::PlatformSendMessageBinary(const std::string& bridgeName, std::unique_ptr<BufferMapping> data) {
-    auto receiver = FindReceiver(bridgeName);
+void BridgeManager::PlatformSendMessageBinary(int32_t instanceId,
+    const std::string& bridgeName, std::unique_ptr<BufferMapping> data) {
+    auto receiver = FindReceiver(instanceId, bridgeName);
     if (receiver && receiver->sendMessageBinaryCallback_) {
         receiver->sendMessageBinaryCallback_(std::move(data));
     }

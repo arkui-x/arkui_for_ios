@@ -74,6 +74,26 @@
     [_resRegister notifyLifecycleChanged:isBackground];
 }
 
+- (void)platformRelease {
+    NSLog(@"platformRelease dealloc");
+    if (_videoResourcePlugin) {
+        [_videoResourcePlugin releaseObject];
+        _videoResourcePlugin = nil;
+    }
+    if (_aceSurfacePlugin) {
+        [_aceSurfacePlugin releaseObject];
+        _aceSurfacePlugin = nil;
+    }
+    if (_resRegister) {
+        [_resRegister releaseObject];
+        _resRegister = nil;
+    }
+    if (_webResourcePlugin) {
+        [_webResourcePlugin releaseObject];
+        _webResourcePlugin = nil;
+    }
+}
+
 #pragma mark IAceOnCallEvent
 - (void)onEvent:(NSString *)eventId param:(NSString *)param
 {
@@ -84,6 +104,7 @@
     const char* paramcString = [param UTF8String];
     resRegister->OnEvent(eventIdcString, paramcString);
 }
+
 
 - (void)dealloc
 {

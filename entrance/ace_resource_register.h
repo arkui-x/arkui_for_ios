@@ -26,6 +26,7 @@ namespace OHOS::Ace::Platform {
 class AceResourceRegister final : public PlatformResRegister {
 public:
     AceResourceRegister(void*);
+    ~AceResourceRegister();
     int64_t CreateResource(const std::string& resourceType, const std::string& param) override;
     bool ReleaseResource(const std::string& resourceHash) override;
     bool OnMethodCall(const std::string& method, const std::string& param, std::string& result) override;

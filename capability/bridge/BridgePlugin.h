@@ -18,6 +18,7 @@
 
 #import "MethodData.h"
 #import "ResultValue.h"
+#import "BridgePluginManager.h"
 #import <Foundation/Foundation.h>
 
 NS_ASSUME_NONNULL_BEGIN
@@ -80,7 +81,9 @@ typedef enum : int {
 
 @property (nonatomic, strong) NSString* bridgeName;
 
-@property (nonatomic, assign) id<IMethodResult> methodResult;       // callmethod result delegate
+@property(nonatomic, strong) BridgePluginManager *bridgeManager;
+
+@property (nonatomic, assign) id<IMethodResult> methodResult; // callmethod result delegate
 
 @property (nonatomic, assign) id<IMessageListener> messageListener; // message listerner delegate
 
@@ -88,14 +91,17 @@ typedef enum : int {
 
 @property (nonatomic, assign, readonly) BridgeType type; // default JSON_TYPE
 
+
 /**
  * Initializes this BridgePlugin.
  *
  * @param bridgeName  bridgeName.
  * @param instanceId instanceId.
+ * @since 10
+ * @deprecated since 11
  */
 - (instancetype)initBridgePlugin:(NSString* _Nonnull)bridgeName
-                      instanceId:(int32_t)instanceId;
+                    instanceId:(int32_t)instanceId;
 
 /**
  * Initializes this BridgePlugin.
@@ -103,15 +109,40 @@ typedef enum : int {
  * @param bridgeName  bridgeName.
  * @param instanceId instanceId.
  * @param type type.
+ * @since 10
+ * @deprecated since 11
  */
 - (instancetype)initBridgePlugin:(NSString* _Nonnull)bridgeName
-                      instanceId:(int32_t)instanceId
-                      bridgeType:(BridgeType)type;
+                    instanceId:(int32_t)instanceId
+                    bridgeType:(BridgeType)type;
+
+/**
+ * Initializes this BridgePlugin.
+ *
+ * @param bridgeName  bridgeName.
+ * @param bridgeManager bridgeManager.
+ * @since 11
+ */
+- (instancetype)initBridgePlugin:(NSString* _Nonnull)bridgeName
+                    bridgeManager:(BridgePluginManager *)bridgeManager;
+
+/**
+ * Initializes this BridgePlugin.
+ *
+ * @param bridgeName  bridgeName.
+ * @param type type.
+ * @param bridgeManager bridgeManager.
+ * @since 11
+ */
+- (instancetype)initBridgePlugin:(NSString* _Nonnull)bridgeName
+                    bridgeType:(BridgeType)type
+                    bridgeManager:(BridgePluginManager *)bridgeManager;
 
 /**
  * platform callMethod.
  *
  * @param method  methodData model.
+ * @since 10
  */
 - (void)callMethod:(MethodData*)method;
 
@@ -119,6 +150,7 @@ typedef enum : int {
  * sendMessage to js.
  *
  * @param data  data.
+ * @since 10
  */
 - (void)sendMessage:(id)data;
 

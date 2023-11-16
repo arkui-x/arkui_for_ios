@@ -12,22 +12,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef FOUNDATION_ACE_ADAPTER_IOS_ENTRANCE_ACE_PLATFORM_PLUGIN_H
-#define FOUNDATION_ACE_ADAPTER_IOS_ENTRANCE_ACE_PLATFORM_PLUGIN_H
+
+#ifndef FOUNDATION_ADAPTER_CAPABILITY_BRIDGE_BRIDGEMANAGERHOLDER_H
+#define FOUNDATION_ADAPTER_CAPABILITY_BRIDGE_BRIDGEMANAGERHOLDER_H
 
 #import <Foundation/Foundation.h>
-#import "adapter/ios/entrance/resource/AceResourceRegisterOC.h"
+#import "BridgePluginManager.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface AcePlatformPlugin : NSObject
-
-- (instancetype)initPlatformPlugin:(id)target
-    instanceId:(int32_t)instanceId moduleName:(NSString *_Nonnull)moduleName;
-- (void)notifyLifecycleChanged:(BOOL)isBackground;
-- (void)platformRelease;
+@interface BridgeManagerHolder : NSObject
++ (BridgePluginManager *)getBridgeManagerWithInceId:(int32_t)instanceId;
++ (void)addBridgeManager:(BridgePluginManager *)object inceId:(int32_t)instanceId;
++ (void)removeBridgeManagerWithId:(int32_t)instanceId;
 @end
 
 NS_ASSUME_NONNULL_END
 
-#endif // FOUNDATION_ACE_ADAPTER_IOS_ENTRANCE_ACE_PLATFORM_PLUGIN_H
+#endif // FOUNDATION_ADAPTER_CAPABILITY_BRIDGE_BRIDGEMANAGERHOLDER_H

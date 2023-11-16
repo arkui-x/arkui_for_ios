@@ -13,9 +13,9 @@
  * limitations under the License.
  */
 
-#import "BridgeJsonCodec.h"
 #import "BridgePlugin+jsMessage.h"
-#import "BridgePluginManager.h"
+#import "BridgePluginManager+internal.h"
+#import "BridgeJsonCodec.h"
 #import <objc/runtime.h>
 
 @implementation BridgePlugin (jsMessage)
@@ -30,7 +30,6 @@
         errorMessage = BRIDGE_METHOD_NAME_ERROR_MESSAGE;
     } else {
         NSArray* parameterArray = (NSArray*)callMethod.parameter;
-        NSLog(@"%s, parameterArray : %@", __func__, parameterArray);
         if (callMethod.methodName.length != 0) {
             @try {
                 NSString* tmep = callMethod.methodName;
@@ -66,11 +65,9 @@
         RawValue* resultValue = [RawValue rawValueRresult:resultString errorCode:errorCode
                 errorMessage:errorMessage.length ? errorMessage : @""];
         NSString* jsonString = [[BridgeJsonCodec sharedInstance] encode:resultValue];
-        [[BridgePluginManager shareManager] platformSendMethodResult:self.bridgeName
-                                                          methodName:callMethod.methodName
-                                                              result:jsonString.length ? jsonString : @""
-                                                          instanceId:self.instanceId];
-        NSLog(@"%s, resultString : %@", __func__, jsonString);
+        [self.bridgeManager platformSendMethodResult:self.bridgeName
+                                                        methodName:callMethod.methodName
+                                                        result:jsonString.length ? jsonString : @""];
     } else {
         // BINARY_TYPE
         if ([result isKindOfClass:[NSArray class]]) {
@@ -81,49 +78,43 @@
             [self callPlatformError:resultValue];
             return;
         }
-        [[BridgePluginManager shareManager] platformSendMethodResultBinary:self.bridgeName
-                                                                methodName:callMethod.methodName
-                                                                 errorCode:errorCode
-                                                              errorMessage:errorMessage.length ? errorMessage : @""
-                                                                    result:result
-                                                                instanceId:self.instanceId];
+        [self.bridgeManager platformSendMethodResultBinary:self.bridgeName
+                                                            methodName:callMethod.methodName
+                                                            errorCode:errorCode
+                                                            errorMessage:errorMessage.length ? errorMessage : @""
+                                                            result:result];
     }
 }
 
 - (void)jsSendMethodResult:(ResultValue*)object {
-    NSLog(@"%s, object : %@", __func__, object);
     if (self.methodResult) {
         if (object.errorCode > 0) {
             if ([self.methodResult respondsToSelector:@selector(onError:errorCode:errorMessage:)]) {
                 [self.methodResult onError:object.methodName
-                             errorCode:object.errorCode
-                          errorMessage:object.errorMessage];
+                            errorCode:object.errorCode
+                            errorMessage:object.errorMessage];
             }
             
         } else {
             if ([self.methodResult respondsToSelector:@selector(onSuccess:resultValue:)]) {
                  [self.methodResult onSuccess:object.methodName
-                             resultValue:object.result];
+                            resultValue:object.result];
             }
         }
     }
 }
 
 - (void)jsSendMessage:(id)data {
-    NSLog(@"%s, dataString : %@", __func__, data);
     if (self.messageListener && [self.messageListener respondsToSelector:@selector(onMessage:)]) {
         id object = [self.messageListener onMessage:data];
         RawValue* rawValue = [RawValue rawValueResult:object errorCode:0];
         NSString* string = [[BridgeJsonCodec sharedInstance] encode:rawValue];
-        NSLog(@"data : %@, string : %@", object, string);
-        [[BridgePluginManager shareManager] platformSendMessageResponse:self.bridgeName
-                                                                   data:string
-                                                             instanceId:self.instanceId];
+        [self.bridgeManager platformSendMessageResponse:self.bridgeName
+                                                            data:string];
     }
 }
 
 - (void)jsSendMessageResponse:(id)data {
-    NSLog(@"%s, dataString : %@", __func__, data);
     if (data && self.messageListener && [self.messageListener respondsToSelector:@selector(onMessageResponse:)]) {
         [self.messageListener onMessageResponse:data];
     }
@@ -131,15 +122,14 @@
 
 - (void)jsCancelMethod:(NSString*)bridgeName
             methodName:(NSString*)methodName {
-    NSLog(@"%s, bridgeName : %@, methodName : %@", __func__, bridgeName, methodName);
     if (self.methodResult && [self.methodResult respondsToSelector:@selector(onMethodCancel:)]) {
         [self.methodResult onMethodCancel:methodName];
     }
 }
 
 - (id)performeNewSelector:(NSString*)methodName
-               withParams:(NSArray*)params
-                   target:(id)target {
+            withParams:(NSArray*)params
+                target:(id)target {
     NSUInteger paramCount = params.count;
     int signatureDefaultArgsNum = 2;
     NSMethodSignature* signature;
@@ -160,8 +150,7 @@
             }
             const char* c_methodname = [methodName UTF8String];
             signature = [target methodSignatureForSelector:c_sel];
-            if (signature.numberOfArguments == paramCount + signatureDefaultArgsNum &&
-                !strncmp(name, c_methodname, strlen(c_methodname))) {
+            if (signature && !strncmp(name, c_methodname, strlen(c_methodname))) {
                 selector = c_sel;
                 break;
             }
@@ -173,9 +162,9 @@
 }
 
 - (id)handleMethodParam:(NSMethodSignature*)signature
-                 target:(id)target
-               selector:(SEL)selector
-                 params:(NSArray*)params {
+                target:(id)target
+                selector:(SEL)selector
+                params:(NSArray*)params {
     int signatureDefaultArgsNum = 2;
     if (!signature || selector == nullptr) {
         NSLog(@"signature nil");
@@ -211,10 +200,9 @@
                     [invocation setArgument:&arg atIndex:i + signatureDefaultArgsNum];
                 } else {
                     return @{@"errorCode": @(BRIDGE_METHOD_PARAM_ERROR),
-                             @"errorMessage": BRIDGE_METHOD_PARAM_ERROR_MESSAGE};
+                            @"errorMessage": BRIDGE_METHOD_PARAM_ERROR_MESSAGE};
                 }
             } else {
-                NSLog(@"paramsIndex : %d, id : %@", i, argument);
                 [invocation setArgument:&argument atIndex:i + signatureDefaultArgsNum];
             }
         }
@@ -262,7 +250,6 @@
             result = [NSNumber numberWithLong:*((long*)returnValue)];
         }
         free(returnValue);
-        NSLog(@"assign returnValue : %@", result);
 
         if (self.type == JSON_TYPE) {
             NSString* valueString = [NSString stringWithFormat:@"%@", result];
@@ -278,8 +265,8 @@
         [self.methodResult respondsToSelector:@selector(onError:errorCode:errorMessage:)]) {
         if (object.errorCode > 0) {
             [self.methodResult onError:object.methodName
-                             errorCode:object.errorCode
-                          errorMessage:object.errorMessage];
+                            errorCode:object.errorCode
+                            errorMessage:object.errorMessage];
         }
     }
 }

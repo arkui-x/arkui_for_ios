@@ -27,7 +27,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, strong) NSArray *parameter;
 
 - (instancetype)initMethodWithName:(NSString *_Nonnull)methodName
-                         parameter:(NSArray *_Nullable)parameter;
+                        parameter:(NSArray *_Nullable)parameter;
 
 @end
 
