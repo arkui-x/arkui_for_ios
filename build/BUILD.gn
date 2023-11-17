@@ -145,9 +145,7 @@ foreach(module, common_plugin_libs) {
     ]
     deps = [ "//plugins/$module:${plugin_name_ext}_static_ios" ]
     deps += [ ":arkui_ios" ]
-    if (target_name_ext == "net_utils") {
-      deps += [ "//third_party/jsoncpp:jsoncpp_static" ]
-    }
+
     frameworks = [
       "AVFoundation.framework",
       "Foundation.framework",
@@ -202,63 +200,6 @@ foreach(module, component_plugins) {
   component_plugin_modules += [ ":${lib_name}" ]
 }
 
-#third_party target
-third_party_modules = []
-common_third_party_libs = [
-  ":arkui_xml2",
-  ":arkui_nghttp2",
-  ":arkui_shared_libz",
-  "//third_party/openssl:crypto_source",
-  "//third_party/openssl:ssl_source",
-]
-
-ohos_source_set("arkui_xml2") {
-  deps = [ "//third_party/libxml2:static_libxml2" ]
-}
-
-ohos_source_set("arkui_nghttp2") {
-  deps = [ "//third_party/nghttp2/lib:nghttp2" ]
-}
-
-ohos_source_set("arkui_shared_libz") {
-  deps = [ "//third_party/zlib:libz" ]
-}
-
-foreach(module, common_third_party_libs) {
-  target_dep = ""
-  target_dep = string_split(module, ":")
-  directory_path = target_dep[0]
-  library_name = target_dep[1]
-  module_name = string_replace(library_name, "arkui_", "")
-  lib_name = "lib" + module_name
-  ohos_shared_library(module_name) {
-    ldflags = [
-      "-Wl",
-      "-install_name",
-      "@rpath/${lib_name}.framework/$lib_name",
-    ]
-    frameworks = [
-      "AVFoundation.framework",
-      "Foundation.framework",
-      "UIKit.framework",
-      "WebKit.framework",
-    ]
-    deps = [ "${directory_path}:$library_name" ]
-    if (module_name == "ssl_source") {
-      deps += [ "${directory_path}:libcrypto_static" ]
-      public_configs = [ "${directory_path}:crypto_config_public" ]
-    }
-    subsystem_name = "arkui"
-    part_name = "thirty_party"
-  }
-  ohos_combine_darwin_framework(lib_name) {
-    deps = [ ":$module_name" ]
-    subsystem_name = "arkui"
-    part_name = "thirty_party"
-  }
-  third_party_modules += [ ":${lib_name}" ]
-}
-
 # Install packages
 group("ace_packages") {
   deps = [ ":libarkui_ios" ]
@@ -267,5 +208,4 @@ group("ace_packages") {
   if (defined(use_components_lib) && use_components_lib) {
     deps += component_plugin_modules
   }
-  deps += third_party_modules
 }
