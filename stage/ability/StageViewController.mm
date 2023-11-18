@@ -187,4 +187,28 @@ CGFloat _brightness = 0.0;
 - (BOOL)prefersStatusBarHidden {
     return self.statusBarHidden;
 }
+
+- (void)pressesBegan:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event {
+    if (_windowView) {
+        [_windowView pressesBegan:presses withEvent:event];
+    }
+}
+
+- (void)pressesEnded:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event {
+    if (_windowView) {
+        [_windowView pressesEnded:presses withEvent:event];
+    }
+}
+
+- (void)pressesChanged:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event {
+    if (_windowView) {
+        [_windowView pressesChanged:presses withEvent:event];
+    }
+}
+
+- (void)pressesCancelled:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event {
+    if (_windowView) {
+        [_windowView pressesCancelled:presses withEvent:event];
+    }
+}
 @end
