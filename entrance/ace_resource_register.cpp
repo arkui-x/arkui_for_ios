@@ -33,6 +33,11 @@ AceResourceRegister::AceResourceRegister(void* object) : client_(object)
 {
 }
 
+AceResourceRegister::~AceResourceRegister()
+{
+   delete static_cast<void*>(client_);
+}
+
 bool AceResourceRegister::OnMethodCall(const std::string& method, const std::string& param, std::string& result)
 {
     return CallOC_OnMethodCall(client_, method, param, result);

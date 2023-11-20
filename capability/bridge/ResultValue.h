@@ -66,8 +66,8 @@ extern NSString *const ResultValueError(ErrorCode type);
 
 - (instancetype)initWithMethodName:(NSString *)methodName
                             result:(NSString *)result
-                         errorCode:(ErrorCode)errorCode
-                      errorMessage:(NSString *)errorMessage;
+                            errorCode:(ErrorCode)errorCode
+                            errorMessage:(NSString *)errorMessage;
 @end
 
 NS_ASSUME_NONNULL_END

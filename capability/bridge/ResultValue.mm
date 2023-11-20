@@ -55,9 +55,9 @@ NSString* const ResultValueError(ErrorCode type) {
 @implementation ResultValue
 
 - (instancetype)initWithMethodName:(NSString*)methodName
-                            result:(NSString*)result
-                         errorCode:(ErrorCode)errorCode
-                      errorMessage:(NSString*)errorMessage {
+                        result:(NSString*)result
+                        errorCode:(ErrorCode)errorCode
+                        errorMessage:(NSString*)errorMessage {
     self = [super init];
     if (self) {
         self.methodName = methodName;

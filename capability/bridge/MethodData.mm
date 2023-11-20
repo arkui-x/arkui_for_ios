@@ -18,7 +18,7 @@
 @implementation MethodData
 
 - (instancetype)initMethodWithName:(NSString *_Nonnull)methodName
-                         parameter:(NSArray *_Nullable)parameter {
+                        parameter:(NSArray *_Nullable)parameter {
     self = [super init];
     if (self) {
         self.methodName = methodName;

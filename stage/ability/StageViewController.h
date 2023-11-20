@@ -37,9 +37,23 @@
  *  abilityDirectory.
  *
  * @param instanceName instance name.
+ * @since 10
  */
 - (instancetype)initWithInstanceName:(NSString *_Nonnull)instanceName;
 
+/**
+ * Get the BridgeManager of StageViewController.
+ * @return The BridgeManager.
+ */
+- (id)getBridgeManager;
+
+/**
+ * Get the Id of StageViewController.
+ * @return The InstanceId.
+ * @since 10
+ * @deprecated since 11
+ */
 - (int32_t)getInstanceId;
+
 @end
 #endif // FOUNDATION_ACE_ADAPTER_IOS_STAGE_ABILITY_STAGEVIEWCONTROLLER_H

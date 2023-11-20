@@ -25,8 +25,8 @@
     NSData *jsonData = [jsonString dataUsingEncoding:NSUTF8StringEncoding];
     NSError *error;
     id jsonObj = [NSJSONSerialization JSONObjectWithData:jsonData
-                                                 options:kNilOptions
-                                                   error:&error];
+                                                options:kNilOptions
+                                                error:&error];
     if (error) {
         NSLog(@"json -> objct faild, error : %@", error);
         return nil;
@@ -44,11 +44,11 @@
 
     NSError *error;
     NSData *jsonData = [NSJSONSerialization dataWithJSONObject:object
-                                                       options:kNilOptions
-                                                         error:&error];
+                                                        options:kNilOptions
+                                                        error:&error];
 
     NSString *json = [[NSString alloc] initWithData:jsonData
-                                           encoding:NSUTF8StringEncoding];
+                                            encoding:NSUTF8StringEncoding];
     if (error) {
         NSLog(@"objc -> json faild, error: %@", error);
         return nil;

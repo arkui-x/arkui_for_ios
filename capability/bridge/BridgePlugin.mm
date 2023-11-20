@@ -14,7 +14,8 @@
  */
 
 #import "BridgePlugin.h"
-#import "BridgePluginManager.h"
+#import "BridgePluginManager+internal.h"
+#import "BridgeManagerHolder.h"
 #import "ResultValue.h"
 #import <objc/message.h>
 #import <objc/runtime.h>
@@ -28,21 +29,33 @@
 @implementation BridgePlugin
 
 #pragma mark - public method
+ 
 - (instancetype)initBridgePlugin:(NSString* _Nonnull)bridgeName
-                      instanceId:(int32_t)instanceId {
+                    instanceId:(int32_t)instanceId {
     return [self initBridgePlugin:bridgeName instanceId:instanceId bridgeType:JSON_TYPE];
 }
 
 - (instancetype)initBridgePlugin:(NSString* _Nonnull)bridgeName
-                      instanceId:(int32_t)instanceId
-                      bridgeType:(BridgeType)type {
+                    instanceId:(int32_t)instanceId
+                    bridgeType:(BridgeType)type {
+    self.instanceId = instanceId;
+    BridgePluginManager * bridgeManager = [BridgeManagerHolder getBridgeManagerWithInceId:instanceId];
+    return [self initBridgePlugin:bridgeName bridgeType:type bridgeManager:bridgeManager];
+}
+
+- (instancetype)initBridgePlugin:(NSString *_Nonnull)bridgeName
+                    bridgeManager:(BridgePluginManager *)bridgeManager {
+    return [self initBridgePlugin:bridgeName bridgeType:JSON_TYPE bridgeManager:bridgeManager];
+}
+
+- (instancetype)initBridgePlugin:(NSString* _Nonnull)bridgeName
+                        bridgeType:(BridgeType)type
+                        bridgeManager:(BridgePluginManager *)bridgeManager {
     self = [super init];
     if (self) {
         self.bridgeName = bridgeName;
-        self.instanceId = instanceId;
-        NSLog(@"init bridgeplugin bridgeName %@", bridgeName);
-        BOOL isSuccess = [[BridgePluginManager shareManager] registerBridgePlugin:bridgeName
-                                                                     bridgePlugin:self];
+        self.bridgeManager = bridgeManager;
+        BOOL isSuccess = [self.bridgeManager registerBridgePlugin:bridgeName bridgePlugin:self];
         _isAvailable = isSuccess;
         _bridgeType = type;
     }
@@ -55,18 +68,15 @@
         return;
     }
 
-    NSLog(@"%s, method : %@", __func__, method);
     ResultValue* result;
     if (self.type == JSON_TYPE) {
-        result = [[BridgePluginManager shareManager] platformCallMethod:self.bridgeName
-                                                             methodName:method.methodName
-                                                                  param:method.parameter
-                                                             instanceId:self.instanceId];
+        result = [self.bridgeManager platformCallMethod:self.bridgeName
+                                                            methodName:method.methodName
+                                                            param:method.parameter];
     } else {
-        result = [[BridgePluginManager shareManager] platformCallMethodBinary:self.bridgeName
-                                                                   methodName:method.methodName
-                                                                        param:method.parameter
-                                                                   instanceId:self.instanceId];
+        result = [self.bridgeManager platformCallMethodBinary:self.bridgeName
+                                                                methodName:method.methodName
+                                                                param:method.parameter];
     }
 
     if (result) {
@@ -77,7 +87,6 @@
                         errorCode:result.errorCode
                     errorMessage:result.errorMessage];
             }
-        
     }
 }
 
@@ -87,25 +96,26 @@
         return;
     }
     if (self.type == JSON_TYPE) {
-        [[BridgePluginManager shareManager] platformSendMessage:self.bridgeName
-                                                           data:data
-                                                     instanceId:self.instanceId];
+        [self.bridgeManager platformSendMessage:self.bridgeName data:data];
     } else {
         // BINARY_TYPE
         if ([data isKindOfClass:[NSArray class]]) {
             if (self.methodResult &&
                 [self.methodResult respondsToSelector:@selector(onError:errorCode:errorMessage:)]) {
                 [self.methodResult onError:@"please use BridgeArray"
-                                 errorCode:BRIDGE_DATA_ERROR
-                              errorMessage:BRIDGE_DATA_ERROR_MESSAGE];
+                                errorCode:BRIDGE_DATA_ERROR
+                            errorMessage:BRIDGE_DATA_ERROR_MESSAGE];
             }
             return;
         }
 
-        [[BridgePluginManager shareManager] platformSendMessageBinary:self.bridgeName
-                                                                 data:data
-                                                           instanceId:self.instanceId];
+        [self.bridgeManager platformSendMessageBinary:self.bridgeName
+                                                                data:data];
     }
+}
+
+- (BOOL)unRegister:(NSString *)bridgeName {
+    return [self.bridgeManager unRegisterBridgePlugin:bridgeName];
 }
 
 - (BridgeType)type {

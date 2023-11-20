@@ -20,7 +20,7 @@
 #import "StageAssetManager.h"
 #import "WindowView.h"
 #import "StageApplication.h"
-#import "BridgePluginManager.h"
+#import "BridgePluginManager+internal.h"
 
 #include "app_main.h"
 #include "window_view_adapter.h"
@@ -33,6 +33,7 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
     std::string _cInstanceName;
     WindowView *_windowView;
     AcePlatformPlugin *_platformPlugin;
+    BridgePluginManager *_bridgePluginManager;
     BOOL _needOnForeground;
 }
 
@@ -74,12 +75,17 @@ CGFloat _brightness = 0.0;
     [self.view addSubview: _windowView];
 }
 
+- (void)initBridge {
+    _bridgePluginManager = [BridgePluginManager bridgePluginManager:_instanceId];
+}
+
 - (void)viewDidLoad {
     [super viewDidLoad];
     self.view.backgroundColor = UIColor.whiteColor;
     NSLog(@"StageVC->%@ viewDidLoad call. self.params : %@", self, self.params);
     [self initWindowView];
     [self initPlatformPlugin];
+    [self initBridge];
     [_windowView createSurfaceNode];
 
     std::string paramsString = [self getCPPString:self.params.length ? self.params : @""];
@@ -125,9 +131,12 @@ CGFloat _brightness = 0.0;
     [_windowView notifySurfaceDestroyed];
     [_windowView notifyWindowDestroyed];
     _windowView = nil;
+    [_platformPlugin platformRelease];
     _platformPlugin = nil;
+    [BridgePluginManager unbridgePluginManager:_instanceId];
+    _bridgePluginManager = nil;
+
     AppMain::GetInstance()->DispatchOnDestroy(_cInstanceName);
-    [[BridgePluginManager shareManager] UnRegisterBridgePluginWithInstanceId:_instanceId];
 }
 
 - (void)traitCollectionDidChange:(UITraitCollection *)previousTraitCollection {
@@ -140,6 +149,10 @@ CGFloat _brightness = 0.0;
 
 - (int32_t)getInstanceId {
     return _instanceId;
+}
+
+- (id)getBridgeManager {
+    return _bridgePluginManager;
 }
 
 #pragma mark - private method
@@ -181,7 +194,7 @@ CGFloat _brightness = 0.0;
 }
 
 - (void)notifyApplicationWillTerminateNotification {
-   [[BridgePluginManager shareManager] platformWillTerminate];
+   [_bridgePluginManager platformWillTerminate];
 }
 
 - (BOOL)prefersStatusBarHidden {
