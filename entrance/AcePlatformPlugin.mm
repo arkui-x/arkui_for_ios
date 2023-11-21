@@ -84,13 +84,13 @@
         [_aceSurfacePlugin releaseObject];
         _aceSurfacePlugin = nil;
     }
-    if (_resRegister) {
-        [_resRegister releaseObject];
-        _resRegister = nil;
-    }
     if (_webResourcePlugin) {
         [_webResourcePlugin releaseObject];
         _webResourcePlugin = nil;
+    }
+    if (_resRegister) {
+        [_resRegister releaseObject];
+        _resRegister = nil;
     }
 }
 
