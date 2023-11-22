@@ -88,6 +88,7 @@ ohos_shared_library("arkui_ios") {
     "-frtti",
   ]
 
+  exported_symbols_list = "libarkui_ios.txt"
   part_name = "arkui-x"
   subsystem_name = "arkui"
 }
