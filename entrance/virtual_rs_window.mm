@@ -169,6 +169,30 @@ void Window::AddToSubWindowMap(std::shared_ptr<Window> window)
     subWindowMap_[parentId].push_back(window);
     HILOG_INFO("Window::AddToSubWindowMap : End!!!");
 }
+
+void Window::UpdateOtherWindowFocusStateToFalse(Window *window)
+{
+    uint32_t parentId = window->GetParentId();
+    if (parentId == INVALID_WINDOW_ID) {
+        HILOG_INFO("Window::DeleteFromSubWindowMap : parentId is invalid");
+        return;
+    }
+    auto iter1 = subWindowMap_.find(parentId);
+    if (iter1 == subWindowMap_.end()) {
+        HILOG_INFO("Window::DeleteFromSubWindowMap : find parentId failed");
+        return;
+    }
+    auto subWindows = iter1->second;
+    auto iter2 = subWindows.begin();
+    while (iter2 != subWindows.end()) {
+        if ((*iter2)->GetWindowId() != window->GetWindowId()) {
+            (*iter2)->WindowFocusChanged(false);
+            break;
+        } else {
+            iter2++;
+        }
+    }
+}
 void Window::DeleteFromSubWindowMap(std::shared_ptr<Window> window)
 {
     HILOG_INFO("Window::DeleteFromSubWindowMap : Start...");
@@ -335,6 +359,10 @@ WMError Window::ShowWindow()
         [controller.view addSubview:windowView_];
     }
     isWindowShow_ = true;
+    if (focusable_) {
+        WindowFocusChanged(true);
+        UpdateOtherWindowFocusStateToFalse(this);
+    }
     NotifyAfterForeground();
     return WMError::WM_OK;
 }
@@ -362,6 +390,15 @@ bool Window::ProcessBasicEvent(const std::vector<Ace::TouchEvent>& touchEvents)
         return false;
     }
     return uiContent_->ProcessBasicEvent(touchEvents);
+}
+
+void Window::SetFocusable(bool focusable)
+{
+    focusable_ = focusable;
+}
+bool Window::GetFocusable() const
+{
+    return focusable_;
 }
 
 WMError Window::ResizeWindowTo(int32_t width, int32_t height) {
@@ -561,7 +598,6 @@ WMError Window::SetUIContent(const std::string& contentInfo,
     uiContent_ = std::move(uiContent);
 
     uiContent_->Foreground();
-    isWindowShow_ = true;
 
     DelayNotifyUIContentIfNeeded();
     LOGI("Window::SetUIContent : End!!!");
@@ -604,18 +640,22 @@ void Window::SetParentId(uint32_t parentId)
 
 void Window::WindowFocusChanged(bool hasWindowFocus)
 {
-    if (!uiContent_) {
-        LOGW("Window::Focus uiContent_ is nullptr");
-        return;
+    if (uiContent_) {
+       if (hasWindowFocus) {
+            LOGI("Window: notify uiContent Focus");
+            uiContent_->Focus();
+        } else {
+            LOGI("Window: notify uiContent UnFocus");
+            uiContent_->UnFocus();
+        }
     }
-    if (hasWindowFocus) {
-        LOGI("Window: notify uiContent Focus");
-        uiContent_->Focus();
-        NotifyAfterActive();
-    } else {
-        LOGI("Window: notify uiContent UnFocus");
-        uiContent_->UnFocus();
-        NotifyAfterInactive();
+    if (isActive_ != hasWindowFocus) {
+        isActive_ = hasWindowFocus;
+        if (isActive_) {
+            NotifyAfterActive();
+        } else {
+            NotifyAfterInactive();
+        }
     }
 }
 

@@ -325,14 +325,14 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
 #pragma mark - Application lifecycle notifications
 
 - (void)applicationBecameActive:(NSNotification *)notification {
-    if (_windowDelegate.lock() != nullptr) {
-        _windowDelegate.lock()->WindowFocusChanged(true);
+    if ([self.notifyDelegate respondsToSelector:@selector(notifyApplicationBecameActive)]) {
+        [self.notifyDelegate notifyApplicationBecameActive];
     }
 }
 
 - (void)applicationWillResignActive:(NSNotification *)notification {
-    if (_windowDelegate.lock() != nullptr) {
-        _windowDelegate.lock()->WindowFocusChanged(false);
+    if ([self.notifyDelegate respondsToSelector:@selector(notifyApplicationWillResignActive)]) {
+        [self.notifyDelegate notifyApplicationWillResignActive];
     }
 }
 
@@ -344,6 +344,12 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
 - (void)notifyBackground {
     if (_windowDelegate.lock() != nullptr) {
         _windowDelegate.lock()->Background();
+    }
+}
+
+- (void)notifyFocusChanged:(BOOL)focus{
+    if (_windowDelegate.lock() != nullptr) {
+        _windowDelegate.lock()->WindowFocusChanged(focus);
     }
 }
 

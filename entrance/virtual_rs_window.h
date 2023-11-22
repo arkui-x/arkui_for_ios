@@ -226,6 +226,7 @@ public:
         return state_;
     }
 
+    void UpdateOtherWindowFocusStateToFalse(Window *window);
     SystemBarProperty GetSystemBarPropertyByType(WindowType type) const;
     void SetRequestedOrientation(Orientation);
     WMError RegisterLifeCycleListener(const sptr<IWindowLifeCycle>& listener);
@@ -236,6 +237,8 @@ public:
         return static_cast<int64_t>(1000000000.0f / 60); // SyncPeriod of 60 fps
     }
     void NotifyWillTeminate();
+    void SetFocusable(bool focusable);
+    bool GetFocusable() const;
 private:
     void SetWindowView(WindowView* windowView);
     void SetWindowName(const std::string& windowName);
@@ -245,7 +248,8 @@ private:
 
     void DelayNotifyUIContentIfNeeded();
     bool IsWindowValid() const;
-
+    bool isActive_ = false;
+    bool focusable_ = true;
     template<typename T1, typename T2, typename Ret>
     using EnableIfSame = typename std::enable_if<std::is_same_v<T1, T2>, Ret>::type;
     template<typename T> WMError RegisterListener(std::vector<sptr<T>>& holder, const sptr<T>& listener);
@@ -297,13 +301,13 @@ private:
     inline void NotifyAfterActive()
     {
         auto lifecycleListeners = GetListeners<IWindowLifeCycle>();
-        CALL_LIFECYCLE_LISTENER(AfterActive, lifecycleListeners);
+        CALL_LIFECYCLE_LISTENER(AfterFocused, lifecycleListeners);
     }
 
     inline void NotifyAfterInactive()
     {
         auto lifecycleListeners = GetListeners<IWindowLifeCycle>();
-        CALL_LIFECYCLE_LISTENER(AfterInactive, lifecycleListeners);
+        CALL_LIFECYCLE_LISTENER(AfterUnfocused, lifecycleListeners);
     }
 
     inline void NotifyBeforeDestroy(std::string windowName)
