@@ -178,7 +178,6 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
         return EMPTY_JSON;
     }
     NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-    NSLog(@"configuration json : %@", jsonString);
     return [jsonString UTF8String];
 }
 
