@@ -131,7 +131,6 @@ int32_t AbilityContextAdapter::StartAbility(const std::string& instanceName, con
     components.queryItems = queryItems;
     NSURL *appUrl = components.URL;
 
-    NSLog(@"%s, url : %@", __func__, appUrl);
     if ([[UIApplication sharedApplication] canOpenURL:appUrl]) {
         dispatch_main_async_safe(^{
             [[UIApplication sharedApplication] openURL:appUrl options: @{} completionHandler: ^(BOOL success) {}];
