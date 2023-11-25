@@ -54,3 +54,47 @@ std::string AceWebHttpErrorReceiveObject::GetEncoding() {
 int AceWebHttpErrorReceiveObject::GetStatusCode() {
     return this->statusCode_;
 }
+
+std::string AceWebDialogObject::GetUrl() {
+    return this->url_;
+}
+
+std::string AceWebDialogObject::GetMessage() {
+    return this->message_;
+}
+
+std::string AceWebDialogObject::GetValue() {
+    return this->value_;
+}
+
+std::string AceWebPermissionRequestObject::GetOrigin() {
+    return this->origin_;
+}
+
+int AceWebPermissionRequestObject::GetResourcesId() {
+     return this->type_;
+}
+
+std::string AceWebOnHttpAuthRequestObject::GetHost() {
+    return this->host_;
+}
+
+std::string AceWebOnHttpAuthRequestObject::GetRealm() {
+     return this->realm_;
+}
+
+std::string AceWebDownloadResponseObject::GetUrl() {
+    return this->url_;
+}
+
+std::string AceWebDownloadResponseObject::GetMimetype() {
+     return this->mimetype_;
+}
+
+long AceWebDownloadResponseObject::GetContentLength() {
+     return this->contentLength_;
+}
+
+std::string AceWebDownloadResponseObject::GetUserAgent() {
+    return this->userAgent_;
+}

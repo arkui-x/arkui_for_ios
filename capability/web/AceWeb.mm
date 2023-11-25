@@ -649,6 +649,7 @@
 - (void)webView:(WKWebView *)webView didCommitNavigation:(WKNavigation *)navigation {
     NSString *param = [NSString stringWithFormat:@"%@",webView.URL];
     [self fireCallback:@"onPageStarted" params:param];
+    [self fireCallback:@"onPageVisible" params:param];
 }
 
 - (void)webView:(WKWebView *)webView didFinishNavigation:(WKNavigation *)navigation {
@@ -675,9 +676,13 @@
     if (AceWebObjectWithBoolReturn(
             [[self event_hashFormat:NTC_ONLOADINTERCEPT] UTF8String], [NTC_ONLOADINTERCEPT UTF8String], obj)) {
         decisionHandler(WKNavigationActionPolicyCancel);
-    } else {
-        decisionHandler(WKNavigationActionPolicyAllow);
+        return;
     }
+    if (navigationAction.shouldPerformDownload) {
+        decisionHandler(WKNavigationActionPolicyDownload);
+        return;
+    }
+    decisionHandler(WKNavigationActionPolicyAllow);
 }
 
 - (void)webView:(WKWebView*)webView
@@ -693,6 +698,10 @@
             std::string([mineType UTF8String]), std::string([encodingName UTF8String]), response.statusCode);
         AceWebObject(
             [[self event_hashFormat:NTC_ONHTTPERRORRECEIVE] UTF8String], [NTC_ONHTTPERRORRECEIVE UTF8String], obj);
+    }
+    if (!navigationResponse.canShowMIMEType) {
+        decisionHandler(WKNavigationResponsePolicyDownload);
+        return;
     }
     decisionHandler(WKNavigationResponsePolicyAllow);
 }
@@ -755,6 +764,221 @@
     AceWebOnConsoleObject* obj = new AceWebOnConsoleObject(std::string([messageBody UTF8String]), messageLevel);
     AceWebObjectWithBoolReturn(
         [[self event_hashFormat:NTC_ONCONSOLEMESSAGE] UTF8String], [NTC_ONCONSOLEMESSAGE UTF8String], obj);
+}
+
+- (void)webView:(WKWebView*)webView
+    runJavaScriptAlertPanelWithMessage:(NSString*)message
+                      initiatedByFrame:(WKFrameInfo*)frame
+                     completionHandler:(void (^)(void))completionHandler
+{
+    NSString* url = [self getUrl];
+    DialogResultMethod dialogResult_callback = ^void(int action, std::string promptResult) {
+      @try {
+          if (action == static_cast<int>(AceWebHandleResult::CONFIRM)) {
+              completionHandler();
+              return;
+          } else if (action == static_cast<int>(AceWebHandleResult::CANCEL)) {
+              completionHandler();
+              return;
+          }
+          completionHandler();
+      } @catch (NSException* exception) {
+          NSLog(@"Error: alert dialog completionHandler call failed");
+      }
+    };
+    AceWebDialogObject* obj =
+        new AceWebDialogObject(std::string([url UTF8String]), std::string([message UTF8String]), "");
+    obj->SetDialogResultCallback(dialogResult_callback);
+    if (!AceWebObjectWithBoolReturn([[self event_hashFormat:@"onAlert"] UTF8String], [@"onAlert" UTF8String], obj)) {
+        @try {
+            completionHandler();
+        } @catch (NSException* exception) {
+            NSLog(@"Error: alert dialog completionHandler call failed");
+        }
+    }
+}
+
+- (void)webView:(WKWebView*)webView
+    runJavaScriptConfirmPanelWithMessage:(NSString*)message
+                        initiatedByFrame:(WKFrameInfo*)frame
+                       completionHandler:(void (^)(BOOL result))completionHandler
+{
+    NSString* url = [self getUrl];
+    DialogResultMethod dialogResult_callback = ^void(int action, std::string promptResult) {
+      @try {
+          if (action == static_cast<int>(AceWebHandleResult::CONFIRM)) {
+              completionHandler(true);
+              return;
+          } else if (action == static_cast<int>(AceWebHandleResult::CANCEL)) {
+              completionHandler(false);
+              return;
+          }
+          completionHandler(false);
+      } @catch (NSException* exception) {
+          NSLog(@"Error: confirm dialog completionHandler call failed");
+      }
+    };
+    AceWebDialogObject* obj =
+        new AceWebDialogObject(std::string([url UTF8String]), std::string([message UTF8String]), "");
+    obj->SetDialogResultCallback(dialogResult_callback);
+    if (!AceWebObjectWithBoolReturn(
+            [[self event_hashFormat:@"onConfirm"] UTF8String], [@"onConfirm" UTF8String], obj)) {
+        @try {
+            completionHandler(false);
+        } @catch (NSException* exception) {
+            NSLog(@"Error: confirm dialog completionHandler call failed");
+        }
+    }
+}
+
+- (void)webView:(WKWebView*)webView
+    runJavaScriptTextInputPanelWithPrompt:(NSString*)prompt
+                              defaultText:(NSString*)defaultText
+                         initiatedByFrame:(WKFrameInfo*)frame
+                        completionHandler:(void (^)(NSString* result))completionHandler
+{
+    NSString* url = [self getUrl];
+    DialogResultMethod dialogResult_callback = ^void(int action, std::string promptResult) {
+      @try {
+          NSString* nsResult =
+              [NSString stringWithCString:promptResult.c_str() encoding:[NSString defaultCStringEncoding]];
+          if (action == static_cast<int>(AceWebHandleResult::PROMPTCONFIRM)) {
+              completionHandler(nsResult);
+              return;
+          } else if (action == static_cast<int>(AceWebHandleResult::CANCEL)) {
+              completionHandler(nil);
+              return;
+          }
+          completionHandler(nil);
+      } @catch (NSException* exception) {
+          NSLog(@"Error: prompt dialog completionHandler call failed");
+      }
+    };
+    AceWebDialogObject* obj = new AceWebDialogObject(
+        std::string([url UTF8String]), std::string([prompt UTF8String]), std::string([defaultText UTF8String]));
+    obj->SetDialogResultCallback(dialogResult_callback);
+    if (!AceWebObjectWithBoolReturn([[self event_hashFormat:@"onPrompt"] UTF8String], [@"onPrompt" UTF8String], obj)) {
+        @try {
+            completionHandler(nil);
+        } @catch (NSException* exception) {
+            NSLog(@"Error: prompt dialog completionHandler call failed");
+        }
+    }
+}
+
+- (void)webView:(WKWebView*)webView
+    requestMediaCapturePermissionForOrigin:(WKSecurityOrigin*)origin
+                          initiatedByFrame:(WKFrameInfo*)frame
+                                      type:(WKMediaCaptureType)type
+                           decisionHandler:(void (^)(WKPermissionDecision decision))decisionHandler
+    API_AVAILABLE(ios(15.0))
+{
+    NSString* host = origin.host ? origin.host : @"";
+    int permissionType = 0;
+    switch (type) {
+        case WKMediaCaptureTypeCamera:
+            permissionType = 1;
+            break;
+        case WKMediaCaptureTypeMicrophone:
+            permissionType = 2;
+            break;
+        case WKMediaCaptureTypeCameraAndMicrophone:
+            permissionType = 3;
+            break;
+        default:
+            break;
+    }
+    PermissionRequestMethod permissionRequest_callback = ^void(int action, int ResourcesId) {
+      @try {
+          if (action == static_cast<int>(AceWebHandleResult::DENY)) {
+              decisionHandler(WKPermissionDecisionDeny);
+              return;
+          } else if (ResourcesId > 0 && action == static_cast<int>(AceWebHandleResult::GRANT)) {
+              decisionHandler(WKPermissionDecisionGrant);
+              return;
+          }
+          decisionHandler(WKPermissionDecisionPrompt);
+      } @catch (NSException* exception) {
+          NSLog(@"Error: request permission completionHandler call failed");
+      }
+    };
+    AceWebPermissionRequestObject* obj =
+        new AceWebPermissionRequestObject(std::string([origin.host UTF8String]), permissionType);
+    obj->SetPermissionResultCallback(permissionRequest_callback);
+    if (!AceWebObjectWithBoolReturn(
+            [[self event_hashFormat:@"onPermissionRequest"] UTF8String], [@"onPermissionRequest" UTF8String], obj)) {
+        @try {
+            decisionHandler(WKPermissionDecisionPrompt);
+        } @catch (NSException* exception) {
+            NSLog(@"Error: request permission completionHandler call failed");
+        }
+    }
+}
+
+- (void)webView:(WKWebView*)webView
+    didReceiveAuthenticationChallenge:(NSURLAuthenticationChallenge*)challenge
+                    completionHandler:(void (^)(NSURLSessionAuthChallengeDisposition disposition,
+                                          NSURLCredential* credential))completionHandler
+{
+    NSString* host = challenge.protectionSpace.host ? challenge.protectionSpace.host : @"";
+    NSString* realm = challenge.protectionSpace.realm ? challenge.protectionSpace.realm : @"";
+
+    HttpAuthRequestMethod authRequest_callback = ^bool(int action, std::string name, std::string pwd) {
+      NSString* nsName = [NSString stringWithCString:name.c_str() encoding:[NSString defaultCStringEncoding]];
+      NSString* nsPwd = [NSString stringWithCString:pwd.c_str() encoding:[NSString defaultCStringEncoding]];
+      @try {
+          if (action == static_cast<int>(AceWebHandleResult::CONFIRM)) {
+              NSURLCredential* credential = [NSURLCredential credentialWithUser:nsName
+                                                                       password:nsPwd
+                                                                    persistence:NSURLCredentialPersistencePermanent];
+              completionHandler(NSURLSessionAuthChallengeUseCredential, credential);
+              return true;
+          } else if (action == static_cast<int>(AceWebHandleResult::CANCEL)) {
+              completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, nil);
+              return false;
+          } else if (action == static_cast<int>(AceWebHandleResult::HTTPAUTHINFOSAVED)) {
+              NSURLCredential* credential = [AceWeb getHttpAuthCredentials:host realm:realm];
+              if (credential == nil) {
+                  return false;
+              }
+              completionHandler(NSURLSessionAuthChallengeUseCredential, credential);
+              return true;
+          }
+          completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, nil);
+          return false;
+      } @catch (NSException* exception) {
+          NSLog(@"Error: Http auth request completionHandler call failed");
+          return false;
+      }
+    };
+    AceWebOnHttpAuthRequestObject* obj =
+        new AceWebOnHttpAuthRequestObject(std::string([host UTF8String]), std::string([realm UTF8String]));
+    obj->SetAuthResultCallback(authRequest_callback);
+    if (!AceWebObjectWithBoolReturn(
+            [[self event_hashFormat:@"onHttpAuthRequest"] UTF8String], [@"onHttpAuthRequest" UTF8String], obj)) {
+        @try {
+            completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, nil);
+        } @catch (NSException* exception) {
+            NSLog(@"Error: Http auth request completionHandler call failed");
+        }
+    }
+}
+
+- (void)webView:(WKWebView*)webView
+    navigationResponse:(WKNavigationResponse*)navigationResponse
+     didBecomeDownload:(WKDownload*)download
+    API_AVAILABLE(ios(14.5))
+{
+    NSHTTPURLResponse* response = (NSHTTPURLResponse*)navigationResponse.response;
+    NSString* downloadURL = response.URL.absoluteString ? response.URL.absoluteString : @"";
+    NSString* mimeType = response.MIMEType ? response.MIMEType : @"";
+    long contentLength = response.expectedContentLength ? response.expectedContentLength : 0;
+    [webView evaluateJavaScript:@"navigator.userAgent" completionHandler:^(id result, NSError *error) {
+        NSString *userAgent = result ? result : @"";
+        AceWebDownloadResponseObject* obj = new AceWebDownloadResponseObject(std::string([downloadURL UTF8String]), 
+            std::string([mimeType UTF8String]), contentLength, std::string([userAgent UTF8String]));
+        AceWebObject([[self event_hashFormat:@"onDownloadStart"] UTF8String], [@"onDownloadStart" UTF8String], obj);
+    }];
 }
 
 - (void)webView:(WKWebView *)webView didFailProvisionalNavigation:( WKNavigation *)navigation withError:(NSError *)error {
