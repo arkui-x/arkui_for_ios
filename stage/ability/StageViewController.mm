@@ -105,6 +105,7 @@ CGFloat _brightness = 0.0;
     if (_platformPlugin) {
         [_platformPlugin notifyLifecycleChanged:false];
     }
+    [_windowView notifyFocusChanged:YES];
 }
 
 - (void)viewDidDisappear:(BOOL)animated {
@@ -116,6 +117,7 @@ CGFloat _brightness = 0.0;
     if (_platformPlugin) {
         [_platformPlugin notifyLifecycleChanged:true];
     }
+    [_windowView notifyFocusChanged:NO];
 }
 
 - (void)didReceiveMemoryWarning {
@@ -195,6 +197,18 @@ CGFloat _brightness = 0.0;
 
 - (void)notifyApplicationWillTerminateNotification {
    [_bridgePluginManager platformWillTerminate];
+}
+
+- (void)notifyApplicationBecameActive {
+    if ([self isTopController]) {
+        [_windowView notifyFocusChanged:YES];
+    }
+}
+
+- (void)notifyApplicationWillResignActive {
+    if ([self isTopController]) {
+        [_windowView notifyFocusChanged:NO];
+    }
 }
 
 - (BOOL)prefersStatusBarHidden {

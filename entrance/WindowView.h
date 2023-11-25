@@ -27,6 +27,8 @@ class Window;
 - (void)notifyApplicationWillEnterForeground;
 - (void)notifyApplicationDidEnterBackground;
 - (void)notifyApplicationWillTerminateNotification;
+- (void)notifyApplicationBecameActive;
+- (void)notifyApplicationWillResignActive;
 @end
 
 @interface WindowView : UIView
@@ -48,6 +50,7 @@ class Window;
 - (void)notifyWindowDestroyed;
 - (std::shared_ptr<OHOS::Rosen::Window>)getWindow;
 - (void)updateBrightness;
+- (void)notifyFocusChanged:(BOOL)focus;
 
 @end
 
