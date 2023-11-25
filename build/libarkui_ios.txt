@@ -717,3 +717,4 @@ __ZNK4Json5Value8asStringEv
 __ZNK4Json5Value8isObjectEv
 __ZNK4Json5Value8isStringEv
 __ZNK4Json5ValueixERKNSt3__112basic_stringIcNS1_11char_traitsIcEENS1_9allocatorIcEEEE
+_uv_*
