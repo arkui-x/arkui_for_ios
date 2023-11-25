@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -14,61 +14,98 @@
  */
 
 #import "AceTextureResourcePlugin.h"
+#import "AceTextureHolder.h"
 #import "AceTexture.h"
 
-#define KEY_TEXTURE @"texture"
-
 @interface AceTextureResourcePlugin()
-
 @property (nonatomic, strong) NSMutableDictionary<NSString*, AceTexture*> *objectMap;
+@property (nonatomic, assign) int32_t instanceId;
 
-@property (nonatomic, assign) NSObject<FlutterTextureRegistry> *_textures;
 @end
 
 @implementation AceTextureResourcePlugin
 
-- (instancetype)initWithTextures:(NSObject<FlutterTextureRegistry> *)textures
+ + (AceTextureResourcePlugin *)createTexturePluginWithInstanceId:(int32_t)instanceId
+ {
+    return [[AceTextureResourcePlugin alloc] initTextureWithInstanceId:instanceId];
+}
+
+- (instancetype)initTextureWithInstanceId:(int32_t)instanceId
 {
     self = [super init:@"texture" version:1];
     if (self) {
-        self._textures = textures;
         self.objectMap = [NSMutableDictionary dictionary];
+        self.instanceId = instanceId;
     }
     return self;
 }
 
-- (int64_t)create:(NSDictionary<NSString *, NSString *> *)param{
-    AceTexture *texture = [[AceTexture alloc] initWithRegister:self._textures onEvent:[self getEventCallback]];
-    if (self._textures) {
-        int64_t textureId = [self._textures registerTexture:(NSObject<FlutterTexture> *)texture];
-        texture.incId = textureId;
-        [self.objectMap setObject:texture forKey:[NSString stringWithFormat:@"%lld", textureId]];
-        return textureId;
-    }
-    
-    return -1;
+- (void)addResource:(int64_t)textureId texture:(AceTexture *)texture
+{
+    [self.objectMap setObject:texture forKey:[NSString stringWithFormat:@"%lld", textureId]];
+    NSDictionary * callMethod = [texture getCallMethod];
+    [self registerSyncCallMethod:callMethod];
+    [self.delegate registerSurfaceWithInstanceId:self.instanceId textureId:textureId
+        textureObject:(__bridge void*)texture.videoOutput];
+    [AceTextureHolder addTexture:texture withId:textureId inceId:self.instanceId];
 }
 
-- (id)getObject:(NSString *)incId{
+- (int64_t)create:(NSDictionary<NSString *, NSString *> *)param
+{
+    NSLog(@"AceTextureCreate");
+    int64_t textureId = [self getAtomicId];
+    IAceOnResourceEvent callback = [self getEventCallback];
+    if (!callback) {
+        return -1L;
+    }
+    AceTexture *texture = [[AceTexture alloc] initWithEvents:callback textureId:textureId
+    abilityInstanceId:self.instanceId];
+    [self addResource:textureId texture:texture];
+
+    return textureId;
+}
+
+- (id)getObject:(NSString *)incId
+{
     return [self.objectMap objectForKey:incId];
 }
 
-- (BOOL)release:(NSString *)incId {
+- (BOOL)release:(NSString *)incId
+{
+    NSLog(@"AceTextResourcePlugin %s release inceId: %@",__func__,incId);
     AceTexture *texture = [self.objectMap objectForKey:incId];
     if (texture) {
+        [self unregisterSyncCallMethod:[texture getCallMethod]];
         [texture releaseObject];
         [self.objectMap removeObjectForKey:incId];
+        [AceTextureHolder removeTextureWithId:[incId intValue] inceId:self.instanceId];
+        [self.delegate unregisterSurfaceWithInstanceId:self.instanceId textureId:[incId intValue]];
+        texture = nil;
         return YES;
     }
     return NO;
 }
 
-- (void)releaseObject{
-    [self.objectMap enumerateKeysAndObjectsUsingBlock:^(NSString * _Nonnull key, AceTexture *_Nonnull texture, BOOL * _Nonnull stop) {
-        [texture releaseObject];
-    }];
-    [self.objectMap removeAllObjects];
+- (void)releaseObject
+{
+    NSLog(@"AceTextResourcePlugin releaseObjectStart"); 
+    if (self.objectMap) {
+        [self.objectMap enumerateKeysAndObjectsUsingBlock:^(NSString * _Nonnull key,
+            AceTexture *_Nonnull texture, BOOL * _Nonnull stop) {
+            if (texture) {
+                [texture releaseObject];
+                texture = nil;
+            }else {
+                NSLog(@"AceSurfacePlugin releaseObject fail aceSurface is null");
+            }
+        }];
+        [self.objectMap removeAllObjects];
+        self.objectMap = nil;
+    }
 }
 
-
+- (void)dealloc
+{
+    NSLog(@"AceTextureResourcePlugin->%@ dealloc", self);
+}
 @end

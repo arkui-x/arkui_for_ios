@@ -27,7 +27,7 @@ NS_ASSUME_NONNULL_BEGIN
 @interface AceVideo : NSObject
 - (instancetype)init:(int64_t)incId
      moudleName:(NSString*)moudleName
-     onEvent:(IAceOnResourceEvent)callback 
+     onEvent:(IAceOnResourceEvent)callback
      texture:(AceTexture *)texture
      abilityInstanceId:(int32_t)abilityInstanceId;
 - (NSDictionary<NSString *, IAceOnCallSyncResourceMethod> *)getSyncCallMethod;
