@@ -336,7 +336,7 @@ static char kBridgeMapKey;
 }
 
 - (void)platformSendMessageResponseErrorInfo:(NSString*)bridgeName errorCode:(ErrorCode)errorCode {
-    RawValue* resultValue = [RawValue rawValueRresult:@"errorcode" errorCode:errorCode errorMessage:@""];
+    RawValue* resultValue = [RawValue rawValueRresult:@"errorCode" errorCode:errorCode errorMessage:@""];
     NSString* jsonString = [[BridgeJsonCodec sharedInstance] encode:resultValue];
 
     std::string c_bridgeName = [bridgeName UTF8String];

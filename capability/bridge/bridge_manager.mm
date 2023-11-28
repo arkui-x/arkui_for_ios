@@ -165,7 +165,7 @@ void BridgeManager::JSCancelMethod(int32_t instanceId, const std::string& bridge
 void BridgeManager::PlatformCallMethod(int32_t instanceId, const std::string& bridgeName,
                 const std::string& methodName, const std::string& parameter) {
     if (!JSBridgeExists(instanceId, bridgeName)) {
-        std::string errorData = "{\"result\":\"errorcode\",\"errorcode\":1}";
+        std::string errorData = "{\"result\":\"errorCode\",\"errorCode\":1}";
         JSSendMethodResult(instanceId, bridgeName, methodName, errorData);
         return;
     }
@@ -186,7 +186,7 @@ void BridgeManager::PlatformSendMethodResult(int32_t instanceId, const std::stri
 
 void BridgeManager::PlatformSendMessage(int32_t instanceId, const std::string& bridgeName, const std::string& data) {
     if (!JSBridgeExists(instanceId, bridgeName)) {
-        std::string errorData = "{\"result\":\"errorcode\",\"errorcode\":1}";
+        std::string errorData = "{\"result\":\"errorCode\",\"errorCode\":1}";
         JSSendMessageResponse(instanceId, bridgeName, errorData);
         return;
     }
