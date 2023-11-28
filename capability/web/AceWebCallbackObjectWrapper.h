@@ -19,6 +19,15 @@
 #include <iostream>
 #include <map>
 
+enum class AceWebHandleResult {
+    CONFIRM,
+    CANCEL,
+    HTTPAUTHINFOSAVED,
+    PROMPTCONFIRM,
+    GRANT,
+    DENY,
+};
+
 void InjectAceWebResourceObject();
 
 #endif /* AceWebCallbackObjectWrapper_hpp */
