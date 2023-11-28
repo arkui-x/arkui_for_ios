@@ -15,7 +15,7 @@
 
 #import "BridgeJsonCodec.h"
 
-NSString* const ResponseErrorCode = @"errorcode";
+NSString* const ResponseErrorCode = @"errorCode";
 NSString* const ResponseErrorMessage = @"errormessage";
 NSString* const ResponseResult = @"result";
 
