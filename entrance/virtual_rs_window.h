@@ -175,6 +175,9 @@ public:
     WMError RegisterOccupiedAreaChangeListener(const sptr<IOccupiedAreaChangeListener> &listener);
     WMError UnregisterOccupiedAreaChangeListener(const sptr<IOccupiedAreaChangeListener> &listener);
 
+    WMError SetColorSpace(ColorSpace colorSpace);
+    ColorSpace GetColorSpace() const;
+
     bool IsSubWindow() const
     {
         return windowType_  == OHOS::Rosen::WindowType::WINDOW_TYPE_APP_SUB_WINDOW;
@@ -248,6 +251,10 @@ private:
 
     void DelayNotifyUIContentIfNeeded();
     bool IsWindowValid() const;
+
+    GraphicColorGamut GetSurfaceGamutFromColorSpace(ColorSpace colorSpace) const;
+    ColorSpace GetColorSpaceFromSurfaceGamut(GraphicColorGamut colorGamut) const;
+
     bool isActive_ = false;
     bool focusable_ = true;
     template<typename T1, typename T2, typename Ret>
