@@ -15,6 +15,7 @@
 
 #include "adapter/ios/stage/uicontent/ace_view_sg.h"
 
+#include "adapter/ios/entrance/ace_platform_plugin.h"
 #include "adapter/ios/entrance/ace_resource_register.h"
 #include "adapter/ios/stage/uicontent/ace_container_sg.h"
 #include "base/log/dump_log.h"
@@ -188,7 +189,7 @@ bool AceViewSG::Dump(const std::vector<std::string>& params)
 
 const void* AceViewSG::GetNativeWindowById(uint64_t textureId)
 {
-    return nullptr;
+    return AcePlatformPlugin::GetNativeWindow(instanceId_, static_cast<int64_t>(textureId));
 }
 
 std::unique_ptr<DrawDelegate> AceViewSG::GetDrawDelegate()

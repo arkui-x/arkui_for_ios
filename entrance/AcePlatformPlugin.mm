@@ -15,21 +15,23 @@
  
 #import "AcePlatformPlugin.h"
 
+#import "AceTextureResourcePlugin.h"
+#import "AceTextureDelegate.h"
 #import "AceVideoResourcePlugin.h"
 #import "AceSurfacePlugin.h"
 #import "adapter/ios/capability/web/AceWebResourcePlugin.h"
 
 #include "adapter/ios/entrance/ace_resource_register.h"
 #include "adapter/ios/entrance/ace_platform_plugin.h"
-
 #include "core/common/container_scope.h"
 
-@interface AcePlatformPlugin()<IAceOnCallEvent>
+@interface AcePlatformPlugin()<IAceOnCallEvent, AceTextureDelegate>
 {
     AceVideoResourcePlugin* _videoResourcePlugin;
     AceSurfacePlugin* _aceSurfacePlugin;
     AceResourceRegisterOC* _resRegister;
     AceWebResourcePlugin* _webResourcePlugin;
+    AceTextureResourcePlugin* _textureResourcePlugin;
 }
 @property (nonatomic, assign) int32_t instanceId;
 @end
@@ -56,6 +58,10 @@
 
                 _webResourcePlugin = [AceWebResourcePlugin createRegister:target abilityInstanceId:instanceId];
                 [self addResourcePlugin:_webResourcePlugin];
+
+                _textureResourcePlugin = [AceTextureResourcePlugin createTexturePluginWithInstanceId:instanceId];
+                _textureResourcePlugin.delegate = self;
+                [self addResourcePlugin:_textureResourcePlugin];
             }
         }
     }
@@ -84,6 +90,11 @@
         [_aceSurfacePlugin releaseObject];
         _aceSurfacePlugin = nil;
     }
+    if (_textureResourcePlugin) {
+        [_textureResourcePlugin releaseObject];
+        _textureResourcePlugin.delegate = nil;
+        _textureResourcePlugin = nil;
+    }
     if (_webResourcePlugin) {
         [_webResourcePlugin releaseObject];
         _webResourcePlugin = nil;
@@ -105,6 +116,25 @@
     resRegister->OnEvent(eventIdcString, paramcString);
 }
 
+#pragma mark AceTextureDelegate
+- (void)registerSurfaceWithInstanceId:(int32_t)instanceId textureId:(int64_t)textureId
+    textureObject:(void*)textureObject
+{
+    NSLog(@"AceTextureDelegate registerSurface");
+    OHOS::Ace::Platform::AcePlatformPlugin::RegisterSurface(instanceId, textureId,textureObject);
+}
+
+- (void)unregisterSurfaceWithInstanceId:(int32_t)instanceId textureId:(int64_t)textureId
+{
+    NSLog(@"AceTextureDelegate unregisterSurface");
+    OHOS::Ace::Platform::AcePlatformPlugin::UnregisterSurface(instanceId,textureId);
+}
+
+- (void*)getNativeWindowWithInstanceId:(int32_t)instanceId textureId:(int64_t)textureId
+{
+    NSLog(@"AceTextureDelegate getNativeWindow");
+    return OHOS::Ace::Platform::AcePlatformPlugin::GetNativeWindow(instanceId,textureId);
+}
 
 - (void)dealloc
 {

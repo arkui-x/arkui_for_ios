@@ -62,20 +62,14 @@
     if (![param valueForKey:KEY_TEXTURE]) {
         return -1;
     }
-    NSString *textureId = [param valueForKey:KEY_TEXTURE];
-    id obj = [self.resRegister getObject:KEY_TEXTURE incId:[textureId longLongValue]];
-    if (obj == nil || ![obj isKindOfClass:[AceTexture class]]) {
-        NSLog(@"AceVideoResourcePlugin:not find texture, texture id = %@, should set surface later",textureId);
-    }
     int64_t incId = [self getAtomicId];
-    AceTexture *texture = (AceTexture*)obj;
     IAceOnResourceEvent callback = [self getEventCallback];
     if (!callback) {
          return -1L;
     }
-    AceVideo *aceVideo = [[AceVideo alloc] init:incId moudleName:self.moudleName onEvent:callback texture:texture abilityInstanceId:self.instanceId];
+    AceVideo *aceVideo = [[AceVideo alloc] init:incId moudleName:self.moudleName
+            onEvent:callback texture:nil abilityInstanceId:self.instanceId];
     [self addResource:incId video:aceVideo];
-    
     return incId;
 }
 
@@ -86,7 +80,8 @@
 
 - (void)notifyLifecycleChanged:(BOOL)isBackground
 {
-    [self.objectMap enumerateKeysAndObjectsUsingBlock:^(NSString * _Nonnull key, AceVideo * _Nonnull video, BOOL * _Nonnull stop) {
+    [self.objectMap enumerateKeysAndObjectsUsingBlock:^(NSString * _Nonnull key,
+            AceVideo * _Nonnull video, BOOL * _Nonnull stop) {
         if (video) {
             if (isBackground) {
                 [video onActivityPause];
@@ -113,18 +108,19 @@
 
 - (void)releaseObject
 {
-    NSLog(@"AceVideoResourcePlugin %s",__func__);
+    NSLog(@"AceVideoResourcePluginReleaseObject %s",__func__);
     if (self.objectMap) {
-        [self.objectMap enumerateKeysAndObjectsUsingBlock:^(NSString * _Nonnull key, AceVideo * _Nonnull video, BOOL * _Nonnull stop) {
-        if (video) {
-            @try {
-                [video releaseObject];
-                video = nil;
-            } @catch (NSException *exception) {
-                NSLog(@"AceVideoResourcePlugin releaseObject releaseObject fail"); 
-            }
+        [self.objectMap enumerateKeysAndObjectsUsingBlock:^(NSString * _Nonnull key,
+            AceVideo * _Nonnull video, BOOL * _Nonnull stop) {
+            if (video) {
+                @try {
+                    [video releaseObject];
+                    video = nil;
+                } @catch (NSException *exception) {
+                    NSLog(@"AceVideoResourcePlugin releaseObject releaseObject fail");
+                }
             }else {
-                NSLog(@"AceVideoResourcePlugin releaseObject fail video is null"); 
+                NSLog(@"AceVideoResourcePlugin releaseObject fail video is null");
             }
         }];
         [self.objectMap removeAllObjects];

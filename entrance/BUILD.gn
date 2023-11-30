@@ -45,6 +45,7 @@ template("ace_ios_standard_source_set") {
     sources = [
       "AcePlatformPlugin.mm",
       "AceSurfaceHolder.mm",
+      "AceTextureHolder.mm",
       "DownloadManager.mm",
       "UINavigationController+StatusBar.mm",
       "WindowView.mm",
