@@ -285,19 +285,42 @@ static OHOS::Ace::KeyAction KeyActionChangeFromUIPressPhase(UIPressPhase phase) 
     return OHOS::Ace::KeyAction::UNKNOWN;
 }
 
+static int32_t GetModifierKeys(UIKeyModifierFlags modifierFlags) {
+    int32_t ctrlKeysBit = 0;
+    static enum CtrlKeysBit {
+        ctrl = 1,
+        shift = 2,
+        alt = 4,
+        meta = 8,
+    };
+    if (modifierFlags & UIKeyModifierControl) {
+        ctrlKeysBit |= CtrlKeysBit::ctrl;
+    }
+    if (modifierFlags & UIKeyModifierShift) {
+        ctrlKeysBit |= CtrlKeysBit::shift;
+    }
+    if (modifierFlags & UIKeyModifierAlternate) {
+        ctrlKeysBit |= CtrlKeysBit::alt;
+    }
+    if (modifierFlags & UIKeyModifierCommand) {
+        ctrlKeysBit |= CtrlKeysBit::meta;
+    }
+    return ctrlKeysBit;
+}
+
 - (void)dispatchKeys:(NSSet<UIPress *> *)presses {
     for (UIPress *press in presses) {
         UIKey *pressKey = press.key;
         UIKeyboardHIDUsage pressKeyCode = [pressKey keyCode];
         OHOS::Ace::KeyAction keyAction = KeyActionChangeFromUIPressPhase(press.phase);
         UIKeyModifierFlags modifierFlags = [pressKey modifierFlags];
-
+        int32_t modifierKeys = GetModifierKeys(modifierFlags);
         int32_t repeatTime = 0;
         // trans NSTimeInterval(double) to int64_t
         int64_t timestamp = static_cast<int64_t>(press.timestamp * 1000);
         if (_windowDelegate.lock() != nullptr) {
             _windowDelegate.lock()->ProcessKeyEvent(
-                static_cast<int32_t>(pressKeyCode), static_cast<int32_t>(keyAction), repeatTime, timestamp, timestamp);
+                static_cast<int32_t>(pressKeyCode), static_cast<int32_t>(keyAction), repeatTime, timestamp, timestamp, modifierKeys);
         }
     }
 }
