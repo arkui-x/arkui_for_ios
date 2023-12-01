@@ -39,6 +39,58 @@ void loadUrlOC(int id, const std::string& url, std::map<std::string, std::string
     [web loadUrl:ocUrl header:nd];
 }
 
+bool accessStepOC(int id, int32_t step){
+    AceWeb *web = [AceWebResourcePlugin.getObjectMap objectForKey:[NSString stringWithFormat:@"%d", id]];
+    if(web != nil){
+        return [web accessStep:step];
+    }
+    return false;
+}
+
+void scrollToOC(int id, float x, float y){
+    AceWeb *web = [AceWebResourcePlugin.getObjectMap objectForKey:[NSString stringWithFormat:@"%d", id]];
+    if(web != nil){
+        [web scrollTo:x y:y];
+    }
+}
+
+void scrollByOC(int id, float deltaX, float deltaY){
+    AceWeb *web = [AceWebResourcePlugin.getObjectMap objectForKey:[NSString stringWithFormat:@"%d", id]];
+    if(web != nil){
+        [web scrollBy:deltaX deltaY:deltaY];
+    }
+}
+
+void zoomOC(int id, float factor){
+    AceWeb *web = [AceWebResourcePlugin.getObjectMap objectForKey:[NSString stringWithFormat:@"%d", id]];
+    if(web != nil){
+        [web zoom:factor];
+    }
+}
+
+void stopOC(int id){
+    AceWeb *web = [AceWebResourcePlugin.getObjectMap objectForKey:[NSString stringWithFormat:@"%d", id]];
+    if(web != nil){
+        [web stop];
+    }
+}
+
+void setCustomUserAgentOC(int id, const std::string& userAgent){
+    AceWeb *web = [AceWebResourcePlugin.getObjectMap objectForKey:[NSString stringWithFormat:@"%d", id]];
+    if(web != nil){
+        NSString *ocUserAgent = [NSString stringWithCString:userAgent.c_str() encoding:NSUTF8StringEncoding];
+        [web setCustomUserAgent:ocUserAgent];
+    }
+}
+
+std::string getCustomUserAgentOC(int id){
+    AceWeb *web = [AceWebResourcePlugin.getObjectMap objectForKey:[NSString stringWithFormat:@"%d", id]];
+    if(web == nil){
+        return "";
+    }
+    return [[web getCustomUserAgent] UTF8String];
+}
+
 void loadDataOC(int id, const std::string& data, const std::string& mimeType, const std::string& encoding,
     const std::string& baseUrl, const std::string& historyUrl)
 {

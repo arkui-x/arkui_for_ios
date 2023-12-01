@@ -301,6 +301,64 @@
     return true;
 }
 
+- (bool)accessStep:(NSInteger)step
+{
+    if (self.webView.backForwardList.forwardList.count >= step ||
+        self.webView.backForwardList.backList.count >= abs(step)) {
+        return true;
+    }
+    return false;
+}
+
+- (void)scrollTo:(CGFloat)x y:(CGFloat)y
+{
+    CGFloat offsetX = 0.f;
+    CGFloat offsetY = 0.f;
+    if (self.webView.scrollView.contentSize.width > self.webView.frame.size.width) {
+        offsetX = x < 0 ? 0 : x;
+    }
+    if (self.webView.scrollView.contentSize.height > self.webView.frame.size.height) {
+        offsetY = y < 0 ? 0 : y;
+    }
+    [self.webView.scrollView setContentOffset:CGPointMake(offsetX, offsetY) animated:YES];
+}
+
+- (void)scrollBy:(CGFloat)deltaX deltaY:(CGFloat)deltaY
+{
+    CGFloat offsetX = 0.f;
+    CGFloat offsetY = 0.f;
+    if (self.webView.scrollView.contentSize.width > self.webView.frame.size.width) {
+        offsetX = self.webView.scrollView.contentOffset.x + deltaX;
+    }
+    if (self.webView.scrollView.contentSize.height > self.webView.frame.size.height) {
+        offsetY = self.webView.scrollView.contentOffset.y + deltaY;
+    }
+    [self.webView.scrollView setContentOffset:CGPointMake(offsetX < 0 ? 0 : offsetX, offsetY < 0 ? 0 : offsetY)
+                                     animated:YES];
+}
+
+- (void)zoom:(CGFloat)factor
+{
+    if (factor > 0) {
+        [self.webView.scrollView setZoomScale:self.webView.scrollView.zoomScale * factor];
+    }
+}
+
+- (void)stop
+{
+    [self.webView stopLoading];
+}
+
+- (void)setCustomUserAgent:(NSString*)userAgent
+{
+    [self.webView setCustomUserAgent:userAgent];
+}
+
+- (NSString*)getCustomUserAgent
+{
+    return [self.webView customUserAgent];
+}
+
 - (void)initConfigure {
     self.callSyncMethodMap = [[NSMutableDictionary alloc] init];
     self.screenScale = [UIScreen mainScreen].scale;
@@ -678,9 +736,11 @@
         decisionHandler(WKNavigationActionPolicyCancel);
         return;
     }
-    if (navigationAction.shouldPerformDownload) {
-        decisionHandler(WKNavigationActionPolicyDownload);
-        return;
+    if (@available(iOS 14.5, *)) {
+        if (navigationAction.shouldPerformDownload) {
+            decisionHandler(WKNavigationActionPolicyDownload);
+            return;
+        }
     }
     decisionHandler(WKNavigationActionPolicyAllow);
 }
@@ -699,9 +759,11 @@
         AceWebObject(
             [[self event_hashFormat:NTC_ONHTTPERRORRECEIVE] UTF8String], [NTC_ONHTTPERRORRECEIVE UTF8String], obj);
     }
-    if (!navigationResponse.canShowMIMEType) {
-        decisionHandler(WKNavigationResponsePolicyDownload);
-        return;
+    if (@available(iOS 14.5, *)) {
+        if (!navigationResponse.canShowMIMEType) {
+            decisionHandler(WKNavigationResponsePolicyDownload);
+            return;
+        }
     }
     decisionHandler(WKNavigationResponsePolicyAllow);
 }
@@ -903,7 +965,7 @@
       }
     };
     AceWebPermissionRequestObject* obj =
-        new AceWebPermissionRequestObject(std::string([origin.host UTF8String]), permissionType);
+        new AceWebPermissionRequestObject(std::string([host UTF8String]), permissionType);
     obj->SetPermissionResultCallback(permissionRequest_callback);
     if (!AceWebObjectWithBoolReturn(
             [[self event_hashFormat:@"onPermissionRequest"] UTF8String], [@"onPermissionRequest" UTF8String], obj)) {
