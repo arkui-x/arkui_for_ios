@@ -37,9 +37,9 @@
 #include "base/log/log.h"
 #include "core/common/ace_engine.h"
 #include "core/common/ace_view.h"
+#include "core/common/asset_manager_impl.h"
 #include "core/common/container.h"
 #include "core/common/container_scope.h"
-#include "core/common/flutter/flutter_asset_manager.h"
 #include "core/event/touch_event.h"
 #include "core/image/image_file_cache.h"
 #include "frameworks/bridge/declarative_frontend/ng/declarative_frontend_ng.h"
@@ -186,7 +186,7 @@ void UIContentImpl::CommonInitialize(OHOS::Rosen::Window* window, const std::str
         AceApplicationInfo::GetInstance().SetAbilityName(info->name);
     }
 
-    RefPtr<FlutterAssetManager> flutterAssetManager = Referenced::MakeRefPtr<FlutterAssetManager>();
+    RefPtr<AssetManagerImpl> assetManagerImpl = Referenced::MakeRefPtr<AssetManagerImpl>();
     bool isModelJson = info != nullptr ? info->isModuleJson : false;
     std::string moduleName = info != nullptr ? info->moduleName : "";
     auto appInfo = context->GetApplicationInfo();
@@ -197,7 +197,7 @@ void UIContentImpl::CommonInitialize(OHOS::Rosen::Window* window, const std::str
         std::string hapPath = context->GetBundleCodeDir() + "/" + moduleName + "/";
         LOGI("hapPath:%{public}s", hapPath.c_str());
         // first use hap provider
-        if (flutterAssetManager && !hapPath.empty()) {
+        if (assetManagerImpl && !hapPath.empty()) {
             auto assetProvider = AbilityRuntime::Platform::StageAssetProvider::GetInstance();
             CHECK_NULL_VOID(assetProvider);
             auto dynamicLoadFlag = true;
@@ -215,11 +215,11 @@ void UIContentImpl::CommonInitialize(OHOS::Rosen::Window* window, const std::str
             
             auto assetBasePathStr = { std::string(""), std::string("ets/"), std::string("ets/share"),
                 std::string("resources/base/profile/") };
-            if (flutterAssetManager && !hapPath.empty()) {
+            if (assetManagerImpl && !hapPath.empty()) {
                 auto assetProvider = AceType::MakeRefPtr<FileAssetProvider>();
                 if (assetProvider->Initialize(hapPath, assetBasePathStr)) {
                     LOGD("Push AssetProvider to queue.");
-                    flutterAssetManager->PushBack(std::move(assetProvider));
+                    assetManagerImpl->PushBack(std::move(assetProvider));
                 }
             }
         }
@@ -291,7 +291,7 @@ void UIContentImpl::CommonInitialize(OHOS::Rosen::Window* window, const std::str
     aceResCfg.SetColorMode(SystemProperties::GetColorMode());
     aceResCfg.SetDeviceAccess(SystemProperties::GetDeviceAccess());
     container->SetResourceConfiguration(aceResCfg);
-    container->SetAssetManagerIfNull(flutterAssetManager);
+    container->SetAssetManagerIfNull(assetManagerImpl);
     container->SetBundlePath(context->GetBundleCodeDir());
     container->SetFilesDataPath(context->GetFilesDir());
     container->SetModuleName(moduleName);
