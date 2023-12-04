@@ -15,6 +15,20 @@
 
 void loadUrlOC(int id, const std::string& url, std::map<std::string, std::string> httpHeaders);
 
+bool accessStepOC(int id, int32_t step);
+
+void scrollToOC(int id, float x, float y);
+
+void scrollByOC(int id, float deltaX, float deltaY);
+
+void zoomOC(int id, float factor);
+
+void stopOC(int id);
+
+void setCustomUserAgentOC(int id, const std::string& userAgent);
+
+std::string getCustomUserAgentOC(int id);
+
 void loadDataOC(int id, const std::string& data, const std::string& mimeType, const std::string& encoding,
     const std::string& baseUrl, const std::string& historyUrl);
 

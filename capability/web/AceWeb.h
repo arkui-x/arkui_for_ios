@@ -43,6 +43,13 @@
 + (NSURLCredential*)getHttpAuthCredentials:(NSString*)host realm:(NSString*)realm;
 + (bool)existHttpAuthCredentials;
 + (bool)deleteHttpAuthCredentials;
+- (bool)accessStep:(NSInteger)step;
+- (void)scrollTo:(CGFloat)x y:(CGFloat)y;
+- (void)scrollBy:(CGFloat)deltaX deltaY:(CGFloat)deltaY;
+- (void)zoom:(CGFloat)factor;
+- (void)stop;
+- (void)setCustomUserAgent:(NSString*)userAgent;
+- (NSString*)getCustomUserAgent;
 -(NSDictionary<NSString *, IAceOnCallSyncResourceMethod> *)getSyncCallMethod;
 -(void)releaseObject;
 -(int64_t)getWebId;
