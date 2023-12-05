@@ -65,6 +65,15 @@ CGFloat _brightness = 0.0;
     return self;
 }
 
+- (void)initColorMode {
+    if (@available(iOS 13.0, *)) {
+        UITraitCollection* trait = [UITraitCollection currentTraitCollection];
+        [[StageConfigurationManager configurationManager] colorModeUpdate:trait.userInterfaceStyle];
+    } else {
+        [[StageConfigurationManager configurationManager] colorModeUpdate:UIUserInterfaceStyleLight];
+    }
+}
+
 - (void)initWindowView {
     _windowView = [[WindowView alloc] init];
     _windowView.notifyDelegate = self;
@@ -83,6 +92,7 @@ CGFloat _brightness = 0.0;
     [super viewDidLoad];
     self.view.backgroundColor = UIColor.whiteColor;
     NSLog(@"StageVC->%@ viewDidLoad call.", self);
+    [self initColorMode];
     [self initWindowView];
     [self initPlatformPlugin];
     [self initBridge];
