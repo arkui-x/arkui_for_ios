@@ -27,7 +27,7 @@
 #include "core/event/key_event_recognizer.h"
 
 #ifdef ENABLE_ROSEN_BACKEND
-#include "core/common/flutter/flutter_thread_model.h"
+#include "core/common/thread_model_impl.h"
 #endif
 
 #include "adapter/ios/entrance/virtual_rs_window.h"
@@ -39,7 +39,7 @@ public:
     explicit AceViewSG(int32_t id) : instanceId_(id)
     {
 #ifdef ENABLE_ROSEN_BACKEND
-        threadModel_ = FlutterThreadModel::CreateThreadModel(true, false, false);
+        threadModel_ = ThreadModelImpl::CreateThreadModel(true, false, false);
 #endif
     }
     ~AceViewSG() override = default;
@@ -91,7 +91,7 @@ public:
     void Launch() override;
 
 #ifdef ENABLE_ROSEN_BACKEND
-    FlutterThreadModel* GetThreadModel()
+    ThreadModelImpl* GetThreadModel()
     {
         return threadModel_.get();
     }
@@ -141,7 +141,7 @@ private:
     RefPtr<PlatformResRegister> resRegister_;
 
 #ifdef ENABLE_ROSEN_BACKEND
-    std::unique_ptr<FlutterThreadModel> threadModel_;
+    std::unique_ptr<ThreadModelImpl> threadModel_;
     sptr<Rosen::Window> rsWinodw_;
 #endif
 

@@ -22,7 +22,6 @@
 #include <objc/objc.h>
 #include "WindowView.h"
 #include "base/log/log.h"
-#include "flutter/shell/platform/darwin/ios/framework/Source/vsync_waiter_ios.h"
 #include "foundation/appframework/arkui/uicontent/ui_content.h"
 #include "shell/common/vsync_waiter.h"
 #include "transaction/rs_interfaces.h"
@@ -165,10 +164,6 @@ std::map<std::string, std::pair<uint32_t, std::shared_ptr<Window>>> Window::wind
 std::map<uint32_t, std::vector<sptr<IWindowLifeCycle>>> Window::lifecycleListeners_;
 std::recursive_mutex Window::globalMutex_;
 std::map<uint32_t, std::vector<sptr<IOccupiedAreaChangeListener>>> Window::occupiedAreaChangeListeners_;
-
-Window::Window(const flutter::TaskRunners& taskRunners)
-    : vsyncWaiter_(std::make_shared<flutter::VsyncWaiterIOS>(taskRunners))
-{}
 
 Window::Window(std::shared_ptr<AbilityRuntime::Platform::Context> context, uint32_t windowId)
     : context_(context), windowId_(windowId)
@@ -555,13 +550,6 @@ void Window::RequestVsync(const std::shared_ptr<VsyncCallback>& vsyncCallback)
         };
         receiver_->RequestNextVSync(fcb);
         return;
-    }
-
-    // fa model
-    if (vsyncWaiter_) {
-        vsyncWaiter_->AsyncWaitForVsync([vsyncCallback](fml::TimePoint frameStart, fml::TimePoint frameTarget) {
-            vsyncCallback->onCallback(frameStart.ToEpochDelta().ToNanoseconds());
-        });
     }
 }
 
