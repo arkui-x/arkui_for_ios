@@ -12,6 +12,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include <list>
+struct BackForwardItem{
+    std::string URL;
+    std::string title;
+    std::string initialURL;
+};
+
+struct BackForwardResult{
+    int currentIndex;
+    std::list<BackForwardItem> backForwardItemList;
+};
 
 void loadUrlOC(int id, const std::string& url, std::map<std::string, std::string> httpHeaders);
 
@@ -32,7 +43,7 @@ std::string getCustomUserAgentOC(int id);
 void loadDataOC(int id, const std::string& data, const std::string& mimeType, const std::string& encoding,
     const std::string& baseUrl, const std::string& historyUrl);
 
-void EvaluateJavaScriptOC(int id, const std::string& script, void (*callbackOC)(const std::string& ocResult));
+void EvaluateJavaScriptOC(int id, const std::string& script, int32_t asyncCallbackInfoId, void (*callbackOC)(const std::string& ocResult, int32_t asyncCallbackInfoId));
 
 void backwardOC(int id);
 
@@ -45,6 +56,27 @@ std::string getUrlOC(int id);
 bool accessBackwardOC(int id);
 
 bool accessForwardOC(int id);
+
+void removeCacheOC(int id, bool value);
+
+void backOrForwardOC(int id, int32_t step);
+
+std::string getTitleOC(int id);
+
+int32_t getPageHeightOC(int id);
+
+BackForwardResult getBackForwardEntriesOC(int id);
+
+void createWebMessagePortsOC(int id, std::vector<std::string>& ports);
+
+void postWebMessageOC(int id, std::string& message, std::vector<std::string>& ports, std::string& targetUrl);
+
+bool postMessageEventOC(int id, const std::string& message);
+
+void onMessageEventOC(int id, const std::string& portHandle,
+    void (*callbackOC)(int32_t webId, const std::string& portHandle, const std::string& result));
+
+void closePortOC(int id);
 
 bool saveHttpAuthCredentialsOC(
     const std::string& host, const std::string& realm, const std::string& username, const char* password);
