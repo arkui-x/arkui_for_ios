@@ -112,6 +112,7 @@ template("ace_ios_standard_source_set") {
 
     if (defined(config.enable_rosen_backend) && config.enable_rosen_backend) {
       deps += [ "//foundation/graphic/graphic_2d/rosen/modules/render_service_client:librender_service_client_static" ]
+      deps += [ "//foundation/arkui/napi:ace_napi" ]
     }
   }
 }

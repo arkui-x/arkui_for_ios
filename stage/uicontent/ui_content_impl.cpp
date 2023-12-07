@@ -91,7 +91,7 @@ public:
     explicit OccupiedAreaChangeListener(int32_t instanceId) : instanceId_(instanceId) {}
     ~OccupiedAreaChangeListener() = default;
 
-    void OnSizeChange(const OHOS::Rosen::Rect &rect, const OHOS::Rosen::OccupiedAreaType type)
+    void OnSizeChange(const OHOS::Rosen::Rect& rect, const OHOS::Rosen::OccupiedAreaType type)
     {
         Rect keyboardRect = Rect(rect.posX_, rect.posY_, rect.width_, rect.height_);
         if (type == OHOS::Rosen::OccupiedAreaType::TYPE_INPUT) {
@@ -139,6 +139,11 @@ void UIContentImpl::DestroyCallback() const
 
 void UIContentImpl::Initialize(OHOS::Rosen::Window* window, const std::string& url, NativeValue* storage)
 {
+    Initialize(window, url, reinterpret_cast<napi_value>(storage));
+}
+
+void UIContentImpl::Initialize(OHOS::Rosen::Window* window, const std::string& url, napi_value storage)
+{
     if (window) {
         CommonInitialize(window, url, storage);
     }
@@ -151,6 +156,11 @@ void UIContentImpl::Initialize(OHOS::Rosen::Window* window, const std::string& u
 
 NativeValue* UIContentImpl::GetUIContext()
 {
+    return reinterpret_cast<NativeValue*>(GetUINapiContext());
+}
+
+napi_value UIContentImpl::GetUINapiContext()
+{
     auto container = Platform::AceContainerSG::GetContainer(instanceId_);
     ContainerScope scope(instanceId_);
     auto frontend = container->GetFrontend();
@@ -158,13 +168,13 @@ NativeValue* UIContentImpl::GetUIContext()
     if (frontend->GetType() == FrontendType::DECLARATIVE_JS) {
         auto declarativeFrontend = AceType::DynamicCast<DeclarativeFrontendNG>(frontend);
         CHECK_NULL_RETURN(declarativeFrontend, nullptr);
-        return reinterpret_cast<NativeValue*>(declarativeFrontend->GetContextValue());
+        return declarativeFrontend->GetContextValue();
     }
 
     return nullptr;
 }
 
-void UIContentImpl::CommonInitialize(OHOS::Rosen::Window* window, const std::string& url, NativeValue* storage)
+void UIContentImpl::CommonInitialize(OHOS::Rosen::Window* window, const std::string& url, napi_value storage)
 {
     ACE_FUNCTION_TRACE();
     window_ = sptr<OHOS::Rosen::Window>(window);
@@ -212,7 +222,7 @@ void UIContentImpl::CommonInitialize(OHOS::Rosen::Window* window, const std::str
             if (dynamicLoadFlag) {
                 hapPath = assetProvider->GetAppDataModuleDir() + "/" + moduleName + "/";
             }
-            
+
             auto assetBasePathStr = { std::string(""), std::string("ets/"), std::string("ets/share"),
                 std::string("resources/base/profile/") };
             if (assetManagerImpl && !hapPath.empty()) {
@@ -328,9 +338,11 @@ void UIContentImpl::CommonInitialize(OHOS::Rosen::Window* window, const std::str
         if (!storage) {
             container->SetLocalStorage(nullptr, context->GetBindingObject()->Get<NativeReference>());
         } else {
-            LOGI("SetLocalStorage %{public}d", storage->TypeOf());
+            auto env = reinterpret_cast<napi_env>(nativeEngine);
+            napi_ref ref = nullptr;
+            napi_create_reference(env, storage, 1, &ref);
             container->SetLocalStorage(
-                nativeEngine->CreateReference(storage, 1), context->GetBindingObject()->Get<NativeReference>());
+                reinterpret_cast<NativeReference*>(ref), context->GetBindingObject()->Get<NativeReference>());
         }
     }
 }
@@ -617,7 +629,7 @@ bool UIContentImpl::GetAllComponents(NodeId nodeID, OHOS::Ace::Platform::Compone
                 AceType::DynamicCast<OHOS::Ace::Framework::AccessibilityNodeManager>(accessibilityManager);
             auto accessibilityManagerImpl =
                 AceType::DynamicCast<OHOS::Ace::Framework::AccessibilityManagerImpl>(accessibilityNodeManager);
-            auto ret =  accessibilityManagerImpl->GetAllComponents(nodeID, components);
+            auto ret = accessibilityManagerImpl->GetAllComponents(nodeID, components);
             LOGI("UIContentImpl::GetAllComponents ret = %d", ret);
             return ret;
         }

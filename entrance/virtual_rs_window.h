@@ -32,6 +32,7 @@
 
 class NativeValue;
 class NativeEngine;
+typedef struct napi_value__* napi_value;
 #ifdef __OBJC__
 @class WindowView;
 @class UIViewController;
@@ -148,8 +149,10 @@ public:
     bool ProcessKeyEvent(
         int32_t keyCode, int32_t keyAction, int32_t repeatTime, int64_t timeStamp = 0, int64_t timeStampStart = 0, int32_t metaKey = 0);
 
-    WMError SetUIContent(const std::string& contentInfo, NativeEngine* engine,
-        NativeValue* storage, bool isdistributed, AbilityRuntime::Platform::Ability* ability);
+    WMError SetUIContent(const std::string& contentInfo, NativeEngine* engine, napi_value storage, bool isdistributed,
+        AbilityRuntime::Platform::Ability* ability);
+    WMError SetUIContent(const std::string& contentInfo, NativeEngine* engine, NativeValue* storage, bool isdistributed,
+        AbilityRuntime::Platform::Ability* ability);
     Ace::Platform::UIContent* GetUIContent();
         
     WMError SetBackgroundColor(uint32_t color);

@@ -33,6 +33,7 @@
 #include "window_option.h"
 #include "InstanceIdGenerator.h"
 #include "hilog.h"
+#include "napi/native_api.h"
 #include "core/event/touch_event.h"
 #include "core/event/key_event.h"
 
@@ -695,7 +696,7 @@ void Window::DelayNotifyUIContentIfNeeded()
 }
 
 WMError Window::SetUIContent(const std::string& contentInfo,
-    NativeEngine* engine, NativeValue* storage, bool isdistributed, AbilityRuntime::Platform::Ability* ability)
+    NativeEngine* engine, napi_value storage, bool isdistributed, AbilityRuntime::Platform::Ability* ability)
 {
     LOGI("Window::SetUIContent : Start");
     using namespace OHOS::Ace::Platform;
@@ -715,6 +716,12 @@ WMError Window::SetUIContent(const std::string& contentInfo,
     DelayNotifyUIContentIfNeeded();
     LOGI("Window::SetUIContent : End!!!");
     return WMError::WM_OK;
+}
+
+WMError Window::SetUIContent(const std::string& contentInfo, NativeEngine* engine, NativeValue* storage,
+    bool isdistributed, AbilityRuntime::Platform::Ability* ability)
+{
+    return SetUIContent(contentInfo, engine, reinterpret_cast<napi_value>(storage), isdistributed, ability);
 }
 
 Ace::Platform::UIContent* Window::GetUIContent() {
