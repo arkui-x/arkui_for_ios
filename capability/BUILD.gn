@@ -147,6 +147,7 @@ template("ace_capability_ios_source_set") {
       "$ace_root/adapter/ios/capability/web/AceWebObject.cpp",
       "$ace_root/adapter/ios/capability/web/AceWebPatternBridge.cpp",
       "$ace_root/adapter/ios/capability/web/AceWebResourcePlugin.mm",
+      "$ace_root/adapter/ios/capability/web/WebMessageChannel.mm",
     ]
 
     deps = [ ":text_input" ]

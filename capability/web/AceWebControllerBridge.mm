@@ -13,8 +13,9 @@
  * limitations under the License.
  */
 
-#include <string>
 #include <map>
+#include <string>
+#include <vector>
 #import "AceWebResourcePlugin.h"
 #import "AceWebControllerBridge.h"
 
@@ -106,7 +107,7 @@ void loadDataOC(int id, const std::string& data, const std::string& mimeType, co
     [web loadData:ocData mimeType:ocMimeType encoding:ocEncoding baseUrl:ocBaseUrl historyUrl:ocHistoryUrl];
 }
 
-void EvaluateJavaScriptOC(int id, const std::string& script, void (*callbackOC)(const std::string& result))
+void EvaluateJavaScriptOC(int id, const std::string& script, int32_t asyncCallbackInfoId, void (*callbackOC)(const std::string& result, int32_t asyncCallbackInfoId))
 {
     AceWeb* web = [AceWebResourcePlugin.getObjectMap objectForKey:[NSString stringWithFormat:@"%d", id]];
     if (web == nil) {
@@ -115,7 +116,7 @@ void EvaluateJavaScriptOC(int id, const std::string& script, void (*callbackOC)(
     NSString* ocScript = [NSString stringWithCString:script.c_str() encoding:NSUTF8StringEncoding];
     [web EvaluateJavaScript:ocScript
                    callback:^(NSString* ocResult) {
-                     callbackOC([ocResult UTF8String]);
+                     callbackOC([ocResult UTF8String], asyncCallbackInfoId);
                    }];
 }
 
@@ -171,6 +172,132 @@ void refreshOC(int id)
         return;
     }
     [web refresh];
+}
+
+void removeCacheOC(int id, bool value)
+{
+    AceWeb* web = [AceWebResourcePlugin.getObjectMap objectForKey:[NSString stringWithFormat:@"%d", id]];
+    if (web == nil) {
+        return;
+    }
+    [web removeCache:value];
+}
+
+void backOrForwardOC(int id, int32_t step)
+{
+    AceWeb* web = [AceWebResourcePlugin.getObjectMap objectForKey:[NSString stringWithFormat:@"%d", id]];
+    if (web == nil) {
+        return;
+    }
+    [web backOrForward:step];
+}
+
+std::string getTitleOC(int id)
+{
+    AceWeb* web = [AceWebResourcePlugin.getObjectMap objectForKey:[NSString stringWithFormat:@"%d", id]];
+    if (web == nil) {
+        return "";
+    }
+    return [[web getTitle] UTF8String];
+}
+
+int32_t getPageHeightOC(int id)
+{
+    AceWeb* web = [AceWebResourcePlugin.getObjectMap objectForKey:[NSString stringWithFormat:@"%d", id]];
+    if (web == nil) {
+        return 0;
+    }
+    return (int)[web getPageHeight];
+}
+
+BackForwardResult getBackForwardEntriesOC(int id)
+{
+    BackForwardResult backForwardResult;
+    BackForwardItem backForwardItem;
+    AceWeb* web = [AceWebResourcePlugin.getObjectMap objectForKey:[NSString stringWithFormat:@"%d", id]];
+    if (web != nil) {
+        NSArray* backList = web.getWeb.backForwardList.backList;
+        NSArray* forwardList = web.getWeb.backForwardList.forwardList;
+        backForwardResult.currentIndex = (int)backList.count;
+        for (WKBackForwardListItem* backItem in backList) {
+            backForwardItem.URL = [[backItem.URL absoluteString] UTF8String];
+            backForwardItem.title = [backItem.title UTF8String];
+            backForwardItem.initialURL = [[backItem.initialURL absoluteString] UTF8String];
+            backForwardResult.backForwardItemList.push_back(backForwardItem);
+        }
+        backForwardItem.URL = [[web.getWeb.backForwardList.currentItem.URL absoluteString] UTF8String];
+        backForwardItem.title = [web.getWeb.backForwardList.currentItem.title UTF8String];
+        backForwardItem.initialURL = [[web.getWeb.backForwardList.currentItem.initialURL absoluteString] UTF8String];
+        backForwardResult.backForwardItemList.push_back(backForwardItem);
+        for (WKBackForwardListItem* forwardItem in forwardList) {
+            backForwardItem.URL = [[forwardItem.URL absoluteString] UTF8String];
+            backForwardItem.title = [forwardItem.title UTF8String];
+            backForwardItem.initialURL = [[forwardItem.initialURL absoluteString] UTF8String];
+            backForwardResult.backForwardItemList.push_back(backForwardItem);
+        }
+    }
+    return backForwardResult;
+}
+
+void createWebMessagePortsOC(int id, std::vector<std::string>& ports)
+{
+    AceWeb* web = [AceWebResourcePlugin.getObjectMap objectForKey:[NSString stringWithFormat:@"%d", id]];
+    if (web == nil) {
+        return;
+    }
+
+    NSArray* portsName = @[ @"port1", @"port2" ];
+    [web createWebMessagePorts:portsName];
+    ports.push_back([portsName[0] UTF8String]);
+    ports.push_back([portsName[1] UTF8String]);
+}
+
+void postWebMessageOC(int id, std::string& message, std::vector<std::string>& ports, std::string& targetUrl)
+{
+    AceWeb* web = [AceWebResourcePlugin.getObjectMap objectForKey:[NSString stringWithFormat:@"%d", id]];
+    if (web == nil) {
+        return;
+    }
+    NSString* ocMessage = [NSString stringWithCString:message.c_str() encoding:NSUTF8StringEncoding];
+    NSString* ocTargetUrl = [NSString stringWithCString:targetUrl.c_str() encoding:NSUTF8StringEncoding];
+
+    for (const auto& port : ports) {
+        NSString* ocPort = [NSString stringWithCString:port.c_str() encoding:NSUTF8StringEncoding];
+        [web postWebMessage:ocMessage port:ocPort targetUrl:ocTargetUrl];
+    }
+}
+
+bool postMessageEventOC(int id, const std::string& message)
+{
+    AceWeb* web = [AceWebResourcePlugin.getObjectMap objectForKey:[NSString stringWithFormat:@"%d", id]];
+    if (web == nil) {
+        return false;
+    }
+    NSString* ocMessage = [NSString stringWithCString:message.c_str() encoding:NSUTF8StringEncoding];
+    [web postMessageEvent:ocMessage];
+    return true;
+}
+
+void onMessageEventOC(int id, const std::string& portHandle,
+    void (*callbackOC)(int32_t webId, const std::string& portHandle, const std::string& result))
+{
+    AceWeb* web = [AceWebResourcePlugin.getObjectMap objectForKey:[NSString stringWithFormat:@"%d", id]];
+    if (web == nil) {
+        return;
+    }
+
+    [web onMessageEvent:^(NSString* ocResult) {
+      callbackOC(id, portHandle, [ocResult UTF8String]);
+    }];
+}
+
+void closePortOC(int id)
+{
+    AceWeb* web = [AceWebResourcePlugin.getObjectMap objectForKey:[NSString stringWithFormat:@"%d", id]];
+    if (web == nil) {
+        return;
+    }
+    [web closePort];
 }
 
 bool saveHttpAuthCredentialsOC(

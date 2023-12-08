@@ -19,6 +19,7 @@
 #import "AceWebObject.h"
 #include "AceWebCallbackObjectWrapper.h"
 #import "AceWebControllerBridge.h"
+#import "WebMessageChannel.h"
 
 #define WEBVIEW_WIDTH  @"width"
 #define WEBVIEW_HEIGHT  @"height"
@@ -60,6 +61,7 @@
 #define NTC_ONSCALECHANGE                 @"onScaleChange"
 #define NTC_ONCONSOLEMESSAGE              @"onConsoleMessage"
 
+typedef void (^PostMessageResultMethod)(NSString* ocResult);
 @interface AceWeb()<WKScriptMessageHandler, WKUIDelegate, WKNavigationDelegate, UIScrollViewDelegate>
 /**webView*/
 @property (nonatomic, assign) WKWebView *webView;
@@ -76,6 +78,8 @@
 @property (nonatomic, assign) bool allowZoom;
 @property (nonatomic, assign) BOOL javascriptAccessSwitch;
 @property (nonatomic, copy) IAceOnResourceEvent onEvent;
+@property (nonatomic, strong) WebMessageChannel* webMessageChannel;
+@property (nonatomic, strong) PostMessageResultMethod messageCallBack;
 
 @property (nonatomic, strong) NSMutableDictionary<NSString *, IAceOnCallSyncResourceMethod> *callSyncMethodMap;
 @end
@@ -109,6 +113,7 @@
     [self initConsole:CONSOLEERROR controller:userContentController];
     [self initConsole:CONSOLEDEBUG controller:userContentController];
     [self initConsole:CONSOLEWARN controller:userContentController];
+    [userContentController addScriptMessageHandler:self name:@"onWebMessagePortMessage"];
     preference.javaScriptEnabled = self.javascriptAccessSwitch;
 
     config.preferences = preference;
@@ -120,6 +125,7 @@
     [self.webView addObserver:self forKeyPath:ESTIMATEDPROGRESS options:NSKeyValueObservingOptionNew context:nil];
     [self.webView addObserver:self forKeyPath:TITLE options:NSKeyValueObservingOptionNew context:nil];
 }
+
 -(WKWebView*)getWeb {
     return self.webView;
 }
@@ -233,6 +239,83 @@
     [self.webView reload];
 }
 
+- (void)removeCache:(bool)value
+{
+    NSSet* websiteDataTypes = [[NSMutableSet alloc] init];
+    if (value) {
+        websiteDataTypes = [NSSet setWithArray:@[ WKWebsiteDataTypeMemoryCache, WKWebsiteDataTypeDiskCache ]];
+    } else {
+        websiteDataTypes = [NSSet setWithArray:@[ WKWebsiteDataTypeMemoryCache ]];
+    }
+    NSDate* dateFrom = [NSDate dateWithTimeIntervalSince1970:0];
+    [[WKWebsiteDataStore defaultDataStore] removeDataOfTypes:websiteDataTypes
+                                               modifiedSince:dateFrom
+                                           completionHandler:^ {
+                                           }];
+}
+
+- (void)backOrForward:(NSInteger)step
+{
+    if (step > 0) {
+        if (self.webView.backForwardList.forwardList.count >= step) {
+            WKBackForwardListItem* backForwardListItem = [self.webView.backForwardList itemAtIndex:step];
+            [self.webView goToBackForwardListItem:backForwardListItem];
+        }
+    }
+
+    if (step < 0) {
+        if (self.webView.backForwardList.backList.count >= abs(step)) {
+            WKBackForwardListItem* backForwardListItem = [self.webView.backForwardList itemAtIndex:step];
+            [self.webView goToBackForwardListItem:backForwardListItem];
+        }
+    }
+}
+
+- (NSString*)getTitle
+{
+    return self.webView.title;
+}
+
+- (CGFloat)getPageHeight
+{
+    return self.webView.scrollView.contentSize.height;
+}
+
+- (void)createWebMessagePorts:(NSArray*)portsName
+{
+    self.webMessageChannel = [[WebMessageChannel alloc] init:portsName webView:self.webView];
+    [self.webMessageChannel initJsPortInstance];
+}
+
+- (void)postWebMessage:(NSString*)message port:(NSString*)port targetUrl:(NSString*)targetUrl
+{
+    if (self.webMessageChannel == nil) {
+        return;
+    }
+    [self.webMessageChannel postMessage:message portName:port uri:targetUrl];
+}
+
+- (void)postMessageEvent:(NSString*)message
+{
+    if (self.webMessageChannel == nil) {
+        return;
+    }
+    [self.webMessageChannel postMessageEvent:message];
+}
+
+- (void)onMessageEvent:(void (^)(NSString* ocResult))callback
+{
+    self.messageCallBack = callback;
+}
+
+- (void)closePort
+{
+    if (self.webMessageChannel == nil) {
+        return;
+    }
+    [self.webMessageChannel closePort];
+}
+
 + (bool)saveHttpAuthCredentials:(NSString*)host
                           realm:(NSString*)realm
                        username:(NSString*)username
@@ -312,6 +395,12 @@
 
 - (void)scrollTo:(CGFloat)x y:(CGFloat)y
 {
+    if ([[NSString stringWithFormat:@"%f", x] isEqualToString:@"nan"] || 
+        [[NSString stringWithFormat:@"%f", y] isEqualToString:@"nan"]){
+        x = 0.f;
+        y = 0.f;
+    }
+
     CGFloat offsetX = 0.f;
     CGFloat offsetY = 0.f;
     if (self.webView.scrollView.contentSize.width > self.webView.frame.size.width) {
@@ -325,6 +414,12 @@
 
 - (void)scrollBy:(CGFloat)deltaX deltaY:(CGFloat)deltaY
 {
+    if ([[NSString stringWithFormat:@"%f", deltaX] isEqualToString:@"nan"] || 
+        [[NSString stringWithFormat:@"%f", deltaY] isEqualToString:@"nan"]){
+        deltaX = 0.f;
+        deltaY = 0.f;
+    }
+
     CGFloat offsetX = 0.f;
     CGFloat offsetY = 0.f;
     if (self.webView.scrollView.contentSize.width > self.webView.frame.size.width) {
@@ -339,7 +434,7 @@
 
 - (void)zoom:(CGFloat)factor
 {
-    if (factor > 0) {
+    if(factor > 0 && factor <= 100) {
         [self.webView.scrollView setZoomScale:self.webView.scrollView.zoomScale * factor];
     }
 }
@@ -822,6 +917,11 @@
         messageLevel = 2;
     } else if ([message.name hasPrefix:CONSOLEWARN]) {
         messageLevel = 3;
+    } else if ([message.name hasPrefix:@"onWebMessagePortMessage"]) {
+        if (self.messageCallBack != nil) {
+            self.messageCallBack(messageBody);
+        }
+        return;
     }
     AceWebOnConsoleObject* obj = new AceWebOnConsoleObject(std::string([messageBody UTF8String]), messageLevel);
     AceWebObjectWithBoolReturn(

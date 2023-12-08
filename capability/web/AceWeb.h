@@ -36,6 +36,15 @@
 - (void)backward;
 - (void)forward;
 - (void)refresh;
+- (void)removeCache:(bool)value;
+- (void)backOrForward:(NSInteger)step;
+- (NSString*)getTitle;
+- (CGFloat)getPageHeight;
+- (void)createWebMessagePorts:(NSArray*)portsName;
+- (void)postWebMessage:(NSString*)message port:(NSString*)port targetUrl:(NSString*)targetUrl;
+- (void)postMessageEvent:(NSString*)message;
+- (void)onMessageEvent:(void (^)(NSString* ocResult))callback;
+- (void)closePort;
 + (bool)saveHttpAuthCredentials:(NSString*)host
                           realm:(NSString*)realm
                        username:(NSString*)username
