@@ -62,6 +62,7 @@
 #define NTC_ONSCROLL                      @"onScroll"
 #define NTC_ONSCALECHANGE                 @"onScaleChange"
 #define NTC_ONCONSOLEMESSAGE              @"onConsoleMessage"
+#define NTC_RICHTEXT_LOADDATA             @"loadData"
 
 @interface AceWeb()<WKScriptMessageHandler, WKUIDelegate, WKNavigationDelegate, UIScrollViewDelegate>
 /**webView*/
@@ -485,7 +486,7 @@
 - (void)setRichText
 {
     __weak __typeof(self) weakSelf = self;
-    NSString* richText_method_hash = [self method_hashFormat:@"loadData"];
+    NSString* richText_method_hash = [self method_hashFormat:NTC_RICHTEXT_LOADDATA];
     IAceOnCallSyncResourceMethod richText_callback = ^NSString*(NSDictionary* param)
     {
         NSString* data = [param objectForKey:WEBVIEW_LOADDATA_DATA];
@@ -493,8 +494,8 @@
         NSString* encodingName = [param objectForKey:WEBVIEW_LOADDATA_ENCODING];
         __strong __typeof(weakSelf) strongSelf = weakSelf;
         if (strongSelf) {
-            [strongSelf loadData:data mimeType:type encoding:encodingName baseUrl:@"" historyUrl:@""];
             strongSelf.isLoadRichText = true;
+            [strongSelf loadData:data mimeType:type encoding:encodingName baseUrl:@"" historyUrl:@""];
             return SUCCESS;
         } else {
             NSLog(@"AceWeb: set richText fail");
