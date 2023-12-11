@@ -155,6 +155,11 @@ Ace::KeyCode KeyCodeToAceKeyCode(int32_t keyCode)
     return aceKeyCode;
 }
 
+const std::map<ColorSpace, GraphicColorGamut> COLOR_SPACE_JS_TO_GAMUT_MAP {
+    { ColorSpace::COLOR_SPACE_DEFAULT, GraphicColorGamut::GRAPHIC_COLOR_GAMUT_SRGB },
+    { ColorSpace::COLOR_SPACE_WIDE_GAMUT, GraphicColorGamut::GRAPHIC_COLOR_GAMUT_DCI_P3 },
+};
+
 void DummyWindowRelease(Window* window)
 {
     window->DecStrongRef(window);
@@ -996,6 +1001,41 @@ WMError Window::UnregisterLifeCycleListener(const sptr<IWindowLifeCycle>& listen
     LOGD("Start unregister");
     std::lock_guard<std::recursive_mutex> lock(globalMutex_);
     return UnregisterListener(lifecycleListeners_[GetWindowId()], listener);
+}
+
+ColorSpace Window::GetColorSpaceFromSurfaceGamut(GraphicColorGamut colorGamut) const
+{
+    for (auto& item : COLOR_SPACE_JS_TO_GAMUT_MAP) {
+        if (item.second == colorGamut) {
+            return item.first;
+        }
+    }
+    return ColorSpace::COLOR_SPACE_DEFAULT;
+}
+
+GraphicColorGamut Window::GetSurfaceGamutFromColorSpace(ColorSpace colorSpace) const
+{
+    for (auto& item : COLOR_SPACE_JS_TO_GAMUT_MAP) {
+        if (item.first == colorSpace) {
+            return item.second;
+        }
+    }
+    return GraphicColorGamut::GRAPHIC_COLOR_GAMUT_SRGB;
+}
+
+WMError Window::SetColorSpace(ColorSpace colorSpace)
+{
+    auto surfaceGamut = GetSurfaceGamutFromColorSpace(colorSpace);
+    LOGI("Window::SetColorSpace called. colorSpace=%{public}d, surfaceGamut=%{public}d", colorSpace, surfaceGamut);
+    surfaceNode_->SetColorSpace(surfaceGamut);
+    return WMError::WM_OK;
+}
+
+ColorSpace Window::GetColorSpace() const
+{
+    GraphicColorGamut gamut = surfaceNode_->GetColorSpace();
+    ColorSpace colorSpace = GetColorSpaceFromSurfaceGamut(gamut);
+    return colorSpace;
 }
 
 template<typename T>
