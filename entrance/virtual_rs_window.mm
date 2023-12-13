@@ -723,12 +723,6 @@ WMError Window::SetUIContent(const std::string& contentInfo,
     return WMError::WM_OK;
 }
 
-WMError Window::SetUIContent(const std::string& contentInfo, NativeEngine* engine, NativeValue* storage,
-    bool isdistributed, AbilityRuntime::Platform::Ability* ability)
-{
-    return SetUIContent(contentInfo, engine, reinterpret_cast<napi_value>(storage), isdistributed, ability);
-}
-
 Ace::Platform::UIContent* Window::GetUIContent() {
     return uiContent_.get();
 }
