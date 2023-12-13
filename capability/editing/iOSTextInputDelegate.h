@@ -28,6 +28,7 @@ typedef NS_ENUM(NSInteger, iOSFloatingCursorDragState) {
 };
 
 typedef void (^updateEditingClientBlock)(int client, NSDictionary *state);
+typedef void (^updateErrorTextBlock)(int client, NSDictionary *state);
 typedef void (^performActionBlock)(int action, int client);
 
 @protocol iOSTextInputDelegate <NSObject>

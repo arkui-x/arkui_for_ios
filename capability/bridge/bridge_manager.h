@@ -20,8 +20,9 @@
 #include <mutex>
 #include <string>
 
-#include "base/utils/macros.h"
 #include "bridge_receiver.h"
+
+#include "base/utils/macros.h"
 
 namespace OHOS::Ace::Platform {
 class ACE_EXPORT BridgeManager final {
@@ -30,23 +31,35 @@ public:
     ~BridgeManager() = default;
 
     static bool JSBridgeExists(const std::string& bridgeName);
-    static bool JSRegisterBridge(const std::string& bridgeName,
-        std::shared_ptr<BridgeReceiver> callback);
+    static bool JSRegisterBridge(const std::string& bridgeName, std::shared_ptr<BridgeReceiver> callback);
     static void JSUnRegisterBridge(const std::string& bridgeName);
-    static void JSCallMethod(const std::string& bridgeName, const std::string& methodName,
-        const std::string& parameter);
-    static void JSSendMethodResult(const std::string& bridgeName, const std::string& methodName,
-        const std::string& resultValue);
+    static void JSCallMethod(
+        const std::string& bridgeName, const std::string& methodName, const std::string& parameter);
+    static void JSSendMethodResult(
+        const std::string& bridgeName, const std::string& methodName, const std::string& resultValue);
     static void JSSendMessage(const std::string& bridgeName, const std::string& data);
     static void JSSendMessageResponse(const std::string& bridgeName, const std::string& data);
-    static void PlatformCallMethod(const std::string& bridgeName, const std::string& methodName,
-        const std::string& parameter);
-    static void PlatformSendMethodResult(const std::string& bridgeName,
-        const std::string& methodName, const std::string& result);
+    static void PlatformCallMethod(
+        const std::string& bridgeName, const std::string& methodName, const std::string& parameter);
+    static void PlatformSendMethodResult(
+        const std::string& bridgeName, const std::string& methodName, const std::string& result);
     static void PlatformSendMessage(const std::string& bridgeName, const std::string& data);
     static void PlatformSendMessageResponse(const std::string& bridgeName, const std::string& data);
     static void JSCancelMethod(const std::string& bridgeName, const std::string& methodName);
     static void PlatformSendWillTerminate();
+
+    // for binary codec
+    static void JSSendMessageBinary(const std::string& bridgeName, const std::vector<uint8_t>& data);
+    static void JSCallMethodBinary(
+        const std::string& bridgeName, const std::string& methodName, const std::vector<uint8_t>& data);
+    static void JSSendMethodResultBinary(const std::string& bridgeName, const std::string& methodName, int errorCode,
+        const std::string& errorMessage, std::unique_ptr<std::vector<uint8_t>> result);
+    static void PlatformSendMethodResultBinary(const std::string& bridgeName, const std::string& methodName,
+        int errorCode, const std::string& errorMessage, std::unique_ptr<BufferMapping> result);
+    static void PlatformCallMethodBinary(
+        const std::string& bridgeName, const std::string& methodName, std::unique_ptr<BufferMapping> parameter);
+    static void PlatformSendMessageBinary(const std::string& bridgeName, std::unique_ptr<BufferMapping> data);
+
 private:
     static std::map<std::string, std::shared_ptr<BridgeReceiver>> bridgeList_;
     static std::mutex bridgeLock_;

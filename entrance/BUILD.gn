@@ -34,6 +34,7 @@ template("ace_ios_standard_source_set") {
       "$ace_root/adapter/ios/capability/texture",
       "$ace_root/adapter/ios/capability/video",
       "$ace_root/adapter/ios/capability/surface",
+      "$ace_root/adapter/ios/capability/web",
       "//foundation/arkui/ace_engine/adapter/ios/stage/ability",
       "//foundation/appframework/window_manager/interfaces/innerkits/wm",
       "//foundation/appframework/window_manager/interfaces/innerkits/dm",
@@ -43,18 +44,19 @@ template("ace_ios_standard_source_set") {
 
     sources = [
       "AcePlatformPlugin.mm",
-      "WindowView.mm",
+      "AceSurfaceHolder.mm",
+      "DownloadManager.mm",
       "UINavigationController+StatusBar.mm",
+      "WindowView.mm",
       "ace_application_info_impl.cpp",
       "ace_bridge.mm",
-      "ace_container.cpp",
+      "ace_download_bridge.mm",
       "ace_platform_plugin.cpp",
       "ace_resource_register.cpp",
       "capability_registry.cpp",
-      "flutter_ace_view.cpp",
-      "virtual_rs_window.mm",
       "display_info.mm",
-      "AceSurfaceHolder.mm",
+      "download_manager.cpp",
+      "virtual_rs_window.mm",
     ]
 
     if (target_cpu == "arm64") {
@@ -97,13 +99,15 @@ template("ace_ios_standard_source_set") {
       "//third_party/flutter/engine/flutter/shell/common",
       "//base/global/resource_management/interfaces/inner_api/include",
     ]
-    sources += [ "AceViewController.mm" ]
-    sources += [ "rosen_ace_view.mm" ]
 
-    deps += [
-      "$ace_flutter_engine_root:third_party_flutter_engine_$platform",
-      "$ace_flutter_engine_root/skia:ace_skia_$platform",
-    ]
+    if (ace_use_new_skia) {
+      deps += [ "$ace_flutter_engine_root:flutter_for_ng" ]
+    } else {
+      deps += [
+        "$ace_flutter_engine_root:third_party_flutter_engine_$platform",
+        "$ace_flutter_engine_root/skia:ace_skia_$platform",
+      ]
+    }
 
     if (defined(config.enable_rosen_backend) && config.enable_rosen_backend) {
       deps += [ "//foundation/graphic/graphic_2d/rosen/modules/render_service_client:librender_service_client_static" ]
@@ -115,7 +119,9 @@ foreach(item, ace_platforms) {
   platform = item.name
   if (platform == "ios") {
     ace_ios_standard_source_set("ace_ios_entrance") {
-      platform = item.name
+      if (!ace_use_new_skia) {
+        platform = item.name
+      }
       defines = []
       cflags_cc = []
       config = {

@@ -28,22 +28,13 @@ ohos_combine_darwin_framework("libarkui_ios") {
     "$ace_root/adapter/ios/capability/bridge/BridgePlugin.h",
     "$ace_root/adapter/ios/capability/bridge/ResultValue.h",
     "$ace_root/adapter/ios/capability/bridge/MethodData.h",
+    "$ace_root/adapter/ios/capability/bridge/codec/BridgeArray.h",
     "$ace_root/adapter/ios/stage/ability/StageViewController.h",
     "$ace_root/adapter/ios/stage/ability/StageApplication.h",
   ]
 
   subsystem_name = "arkui"
   part_name = "arkui-x"
-}
-
-common_plugin_modules_static = []
-foreach(module, common_plugin_libs_static) {
-  plugin_lib(module) {
-    platform = "ios"
-  }
-  module_name = string_replace(module, "_", "")
-  module_name = string_replace(module_name, "/", "_")
-  common_plugin_modules_static += [ ":$module_name" ]
 }
 
 # libace target
@@ -59,19 +50,21 @@ ohos_shared_library("arkui_ios") {
     "//foundation/appframework:appframework_napis",
     "//foundation/appframework/icu_data:static_icudata",
     "//plugins/interfaces/native:ace_plugin_util_inner_ios",
-    "//third_party/jsoncpp:jsoncpp_static",
   ]
-  deps += common_plugin_modules_static
   if (defined(ark_engine)) {
     deps += [
       "//arkcompiler/runtime_core/libpandabase:libarkbase_static",
       "//arkcompiler/runtime_core/libpandafile:libarkfile_static",
-
-      # for enable debugger
-      "//arkcompiler/toolchain/inspector:ark_debugger_static",
-      "//arkcompiler/toolchain/inspector:connectserver_debugger_static",
-      "//arkcompiler/toolchain/tooling:libark_ecma_debugger_set",
     ]
+
+    if (runtime_mode != "release") {
+      deps += [
+        # for enable debugger
+        "//arkcompiler/toolchain/inspector:ark_debugger_static",
+        "//arkcompiler/toolchain/inspector:connectserver_debugger_static",
+        "//arkcompiler/toolchain/tooling:libark_ecma_debugger_set",
+      ]
+    }
   }
 
   deps +=
@@ -82,13 +75,13 @@ ohos_shared_library("arkui_ios") {
     "-frtti",
   ]
 
+  exported_symbols_list = "libarkui_ios.txt"
   part_name = "arkui-x"
   subsystem_name = "arkui"
 }
 
 # napi target
 common_napi_modules = []
-
 foreach(module, common_napi_libs) {
   module_path_names = []
   module_path_names = string_split(module, "/")
@@ -127,7 +120,6 @@ foreach(module, common_napi_libs) {
 
 # plugin target
 common_plugin_modules = []
-
 foreach(module, common_plugin_libs) {
   plugin_name = module
   target_name_ext = string_replace(module, "_", "")
@@ -146,6 +138,7 @@ foreach(module, common_plugin_libs) {
       "AVFoundation.framework",
       "Foundation.framework",
       "UIKit.framework",
+      "WebKit.framework",
     ]
 
     # relative_install_dir = "module"
@@ -163,7 +156,6 @@ foreach(module, common_plugin_libs) {
 
 # components target
 component_plugin_modules = []
-
 foreach(module, component_plugins) {
   sub_name = string_replace(module, "_", "")
   module_name = "arkui_$sub_name"
@@ -180,6 +172,7 @@ foreach(module, component_plugins) {
       "AVFoundation.framework",
       "Foundation.framework",
       "UIKit.framework",
+      "WebKit.framework",
     ]
 
     # relative_install_dir = "module"

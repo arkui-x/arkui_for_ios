@@ -27,7 +27,7 @@ js_engines += [ ark_engine ]
 build_for_ios = true
 build_container_scope_lib = true
 
-use_curl_download = true
+use_curl_download = false
 use_build_in_js_engine = true
 accessibility_support = false
 rich_components_support = true
@@ -42,6 +42,7 @@ use_external_icu = "static"
 pixel_map_support = true
 video_components_support = true
 use_components_lib = true
+web_components_support = true
 
 cflags_cc = [
   "-std=c++17",
@@ -68,10 +69,16 @@ platform_deps = [
   "//foundation/arkui/ace_engine/adapter/ios/stage/uicontent:ace_uicontent_ios",
 ]
 
+libace_target = "//foundation/arkui/ace_engine/adapter/ios/build:arkui_ios"
+
 if (defined(pixel_map_support) && pixel_map_support) {
   defines += [ "PIXEL_MAP_SUPPORTED" ]
 }
 
 if (defined(video_components_support) && video_components_support) {
   defines += [ "VIDEO_SUPPORTED" ]
+}
+
+if (defined(web_components_support) && web_components_support) {
+  defines += [ "WEB_SUPPORTED" ]
 }

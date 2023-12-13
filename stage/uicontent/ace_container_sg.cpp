@@ -15,6 +15,8 @@
 
 #include "adapter/ios/stage/uicontent/ace_container_sg.h"
 
+#include <numeric>
+
 #include "adapter/ios/entrance/ace_application_info_impl.h"
 #include "adapter/ios/entrance/ace_platform_plugin.h"
 #include "adapter/ios/osal/file_asset_provider.h"
@@ -106,13 +108,43 @@ void AceContainerSG::Initialize()
 void AceContainerSG::Destroy()
 {
     LOGI("AceContainerSG: destroy");
-    CHECK_NULL_VOID(pipelineContext_);
-    CHECK_NULL_VOID(taskExecutor_);
 
     ContainerScope scope(instanceId_);
+    if (pipelineContext_ && taskExecutor_) {
+        // 1. Destroy Pipeline on UI thread.
+        RefPtr<PipelineBase> context;
+        {
+            std::lock_guard<std::mutex> lock(pipelineMutex_);
+            context.Swap(pipelineContext_);
+            LOGI("AceContainerSG::Destroy pipelineContext_ start");
+        }
+        auto uiTask = [context]() { context->Destroy(); };
+        if (GetSettings().usePlatformAsUIThread) {
+            uiTask();
+            LOGI("AceContainerSG::Destroy pipelineContext_ end");
+        } else {
+            taskExecutor_->PostTask(uiTask, TaskExecutor::TaskType::UI);
+        }
 
-    if (frontend_) {
-        frontend_->UpdateState(Frontend::State::ON_DESTROY);
+        // 2. Destroy Frontend on JS thread.
+        RefPtr<Frontend> frontend;
+        {
+            std::lock_guard<std::mutex> lock(frontendMutex_);
+            frontend.Swap(frontend_);
+        }
+        auto jsTask = [frontend]() {
+            auto lock = frontend->GetLock();
+            LOGI("AceContainerSG::Destroy frontend start");
+            frontend->Destroy();
+        };
+
+        frontend->UpdateState(Frontend::State::ON_DESTROY);
+        if (GetSettings().usePlatformAsUIThread && GetSettings().useUIAsJSThread) {
+            jsTask();
+            LOGI("AceContainerSG::Destroy frontend end");
+        } else {
+            taskExecutor_->PostTask(jsTask, TaskExecutor::TaskType::JS);
+        }
     }
 
     // Clear the data of this container
@@ -685,6 +717,31 @@ void AceContainerSG::NotifyAppStorage(const std::string& key, const std::string&
     }
 }
 
+void AceContainerSG::SetLocalStorage(NativeReference* storage, NativeReference* context)
+{
+    ContainerScope scope(instanceId_);
+    taskExecutor_->PostTask(
+        [frontend = WeakPtr<Frontend>(frontend_), storage, context, id = instanceId_] {
+            auto sp = frontend.Upgrade();
+            CHECK_NULL_VOID(sp);
+#ifdef NG_BUILD
+            auto declarativeFrontend = AceType::DynamicCast<DeclarativeFrontendNG>(sp);
+#else
+            auto declarativeFrontend = AceType::DynamicCast<DeclarativeFrontend>(sp);
+#endif
+            CHECK_NULL_VOID(declarativeFrontend);
+            auto jsEngine = declarativeFrontend->GetJsEngine();
+            CHECK_NULL_VOID(jsEngine);
+            if (context) {
+                jsEngine->SetContext(id, context);
+            }
+            if (storage) {
+                jsEngine->SetLocalStorage(id, storage);
+            }
+        },
+        TaskExecutor::TaskType::JS);
+}
+
 bool AceContainerSG::OnBackPressed(int32_t instanceId)
 {
     auto container = AceEngine::Get().GetContainer(instanceId);
@@ -897,10 +954,11 @@ bool AceContainerSG::RunPage(int32_t instanceId, int32_t pageId, const std::stri
 }
 
 void AceContainerSG::SetResPaths(
-    const std::string& hapResPath, const std::string& sysResPath, const ColorMode& colorMode)
+    const std::vector<std::string>& hapResPath, const std::string& sysResPath, const ColorMode& colorMode)
 {
     LOGI("SetResPaths, Use hap path to load resource");
-    resourceInfo_.SetHapPath(hapResPath);
+    resourceInfo_.SetHapPath(std::accumulate(hapResPath.begin(), hapResPath.end(), std::string(),
+        [](const std::string& acc, const std::string& element) { return acc + (acc.empty() ? "" : ":") + element;}));
     // use package path to load system resource.
     auto sysFisrtPos = sysResPath.find_last_of('/');
     auto sysResourcePath = sysResPath.substr(0, sysFisrtPos);

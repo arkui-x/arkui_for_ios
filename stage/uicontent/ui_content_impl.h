@@ -80,7 +80,7 @@ public:
     // Receive memory level notification
     void NotifyMemoryLevel(int32_t level) override;
 
-    bool ProcessBasicEvent(const std::vector<TouchEvent>& touchEvents);
+    bool ProcessBasicEvent(const std::vector<TouchEvent>& touchEvents) override;
 
 private:
     void CommonInitialize(OHOS::Rosen::Window* window, const std::string& url, NativeValue* storage);

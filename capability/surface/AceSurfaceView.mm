@@ -24,7 +24,6 @@
     float _surfaceHeight;
     BOOL _viewAdded;
 }
-@property (nonatomic, strong) AVPlayerLayer* playerLayer;
 @property (nonatomic, assign) int64_t incId;
 @property (nonatomic, assign) int32_t instanceId;
 @property (nonatomic, copy) IAceOnResourceEvent callback;
@@ -48,6 +47,16 @@
 #define SURFACE_WIDTH_KEY @"surfaceWidth"
 #define SURFACE_HEIGHT_KEY @"surfaceHeight"
 #define SURFACE_SET_BOUNDS @"setSurfaceBounds"
+
++ (Class)layerClass
+{
+    return [AVPlayerLayer class];
+}
+
+- (AVPlayerLayer *)playerLayer
+{
+    return (AVPlayerLayer *)self.layer;
+}
 
 - (instancetype)initWithId:(int64_t)incId callback:(IAceOnResourceEvent)callback
     param:(NSDictionary*)initParam superTarget:(id)target abilityInstanceId:(int32_t)abilityInstanceId
@@ -99,15 +108,19 @@
 
 - (void)layerCreate
 {
-    AVPlayerLayer * playerLayer = [[AVPlayerLayer alloc] init];
-    playerLayer.backgroundColor = UIColor.blackColor.CGColor;
-    playerLayer.hidden = true;
+    self.playerLayer.backgroundColor = UIColor.blackColor.CGColor;
+    self.playerLayer.hidden = true;
     NSMutableDictionary *newActions = [[NSMutableDictionary alloc] initWithObjectsAndKeys:[NSNull null], @"bounds", [NSNull null], @"position", nil];
-    playerLayer.actions = newActions;
-    playerLayer.videoGravity = AVLayerVideoGravityResize;
-    self.playerLayer = playerLayer;
-    [AceSurfaceHolder addLayer:self.playerLayer  withId:self.incId inceId:self.instanceId];
+    self.playerLayer.actions = newActions;
+    self.playerLayer.videoGravity = AVLayerVideoGravityResize;
+    [AceSurfaceHolder addLayer:self withId:self.incId inceId:self.instanceId];
     NSLog(@"AceSurfaceView Surface Created");
+
+    UIViewController* superViewController = (UIViewController*)self.target;
+    WindowView *windowView = (WindowView *)[self findWindowViewInView:superViewController.view];
+    [superViewController.view addSubview:self];
+    superViewController.view.backgroundColor = UIColor.blackColor;
+    self.hidden = true;
 }
 
 - (NSDictionary<NSString*, IAceOnCallSyncResourceMethod>*)getCallMethod
@@ -133,26 +146,19 @@
             _surfaceLeft, _surfaceTop, _surfaceWidth, _surfaceHeight);
         
         CGRect oldRect = self.frame;
-        ///Remove animation
-        [CATransaction begin];
-        [CATransaction setDisableActions:YES];
         self.frame = CGRectMake(_surfaceLeft, _surfaceTop, _surfaceWidth, _surfaceHeight);
-        self.playerLayer.frame = self.bounds;
-        [CATransaction commit];
         [self callSurfaceChange:oldRect];
        
         if (_viewAdded) {
             [self layoutIfNeeded];
         } else {
             _viewAdded = YES;
-            NSLog(@"AceSurfaceView AceSurfaceView added");
+            self.hidden = false;
             UIViewController* superViewController = (UIViewController*)self.target;
             self.frame = superViewController.view.bounds;
             self.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
             WindowView *windowView = (WindowView *)[self findWindowViewInView:superViewController.view];
-            [superViewController.view addSubview:self];
             [superViewController.view bringSubviewToFront:windowView];
-            [self.layer addSublayer:self.playerLayer];
             [self performSelector:@selector(delaySetClearColor:) withObject:windowView afterDelay:0.5f];
         }
     } @catch (NSException* exception) {
@@ -160,12 +166,6 @@
         return FAIL;
     }
     return SUCCESS;
-}
-
-- (void)layoutSubviews {
-    [super layoutSubviews];
-    self.frame = CGRectMake(_surfaceLeft, _surfaceTop, _surfaceWidth, _surfaceHeight);
-    self.playerLayer.frame = self.bounds;
 }
 
 - (void)delaySetClearColor:(UIView *)view
@@ -233,12 +233,15 @@
             _viewAdded = false;
         }
         if (self.playerLayer) {
-            [self.playerLayer removeFromSuperlayer];
-            self.playerLayer = nil;
             [AceSurfaceHolder removeLayerWithId:self.incId inceId:self.instanceId];
         }
         
         if (self.callMethodMap) {
+            for (id key in self.callMethodMap) {
+                IAceOnCallSyncResourceMethod block = [self.callMethodMap objectForKey:key];
+                block = nil;
+            }
+            [self.callMethodMap removeAllObjects];
             self.callMethodMap = nil;
         }
         self.callback = nil;

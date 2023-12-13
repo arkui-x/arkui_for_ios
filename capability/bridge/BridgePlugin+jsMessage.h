@@ -22,17 +22,18 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface BridgePlugin (jsMessage)
 
-- (void)jsCallMethod:(MethodData *)method;
+- (void)jsCallMethod:(MethodData*)method;
 
-- (void)jsSendMethodResult:(ResultValue *)object;
+- (void)jsSendMethodResult:(ResultValue*)object;
 
-- (void)jsSendMessage:(NSString *)data;
+- (void)jsSendMessage:(id)data;
 
-- (void)jsSendMessageResponse:(NSString *)data;
+- (void)jsSendMessageResponse:(id)data;
 
-- (void)jsCancelMethod:(NSString *)bridgeName
-            methodName:(NSString *)methodName;
+- (void)jsCancelMethod:(NSString*)bridgeName
+            methodName:(NSString*)methodName;
 
+- (void)callPlatformError:(ResultValue*)object;
 @end
 
 NS_ASSUME_NONNULL_END

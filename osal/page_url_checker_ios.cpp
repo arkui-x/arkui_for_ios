@@ -14,7 +14,19 @@
  */
 
 #include "page_url_checker.h"
+#include "page_url_checker_ios.h"
+
+#include <string>
 
 namespace OHOS::Ace {
 const char BUNDLE_TAG[] = "@bundle:";
+
+void PageUrlCheckerIos::LoadPageUrl(const std::string& url, const std::function<void()>& callback,
+    const std::function<void(int32_t, const std::string&)>& silentInstallErrorCallBack)
+{
+    if (url.substr(0, strlen(BUNDLE_TAG)) != BUNDLE_TAG) {
+        return;
+    }
+    callback();
 }
+} // namespace OHOS::Ace

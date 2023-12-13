@@ -39,7 +39,7 @@ NSString *const TextInputActionNewline = @"TextInputAction.newline";
         TextInputTypeText: @(UIKeyboardTypeDefault),
         TextInputTypeMultiline: @(UIKeyboardTypeDefault),
         TextInputTypeDatetime: @(UIKeyboardTypeNumbersAndPunctuation),
-        TextInputTypeNumber: @(UIKeyboardTypeNumberPad),
+        TextInputTypeNumber: @(UIKeyboardTypeDecimalPad),
         TextInputTypePhone: @(UIKeyboardTypePhonePad),
         TextInputTypeEmailAddress: @(UIKeyboardTypeEmailAddress),
         TextInputTypeURL: @(UIKeyboardTypeURL)

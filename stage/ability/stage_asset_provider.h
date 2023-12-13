@@ -49,6 +49,11 @@ public:
         return "";
     }
 
+    std::string GetAppDataModuleDir() const;
+    bool GetAppDataModuleAssetList(const std::string& path, std::vector<std::string>& fileFullPaths, bool onlyChild);
+    std::vector<std::string> GetAllFilePath();
+    std::vector<uint8_t> GetBufferByAppDataPath(const std::string& fileFullPath);
+
 private:
     std::mutex providerLock_;
     static std::shared_ptr<StageAssetProvider> instance_;

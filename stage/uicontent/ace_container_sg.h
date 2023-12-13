@@ -18,6 +18,7 @@
 
 #include <chrono>
 #include <memory>
+#include <mutex>
 
 #include "ability_context.h"
 #include "adapter/ios/entrance/ace_resource_register.h"
@@ -32,6 +33,7 @@
 #include "core/common/platform_bridge.h"
 
 #include "adapter/ios/entrance/virtual_rs_window.h"
+#include "native_engine/native_engine.h"
 
 namespace OHOS::Ace::Platform {
 using UIEnvCallback = std::function<void(const OHOS::Ace::RefPtr<OHOS::Ace::PipelineContext>& context)>;
@@ -80,6 +82,7 @@ public:
 
     RefPtr<Frontend> GetFrontend() const override
     {
+        std::lock_guard<std::mutex> lock(frontendMutex_);
         return frontend_;
     }
 
@@ -115,6 +118,7 @@ public:
 
     RefPtr<PipelineBase> GetPipelineContext() const override
     {
+        std::lock_guard<std::mutex> lock(pipelineMutex_);
         return pipelineContext_;
     }
 
@@ -186,6 +190,8 @@ public:
 
     void NotifyAppStorage(const std::string& key, const std::string& value) override;
 
+    void SetLocalStorage(NativeReference* storage, NativeReference* context);
+
     void OnFinish()
     {
         if (platformEventCallback_) {
@@ -244,7 +250,7 @@ public:
         return resourceInfo_.GetHapPath();
     }
 
-    void SetResPaths(const std::string& hapPath, const std::string& path, const ColorMode& colorMode);
+    void SetResPaths(const std::vector<std::string>& hapPath, const std::string& path, const ColorMode& colorMode);
 
     bool WindowIsShow() const override
     {
@@ -293,6 +299,9 @@ private:
     bool useCurrentEventRunner_ { false };
     int32_t pageId_ { 0 };
     bool useStageModel_ = false;
+
+    mutable std::mutex frontendMutex_;
+    mutable std::mutex pipelineMutex_;
 
     ACE_DISALLOW_COPY_AND_MOVE(AceContainerSG);
 };

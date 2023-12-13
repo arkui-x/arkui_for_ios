@@ -64,6 +64,16 @@ CGFloat _brightness = 0.0;
     return self;
 }
 
+- (void)initColorMode {
+    if (@available(iOS 13.0, *)) {
+        UITraitCollection* trait = [UITraitCollection currentTraitCollection];
+        [[StageConfigurationManager configurationManager] colorModeUpdate:trait.userInterfaceStyle];
+    } else {
+        [[StageConfigurationManager configurationManager] colorModeUpdate:UIUserInterfaceStyleLight];
+    }
+}
+
+
 - (void)initWindowView {
     _windowView = [[WindowView alloc] init];
     _windowView.notifyDelegate = self;
@@ -77,7 +87,8 @@ CGFloat _brightness = 0.0;
 - (void)viewDidLoad {
     [super viewDidLoad];
     self.view.backgroundColor = UIColor.whiteColor;
-    NSLog(@"StageVC->%@ viewDidLoad call. self.params : %@", self, self.params);
+    NSLog(@"StageVC->%@ viewDidLoad call.", self);
+    [self initColorMode];
     [self initWindowView];
     [self initPlatformPlugin];
     [_windowView createSurfaceNode];
@@ -90,6 +101,7 @@ CGFloat _brightness = 0.0;
 - (void)viewDidAppear:(BOOL)animated {
     [super viewDidAppear:animated];
     [_windowView updateBrightness];
+    [_windowView notifyForeground];
     NSLog(@"StageVC->%@ viewDidAppear call.", self);
     if (_needOnForeground) {
         AppMain::GetInstance()->DispatchOnForeground(_cInstanceName);
@@ -103,6 +115,7 @@ CGFloat _brightness = 0.0;
 - (void)viewDidDisappear:(BOOL)animated {
     [super viewDidDisappear:animated];
     [UIScreen mainScreen].brightness = _brightness;
+    [_windowView notifyBackground];
     NSLog(@"StageVC->%@ viewDidDisappear call.", self);
     AppMain::GetInstance()->DispatchOnBackground(_cInstanceName);
     if (_platformPlugin) {
@@ -161,14 +174,20 @@ CGFloat _brightness = 0.0;
 
 #pragma mark - WindowViewDelegate 
 - (void)notifyApplicationWillEnterForeground {
-    if (_platformPlugin && [self isTopController]) {
-        [_platformPlugin notifyLifecycleChanged:false];
+    if ([self isTopController]) {
+        [_windowView notifyForeground];
+        if (_platformPlugin) {
+            [_platformPlugin notifyLifecycleChanged:false];
+        }
     }
 }
 
 - (void)notifyApplicationDidEnterBackground {
-    if (_platformPlugin && [self isTopController]) {
-        [_platformPlugin notifyLifecycleChanged:true];
+    if ([self isTopController]) {
+        [_windowView notifyBackground];
+        if (_platformPlugin) {
+            [_platformPlugin notifyLifecycleChanged:true];
+        }
     }
 }
 

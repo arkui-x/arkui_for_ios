@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -13,4 +13,17 @@
  * limitations under the License.
  */
 
-#import "AceViewController.h"
+#include "core/common/modal_ui_extension.h"
+
+namespace OHOS::Ace {
+
+RefPtr<NG::FrameNode> ModalUIExtension::Create(const AAFwk::Want& want, const ModalUIExtensionCallbacks& callbacks)
+{
+    return nullptr;
+}
+
+int32_t ModalUIExtension::GetSessionId(const RefPtr<NG::FrameNode>& uiExtNode)
+{
+    return 0;
+}
+} // namespace OHOS::Ace

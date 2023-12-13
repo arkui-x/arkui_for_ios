@@ -42,5 +42,6 @@ ohos_source_set("resource") {
   frameworks = [
     "AVFoundation.framework",
     "UIKit.framework",
+    "WebKit.framework",
   ]
 }

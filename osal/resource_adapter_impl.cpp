@@ -21,6 +21,7 @@
 #include "adapter/ios/osal/resource_convertor.h"
 #include "adapter/ios/osal/resource_theme_style.h"
 #include "core/components/theme/theme_attributes.h"
+#include "resource_path_util.h"
 
 namespace OHOS::Ace {
 
@@ -90,6 +91,7 @@ const char* PATTERN_MAP[] = {
     THEME_PATTERN_APP_BAR,
     THEME_PATTERN_ADVANCED_PATTERN,
     THEME_PATTERN_SECURITY_COMPONENT,
+    THEME_PATTERN_PATTERN_LOCK
 };
 
 bool IsDirExist(const std::string& path)
@@ -127,30 +129,46 @@ RefPtr<ResourceAdapter> ResourceAdapter::Create()
 void ResourceAdapterImpl::Init(const ResourceInfo& resourceInfo)
 {
     std::string packagePath = resourceInfo.GetPackagePath();
-    auto resConfig = ConvertConfigToGlobal(resourceInfo.GetResourceConfiguration());
-    std::shared_ptr<Global::Resource::ResourceManager> newResMgr(Global::Resource::CreateResourceManager());
-    if (!newResMgr) {
-        LOGW("create resource manager from Global::Resource::CreateResourceManager() failed!");
-    }
-    
-    auto hapPath = resourceInfo.GetHapPath();
-    std::string appResIndexPath = hapPath.empty() ? packagePath + DELIMITER + "appres" + DELIMITER + "resources.index" :
-        hapPath + DELIMITER + "resources.index";
-    LOGI("appResIndexPath: %s", appResIndexPath.c_str());
-    auto appResRet = newResMgr->AddResource(appResIndexPath.c_str());
-
     std::string sysResIndexPath = packagePath + DELIMITER + "systemres" + DELIMITER + "resources.index";
-    LOGI("sysResIndexPath: %s", sysResIndexPath.c_str());
-    auto sysResRet = newResMgr->AddResource(sysResIndexPath.c_str());
-    
-    auto configRet = newResMgr->UpdateResConfig(*resConfig);
-    LOGI("AddAppRes result=%{public}d, AddSysRes result=%{public}d,  UpdateResConfig result=%{public}d, "
-         "ori=%{public}d, dpi=%{public}d, device=%{public}d",
-        appResRet, sysResRet, configRet, resConfig->GetDirection(), resConfig->GetScreenDensity(),
-        resConfig->GetDeviceType());
-    resourceManager_ = newResMgr;
-    packagePathStr_ = hapPath.empty() ? packagePath : hapPath;
-    Platform::AceApplicationInfoImpl::GetInstance().SetResourceManager(newResMgr);
+    sysResIndexPath_ = sysResIndexPath;
+    auto resConfig = ConvertConfigToGlobal(resourceInfo.GetResourceConfiguration());
+    resConfig_ = resConfig;
+    auto hapPath = resourceInfo.GetHapPath();
+    if (hapPath.empty()) {
+        LOGI("sysResIndexPath: %s", sysResIndexPath.c_str());
+        std::shared_ptr<Global::Resource::ResourceManager> newResMgr(Global::Resource::CreateResourceManager());
+        auto sysResRet = newResMgr->AddResource(sysResIndexPath.c_str());
+        auto configRet = newResMgr->UpdateResConfig(*resConfig);
+        LOGI("AddSysRes result=%{public}d, UpdateResConfig result=%{public}d,"
+             "ori=%{public}d, dpi=%{public}d, device=%{public}d, colorMode=%{public}d,",
+            sysResRet, configRet, resConfig->GetDirection(), resConfig->GetScreenDensity(),
+            resConfig->GetDeviceType(), resConfig->GetColorMode());
+        resourceManager_ = newResMgr;
+        packagePathStr_ = "";
+    } else {
+        std::istringstream iss(hapPath);
+        std::string token;
+        while (std::getline(iss, token, ':')) {
+            std::shared_ptr<Global::Resource::ResourceManager> newResMgr(Global::Resource::CreateResourceManager());
+            if (!newResMgr) {
+                LOGE("create resource manager from Global::Resource::CreateResourceManager() failed!");
+            }
+            std::string appResIndexPath = token + DELIMITER + "resources.index";
+            auto appResRet = newResMgr->AddResource(appResIndexPath.c_str());
+            LOGI("sysResIndexPath: %s", sysResIndexPath.c_str());
+            auto sysResRet = newResMgr->AddResource(sysResIndexPath.c_str());
+            auto configRet = newResMgr->UpdateResConfig(*resConfig);
+            LOGI("AddAppRes result=%{public}d, AddSysRes result=%{public}d, UpdateResConfig result=%{public}d,"
+                 "ori=%{public}d, dpi=%{public}d, device=%{public}d, colorMode=%{public}d,",
+                appResRet, sysResRet, configRet, resConfig->GetDirection(), resConfig->GetScreenDensity(),
+                resConfig->GetDeviceType(), resConfig->GetColorMode());
+            resourceManager_ = newResMgr;
+            resourceManagers_[token.substr(token.rfind(DELIMITER) + 1)] = resourceManager_;
+            packagePathStr_ = token;
+            rawFilePaths_[token.substr(token.rfind(DELIMITER) + 1)] = packagePathStr_;
+        }
+    }
+    Platform::AceApplicationInfoImpl::GetInstance().SetResourceManager(resourceManager_);
 }
 
 void ResourceAdapterImpl::UpdateConfig(const ResourceConfiguration& config)
@@ -577,12 +595,25 @@ bool ResourceAdapterImpl::GetMediaData(const std::string& resName, size_t& len, 
 std::shared_ptr<Global::Resource::ResourceManager> ResourceAdapterImpl::GetResourceManager(
     const std::string& bundleName, const std::string& moduleName)
 {
+    auto it = resourceManagers_.find(moduleName);
+    if (it != resourceManagers_.end()) {
+        packagePathStr_ = rawFilePaths_[moduleName];
+        resourceManager_ = it->second;
+    } else if (!moduleName.empty()) {
+        AddResourceManagerByModuleName(moduleName);
+    }
     return resourceManager_;
 }
 
 void ResourceAdapterImpl::UpdateResourceManager(const std::string& bundleName, const std::string& moduleName)
 {
-    return;
+    auto it = resourceManagers_.find(moduleName);
+    if (it != resourceManagers_.end()) {
+        packagePathStr_ = rawFilePaths_[moduleName];
+        resourceManager_ = it->second;
+    } else if (!moduleName.empty()) {
+        AddResourceManagerByModuleName(moduleName);
+    }
 }
 
 bool ResourceAdapterImpl::GetRawFileDescription(
@@ -624,4 +655,27 @@ std::string ResourceAdapterImpl::GetActualResourceName(const std::string& resNam
     return resName.substr(index + 1, resName.length() - index - 1);
 }
 
+void ResourceAdapterImpl::AddResourceManagerByModuleName(const std::string moduleName)
+{
+    std::shared_ptr<Global::Resource::ResourceManager> newResMgr(Global::Resource::CreateResourceManager());
+    if (!newResMgr) {
+        LOGE("create resource manager from Global::Resource::CreateResourceManager() failed!");
+    }
+    std::string appResPath = IsDirExist(ResourcePathUtil::GetBundlePath() + DELIMITER + moduleName)
+                                 ? ResourcePathUtil::GetBundlePath() + DELIMITER + moduleName
+                                 : ResourcePathUtil::GetSandboxPath() + DELIMITER + moduleName;
+    std::string appResIndexPath = appResPath + DELIMITER + "resources.index";
+    auto appResRet = newResMgr->AddResource(appResIndexPath.c_str());
+    LOGI("sysResIndexPath: %s", sysResIndexPath_.c_str());
+    auto sysResRet = newResMgr->AddResource(sysResIndexPath_.c_str());
+    auto configRet = newResMgr->UpdateResConfig(*resConfig_);
+    LOGI("AddAppRes result=%{public}d, AddSysRes result=%{public}d, UpdateResConfig result=%{public}d,"
+         "ori=%{public}d, dpi=%{public}d, device=%{public}d, colorMode=%{public}d,",
+        appResRet, sysResRet, configRet, resConfig_->GetDirection(), resConfig_->GetScreenDensity(),
+        resConfig_->GetDeviceType(), resConfig_->GetColorMode());
+    resourceManager_ = newResMgr;
+    resourceManagers_[moduleName] = resourceManager_;
+    packagePathStr_ = appResPath;
+    rawFilePaths_[moduleName] = packagePathStr_;
+}
 } // namespace OHOS::Ace

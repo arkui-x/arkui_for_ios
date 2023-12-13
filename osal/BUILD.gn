@@ -26,22 +26,26 @@ template("ace_osal_ios_source_set") {
       "ace_checker.cpp",
       "ace_engine_ext.cpp",
       "app_bar_helper_impl.cpp",
+      "download_manager_ios.cpp",
       "drag_window.cpp",
       "event_report.cpp",
       "exception_handler.cpp",
       "fetch_manager.cpp",
       "file_asset_provider.cpp",
+      "file_uri_helper_ios.cpp",
       "frame_report.cpp",
       "frame_trace_adapter_impl.cpp",
       "image_source_ios.cpp",
       "ios_trace.cpp",
       "layout_inspector.cpp",
       "log_wrapper.cpp",
+      "modal_ui_extension_impl.cpp",
       "mouse_style_ios.cpp",
       "page_url_checker_ios.cpp",
       "pixel_map_ios.cpp",
       "resource_adapter_impl.cpp",
       "resource_convertor.cpp",
+      "resource_path_util.mm",
       "resource_theme_style.cpp",
       "response_data.cpp",
       "ressched_report.cpp",
@@ -62,9 +66,7 @@ template("ace_osal_ios_source_set") {
       "//third_party/flutter/engine/",
     ]
 
-    deps = [ "//third_party/curl:curl" ]
-
-    deps += [
+    deps = [
       "$ace_root/frameworks/core/components/theme:build_theme_code",
       "//foundation/appframework/resource_management:global_resmgr",
     ]

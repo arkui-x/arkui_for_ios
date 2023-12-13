@@ -17,6 +17,7 @@
 
 #import "AceVideoResourcePlugin.h"
 #import "AceSurfacePlugin.h"
+#import "adapter/ios/capability/web/AceWebResourcePlugin.h"
 
 #include "adapter/ios/entrance/ace_resource_register.h"
 #include "adapter/ios/entrance/ace_platform_plugin.h"
@@ -28,6 +29,7 @@
     AceVideoResourcePlugin* _videoResourcePlugin;
     AceSurfacePlugin* _aceSurfacePlugin;
     AceResourceRegisterOC* _resRegister;
+    AceWebResourcePlugin* _webResourcePlugin;
 }
 @property (nonatomic, assign) int32_t instanceId;
 @end
@@ -44,13 +46,16 @@
             auto aceResRegister =
                 OHOS::Ace::Referenced::MakeRefPtr<OHOS::Ace::Platform::AceResourceRegister>(_resRegister);
             OHOS::Ace::Platform::AcePlatformPlugin::InitResRegister(instanceId,aceResRegister);
-   
+
             if(moduleName && moduleName.length != 0){
                 _videoResourcePlugin = [AceVideoResourcePlugin createRegister:moduleName abilityInstanceId:instanceId];
                 [self addResourcePlugin:_videoResourcePlugin];
 
                 _aceSurfacePlugin = [AceSurfacePlugin createRegister:target abilityInstanceId:instanceId];
                 [self addResourcePlugin:_aceSurfacePlugin];
+
+                _webResourcePlugin = [AceWebResourcePlugin createRegister:target abilityInstanceId:instanceId];
+                [self addResourcePlugin:_webResourcePlugin];
             }
         }
     }

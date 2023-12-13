@@ -25,6 +25,8 @@
 #include "flutter/lib/ui/window/pointer_data_packet.h"
 #include "virtual_rs_window.h"
 #include "UINavigationController+StatusBar.h"
+#import "AceWebResourcePlugin.h"
+#import "AceWeb.h"
 #define ACE_ENABLE_GL
 @interface WindowView()
 
@@ -38,6 +40,8 @@
     float _density;
     BOOL _needNotifySurfaceChangedWithWidth;
     BOOL _needCreateSurfaceNode;
+    std::map<int64_t, int32_t> _deviceMap;
+    int32_t _deviceId;
 }
 
 +(Class)layerClass{
@@ -58,6 +62,8 @@
         _needCreateSurfaceNode = NO;
         [self setupNotificationCenterObservers];
         self.backgroundColor = [UIColor clearColor];
+        _deviceMap = std::map<int64_t, int32_t>{};
+        _deviceId = 0;
     }
     return self;
 }
@@ -79,6 +85,22 @@
         layer.rasterizationScale = screenScale;
     }
     [self notifySurfaceChangedWithWidth:width height:height density:scale];
+}
+
+- (UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event
+{
+    UIView *view = [super hitTest:point withEvent:event];
+    __block bool isPointWebView = false;
+    [AceWebResourcePlugin.getObjectMap enumerateKeysAndObjectsUsingBlock:^(
+        NSString * _Nonnull key, AceWeb * _Nonnull aceWeb, BOOL * _Nonnull stop) {
+        UIView *uiview = [aceWeb getWeb];
+        CGPoint webPoint = [self convertPoint:point toView:uiview];
+        if ([uiview pointInside:webPoint withEvent:event]) {
+            isPointWebView = true;
+        }
+    }];
+
+    return isPointWebView?nil:view;
 }
 
 - (void)setWindowDelegate:(std::shared_ptr<OHOS::Rosen::Window>)window {
@@ -153,12 +175,33 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
     return flutter::PointerData::DeviceKind::kTouch;
 }
 
+- (int32_t)getTouchDevice:(UITouch *)touch {
+    UITouchPhase phase = touch.phase;
+    int64_t device = reinterpret_cast<int64_t>(touch);
+
+    int32_t deviceId;
+    auto iter = _deviceMap.find(device);
+    if (iter == _deviceMap.end()) {
+        _deviceMap[device] = _deviceId;
+        deviceId = _deviceId;
+        _deviceId++;
+    } else {
+        deviceId = _deviceMap[device];
+        if (phase == UITouchPhaseEnded || phase == UITouchPhaseCancelled) {
+            _deviceMap.erase(iter);
+        }
+        if (_deviceMap.size() == 0) {
+            _deviceId = 0;
+        }
+    }
+    return deviceId;
+}
+
 - (void)dispatchTouches:(NSSet *)touches {
     const CGFloat scale = [UIScreen mainScreen].scale;
     std::unique_ptr<flutter::PointerDataPacket> packet = std::make_unique<flutter::PointerDataPacket>(touches.count);
-    
+
     size_t pointer_index = 0;
-    
     for (UITouch *touch in touches) {
         CGPoint windowCoordinates = [touch locationInView:self];
         
@@ -172,7 +215,8 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
         
         pointer_data.kind = DeviceKindFromTouchType(touch);
         
-        pointer_data.device = reinterpret_cast<int64_t>(touch);
+        int32_t device = [self getTouchDevice:touch];
+        pointer_data.device = device;
         
         pointer_data.physical_x = windowCoordinates.x * scale;
         pointer_data.physical_y = windowCoordinates.y * scale;
@@ -292,21 +336,26 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
     }
 }
 
+- (void)notifyForeground {
+    if (_windowDelegate.lock() != nullptr) {
+        _windowDelegate.lock()->Foreground();
+    }
+}
+- (void)notifyBackground {
+    if (_windowDelegate.lock() != nullptr) {
+        _windowDelegate.lock()->Background();
+    }
+}
+
 - (void)applicationDidEnterBackground:(NSNotification *)notification {
     if ([self.notifyDelegate respondsToSelector:@selector(notifyApplicationDidEnterBackground)]) {
         [self.notifyDelegate notifyApplicationDidEnterBackground];
-    }
-    if (_windowDelegate.lock() != nullptr) {
-        _windowDelegate.lock()->Background();
     }
 }
 
 - (void)applicationWillEnterForeground:(NSNotification *)notification {
     if ([self.notifyDelegate respondsToSelector:@selector(notifyApplicationWillEnterForeground)]) {
         [self.notifyDelegate notifyApplicationWillEnterForeground];
-    }
-    if (_windowDelegate.lock() != nullptr) {
-        _windowDelegate.lock()->Foreground();
     }
 }
 
@@ -329,6 +378,9 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
 - (void)handleWillTerminate:(NSNotification*)notification {
     if ([self.notifyDelegate respondsToSelector:@selector(notifyApplicationWillTerminateNotification)]) {
         [self.notifyDelegate notifyApplicationWillTerminateNotification];
+    }
+    if (_windowDelegate.lock() != nullptr) {
+        _windowDelegate.lock()->NotifyWillTeminate();
     }
 }
 

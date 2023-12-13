@@ -32,6 +32,8 @@ ohos_source_set("bridge") {
     "//third_party/flutter/engine/flutter/shell/common",
     "$ace_root/frameworks",
     "$ace_root",
+    "$ace_root/adapter/ios/capability/bridge",
+    "$ace_root/adapter/ios/capability/bridge/codec",
   ]
 
   sources = [
@@ -39,10 +41,11 @@ ohos_source_set("bridge") {
     "BridgePlugin.mm",
     "BridgePluginManager.mm",
     "MethodData.mm",
-    "ParameterHelper.mm",
     "ResultValue.mm",
     "baridge_manager.mm",
   ]
+
+  deps = [ "$ace_root/adapter/ios/capability/bridge/codec:bridegecodec" ]
 
   libs = [
     "AVFoundation.framework",

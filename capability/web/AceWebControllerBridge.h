@@ -13,21 +13,6 @@
  * limitations under the License.
  */
 
-#include "rosen_ace_view.h"
+void loadUrlOC(int id, const std::string& url, std::map<std::string, std::string> httpHeaders);
 
-@implementation RosenAceView
 
-- (instancetype)init {
- if (self = [super init]) {
- }
- return self;
-}
-
-+ (Class)layerClass {
-#ifdef ACE_ENABLE_GL
-    return [CAEAGLLayer class];
-#else
-    return [CALayer class];
-#endif
-}
-@end

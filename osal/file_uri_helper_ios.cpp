@@ -13,8 +13,16 @@
  * limitations under the License.
  */
 
-#include <UIKit/UIKit.h>
+#include "base/image/file_uri_helper.h"
 
-@interface RosenAceView : UIView
-
-@end
+namespace OHOS::Ace {
+std::string FileUriHelper::GetRealPath(std::string fileUriStr)
+{
+    const std::string fileHead = "file://";
+    size_t pos = fileUriStr.find(fileHead);
+    if (pos != std::string::npos) {
+        return fileUriStr.substr(pos + fileHead.length());
+    }
+    return {};
+}
+} // namespace OHOS::Ace
