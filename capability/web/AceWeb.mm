@@ -25,6 +25,9 @@
 #define WEBVIEW_HEIGHT  @"height"
 #define WEBVIEW_POSITION_LEFT  @"left"
 #define WEBVIEW_POSITION_TOP  @"top"
+#define WEBVIEW_LOADDATA_DATA  @"load_data_data"
+#define WEBVIEW_LOADDATA_MIMETYPE  @"load_data_mimetype"
+#define WEBVIEW_LOADDATA_ENCODING  @"load_data_encoding"
 #define SUCCESS         @"success"
 #define FAIL            @"fail"
 #define KEY_SOURCE      @"src"
@@ -60,6 +63,7 @@
 #define NTC_ONSCROLL                      @"onScroll"
 #define NTC_ONSCALECHANGE                 @"onScaleChange"
 #define NTC_ONCONSOLEMESSAGE              @"onConsoleMessage"
+#define NTC_RICHTEXT_LOADDATA             @"loadData"
 
 typedef void (^PostMessageResultMethod)(NSString* ocResult);
 @interface AceWeb()<WKScriptMessageHandler, WKUIDelegate, WKNavigationDelegate, UIScrollViewDelegate>
@@ -76,6 +80,7 @@ typedef void (^PostMessageResultMethod)(NSString* ocResult);
 @property (nonatomic, assign) CGFloat oldScale;
 @property (nonatomic, assign) int httpErrorCode;
 @property (nonatomic, assign) bool allowZoom;
+@property (nonatomic, assign) bool isLoadRichText;
 @property (nonatomic, assign) BOOL javascriptAccessSwitch;
 @property (nonatomic, copy) IAceOnResourceEvent onEvent;
 @property (nonatomic, strong) WebMessageChannel* webMessageChannel;
@@ -97,6 +102,7 @@ typedef void (^PostMessageResultMethod)(NSString* ocResult);
     self.allowZoom = true;
     self.oldScale = 100.0f;
     self.httpErrorCode = 400;
+    self.isLoadRichText = false;
     [self initConfigure];
     [self initEventCallback];
     [self initWeb];
@@ -487,6 +493,8 @@ typedef void (^PostMessageResultMethod)(NSString* ocResult);
     [self setVerticalScrollBarAccessCallback];
     // backgroundColor callback
     [self setBackGroundColorCallback];
+    // updateRichText callback
+    [self setRichText];
     // updateLayout callback
     [self setUpdateLayout];
     // touchDown callback
@@ -568,6 +576,28 @@ typedef void (^PostMessageResultMethod)(NSString* ocResult);
         }
     };
     [self.callSyncMethodMap setObject:[javascriptAccess_callback copy] forKey:javascriptAccess_method_hash];
+}
+
+- (void)setRichText
+{
+    __weak __typeof(self) weakSelf = self;
+    NSString* richText_method_hash = [self method_hashFormat:NTC_RICHTEXT_LOADDATA];
+    IAceOnCallSyncResourceMethod richText_callback = ^NSString*(NSDictionary* param)
+    {
+        NSString* data = [param objectForKey:WEBVIEW_LOADDATA_DATA];
+        NSString* type = [param objectForKey:WEBVIEW_LOADDATA_MIMETYPE];
+        NSString* encodingName = [param objectForKey:WEBVIEW_LOADDATA_ENCODING];
+        __strong __typeof(weakSelf) strongSelf = weakSelf;
+        if (strongSelf) {
+            strongSelf.isLoadRichText = true;
+            [strongSelf loadData:data mimeType:type encoding:encodingName baseUrl:@"" historyUrl:@""];
+            return SUCCESS;
+        } else {
+            NSLog(@"AceWeb: set richText fail");
+            return FAIL;
+        }
+    };
+    [self.callSyncMethodMap setObject:[richText_callback copy] forKey:richText_method_hash];
 }
 
 - (void)setUpdateLayout
@@ -801,12 +831,19 @@ typedef void (^PostMessageResultMethod)(NSString* ocResult);
 
 - (void)webView:(WKWebView *)webView didCommitNavigation:(WKNavigation *)navigation {
     NSString *param = [NSString stringWithFormat:@"%@",webView.URL];
+    if (self.isLoadRichText) {
+        return;
+    }
     [self fireCallback:@"onPageStarted" params:param];
     [self fireCallback:@"onPageVisible" params:param];
 }
 
 - (void)webView:(WKWebView *)webView didFinishNavigation:(WKNavigation *)navigation {
     NSString *param = [NSString stringWithFormat:@"%@",webView.URL];
+    if (self.isLoadRichText) {
+        self.isLoadRichText = false;
+        return;
+    }
     [self fireCallback:@"onPageFinished" params:param];
     
     if(!self.allowZoom){
