@@ -21,13 +21,14 @@
 #include <map>
 #include <string>
 
+#include "base/utils/macros.h"
 #include "dm_common.h"
 #include "wm_common.h"
 #include "wm_single_instance.h"
 #include "nocopyable.h"
 
 namespace OHOS::Rosen {
-class DisplayInfo : public virtual RefBase {
+class ACE_EXPORT DisplayInfo : public virtual RefBase {
 public:
     DisplayInfo();
     ~DisplayInfo();
