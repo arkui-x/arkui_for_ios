@@ -392,8 +392,11 @@ typedef void (^PostMessageResultMethod)(NSString* ocResult);
 
 - (bool)accessStep:(NSInteger)step
 {
-    if (self.webView.backForwardList.forwardList.count >= step ||
-        self.webView.backForwardList.backList.count >= abs(step)) {
+    if(step >= 0 && self.webView.backForwardList.forwardList.count >= step){
+        return true;
+    }
+
+    if(step < 0 && self.webView.backForwardList.backList.count >= abs(step)){
         return true;
     }
     return false;
