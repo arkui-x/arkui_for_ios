@@ -784,3 +784,4 @@ _OBJC_CLASS_$_BridgeArray
 _OBJC_CLASS_$_BridgePlugin
 _OBJC_CLASS_$_MethodData
 _OBJC_METACLASS_$_BridgePlugin
+_OH_ResourceManager_*
