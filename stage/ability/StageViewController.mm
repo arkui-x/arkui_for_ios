@@ -61,6 +61,7 @@ CGFloat _brightness = 0.0;
             self.moduleName = nameArray[1];
             self.abilityName = nameArray[2];
         }
+        [self initBridge];
     }
     return self;
 }
@@ -85,7 +86,7 @@ CGFloat _brightness = 0.0;
 }
 
 - (void)initBridge {
-    _bridgePluginManager = [BridgePluginManager bridgePluginManager:_instanceId];
+    _bridgePluginManager = [BridgePluginManager innerBridgePluginManager:_instanceId];
 }
 
 - (void)viewDidLoad {
@@ -95,7 +96,6 @@ CGFloat _brightness = 0.0;
     [self initColorMode];
     [self initWindowView];
     [self initPlatformPlugin];
-    [self initBridge];
     [_windowView createSurfaceNode];
 
     std::string paramsString = [self getCPPString:self.params.length ? self.params : @""];
@@ -145,7 +145,7 @@ CGFloat _brightness = 0.0;
     _windowView = nil;
     [_platformPlugin platformRelease];
     _platformPlugin = nil;
-    [BridgePluginManager unbridgePluginManager:_instanceId];
+    [BridgePluginManager innerUnbridgePluginManager:_instanceId];
     _bridgePluginManager = nil;
 
     AppMain::GetInstance()->DispatchOnDestroy(_cInstanceName);

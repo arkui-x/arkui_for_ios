@@ -14,27 +14,28 @@
  */
 
 #import "BridgeManagerHolder.h"
+#import "BridgePluginManager+internal.h"
 
 @implementation BridgeManagerHolder
 
-static NSMutableDictionary<NSString *, BridgePluginManager *> *bridgeManagerMap = nil;
+static NSMutableDictionary<NSString*, BridgePluginManager*>* bridgeManagerMap = nil;
 
 + (void)initialize {
     bridgeManagerMap = [[NSMutableDictionary alloc] init];
 }
 
-+ (BridgePluginManager *)getBridgeManagerWithInceId:(int32_t)instanceId {
++ (BridgePluginManager*)getBridgeManagerWithInceId:(int32_t)instanceId {
     if (![self isValidId:instanceId]) {
         return nil;
     }
-    BridgePluginManager * object = nil;
+    BridgePluginManager* object = nil;
     @synchronized (self) {
         object = [bridgeManagerMap objectForKey:[self formatKeyId:instanceId]];
     }
     return object;
 }
 
-+ (void)addBridgeManager:(BridgePluginManager *)object inceId:(int32_t)instanceId {
++ (void)addBridgeManager:(BridgePluginManager*)object inceId:(int32_t)instanceId {
     if (![self isValidId:instanceId] || !object) {
         return;
     }
@@ -51,6 +52,8 @@ static NSMutableDictionary<NSString *, BridgePluginManager *> *bridgeManagerMap 
         return;
     }
     @synchronized (self) {
+        BridgePluginManager* manager = [self getBridgeManagerWithInceId:instanceId];
+        [manager unRegisterBridgePlugin];
         [bridgeManagerMap removeObjectForKey:[self formatKeyId:instanceId]];
     }
 }
@@ -59,7 +62,7 @@ static NSMutableDictionary<NSString *, BridgePluginManager *> *bridgeManagerMap 
     return instanceId >= 0;
 }
 
-+ (NSString *)formatKeyId:(int32_t)instanceId {
-    return [NSString stringWithFormat:@"%d",instanceId];
++ (NSString*)formatKeyId:(int32_t)instanceId {
+    return [NSString stringWithFormat:@"%d", instanceId];
 }
 @end

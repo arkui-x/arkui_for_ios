@@ -14,9 +14,11 @@
  */
 
 #import "BridgePlugin+jsMessage.h"
-#import "BridgePluginManager+internal.h"
-#import "BridgeJsonCodec.h"
+
 #import <objc/runtime.h>
+
+#import "BridgeJsonCodec.h"
+#import "BridgePluginManager+internal.h"
 
 @implementation BridgePlugin (jsMessage)
 
@@ -62,12 +64,11 @@
     }
 
     if (self.type == JSON_TYPE) {
-        RawValue* resultValue = [RawValue rawValueRresult:resultString errorCode:errorCode
-                errorMessage:errorMessage.length ? errorMessage : @""];
-        NSString* jsonString = [[BridgeJsonCodec sharedInstance] encode:resultValue];
         [self.bridgeManager platformSendMethodResult:self.bridgeName
                                                         methodName:callMethod.methodName
-                                                        result:jsonString.length ? jsonString : @""];
+                                                        errorCode:errorCode
+                                                        errorMessage:errorMessage.length ? errorMessage : @""
+                                                        result:resultString.length ? resultString : @""];
     } else {
         // BINARY_TYPE
         if ([result isKindOfClass:[NSArray class]]) {
@@ -107,10 +108,8 @@
 - (void)jsSendMessage:(id)data {
     if (self.messageListener && [self.messageListener respondsToSelector:@selector(onMessage:)]) {
         id object = [self.messageListener onMessage:data];
-        RawValue* rawValue = [RawValue rawValueResult:object errorCode:0];
-        NSString* string = [[BridgeJsonCodec sharedInstance] encode:rawValue];
         [self.bridgeManager platformSendMessageResponse:self.bridgeName
-                                                            data:string];
+                                                            data:object];
     }
 }
 
@@ -120,16 +119,13 @@
     }
 }
 
-- (void)jsCancelMethod:(NSString*)bridgeName
-            methodName:(NSString*)methodName {
+- (void)jsCancelMethod:(NSString*)bridgeName methodName:(NSString*)methodName {
     if (self.methodResult && [self.methodResult respondsToSelector:@selector(onMethodCancel:)]) {
         [self.methodResult onMethodCancel:methodName];
     }
 }
 
-- (id)performeNewSelector:(NSString*)methodName
-            withParams:(NSArray*)params
-                target:(id)target {
+- (id)performeNewSelector:(NSString*)methodName withParams:(NSArray*)params target:(id)target {
     NSUInteger paramCount = params.count;
     int signatureDefaultArgsNum = 2;
     NSMethodSignature* signature;
@@ -217,7 +213,7 @@
 }
 
 - (id)handleReturnValue:(NSMethodSignature*)signature
-             invocation:(NSInvocation*)invocation {
+            invocation:(NSInvocation*)invocation {
     const char* returnType = signature.methodReturnType;
     if (!strcmp(returnType, @encode(void))) {
         NSLog(@"no returnValue");

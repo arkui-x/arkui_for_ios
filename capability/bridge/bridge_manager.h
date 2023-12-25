@@ -20,9 +20,8 @@
 #include <mutex>
 #include <string>
 
-#include "bridge_receiver.h"
-
 #include "base/utils/macros.h"
+#include "bridge_receiver.h"
 
 namespace OHOS::Ace::Platform {
 class ACE_EXPORT BridgeManager final {
@@ -62,9 +61,9 @@ public:
     static void PlatformSendMethodResultBinary(int32_t instanceId,
         const std::string& bridgeName, const std::string& methodName,
         int errorCode, const std::string& errorMessage, std::unique_ptr<BufferMapping> result);
-    static void PlatformCallMethodBinary(int32_t instanceId, 
+    static void PlatformCallMethodBinary(int32_t instanceId,
         const std::string& bridgeName, const std::string& methodName, std::unique_ptr<BufferMapping> parameter);
-    static void PlatformSendMessageBinary(int32_t instanceId, 
+    static void PlatformSendMessageBinary(int32_t instanceId,
         const std::string& bridgeName, std::unique_ptr<BufferMapping> data);
 
 private:

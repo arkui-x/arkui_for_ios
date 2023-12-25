@@ -42,8 +42,12 @@ ohos_source_set("bridge") {
     "BridgePlugin.mm",
     "BridgePluginManager+internal.mm",
     "BridgePluginManager.mm",
+    "BridgeTaskInfo.m",
+    "BridgeTaskQueue.m",
+    "BridgeTaskQueueHandler.m",
     "MethodData.mm",
     "ResultValue.mm",
+    "TaskOption.mm",
     "bridge_manager.mm",
   ]
 

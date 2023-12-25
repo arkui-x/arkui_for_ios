@@ -14,16 +14,19 @@
  */
 
 #import "BridgePlugin.h"
-#import "BridgePluginManager+internal.h"
-#import "BridgeManagerHolder.h"
-#import "ResultValue.h"
+
 #import <objc/message.h>
 #import <objc/runtime.h>
 
+#import "BridgePluginManager+internal.h"
+#import "BridgeManagerHolder.h"
+#import "ResultValue.h"
+
 @interface BridgePlugin () {
-    BOOL _isAvailable;
     BridgeType _bridgeType;
+    BOOL _isAvailable;
 }
+@property(nonatomic, strong) TaskOption* taskOptionInner;
 @end
 
 @implementation BridgePlugin
@@ -39,24 +42,35 @@
                     instanceId:(int32_t)instanceId
                     bridgeType:(BridgeType)type {
     self.instanceId = instanceId;
-    BridgePluginManager * bridgeManager = [BridgeManagerHolder getBridgeManagerWithInceId:instanceId];
+    BridgePluginManager* bridgeManager = [BridgeManagerHolder getBridgeManagerWithInceId:instanceId];
     return [self initBridgePlugin:bridgeName bridgeType:type bridgeManager:bridgeManager];
 }
 
-- (instancetype)initBridgePlugin:(NSString *_Nonnull)bridgeName
+- (instancetype)initBridgePlugin:(NSString* _Nonnull)bridgeName
+                    bridgeManager:(BridgePluginManager*)bridgeManager {
+    return [self initBridgePlugin:bridgeName bridgeType:JSON_TYPE bridgeManager:bridgeManager taskOption:nil];
+}
+
+- (instancetype)initBridgePlugin:(NSString* _Nonnull)bridgeName
+                    bridgeType:(BridgeType)type
                     bridgeManager:(BridgePluginManager *)bridgeManager {
-    return [self initBridgePlugin:bridgeName bridgeType:JSON_TYPE bridgeManager:bridgeManager];
+    return [self initBridgePlugin:bridgeName bridgeType:type bridgeManager:bridgeManager taskOption:nil];
 }
 
 - (instancetype)initBridgePlugin:(NSString* _Nonnull)bridgeName
                         bridgeType:(BridgeType)type
-                        bridgeManager:(BridgePluginManager *)bridgeManager {
+                        bridgeManager:(BridgePluginManager*)bridgeManager
+                        taskOption:(TaskOption*)taskOption {
     self = [super init];
     if (self) {
+        if (taskOption) {
+            self.taskOptionInner = taskOption;
+        }
         self.bridgeName = bridgeName;
         self.bridgeManager = bridgeManager;
-        BOOL isSuccess = [self.bridgeManager registerBridgePlugin:bridgeName bridgePlugin:self];
-        _isAvailable = isSuccess;
+        if ([self checkBridgeInner]) {
+            _isAvailable = [self.bridgeManager registerBridgePlugin:bridgeName bridgePlugin:self];
+        }
         _bridgeType = type;
     }
     return self;
@@ -68,22 +82,28 @@
         return;
     }
 
-    ResultValue* result;
+    __weak BridgePlugin* weakSelf = self;
     if (self.type == JSON_TYPE) {
-        result = [self.bridgeManager platformCallMethod:self.bridgeName
-                                                            methodName:method.methodName
-                                                            param:method.parameter];
+        [self.bridgeManager platformCallMethod:self.bridgeName
+                                                methodName:method.methodName
+                                                param:method.parameter 
+                                                reultValueCallback:(^(ResultValue* result) {
+            [weakSelf sendErrorCodeWithResult:result withMethodName:method.methodName];
+        })];
     } else {
-        result = [self.bridgeManager platformCallMethodBinary:self.bridgeName
-                                                                methodName:method.methodName
-                                                                param:method.parameter];
+        [self.bridgeManager platformCallMethodBinary:self.bridgeName
+                                                methodName:method.methodName
+                                                param:method.parameter
+                                                reultValueCallback:nil];
     }
+}
 
+- (void)sendErrorCodeWithResult:(ResultValue*)result withMethodName:(NSString*)methodName {
     if (result) {
          if (self.methodResult &&
                 [self.methodResult respondsToSelector:@selector(onError:errorCode:errorMessage:)])
             {
-                [self.methodResult onError:method.methodName
+                [self.methodResult onError:methodName
                         errorCode:result.errorCode
                     errorMessage:result.errorMessage];
             }
@@ -114,12 +134,27 @@
     }
 }
 
-- (BOOL)unRegister:(NSString *)bridgeName {
+- (BOOL)isBridgeAvailable {
+    return _isAvailable;
+}
+
+- (BOOL)unRegister:(NSString*)bridgeName {
     return [self.bridgeManager unRegisterBridgePlugin:bridgeName];
 }
 
 - (BridgeType)type {
     return _bridgeType;
+}
+
+- (TaskOption*)taskOption {
+    return _taskOptionInner;
+}
+
+- (BOOL)checkBridgeInner {
+    if (self.bridgeName && self.bridgeName.length != 0 && self.bridgeManager) {
+        return true;
+    }
+    return false;
 }
 
 @end

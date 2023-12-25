@@ -13,24 +13,16 @@
  * limitations under the License.
  */
 
-#ifndef FOUNDATION_ADAPTER_CAPABILITY_BRIDGE_MethodData_H
-#define FOUNDATION_ADAPTER_CAPABILITY_BRIDGE_MethodData_H
+#import "BridgeTaskInfo.h"
 
-#import <Foundation/Foundation.h>
-
-NS_ASSUME_NONNULL_BEGIN
-
-@interface MethodData : NSObject
-
-@property (nonatomic, strong) NSString* methodName;
-
-@property (nonatomic, strong) NSArray* parameter;
-
-- (instancetype)initMethodWithName:(NSString* _Nonnull)methodName
-                        parameter:(NSArray* _Nullable)parameter;
-
+@implementation BridgeTaskInfo
++ (BridgeTaskInfo *)bridgeTaskInfoFactory:(NSString*)bridgeName
+        queueInOutType:(QueueInOutType)inOutType
+        handler:(BridgeTaskHandler)handler {
+    BridgeTaskInfo* taskInfo = [[BridgeTaskInfo alloc] init];
+    taskInfo.handler = handler;
+    taskInfo.bridgeName = bridgeName;
+    taskInfo.inOutType = inOutType;
+    return taskInfo;
+}
 @end
-
-NS_ASSUME_NONNULL_END
-
-#endif // FOUNDATION_ADAPTER_CAPABILITY_BRIDGE_MethodData_H
