@@ -13,24 +13,32 @@
  * limitations under the License.
  */
 
-#ifndef FOUNDATION_ADAPTER_CAPABILITY_BRIDGE_MethodData_H
-#define FOUNDATION_ADAPTER_CAPABILITY_BRIDGE_MethodData_H
+#ifndef FOUNDATION_ADAPTER_CAPABILITY_BRIDGE_TASKOPTION_H
+#define FOUNDATION_ADAPTER_CAPABILITY_BRIDGE_TASKOPTION_H
 
 #import <Foundation/Foundation.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface MethodData : NSObject
+@interface TaskOption : NSObject
 
-@property (nonatomic, strong) NSString* methodName;
+/**
+ * get option of task.
+ *
+ * @return option of task.
+ */
+@property (nonatomic, assign, readonly) BOOL isSerial;
 
-@property (nonatomic, strong) NSArray* parameter;
-
-- (instancetype)initMethodWithName:(NSString* _Nonnull)methodName
-                        parameter:(NSArray* _Nullable)parameter;
+/**
+ * Constructor of modifiable TaskOption.
+ *
+ * @param isSerial option of task.
+ * @return TaskOption object.
+ */
+- (instancetype)initTaskOption:(BOOL)isSerial;
 
 @end
 
 NS_ASSUME_NONNULL_END
 
-#endif // FOUNDATION_ADAPTER_CAPABILITY_BRIDGE_MethodData_H
+#endif // FOUNDATION_ADAPTER_CAPABILITY_BRIDGE_TASKOPTION_H

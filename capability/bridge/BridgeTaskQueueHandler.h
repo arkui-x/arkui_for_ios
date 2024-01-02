@@ -13,24 +13,23 @@
  * limitations under the License.
  */
 
-#ifndef FOUNDATION_ADAPTER_CAPABILITY_BRIDGE_MethodData_H
-#define FOUNDATION_ADAPTER_CAPABILITY_BRIDGE_MethodData_H
+#ifndef FOUNDATION_ADAPTER_CAPABILITY_BRIDGE_BRIDGETASKQUEUEHANDLER_H
+#define FOUNDATION_ADAPTER_CAPABILITY_BRIDGE_BRIDGETASKQUEUEHANDLER_H
 
 #import <Foundation/Foundation.h>
 
+#import "BridgeTaskInfo.h"
 NS_ASSUME_NONNULL_BEGIN
 
-@interface MethodData : NSObject
+@interface BridgeTaskQueueHandler : NSObject
+@property(nonatomic, strong) BridgeTaskQueue* outputTaskQueue;
+@property(nonatomic, strong) BridgeTaskQueue* inputTaskQueue;
+@property (nonatomic, assign) BOOL isUseTaskQueue;
+@property (nonatomic, assign) BOOL isSerial;
 
-@property (nonatomic, strong) NSString* methodName;
-
-@property (nonatomic, strong) NSArray* parameter;
-
-- (instancetype)initMethodWithName:(NSString* _Nonnull)methodName
-                        parameter:(NSArray* _Nullable)parameter;
-
+- (void)dispatchTaskInfo:(BridgeTaskInfo*)taskInfo;
 @end
 
 NS_ASSUME_NONNULL_END
 
-#endif // FOUNDATION_ADAPTER_CAPABILITY_BRIDGE_MethodData_H
+#endif // FOUNDATION_ADAPTER_CAPABILITY_BRIDGE_BRIDGETASKQUEUEHANDLER_H

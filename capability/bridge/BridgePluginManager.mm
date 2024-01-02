@@ -15,9 +15,28 @@
 
 #import "BridgePluginManager.h"
 
+#import "BridgePluginManager+internal.h"
+
 @implementation BridgePluginManager
++ (instancetype)bridgePluginManager:(int32_t)instanceId {
+    return [self innerBridgePluginManager:instanceId];
+}
+
++ (void)unbridgePluginManager:(int32_t)instanceId {
+    return [self innerUnbridgePluginManager:instanceId];
+}
+
+- (BOOL)registerBridgePlugin:(NSString*)bridgeName
+                    bridgePlugin:(id)bridgePlugin {
+    return [self innerRegisterBridgePlugin:bridgeName bridgePlugin:bridgePlugin];
+}
+
+- (BOOL)unRegisterBridgePlugin:(NSString*)bridgeName {
+    return [self innerUnRegisterBridgePlugin:bridgeName];
+}
 
 - (void)dealloc {
-    NSLog(@"BridgepluginManager dealloc");
+    NSLog(@"BridgePluginManager dealloc");
 }
+
 @end

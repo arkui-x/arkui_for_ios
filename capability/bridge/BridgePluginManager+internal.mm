@@ -14,26 +14,28 @@
  */
 
 #import "BridgePluginManager+internal.h"
+
+#import <Foundation/Foundation.h>
+#import <objc/runtime.h>
+
+#include "adapter/ios/capability/bridge/bridge_manager.h"
+#include "adapter/ios/capability/bridge/buffer_mapping.h"
+#include "base/log/log.h"
 #import "BridgeBinaryCodec.h"
 #import "BridgeCodecUtil.h"
 #import "BridgeJsonCodec.h"
 #import "BridgePlugin.h"
 #import "BridgePlugin+jsMessage.h"
 #import "BridgeManagerHolder.h"
-#import <Foundation/Foundation.h>
-
-#include "adapter/ios/capability/bridge/bridge_manager.h"
-#include "adapter/ios/capability/bridge/buffer_mapping.h"
-#include "base/log/log.h"
+#import "BridgeTaskQueueHandler.h"
 #include "core/common/ace_engine.h"
 #include "core/common/container.h"
-
-#import <objc/runtime.h>
 
 @interface BridgePluginManager () 
 @property (nonatomic, assign) BOOL willTerminate;
 @property (nonatomic, assign) int32_t pluginInstanceId;
 @property (nonatomic, strong) NSMutableDictionary<NSString*, BridgePlugin*>* bridgeMap;
+@property (nonatomic, strong) NSMutableDictionary<NSString*, BridgeTaskQueueHandler*>* bridgeQueueMap;
 @end
 
 @implementation BridgePluginManager (internal)
@@ -54,14 +56,13 @@ static std::unique_ptr<OHOS::Ace::Platform::BufferMapping> NSDataToBufferMapping
                 (OHOS::Ace::Platform::BufferMapping::Copy(dataBytes, dataSize));
 }
 
-+ (instancetype)bridgePluginManager:(int32_t)instanceId {
++ (instancetype)innerBridgePluginManager:(int32_t)instanceId {
     return [[BridgePluginManager alloc] initBridgePluginManager:instanceId];
 }
 
-+ (void)unbridgePluginManager:(int32_t)instanceId {
++ (void)innerUnbridgePluginManager:(int32_t)instanceId {
     [BridgeManagerHolder removeBridgeManagerWithId:instanceId];
 }
-
 
 - (instancetype)initBridgePluginManager:(int32_t)instanceId {
     self = [super self];
@@ -69,6 +70,7 @@ static std::unique_ptr<OHOS::Ace::Platform::BufferMapping> NSDataToBufferMapping
         [BridgeManagerHolder addBridgeManager:self inceId:instanceId];
         self.pluginInstanceId = instanceId;
         self.bridgeMap = [[NSMutableDictionary alloc] init];
+        self.bridgeQueueMap = [[NSMutableDictionary alloc] init];
     }
     return self;
 }
@@ -77,13 +79,14 @@ static std::unique_ptr<OHOS::Ace::Platform::BufferMapping> NSDataToBufferMapping
 static char kWillTerminateKey;
 static char kPluginInstanceIdKey;
 static char kBridgeMapKey;
+static char kBridgeQueueMapKey;
 
 - (void)setWillTerminate:(BOOL)willTerminate {
     objc_setAssociatedObject(self, &kWillTerminateKey, @(willTerminate), OBJC_ASSOCIATION_ASSIGN);
 }
 
 - (BOOL)willTerminate {
-    NSNumber *value = objc_getAssociatedObject(self, &kWillTerminateKey);
+    NSNumber* value = objc_getAssociatedObject(self, &kWillTerminateKey);
     return [value boolValue];
 }
 
@@ -92,60 +95,268 @@ static char kBridgeMapKey;
 }
 
 - (int32_t)pluginInstanceId {
-    NSNumber *value = objc_getAssociatedObject(self, &kPluginInstanceIdKey);
+    NSNumber* value = objc_getAssociatedObject(self, &kPluginInstanceIdKey);
     return [value intValue];
 }
 
-- (void)setBridgeMap:(NSMutableDictionary<NSString *,BridgePlugin *> *)bridgeMap {
+- (void)setBridgeMap:(NSMutableDictionary<NSString*,BridgePlugin*>*)bridgeMap {
     objc_setAssociatedObject(self, &kBridgeMapKey, bridgeMap, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
 
-- (NSMutableDictionary<NSString *,BridgePlugin *> *)bridgeMap {
+- (NSMutableDictionary<NSString*,BridgePlugin*>*)bridgeMap {
     return objc_getAssociatedObject(self, &kBridgeMapKey);
+}
+
+- (void)setBridgeQueueMap:(NSMutableDictionary<NSString*,BridgePlugin*>*)bridgeQueueMap {
+    objc_setAssociatedObject(self, &kBridgeQueueMapKey, bridgeQueueMap, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+
+- (NSMutableDictionary<NSString*, BridgeTaskQueueHandler*>*)bridgeQueueMap {
+    return objc_getAssociatedObject(self, &kBridgeQueueMapKey);
 }
 
 #pragma mark - public method
 
-- (BOOL)registerBridgePlugin:(NSString*)bridgeName
+- (BOOL)innerRegisterBridgePlugin:(NSString*)bridgeName
                 bridgePlugin:(BridgePlugin*)bridgePlugin {
     if (!bridgeName.length || !bridgePlugin) {
         NSLog(@"register failed, bridgename : %@, plugin : %@", bridgeName, bridgePlugin);
         return NO;
     }
-    @synchronized(self) {
-        if ([self.bridgeMap.allKeys containsObject:bridgeName]) {
-            NSLog(@"register failed, bridgePlugin exist");
-            return NO;
+    if ([self.bridgeMap.allKeys containsObject:bridgeName]) {
+        if ([self innerUnRegisterBridgePlugin:bridgeName]) {
+             NSLog(@"%@ Duplicate registration, delete previously registered bridge", bridgeName);
         }
-        [self.bridgeMap setObject:bridgePlugin
-                            forKey:bridgeName];
+    }
+    [self.bridgeMap setObject:bridgePlugin forKey:bridgeName];
+
+    if (bridgePlugin.taskOption) {
+        if (![self.bridgeQueueMap.allKeys containsObject:bridgeName]) {
+            BridgeTaskQueueHandler * handler = [[BridgeTaskQueueHandler alloc] init];
+            handler.isUseTaskQueue = true;
+            handler.isSerial = bridgePlugin.taskOption.isSerial;
+            [self.bridgeQueueMap setObject:handler forKey:bridgeName];
+        }
     }
     return YES;
 }
 
-- (BOOL)unRegisterBridgePlugin:(NSString*)bridgeName {
+- (BOOL)innerUnRegisterBridgePlugin:(NSString*)bridgeName {
     if (!bridgeName.length) {
         return false;
     }
     @synchronized(self) {
         [self.bridgeMap removeObjectForKey:bridgeName];
+        [self.bridgeQueueMap removeObjectForKey:bridgeName];
     }
     return true;
 }
 
-- (void)jsCallMethod:(NSString*)bridgeName
-        methodName:(NSString*)methodName
-            param:(NSString*)param {
+- (void)unRegisterBridgePlugin {
+    @synchronized(self) {
+        [self.bridgeMap removeAllObjects];
+    }
+}
+
+- (void)jsCallMethod:(NSString*)bridgeName methodName:(NSString*)methodName param:(NSString*)param {
+    __weak BridgePluginManager* weakSelf = self;
+    BridgeTaskInfo* taskInfo = [BridgeTaskInfo bridgeTaskInfoFactory:bridgeName
+                                        queueInOutType:INPUT handler:^{
+        [weakSelf jsCallMethodInner:bridgeName methodName:methodName param:param];
+    }];
+    [self dispatchTaskInQueueHandlerWithTaskInfo:taskInfo];
+}
+
+- (void)jsSendMethodResult:(NSString*)bridgeName methodName:(NSString*)methodName result:(id)result {
+    __weak BridgePluginManager* weakSelf = self;
+    BridgeTaskInfo* taskInfo = [BridgeTaskInfo bridgeTaskInfoFactory:bridgeName
+                                        queueInOutType:INPUT handler:^{
+        [weakSelf jsSendMethodResultInner:bridgeName methodName:methodName result:result];
+    }];
+    [self dispatchTaskInQueueHandlerWithTaskInfo:taskInfo];
+}
+
+- (void)jsSendMessage:(NSString*)bridgeName data:(id)data {
+    __weak BridgePluginManager* weakSelf = self;
+    BridgeTaskInfo* taskInfo = [BridgeTaskInfo bridgeTaskInfoFactory:bridgeName
+                                        queueInOutType:INPUT handler:^{
+        [weakSelf jsSendMessageInner:bridgeName data:data];
+    }];
+    [self dispatchTaskInQueueHandlerWithTaskInfo:taskInfo];
+}
+
+- (void)jsSendMessageResponse:(NSString*)bridgeName data:(NSString*)data {
+    __weak BridgePluginManager* weakSelf = self;
+    BridgeTaskInfo* taskInfo = [BridgeTaskInfo bridgeTaskInfoFactory:bridgeName
+                                        queueInOutType:INPUT handler:^{
+        [weakSelf jsSendMessageResponseInner:bridgeName data:data];
+    }];
+    [self dispatchTaskInQueueHandlerWithTaskInfo:taskInfo];
+}
+
+- (void)jsCancelMethod:(NSString*)bridgeName methodName:(NSString*)methodName {
+    __weak BridgePluginManager* weakSelf = self;
+    BridgeTaskInfo* taskInfo = [BridgeTaskInfo bridgeTaskInfoFactory:bridgeName
+                                        queueInOutType:INPUT handler:^{
+        [weakSelf jsCancelMethodInner:bridgeName methodName:methodName];
+    }];
+    [self dispatchTaskInQueueHandlerWithTaskInfo:taskInfo];
+}
+
+- (void)platformCallMethod:(NSString*)bridgeName
+                        methodName:(NSString*)methodName
+                            param:(NSArray* _Nullable)params 
+                        reultValueCallback:(void (^)(ResultValue* _Nullable reultValue))callback {
+    __weak BridgePluginManager* weakSelf = self;
+    BridgeTaskInfo* taskInfo = [BridgeTaskInfo bridgeTaskInfoFactory:bridgeName
+                                        queueInOutType:OUTPUT handler:^{
+        [weakSelf platformCallMethodInner:bridgeName methodName:methodName param:params reultValueCallback:callback];
+    }];
+    [self dispatchTaskInQueueHandlerWithTaskInfo:taskInfo];
+}
+
+- (void)platformSendMessage:(NSString*)bridgeName data:(id)data {
+    __weak BridgePluginManager* weakSelf = self;
+    BridgeTaskInfo * taskInfo = [BridgeTaskInfo bridgeTaskInfoFactory:bridgeName
+                                        queueInOutType:OUTPUT handler:^{
+        [weakSelf platformSendMessageInner:bridgeName data:data];
+    }];
+    [self dispatchTaskInQueueHandlerWithTaskInfo:taskInfo];
+}
+
+- (void)platformSendMessageResponse:(NSString*)bridgeName data:(id)data {
+    __weak BridgePluginManager* weakSelf = self;
+    BridgeTaskInfo* taskInfo = [BridgeTaskInfo bridgeTaskInfoFactory:bridgeName
+                                        queueInOutType:OUTPUT handler:^{
+        [weakSelf platformSendMessageResponseInner:bridgeName data:data];
+    }];
+    [self dispatchTaskInQueueHandlerWithTaskInfo:taskInfo];
+}
+
+- (void)platformSendMethodResult:(NSString*)bridgeName methodName:(NSString*)methodName
+                    errorCode:(int)errorCode
+                    errorMessage:(NSString*)errorMessage
+                    result:(id)result {
+    __weak BridgePluginManager* weakSelf = self;
+    BridgeTaskInfo* taskInfo = [BridgeTaskInfo bridgeTaskInfoFactory:bridgeName
+                                        queueInOutType:OUTPUT handler:^{
+        RawValue* resultValue = [RawValue rawValueRresult:result errorCode:errorCode
+                errorMessage:errorMessage.length ? errorMessage : @""];
+        NSString* jsonString = [[BridgeJsonCodec sharedInstance] encode:resultValue];
+        [weakSelf platformSendMethodResultInner:bridgeName methodName:methodName result:jsonString];
+    }];
+    [self dispatchTaskInQueueHandlerWithTaskInfo:taskInfo];
+}
+
+- (void)platformSendMessageResponseErrorInfo:(NSString*)bridgeName errorCode:(ErrorCode)errorCode {
+    RawValue* resultValue = [RawValue rawValueRresult:@"errorCode" errorCode:errorCode errorMessage:@""];
+    NSString* jsonString = [[BridgeJsonCodec sharedInstance] encode:resultValue];
+
+    std::string c_bridgeName = [bridgeName UTF8String];
+    std::string c_data = [jsonString UTF8String];
+    int32_t instanceId = self.pluginInstanceId;
+    OHOS::Ace::Platform::BridgeManager::PlatformSendMessageResponse(instanceId, c_bridgeName, c_data);
+}
+
+- (void)platformSendMethodResultErrorInfo:(NSString*)bridgeName
+                methodName:(NSString*)methodName errorCode:(ErrorCode)errorCode {
+    RawValue* resultValue = [RawValue resultErrorCode:errorCode errorMessage:ResultValueError(errorCode)];
+    BridgePlugin* bridgePlugin = (BridgePlugin*)[self getPluginWithBridgeName:bridgeName];
+    NSString* jsonString = [[BridgeJsonCodec sharedInstance] encode:resultValue];
+    [self platformSendMethodResultInner:bridgeName methodName:methodName result:jsonString];
+}
+
+- (void)platformWillTerminate {
+    if (self.willTerminate) {
+        return;
+    }
+    self.willTerminate = true;
+    OHOS::Ace::Platform::BridgeManager::PlatformSendWillTerminate();
+}
+
+- (void)jsSendMessageBinary:(NSString*)bridgeName data:(id)data {
+    __weak BridgePluginManager* weakSelf = self;
+    BridgeTaskInfo* taskInfo = [BridgeTaskInfo bridgeTaskInfoFactory:bridgeName
+                                        queueInOutType:INPUT handler:^{
+        [weakSelf jsSendMessageBinaryInner:bridgeName data:data];
+    }];
+    [self dispatchTaskInQueueHandlerWithTaskInfo:taskInfo];
+}
+
+- (void)jsCallMethodBinary:(NSString*)bridgeName
+                methodName:(NSString*)methodName
+                    param:(NSData*)data {
+    __weak BridgePluginManager* weakSelf = self;
+    BridgeTaskInfo* taskInfo = [BridgeTaskInfo bridgeTaskInfoFactory:bridgeName
+                                        queueInOutType:INPUT handler:^{
+        [weakSelf jsCallMethodBinaryInner:bridgeName methodName:methodName param:data];
+    }];
+    [self dispatchTaskInQueueHandlerWithTaskInfo:taskInfo];
+}
+
+- (void)platformSendMethodResultBinary:(NSString*)bridgeName
+                            methodName:(NSString*)methodName
+                            errorCode:(int)errorCode
+                            errorMessage:(NSString*)errorMessage
+                                result:(id)result {
+    __weak BridgePluginManager* weakSelf = self;
+    BridgeTaskInfo* taskInfo = [BridgeTaskInfo bridgeTaskInfoFactory:bridgeName
+                                        queueInOutType:OUTPUT handler:^{
+        [weakSelf platformSendMethodResultBinaryInner:bridgeName methodName:methodName
+            errorCode:errorCode errorMessage:errorMessage result:result];
+    }];
+    [self dispatchTaskInQueueHandlerWithTaskInfo:taskInfo];
+}
+
+- (void)platformSendMessageBinary:(NSString*)bridgeName
+                            data:(id)data {
+    __weak BridgePluginManager* weakSelf = self;
+    BridgeTaskInfo* taskInfo = [BridgeTaskInfo bridgeTaskInfoFactory:bridgeName
+                                        queueInOutType:OUTPUT handler:^{
+        [weakSelf platformSendMessageBinaryInner:bridgeName data:data];
+    }];
+    [self dispatchTaskInQueueHandlerWithTaskInfo:taskInfo];
+}
+
+- (void)platformCallMethodBinary:(NSString*)bridgeName
+                                methodName:(NSString*)methodName
+                                param:(NSArray* _Nullable)params
+                            reultValueCallback:(void (^)(ResultValue* _Nullable reultValue))callback {
+    __weak BridgePluginManager* weakSelf = self;
+    BridgeTaskInfo* taskInfo = [BridgeTaskInfo bridgeTaskInfoFactory:bridgeName
+                                        queueInOutType:OUTPUT handler:^{
+        [self platformCallMethodBinaryInner:bridgeName methodName:methodName param:params
+                reultValueCallback:nil];
+    }];
+    [self dispatchTaskInQueueHandlerWithTaskInfo:taskInfo];
+}
+
+- (void)jsSendMethodResultBinary:(NSString*)bridgeName
+                    methodName:(NSString*)methodName
+                    errorCode:(int)errorCode
+                    errorMessage:(NSString*)errorMessage
+                    result:(id)result {
+    __weak BridgePluginManager* weakSelf = self;
+    BridgeTaskInfo* taskInfo = [BridgeTaskInfo bridgeTaskInfoFactory:bridgeName
+                                        queueInOutType:INPUT handler:^{
+        [weakSelf jsSendMethodResultBinaryInner:bridgeName methodName:methodName errorCode:errorCode
+                errorMessage:errorMessage result:result];
+    }];
+    [self dispatchTaskInQueueHandlerWithTaskInfo:taskInfo];                  
+}
+
+#pragma mark - private method
+- (void)jsCallMethodInner:(NSString*)bridgeName methodName:(NSString*)methodName param:(NSString*)param {
     BridgePlugin* bridgePlugin = (BridgePlugin*)[self getPluginWithBridgeName:bridgeName];
     if (!bridgePlugin) {
         [self platformSendMethodResultErrorInfo:bridgeName methodName:methodName errorCode:BRIDGE_INVALID];
         return;
     }
     if (bridgePlugin.type != JSON_TYPE) {
-        [self platformSendMethodResultErrorInfo:bridgeName methodName:methodName errorCode:BRIDGE_CODEC_TYPE_MISMATCH];
+        [self platformSendMethodResultErrorInfo:bridgeName methodName:methodName
+                                                    errorCode:BRIDGE_CODEC_TYPE_MISMATCH];
         return;
     }
-
     NSMutableArray* mArray = [NSMutableArray array];
     if (param) {
         id methodParam = [JsonHelper objectWithJSONString:param];
@@ -157,20 +368,20 @@ static char kBridgeMapKey;
             }
         }
     }
-    MethodData* methodData = [[MethodData alloc] initMethodWithName:methodName parameter:mArray.copy];
+    MethodData* methodData = [[MethodData alloc] initMethodWithName:methodName
+                                                    parameter:mArray.copy];
     [bridgePlugin jsCallMethod:methodData];
 }
 
-- (void)jsSendMethodResult:(NSString*)bridgeName
-                methodName:(NSString*)methodName
-                    result:(id)result {
+- (void)jsSendMethodResultInner:(NSString*)bridgeName methodName:(NSString*)methodName result:(id)result {
     BridgePlugin* bridgePlugin = (BridgePlugin*)[self getPluginWithBridgeName:bridgeName];
     if (!bridgePlugin) {
         [self platformSendMethodResultErrorInfo:bridgeName methodName:methodName errorCode:BRIDGE_INVALID];
         return;
     }
     if (bridgePlugin.type != JSON_TYPE) {
-        [self platformSendMethodResultErrorInfo:bridgeName methodName:methodName errorCode:BRIDGE_CODEC_TYPE_MISMATCH];
+        [self platformSendMethodResultErrorInfo:bridgeName methodName:methodName 
+                                                        errorCode:BRIDGE_CODEC_TYPE_MISMATCH];
         return;
     }
 
@@ -183,8 +394,7 @@ static char kBridgeMapKey;
     [bridgePlugin jsSendMethodResult:resultValue];
 }
 
-- (void)jsSendMessage:(NSString*)bridgeName
-                 data:(id)data {
+- (void)jsSendMessageInner:(NSString*)bridgeName data:(id)data {
     BridgePlugin* bridgePlugin = (BridgePlugin*)[self getPluginWithBridgeName:bridgeName];
     if (!bridgePlugin) {
         [self platformSendMessageResponseErrorInfo:bridgeName errorCode:BRIDGE_NAME_ERROR];
@@ -198,8 +408,7 @@ static char kBridgeMapKey;
     [bridgePlugin jsSendMessage:data];
 }
 
-- (void)jsSendMessageResponse:(NSString*)bridgeName
-                        data:(NSString*)data {
+- (void)jsSendMessageResponseInner:(NSString*)bridgeName data:(NSString*)data {
     BridgePlugin* bridgePlugin = (BridgePlugin*)[self getPluginWithBridgeName:bridgeName];
     if (!bridgePlugin) {
         return;
@@ -208,8 +417,7 @@ static char kBridgeMapKey;
     [bridgePlugin jsSendMessageResponse:rawValue.result];
 }
 
-- (void)jsCancelMethod:(NSString*)bridgeName
-            methodName:(NSString*)methodName {
+- (void)jsCancelMethodInner:(NSString*)bridgeName methodName:(NSString*)methodName {
     BridgePlugin* bridgePlugin = (BridgePlugin*)[self getPluginWithBridgeName:bridgeName];
     if (!bridgePlugin) {
         return;
@@ -217,22 +425,24 @@ static char kBridgeMapKey;
     [bridgePlugin jsCancelMethod:bridgeName methodName:methodName];
 }
 
-- (ResultValue*)platformCallMethod:(NSString*)bridgeName
+- (void)platformCallMethodInner:(NSString*)bridgeName
                         methodName:(NSString*)methodName
-                            param:(NSArray* _Nullable)params {
+                            param:(NSArray* _Nullable)params 
+                        reultValueCallback:(void (^)(ResultValue* _Nullable reultValue))callback {
     ResultValue* resultValue = [[ResultValue alloc] init];
     if (!bridgeName.length || !methodName.length) {
         resultValue.errorCode = BRIDGE_NAME_ERROR;
         resultValue.errorMessage = BRIDGE_NAME_ERROR_MESSAGE;
-        return resultValue;
+        callback(resultValue);
+        return;
     }
 
     if (!methodName.length) {
         resultValue.errorCode = BRIDGE_METHOD_NAME_ERROR;
         resultValue.errorMessage = BRIDGE_METHOD_NAME_ERROR_MESSAGE;
-        return resultValue;
+        callback(resultValue);
+        return;
     }
-
     NSString* jsonString = nil;
     if (params.count > 0) {
         NSMutableDictionary* mDic = [NSMutableDictionary dictionary];
@@ -253,19 +463,19 @@ static char kBridgeMapKey;
         NSLog(@"null taskExecutor");
         resultValue.errorCode = BRIDGE_BOTTOM_COMMUNICATION_ERROR;
         resultValue.errorMessage = BRIDGE_BOTTOM_COMMUNICATION_ERROR_MESSAGE;
-        return resultValue;
+        callback(resultValue);
+        return;
     }
     auto task = [c_bridgeName, c_methodName, c_param, instanceId] {
         OHOS::Ace::Platform::BridgeManager::PlatformCallMethod(instanceId, c_bridgeName, c_methodName, c_param);
     };
 
     taskExecutor->PostTask(task, OHOS::Ace::TaskExecutor::TaskType::JS);
-    return nil;
 }
 
-- (void)platformSendMessage:(NSString*)bridgeName
-                        data:(id)data {
+- (void)platformSendMessageInner:(NSString*)bridgeName data:(id)data {
     if (!bridgeName.length) {
+        NSLog(@"bridgeName is null");
         return;
     }
     RawValue* rawValue = [RawValue rawValueResult:data errorCode:0];
@@ -288,12 +498,16 @@ static char kBridgeMapKey;
     taskExecutor->PostTask(task, OHOS::Ace::TaskExecutor::TaskType::JS);
 }
 
-- (void)platformSendMessageResponse:(NSString*)bridgeName data:(NSString*)data {
+- (void)platformSendMessageResponseInner:(NSString*)bridgeName data:(id)data {
     if (!bridgeName.length) {
+        NSLog(@"bridgeName is null");
         return;
     }
+    RawValue* rawValue = [RawValue rawValueResult:data errorCode:0];
+    NSString* jsonString = [[BridgeJsonCodec sharedInstance] encode:rawValue];
+
     std::string c_bridgeName = [bridgeName UTF8String];
-    std::string c_data = [data UTF8String];
+    std::string c_data = [jsonString UTF8String];
     int32_t instanceId = self.pluginInstanceId;
 
     OHOS::Ace::ContainerScope scope(instanceId);
@@ -309,10 +523,9 @@ static char kBridgeMapKey;
     taskExecutor->PostTask(task, OHOS::Ace::TaskExecutor::TaskType::JS);
 }
 
-- (void)platformSendMethodResult:(NSString*)bridgeName
-                    methodName:(NSString*)methodName
-                        result:(NSString*)result {
+- (void)platformSendMethodResultInner:(NSString*)bridgeName methodName:(NSString*)methodName result:(NSString*)result {
     if (!bridgeName.length) {
+        NSLog(@"bridgeName is null");
         return;
     }
     std::string c_bridgeName = [bridgeName UTF8String];
@@ -334,35 +547,7 @@ static char kBridgeMapKey;
     taskExecutor->PostTask(task, OHOS::Ace::TaskExecutor::TaskType::JS);
 }
 
-- (void)platformSendMessageResponseErrorInfo:(NSString*)bridgeName errorCode:(ErrorCode)errorCode {
-    RawValue* resultValue = [RawValue rawValueRresult:@"errorCode" errorCode:errorCode errorMessage:@""];
-    NSString* jsonString = [[BridgeJsonCodec sharedInstance] encode:resultValue];
-
-    std::string c_bridgeName = [bridgeName UTF8String];
-    std::string c_data = [jsonString UTF8String];
-    int32_t instanceId = self.pluginInstanceId;
-    OHOS::Ace::Platform::BridgeManager::PlatformSendMessageResponse(instanceId, c_bridgeName, c_data);
-}
-
-- (void)platformSendMethodResultErrorInfo:(NSString*)bridgeName
-                methodName:(NSString*)methodName errorCode:(ErrorCode)errorCode {
-    RawValue* resultValue = [RawValue resultErrorCode:errorCode errorMessage:ResultValueError(errorCode)];
-    BridgePlugin* bridgePlugin = (BridgePlugin*)[self getPluginWithBridgeName:bridgeName];
-    NSString* jsonString = [[BridgeJsonCodec sharedInstance] encode:resultValue];
-    [self platformSendMethodResult:bridgeName
-                        methodName:methodName
-                            result:jsonString];
-}
-
-- (void)platformWillTerminate {
-    if (self.willTerminate) {
-        return;
-    }
-    self.willTerminate = true;
-    OHOS::Ace::Platform::BridgeManager::PlatformSendWillTerminate();
-}
-
-- (void)jsSendMessageBinary:(NSString*)bridgeName data:(id)data {
+- (void)jsSendMessageBinaryInner:(NSString*)bridgeName data:(id)data {
     BridgePlugin* bridgePlugin = (BridgePlugin*)[self getPluginWithBridgeName:bridgeName];
     if (!bridgePlugin) {
         [self platformSendMessageResponseErrorInfo:bridgeName errorCode:BRIDGE_NAME_ERROR];
@@ -376,20 +561,17 @@ static char kBridgeMapKey;
     [bridgePlugin jsSendMessage:oc_data];
 }
 
-- (void)jsCallMethodBinary:(NSString*)bridgeName
-                methodName:(NSString*)methodName
-                    param:(NSData*)data {
+- (void)jsCallMethodBinaryInner:(NSString*)bridgeName methodName:(NSString*)methodName param:(NSData*)data {
     BridgePlugin* bridgePlugin = (BridgePlugin*)[self getPluginWithBridgeName:bridgeName];
     if (!bridgePlugin) {
         [self platformSendMethodResultErrorInfo:bridgeName methodName:methodName errorCode:BRIDGE_INVALID];
         return;
     }
     if (bridgePlugin.type != BINARY_TYPE) {
-        NSLog(@"######1231313");
-        [self platformSendMethodResultErrorInfo:bridgeName methodName:methodName errorCode:BRIDGE_CODEC_TYPE_MISMATCH];
+        [self platformSendMethodResultErrorInfo:bridgeName
+                methodName:methodName errorCode:BRIDGE_CODEC_TYPE_MISMATCH];
         return;
     }
-
     NSArray* oc_parameter;
     if (data && data.length != 0) {
         BridgeCodecType binaryType = (BridgeCodecType)[[BridgeBinaryCodec sharedInstance] getBinaryType:data];
@@ -401,16 +583,18 @@ static char kBridgeMapKey;
         }
     }
 
-    MethodData* methodData = [[MethodData alloc] initMethodWithName:methodName parameter:oc_parameter.copy];
+    MethodData* methodData = [[MethodData alloc] initMethodWithName:methodName
+                                                    parameter:oc_parameter.copy];
     [bridgePlugin jsCallMethod:methodData];
 }
 
-- (void)platformSendMethodResultBinary:(NSString*)bridgeName
+- (void)platformSendMethodResultBinaryInner:(NSString*)bridgeName
                             methodName:(NSString*)methodName
                             errorCode:(int)errorCode
                             errorMessage:(NSString*)errorMessage
                             result:(id)result {
     if (!bridgeName.length) {
+        NSLog(@"bridgeName is null");
         return;
     }
 
@@ -437,8 +621,9 @@ static char kBridgeMapKey;
     taskExecutor->PostTask(task, OHOS::Ace::TaskExecutor::TaskType::JS);
 }
 
-- (void)platformSendMessageBinary:(NSString*)bridgeName data:(id)data {
+- (void)platformSendMessageBinaryInner:(NSString*)bridgeName data:(id)data {
     if (!bridgeName.length) {
+        NSLog(@"bridgeName is null");
         return;
     }
 
@@ -460,20 +645,23 @@ static char kBridgeMapKey;
     taskExecutor->PostTask(task, OHOS::Ace::TaskExecutor::TaskType::JS);
 }
 
-- (ResultValue*)platformCallMethodBinary:(NSString*)bridgeName
-                            methodName:(NSString*)methodName
-                            param:(NSArray* _Nullable)params {
+- (void)platformCallMethodBinaryInner:(NSString*)bridgeName
+                                methodName:(NSString*)methodName
+                                    param:(NSArray* _Nullable)params
+                                reultValueCallback:(void (^)(ResultValue* _Nullable reultValue))callback {
     ResultValue* resultValue = [[ResultValue alloc] init];
     if (!bridgeName.length || !methodName.length) {
         resultValue.errorCode = BRIDGE_NAME_ERROR;
         resultValue.errorMessage = BRIDGE_NAME_ERROR_MESSAGE;
-        return resultValue;
+        callback(resultValue);
+        return;
     }
 
     if (!methodName.length) {
         resultValue.errorCode = BRIDGE_METHOD_NAME_ERROR;
         resultValue.errorMessage = BRIDGE_METHOD_NAME_ERROR_MESSAGE;
-        return resultValue;
+        callback(resultValue);
+        return;
     }
 
     NSData* dataResult;
@@ -487,35 +675,37 @@ static char kBridgeMapKey;
     std::string c_bridgeName = [bridgeName UTF8String];
     std::string c_methodName = [methodName UTF8String];
     int32_t instanceId = self.pluginInstanceId;
-
     OHOS::Ace::ContainerScope scope(instanceId);
     auto taskExecutor = OHOS::Ace::Container::CurrentTaskExecutor();
     if (!taskExecutor) {
         NSLog(@"null taskExecutor");
         resultValue.errorCode = BRIDGE_BOTTOM_COMMUNICATION_ERROR;
         resultValue.errorMessage = BRIDGE_BOTTOM_COMMUNICATION_ERROR_MESSAGE;
-        return resultValue;
+        callback(resultValue);
+        return;
     }
-
-    auto task = [c_bridgeName, c_methodName, dataResult = std::move(dataResult), instanceId] {
-        auto c_result = NSDataToBufferMapping(dataResult);
-        OHOS::Ace::Platform::BridgeManager::PlatformCallMethodBinary(instanceId, c_bridgeName, c_methodName, std::move(c_result));
+    auto task = [c_bridgeName, c_methodName, c_dataResult = std::move(dataResult), instanceId] {
+        auto c_result = NSDataToBufferMapping(c_dataResult);
+        OHOS::Ace::Platform::BridgeManager::PlatformCallMethodBinary(instanceId,
+                c_bridgeName, c_methodName, std::move(c_result));
     };
 
     taskExecutor->PostTask(task, OHOS::Ace::TaskExecutor::TaskType::JS);
-    return nil;
 }
 
-- (void)jsSendMethodResultBinary:(NSString*)bridgeName
+
+- (void)jsSendMethodResultBinaryInner:(NSString*)bridgeName
                     methodName:(NSString*)methodName
                     errorCode:(int)errorCode
                     errorMessage:(NSString*)errorMessage
                     result:(id)result {
     BridgePlugin* bridgePlugin = (BridgePlugin*)[self getPluginWithBridgeName:bridgeName];
     if (!bridgePlugin) {
+        NSLog(@"bridgePlugin is null");
         return;
     }
     if (bridgePlugin.type != BINARY_TYPE) {
+        NSLog(@"bridgePlugin type not BINARY_TYPE");
         return;
     }
     id oc_resultValue = [[BridgeBinaryCodec sharedInstance] decode:(NSData*)result];
@@ -528,16 +718,32 @@ static char kBridgeMapKey;
     [bridgePlugin jsSendMethodResult:resultValue];
 }
 
-#pragma mark - private method
 - (BridgePlugin* _Nullable)getPluginWithBridgeName:(NSString*)bridgeName {
     if (!bridgeName.length) {
-        NSLog(@"no register bridge, %@", bridgeName);
+        NSLog(@"bridgeName is null");
         return nil;
     }
     @synchronized(self) {
         BridgePlugin* bridgePlugin = (BridgePlugin*)[self.bridgeMap objectForKey:bridgeName];
         return bridgePlugin;
     }
+}
+
+- (void)dispatchTaskInQueueHandlerWithTaskInfo:(BridgeTaskInfo*)taskInfo {
+    if (!taskInfo) {
+        return;
+    }
+    NSString* bridgeName = taskInfo.bridgeName;
+    if (!bridgeName || bridgeName.length == 0) {
+        NSLog(@"no register bridge handler, %@", bridgeName);
+        return;
+    }
+    BridgeTaskQueueHandler* handler = (BridgeTaskQueueHandler*)[self.bridgeQueueMap objectForKey: bridgeName];
+    if (!handler || !handler.isUseTaskQueue) {
+        taskInfo.handler();
+        return;
+    }
+    [handler dispatchTaskInfo:taskInfo];
 }
 
 @end

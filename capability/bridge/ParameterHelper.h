@@ -22,9 +22,9 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface ParameterHelper : NSObject
 
-+ (id)objectWithJSONString:(NSString *)jsonString;
++ (id)objectWithJSONString:(NSString*)jsonString;
 
-+ (NSString *)jsonStringWithObject:(id)object;
++ (NSString*)jsonStringWithObject:(id)object;
 
 @end
 

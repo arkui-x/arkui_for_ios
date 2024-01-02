@@ -16,14 +16,15 @@
 #ifndef FOUNDATION_ADAPTER_CAPABILITY_BRIDGE_BRIDGEMANAGERHOLDER_H
 #define FOUNDATION_ADAPTER_CAPABILITY_BRIDGE_BRIDGEMANAGERHOLDER_H
 
-#import <Foundation/Foundation.h>
 #import "BridgePluginManager.h"
+
+#import <Foundation/Foundation.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
 @interface BridgeManagerHolder : NSObject
-+ (BridgePluginManager *)getBridgeManagerWithInceId:(int32_t)instanceId;
-+ (void)addBridgeManager:(BridgePluginManager *)object inceId:(int32_t)instanceId;
++ (BridgePluginManager*)getBridgeManagerWithInceId:(int32_t)instanceId;
++ (void)addBridgeManager:(BridgePluginManager*)object inceId:(int32_t)instanceId;
 + (void)removeBridgeManagerWithId:(int32_t)instanceId;
 @end
 

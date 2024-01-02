@@ -22,14 +22,16 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface BridgePluginManager (internal)
 
-+ (instancetype)bridgePluginManager:(int32_t)instanceId;
++ (instancetype)innerBridgePluginManager:(int32_t)instanceId;
 
-+ (void)unbridgePluginManager:(int32_t)instanceId;
++ (void)innerUnbridgePluginManager:(int32_t)instanceId;
 
-- (BOOL)registerBridgePlugin:(NSString*)bridgeName
+- (BOOL)innerRegisterBridgePlugin:(NSString*)bridgeName
                     bridgePlugin:(id)bridgePlugin;
 
-- (BOOL)unRegisterBridgePlugin:(NSString*)bridgeName;
+- (BOOL)innerUnRegisterBridgePlugin:(NSString*)bridgeName;
+
+- (void)unRegisterBridgePlugin;
 
 - (void)jsCallMethod:(NSString*)bridgeName
                     methodName:(NSString*)methodName
@@ -48,30 +50,27 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)jsCancelMethod:(NSString*)bridgeName
                     methodName:(NSString*)methodName;
 
-- (ResultValue*)platformCallMethod:(NSString*)bridgeName
+- (void)platformCallMethod:(NSString*)bridgeName
                     methodName:(NSString*)methodName
-                    param:(NSArray* _Nullable)params;
+                    param:(NSArray* _Nullable)params
+                    reultValueCallback:(void (^)(ResultValue* _Nullable reultValue))callback;
 
-- (void)platformSendMessage:(NSString*)bridgeName
-                    data:(id)data;
+- (void)platformSendMessage:(NSString*)bridgeName data:(id)data;
 
-- (void)platformSendMessageResponse:(NSString*)bridgeName
-                    data:(NSString*)data;
+- (void)platformSendMessageResponse:(NSString*)bridgeName data:(id)data;
 
-- (void)platformSendMethodResult:(NSString*)bridgeName
-                    methodName:(NSString*)methodName
-                    result:(NSString*)result;
+- (void)platformSendMethodResult:(NSString*)bridgeName methodName:(NSString*)methodName
+                    errorCode:(int)errorCode
+                    errorMessage:(NSString*)errorMessage
+                    result:(id)result;
 
 - (void)platformSendMessageResponseErrorInfo:(NSString*)bridgeName errorCode:(ErrorCode)errorCode;
 
 - (void)platformWillTerminate;
 
-- (void)jsSendMessageBinary:(NSString*)bridgeName
-                    data:(id)data;
+- (void)jsSendMessageBinary:(NSString*)bridgeName data:(id)data;
 
-- (void)jsCallMethodBinary:(NSString*)bridgeName
-                    methodName:(NSString*)methodName
-                    param:(NSData*)data;
+- (void)jsCallMethodBinary:(NSString*)bridgeName methodName:(NSString*)methodName param:(NSData*)data;
 
 - (void)platformSendMethodResultBinary:(NSString*)bridgeName
                     methodName:(NSString*)methodName
@@ -79,12 +78,12 @@ NS_ASSUME_NONNULL_BEGIN
                     errorMessage:(NSString*)errorMessage
                     result:(id)result;
 
-- (void)platformSendMessageBinary:(NSString*)bridgeName
-                    data:(id)data;
+- (void)platformSendMessageBinary:(NSString*)bridgeName data:(id)data;
 
-- (ResultValue*)platformCallMethodBinary:(NSString*)bridgeName
+- (void)platformCallMethodBinary:(NSString*)bridgeName
                     methodName:(NSString*)methodName
-                    param:(NSArray* _Nullable)params;
+                    param:(NSArray* _Nullable)params
+                    reultValueCallback:(void (^)(ResultValue* _Nullable reultValue))callback;
 
 - (void)jsSendMethodResultBinary:(NSString*)bridgeName
                     methodName:(NSString*)methodName
