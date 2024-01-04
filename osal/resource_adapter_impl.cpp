@@ -177,7 +177,7 @@ RefPtr<ResourceAdapter> ResourceAdapter::CreateNewResourceAdapter(
     return nullptr;
 }
 
-void ResourceAdapterImpl::UpdateConfig(const ResourceConfiguration& config)
+void ResourceAdapterImpl::UpdateConfig(const ResourceConfiguration& config, bool themeFlag)
 {
     LOGI("UpdateConfig ori=%{public}d, dpi=%{public}d, device=%{public}d, colorMode=%{public}d,",
         config.GetOrientation(), config.GetDensity(), config.GetDeviceType(), config.GetColorMode());
@@ -188,7 +188,7 @@ void ResourceAdapterImpl::UpdateConfig(const ResourceConfiguration& config)
          "colorMode=%{public}d, inputDevice=%{public}d",
         resConfig->GetDirection(), resConfig->GetScreenDensity(), resConfig->GetDeviceType(), resConfig->GetColorMode(),
         resConfig->GetInputDevice());
-    resourceManager_->UpdateResConfig(*resConfig);
+    resourceManager_->UpdateResConfig(*resConfig, themeFlag);
 }
 
 RefPtr<ThemeStyle> ResourceAdapterImpl::GetTheme(int32_t themeId)

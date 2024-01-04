@@ -42,7 +42,7 @@ enable_rosen_backend = true
 use_external_icu = "static"
 pixel_map_support = true
 video_components_support = true
-use_components_lib = true
+use_components_lib = false
 web_components_support = true
 video_texture_support = true
 

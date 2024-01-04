@@ -58,6 +58,7 @@ template("ace_ios_standard_source_set") {
       "display_info.mm",
       "download_manager.cpp",
       "virtual_rs_window.mm",
+      "foldable_window_ios.cpp",
     ]
 
     if (target_cpu == "arm64") {
