@@ -462,6 +462,13 @@ static int32_t GetModifierKeys(UIKeyModifierFlags modifierFlags) {
     }
 }
 
+- (BOOL)processBackPressed {
+     if (_windowDelegate.lock() != nullptr) {
+      return _windowDelegate.lock()->ProcessBackPressed();
+    }
+    return false;
+}
+
 - (void)dealloc {
     NSLog(@"WindowView->%@ dealloc",self);
     self.notifyDelegate = nil;

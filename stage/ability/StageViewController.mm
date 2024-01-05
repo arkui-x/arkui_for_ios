@@ -186,6 +186,10 @@ CGFloat _brightness = 0.0;
     return false;
 }
 
+- (BOOL)processBackPress {
+    return [_windowView processBackPressed];
+}
+
 #pragma mark - WindowViewDelegate 
 - (void)notifyApplicationWillEnterForeground {
     if ([self isTopController]) {

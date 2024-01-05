@@ -55,5 +55,12 @@
  */
 - (int32_t)getInstanceId;
 
+/**
+ * processBackPress.
+ * @return if uicontent handle return true ,otherwise return false.
+ * @since 11
+ */
+- (BOOL)processBackPress;
+
 @end
 #endif // FOUNDATION_ACE_ADAPTER_IOS_STAGE_ABILITY_STAGEVIEWCONTROLLER_H

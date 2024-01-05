@@ -51,6 +51,7 @@ class Window;
 - (std::shared_ptr<OHOS::Rosen::Window>)getWindow;
 - (void)updateBrightness;
 - (void)notifyFocusChanged:(BOOL)focus;
+- (BOOL)processBackPressed;
 
 @end
 
