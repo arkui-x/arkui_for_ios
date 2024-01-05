@@ -144,6 +144,7 @@ public:
     void NotifyKeyboardHeightChanged(int32_t height);
     void NotifySurfaceDestroyed();
 
+    bool ProcessBackPressed();
     bool ProcessPointerEvent(const std::vector<uint8_t>& data);
     bool ProcessKeyEvent(
         int32_t keyCode, int32_t keyAction, int32_t repeatTime, int64_t timeStamp = 0, int64_t timeStampStart = 0, int32_t metaKey = 0);
