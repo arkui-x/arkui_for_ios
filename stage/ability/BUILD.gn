@@ -37,6 +37,7 @@ template("stage_ios_standard_source_set") {
       "//third_party/flutter/engine",
       "$ace_root/frameworks",
       "$ace_root",
+      "//foundation/arkui/ace_engine/adapter/ios/entrance/plugin_lifecycle",
     ]
 
     if (target_cpu == "arm64") {
@@ -70,6 +71,7 @@ template("stage_ios_standard_source_set") {
     deps = [
       "//foundation/appframework/ability/ability_runtime/cross_platform/interfaces/kits/native/appkit:cross_platform_appkit_native",
       "//foundation/arkui/ace_engine/adapter/ios/entrance:ace_ios_entrance",
+      "//foundation/arkui/ace_engine/adapter/ios/entrance/plugin_lifecycle:plugin_lifecycle",
     ]
 
     if (ace_use_new_skia) {

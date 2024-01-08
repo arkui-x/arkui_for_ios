@@ -62,5 +62,12 @@
  */
 - (BOOL)processBackPress;
 
+/**
+ * add ArkUI-X plugin to list for registry.
+ * @param pluginName the full class name of the plugin.
+ * @since 11
+ */
+- (void)addPlugin:(NSString *)pluginName;
+
 @end
 #endif // FOUNDATION_ACE_ADAPTER_IOS_STAGE_ABILITY_STAGEVIEWCONTROLLER_H
