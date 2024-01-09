@@ -13,14 +13,17 @@
  * limitations under the License.
  */
 
-#import "adapter/ios/entrance/AcePlatformPlugin.h"
-#import "InstanceIdGenerator.h"
-#import "StageViewController.h"
-#import "StageConfigurationManager.h"
-#import "StageAssetManager.h"
-#import "WindowView.h"
-#import "StageApplication.h"
+#import "AcePlatformPlugin.h"
+#import "ArkUIXPluginRegistry.h"
+#import "BridgePluginManager.h"
 #import "BridgePluginManager+internal.h"
+#import "InstanceIdGenerator.h"
+#import "PluginContext.h"
+#import "StageApplication.h"
+#import "StageAssetManager.h"
+#import "StageConfigurationManager.h"
+#import "StageViewController.h"
+#import "WindowView.h"
 
 #include "app_main.h"
 #include "window_view_adapter.h"
@@ -35,6 +38,9 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
     AcePlatformPlugin *_platformPlugin;
     BridgePluginManager *_bridgePluginManager;
     BOOL _needOnForeground;
+    NSMutableArray *_pluginList;
+    ArkUIXPluginRegistry *_arkUIXPluginRegistry;
+    PluginContext *_pluginContext;
 }
 
 @property (nonatomic, strong, readwrite) NSString *instanceName;
@@ -61,6 +67,7 @@ CGFloat _brightness = 0.0;
             self.moduleName = nameArray[1];
             self.abilityName = nameArray[2];
         }
+        _pluginList = [[NSMutableArray alloc] init];
         [self initBridge];
     }
     return self;
@@ -96,6 +103,7 @@ CGFloat _brightness = 0.0;
     [self initColorMode];
     [self initWindowView];
     [self initPlatformPlugin];
+    [self initArkUIXPlugin];
     [_windowView createSurfaceNode];
 
     std::string paramsString = [self getCPPString:self.params.length ? self.params : @""];
@@ -147,7 +155,7 @@ CGFloat _brightness = 0.0;
     _platformPlugin = nil;
     [BridgePluginManager innerUnbridgePluginManager:_instanceId];
     _bridgePluginManager = nil;
-
+    [self deallocArkUIXPlugin];
     AppMain::GetInstance()->DispatchOnDestroy(_cInstanceName);
 }
 
@@ -161,6 +169,28 @@ CGFloat _brightness = 0.0;
 
 - (int32_t)getInstanceId {
     return _instanceId;
+}
+
+- (void)addPlugin:(NSString *)pluginName {
+    if (pluginName == nil) {
+        NSLog(@"StageVC->%@ plugin name is nil!", self);
+    } else {
+        NSLog(@"StageVC->%@ add plugin: %@", self, pluginName);
+        [_pluginList addObject:pluginName];
+    }
+}
+
+- (void)initArkUIXPlugin {
+    _pluginContext = [[PluginContext alloc] initPluginContext:[self getBridgeManager]];
+    _arkUIXPluginRegistry = [[ArkUIXPluginRegistry alloc] initArkUIXPluginRegistry:_pluginContext];
+    [_arkUIXPluginRegistry registryPlugins:_pluginList];
+}
+
+- (void)deallocArkUIXPlugin {
+    [_pluginList removeAllObjects];
+    [_arkUIXPluginRegistry unRegistryAllPlugins];
+    _arkUIXPluginRegistry = nil;
+    _pluginContext = nil;
 }
 
 - (id)getBridgeManager {
