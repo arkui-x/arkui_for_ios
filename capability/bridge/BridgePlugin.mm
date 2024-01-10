@@ -27,6 +27,8 @@
     BOOL _isAvailable;
 }
 @property(nonatomic, strong) TaskOption* taskOptionInner;
+@property(nonatomic, strong) NSString* bridgeNameInner;
+@property(nonatomic, strong) BridgePluginManager* bridgeManagerInner;
 @end
 
 @implementation BridgePlugin
@@ -35,41 +37,34 @@
  
 - (instancetype)initBridgePlugin:(NSString* _Nonnull)bridgeName
                     instanceId:(int32_t)instanceId {
-    return [self initBridgePlugin:bridgeName instanceId:instanceId bridgeType:JSON_TYPE];
-}
-
-- (instancetype)initBridgePlugin:(NSString* _Nonnull)bridgeName
-                    instanceId:(int32_t)instanceId
-                    bridgeType:(BridgeType)type {
-    self.instanceId = instanceId;
     BridgePluginManager* bridgeManager = [BridgeManagerHolder getBridgeManagerWithInceId:instanceId];
-    return [self initBridgePlugin:bridgeName bridgeType:type bridgeManager:bridgeManager];
+    return [self initBridgePlugin:bridgeName bridgeManager:bridgeManager];
 }
 
 - (instancetype)initBridgePlugin:(NSString* _Nonnull)bridgeName
                     bridgeManager:(BridgePluginManager*)bridgeManager {
-    return [self initBridgePlugin:bridgeName bridgeType:JSON_TYPE bridgeManager:bridgeManager taskOption:nil];
+    return [self initBridgePlugin:bridgeName bridgeManager:bridgeManager bridgeType:JSON_TYPE taskOption:nil];
 }
 
 - (instancetype)initBridgePlugin:(NSString* _Nonnull)bridgeName
+                    bridgeManager:(BridgePluginManager*)bridgeManager
+                    bridgeType:(BridgeType)type {
+    return [self initBridgePlugin:bridgeName bridgeManager:bridgeManager bridgeType:type taskOption:nil];
+}
+
+- (instancetype)initBridgePlugin:(NSString* _Nonnull)bridgeName
+                    bridgeManager:(BridgePluginManager*)bridgeManager
                     bridgeType:(BridgeType)type
-                    bridgeManager:(BridgePluginManager *)bridgeManager {
-    return [self initBridgePlugin:bridgeName bridgeType:type bridgeManager:bridgeManager taskOption:nil];
-}
-
-- (instancetype)initBridgePlugin:(NSString* _Nonnull)bridgeName
-                        bridgeType:(BridgeType)type
-                        bridgeManager:(BridgePluginManager*)bridgeManager
-                        taskOption:(TaskOption*)taskOption {
+                    taskOption:(TaskOption*)taskOption {
     self = [super init];
     if (self) {
         if (taskOption) {
             self.taskOptionInner = taskOption;
         }
-        self.bridgeName = bridgeName;
-        self.bridgeManager = bridgeManager;
+        self.bridgeNameInner = bridgeName;
+        self.bridgeManagerInner = bridgeManager;
         if ([self checkBridgeInner]) {
-            _isAvailable = [self.bridgeManager registerBridgePlugin:bridgeName bridgePlugin:self];
+            _isAvailable = [self.bridgeManager innerRegisterBridgePlugin:bridgeName bridgePlugin:self];
         }
         _bridgeType = type;
     }
@@ -139,7 +134,7 @@
 }
 
 - (BOOL)unRegister:(NSString*)bridgeName {
-    return [self.bridgeManager unRegisterBridgePlugin:bridgeName];
+    return [self.bridgeManager innerUnRegisterBridgePlugin:bridgeName];
 }
 
 - (BridgeType)type {
@@ -155,6 +150,14 @@
         return true;
     }
     return false;
+}
+
+- (NSString*)bridgeName {
+    return self.bridgeNameInner;
+}
+
+- (BridgePluginManager*)bridgeManager {
+    return self.bridgeManagerInner;
 }
 
 @end

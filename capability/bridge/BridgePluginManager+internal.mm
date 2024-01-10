@@ -253,7 +253,10 @@ static char kBridgeQueueMapKey;
     NSString* jsonString = [[BridgeJsonCodec sharedInstance] encode:resultValue];
 
     std::string c_bridgeName = [bridgeName UTF8String];
-    std::string c_data = [jsonString UTF8String];
+    std::string c_data;
+    if (jsonString) {
+        c_data = [jsonString UTF8String];
+    }
     int32_t instanceId = self.pluginInstanceId;
     OHOS::Ace::Platform::BridgeManager::PlatformSendMessageResponse(instanceId, c_bridgeName, c_data);
 }
@@ -482,7 +485,10 @@ static char kBridgeQueueMapKey;
     NSString* string = [[BridgeJsonCodec sharedInstance] encode:rawValue];
 
     std::string c_bridgeName = [bridgeName UTF8String];
-    std::string c_data = [string UTF8String];
+    std::string c_data;
+    if (string) {
+        c_data = [string UTF8String];
+    }
     int32_t instanceId = self.pluginInstanceId;
 
     OHOS::Ace::ContainerScope scope(instanceId);
@@ -507,7 +513,10 @@ static char kBridgeQueueMapKey;
     NSString* jsonString = [[BridgeJsonCodec sharedInstance] encode:rawValue];
 
     std::string c_bridgeName = [bridgeName UTF8String];
-    std::string c_data = [jsonString UTF8String];
+    std::string c_data;
+    if (jsonString) {
+        c_data = [jsonString UTF8String];
+    }
     int32_t instanceId = self.pluginInstanceId;
 
     OHOS::Ace::ContainerScope scope(instanceId);
@@ -530,7 +539,11 @@ static char kBridgeQueueMapKey;
     }
     std::string c_bridgeName = [bridgeName UTF8String];
     std::string c_methodName = [methodName UTF8String];
-    std::string c_result = [result UTF8String];
+    std::string c_result;
+    if (result) {
+        c_result = [result UTF8String];
+    }
+
     int32_t instanceId = self.pluginInstanceId;
 
     OHOS::Ace::ContainerScope scope(instanceId);
@@ -602,7 +615,11 @@ static char kBridgeQueueMapKey;
     std::string c_methodName = [methodName UTF8String];
     NSData* dataResult = [[BridgeBinaryCodec sharedInstance] encode:result];
 
-    std::string c_errorMessage = [errorMessage UTF8String];
+    std::string c_errorMessage;
+    if (errorMessage) {
+        c_errorMessage = [errorMessage UTF8String];
+    }
+
     int32_t instanceId = self.pluginInstanceId;
 
     OHOS::Ace::ContainerScope scope(instanceId);

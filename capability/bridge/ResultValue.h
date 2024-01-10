@@ -56,14 +56,43 @@ extern NSString* const ResultValueError(ErrorCode type);
 
 @interface ResultValue : NSObject
 
+/**
+ * ArkUI method name
+ * 
+ * @since 10
+ */
 @property (nonatomic, strong) NSString* methodName;
 
+/**
+ * ArkUI return data
+ * 
+ * @since 10
+ */
 @property (nonatomic, strong) NSString* result;
 
+/**
+ * Return error code, please refer to the ErrorCode for details
+ * 
+ * @since 10
+ */
 @property (nonatomic, assign) ErrorCode errorCode;
 
+/**
+ * Return error errorMessage info
+ * 
+ * @since 10
+ */
 @property (nonatomic, strong) NSString* errorMessage;
 
+/**
+ * Initializes ResultValue
+ * 
+ * @param methodName  method name.
+ * @param result result
+ * @param errorCode  error code
+ * @param errorMessage  error message
+ * @since 10
+ */
 - (instancetype)initWithMethodName:(NSString*)methodName
                             result:(NSString*)result
                             errorCode:(ErrorCode)errorCode

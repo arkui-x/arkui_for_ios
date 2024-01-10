@@ -22,10 +22,27 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface MethodData : NSObject
 
+/**
+ * The ArkUI method name.
+ * 
+ * @since 10
+ */
 @property (nonatomic, strong) NSString* methodName;
 
+/**
+ * Add parameters of the ArkUI method in order of parameters
+ * 
+ * @since 10
+ */
 @property (nonatomic, strong) NSArray* parameter;
 
+/**
+ * Initializes MethodData
+ * 
+ * @param methodName  method name.
+ * @param parameter method call parameters.
+ * @since 10
+ */
 - (instancetype)initMethodWithName:(NSString* _Nonnull)methodName
                         parameter:(NSArray* _Nullable)parameter;
 
