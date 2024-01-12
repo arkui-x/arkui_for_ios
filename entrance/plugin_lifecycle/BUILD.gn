@@ -22,8 +22,10 @@ ohos_source_set("plugin_lifecycle") {
 
   cflags_objcc = cflags_objc
 
-  include_dirs =
-      [ "//foundation/arkui/ace_engine/adapter/ios/capability/bridge" ]
+  include_dirs = [
+    "//foundation/arkui/ace_engine/adapter/ios/capability/bridge",
+    "//foundation/arkui/ace_engine/adapter/ios/stage/ability",
+  ]
 
   sources = [
     "ArkUIXPluginRegistry.mm",

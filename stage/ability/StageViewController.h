@@ -69,5 +69,11 @@
  */
 - (void)addPlugin:(NSString *)pluginName;
 
+/**
+ * Get the PluginContext of StageViewController.
+ * @return The PluginContext.
+ */
+- (id)getPluginContext;
 @end
+
 #endif // FOUNDATION_ACE_ADAPTER_IOS_STAGE_ABILITY_STAGEVIEWCONTROLLER_H

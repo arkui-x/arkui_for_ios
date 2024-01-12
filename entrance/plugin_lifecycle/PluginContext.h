@@ -34,7 +34,7 @@
  * @param bridgePluginManager bridgePluginManager of the stageViewController.
  * @since 11
  */
-- (instancetype)initPluginContext:(BridgePluginManager *)bridgePluginManager;
+- (instancetype)initPluginContext:(BridgePluginManager *)bridgePluginManager moduleName:(NSString *)moduleName;
 
 /**
  * get BridgePluginManager of the stageViewController.
@@ -42,6 +42,25 @@
  * @since 11
  */
 - (BridgePluginManager *)getBridgePluginManager;
+
+/**
+ * get absolute path of rawfile.
+ * 
+ * @param name name of hsp.
+ * @param filePath relative path of rawfile.
+ * @return absolute path of rawfile.
+ * @since 11
+ */
+- (NSString *)getRawFilePath:(NSString *)name filePath:(NSString *)filePath;
+
+/**
+ * get absolute path of rawfile.
+ * 
+ * @param filePath relative path of rawfile.
+ * @return absolute path of rawfile.
+ * @since 11
+ */
+- (NSString *)getRawFilePath:(NSString *)filePath;
 
 @end
 

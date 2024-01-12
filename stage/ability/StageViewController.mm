@@ -181,7 +181,7 @@ CGFloat _brightness = 0.0;
 }
 
 - (void)initArkUIXPlugin {
-    _pluginContext = [[PluginContext alloc] initPluginContext:[self getBridgeManager]];
+    _pluginContext = [[PluginContext alloc] initPluginContext:[self getBridgeManager] moduleName:self.moduleName];
     _arkUIXPluginRegistry = [[ArkUIXPluginRegistry alloc] initArkUIXPluginRegistry:_pluginContext];
     [_arkUIXPluginRegistry registryPlugins:_pluginList];
 }
@@ -195,6 +195,10 @@ CGFloat _brightness = 0.0;
 
 - (id)getBridgeManager {
     return _bridgePluginManager;
+}
+
+- (id)getPluginContext {
+    return _pluginContext;
 }
 
 #pragma mark - private method

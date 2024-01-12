@@ -14,17 +14,20 @@
  */
 
 #import "PluginContext.h"
+#import "StageAssetManager.h"
 
 @interface PluginContext () {
     BridgePluginManager *_bridgePluginManager;
+    NSString *_moduleName;
 }
 @end
 
 @implementation PluginContext
 
-- (instancetype)initPluginContext:(BridgePluginManager *)bridgePluginManager {
+- (instancetype)initPluginContext:(BridgePluginManager *)bridgePluginManager moduleName:(NSString *)moduleName {
     if (self = [super init]) {
         _bridgePluginManager = bridgePluginManager;
+        _moduleName = moduleName;
     }
     return self;
 }
@@ -32,5 +35,28 @@
 - (BridgePluginManager *)getBridgePluginManager {
     return _bridgePluginManager;
 }
-@end
 
+- (NSString *)getRawFilePath:(NSString *)name filePath:(NSString *)filePath {
+    NSString *path = nil;
+    path = [NSString stringWithFormat:@"%@/Documents/files/arkui-x/%@/resources/rawfile/%@", NSHomeDirectory(), name, filePath];
+    NSFileManager *manager = [NSFileManager defaultManager];
+    bool flag = [manager fileExistsAtPath:path];
+    if (!flag) {
+        return nil;
+    }
+    return path;
+}
+
+- (NSString *)getRawFilePath:(NSString *)filePath {
+    NSString *bundlePath = [[StageAssetManager assetManager] getBundlePath];
+    NSString *path = nil;
+    path = [NSString stringWithFormat:@"%@/%@/resources/rawfile/%@", bundlePath, _moduleName, filePath];
+    NSFileManager *manager = [NSFileManager defaultManager];
+    bool flag = [manager fileExistsAtPath:path];
+    if (!flag) {
+        return nil;
+    }
+    return path;
+}
+
+@end
