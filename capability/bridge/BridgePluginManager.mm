@@ -14,7 +14,6 @@
  */
 
 #import "BridgePluginManager.h"
-
 #import "BridgePluginManager+internal.h"
 
 @implementation BridgePluginManager

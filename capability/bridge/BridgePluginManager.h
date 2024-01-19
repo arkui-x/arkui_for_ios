@@ -23,39 +23,6 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface BridgePluginManager : NSObject
 
-/**
- * Bridge plugin manager.
- * @param instanceId the id of instance.
- *
- * @return Bridge plugin manager.
- */
-+ (instancetype)bridgePluginManager:(int32_t)instanceId;
-
-/**
- * Unregister the created bridge
- *
- * @param instanceId the id of instance.
- * @return Success or fail.
- */
-+ (void)unbridgePluginManager:(int32_t)instanceId;
-
-/**
- * Register Bridge plugin
- *
- * @param bridgeName Name of bridge.
- * @param bridgePlugin bridgePlugin object.
- * @return Success or fail.
- */
-- (BOOL)registerBridgePlugin:(NSString*)bridgeName
-                    bridgePlugin:(id)bridgePlugin;
-
-/**
- * Unregister the created bridge
- *
- * @param bridgeName name of bridge.
- * @return Success or fail.
- */
-- (BOOL)unRegisterBridgePlugin:(NSString*)bridgeName;
 @end
 
 NS_ASSUME_NONNULL_END

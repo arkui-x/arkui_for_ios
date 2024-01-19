@@ -18,62 +18,92 @@
 
 #import <Foundation/Foundation.h>
 
+#import "BridgePluginManager.h"
 #import "MethodData.h"
 #import "ResultValue.h"
-#import "BridgePluginManager.h"
 #import "TaskOption.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
+/**
+ * When using the 'callMethod:' method of BrigdePlugin, 
+ * implement the 'IMethodResult' delegate to listen for returned results and error messages
+ * 
+ * @since 10
+ */
 @protocol IMethodResult <NSObject>
 
-/**
- * Method call succeeded callback.
- *
+/*
+ * The iOS platform calls the method registered by Arkui, and after a successful call,
+ * this method will be called, returning the name and value of the calling method
+ * 
  * @param methodName  method name.
  * @param resultValue method resultValue.
+ * @since 10
  */
 - (void)onSuccess:(NSString*)methodName
         resultValue:(id)resultValue;
 
 /**
- * Method call failed callback.
- *
+ * The iOS platform calls a method registered with Arkui, but if the call fails,
+ * it will call and return the method name, error code, and error log.
+ * The error code is checked in the 'ResultValue' class
+ * 
  * @param methodName  method name.
  * @param errorCode errorCode. success : 0
  * @param errorMessage errorMessage.
+ * @since 10
  */
 - (void)onError:(NSString*)methodName
         errorCode:(ErrorCode)errorCode
         errorMessage:(NSString*)errorMessage;
 
 /**
- * Method cancel callback.
+ * Call other platform method successfully and return trigger.
  *
  * @param methodName  method name.
+ * @since 10
  */
 - (void)onMethodCancel:(NSString*)methodName;
 
 @end
 
+/**
+ * Using the sendMessage method of BrigdePlugin,
+ * implement this delegate to listen to the information sent by Arkui calling the sendmessage method and
+ * obtain the data returned by Arkui
+ * 
+ * @since 10
+ */
 @protocol IMessageListener <NSObject>
 
 /**
- * Message callback.
+ * This method can listen to the data passed by Arkui calling the 'sendMessage' method
+ * 
  * @return object.
  * @param data data.
+ * @since 10
  */
 - (id)onMessage:(id)data;
 
 /**
- * Message response callback.
+ * The iOS platform calls sendmessage to pass information to Arkui,
+ * and through this method, the return value of Arkui can be returned
  *
  * @param data data.
+ * @since 10
  */
 - (void)onMessageResponse:(id)data;
 
 @end
 
+/**
+ * Encoding type of Bridge.
+ * JSON_ TYPE is JSON string format, JSON_ TYPE is Default type
+ * BINARY_TYPE is Unit_8 format
+ * 
+ * @since 11
+ */
 typedef enum : int {
     JSON_TYPE,
     BINARY_TYPE,
@@ -81,80 +111,109 @@ typedef enum : int {
 
 @interface BridgePlugin : NSObject
 
-@property(nonatomic, strong) NSString* bridgeName;
+/**
+ * The bridge name.
+ * 
+ * @since 10
+ */
+@property(nonatomic, strong, readonly) NSString* bridgeName;
 
-@property(nonatomic, strong) BridgePluginManager* bridgeManager;
+/**
+ * The bridgeManager.
+ * 
+ * @since 10
+ */
+@property(nonatomic, strong, readonly) BridgePluginManager* bridgeManager;
 
-@property(nonatomic, assign) id<IMethodResult> methodResult; // callmethod result delegate
+/**
+ * Callmethod result delegate
+ * 
+ * @since 10
+ */
+@property(nonatomic, assign) id<IMethodResult> methodResult;
 
-@property(nonatomic, assign) id<IMessageListener> messageListener; // message listerner delegate
+/**
+ * SendMessage listerner delegate
+ * 
+ * @since 10
+ */
+@property(nonatomic, assign) id<IMessageListener> messageListener;
 
-@property(nonatomic, assign) int32_t instanceId;
+/**
+ * @since 10
+ * @deprecated since 11
+ */
+@property(nonatomic, assign, readonly) int32_t instanceId;
 
-@property(nonatomic, assign, readonly) BridgeType type; // default JSON_TYPE
+/**
+ * The current encoding format data format, default is JSON_TYPE
+ * 
+ * @since 10
+ */
+@property(nonatomic, assign, readonly) BridgeType type;
 
+/**
+ * The type of current queue task
+ * 
+ * @since 11
+ */
 @property(nonatomic, strong, readonly) TaskOption* taskOption;
+
 /**
- * Initializes this BridgePlugin.
- *
+ * Initializes this BridgePlugin. 
+ * This API is supported since API version 10 and deprecated since API version 11.
+ * You are advised to use BridgePluginManager related construction methods
+ * 
  * @param bridgeName  bridgeName.
  * @param instanceId instanceId.
  * @since 10
  * @deprecated since 11
  */
 - (instancetype)initBridgePlugin:(NSString* _Nonnull)bridgeName
-                    instanceId:(int32_t)instanceId;
+                    instanceId:(int32_t)instanceId DEPRECATED_MSG_ATTRIBUTE("This API deprecated since API version 11."
+                    "Use initBridgePlugin: bridgeManager: instead.");
 
 /**
  * Initializes this BridgePlugin.
- *
+ * Obtain the BridgePluginManager object through the 'getBridgeManager' of StageViewController
+ * 
  * @param bridgeName  bridgeName.
- * @param instanceId instanceId.
- * @param type type.
- * @since 10
- * @deprecated since 11
+ * @param bridgeManager bridgeManager.
+ * @since 11
  */
 - (instancetype)initBridgePlugin:(NSString* _Nonnull)bridgeName
-                    instanceId:(int32_t)instanceId
+                    bridgeManager:(BridgePluginManager*)bridgeManager;
+
+/**
+ * Initializes this BridgePlugin.
+ * Obtain the BridgePluginManager object through the 'getBridgeManager' of StageViewController
+ *
+ * @param bridgeName  bridgeName.
+ * @param bridgeManager bridgeManager.
+ * @param type type.
+ * @since 11
+ */
+- (instancetype)initBridgePlugin:(NSString* _Nonnull)bridgeName
+                    bridgeManager:(BridgePluginManager*)bridgeManager
                     bridgeType:(BridgeType)type;
 
 /**
  * Initializes this BridgePlugin.
- *
+ * Obtain the BridgePluginManager object through the 'getBridgeManager' of StageViewController
+ * 
  * @param bridgeName  bridgeName.
  * @param bridgeManager bridgeManager.
- * @since 11
- */
-- (instancetype)initBridgePlugin:(NSString* _Nonnull)bridgeName
-                    bridgeManager:(BridgePluginManager *)bridgeManager;
-
-/**
- * Initializes this BridgePlugin.
- *
- * @param bridgeName  bridgeName.
  * @param type type.
- * @param bridgeManager bridgeManager.
- * @since 11
- */
-- (instancetype)initBridgePlugin:(NSString* _Nonnull)bridgeName
-                    bridgeType:(BridgeType)type
-                    bridgeManager:(BridgePluginManager *)bridgeManager;
-
-/**
- * Initializes this BridgePlugin.
- *
- * @param bridgeName  bridgeName.
- * @param type type.
- * @param bridgeManager bridgeManager.
  * @param taskOption taskOption.
  * @since 11
  */
 - (instancetype)initBridgePlugin:(NSString* _Nonnull)bridgeName
-                        bridgeType:(BridgeType)type
-                    bridgeManager:(BridgePluginManager *)bridgeManager
+                    bridgeManager:(BridgePluginManager*)bridgeManager
+                    bridgeType:(BridgeType)type
                     taskOption:(TaskOption*)taskOption;
 /**
- * platform callMethod.
+ * The iOS platform calls the method registered by Arkui,
+ * use 'methodResult' deleate, Listening to call results.
  *
  * @param method  methodData model.
  * @since 10
@@ -162,8 +221,9 @@ typedef enum : int {
 - (void)callMethod:(MethodData*)method;
 
 /**
- * sendMessage to js.
- *
+ * sendMessage to arkui.
+ * use 'messageListener' deleate, Listening to call results.
+ * 
  * @param data  data.
  * @since 10
  */
@@ -173,13 +233,7 @@ typedef enum : int {
  * Check if BridgePlugin is available.
  *
  * @return The isAvailable of BridgePlugin.
- */
-- (BOOL)checkBridgeAvailable;
-
-/**
- * Check if BridgePlugin is available.
- *
- * @return The isAvailable of BridgePlugin.
+ * @since 11
  */
 - (BOOL)isBridgeAvailable;
 
@@ -188,6 +242,7 @@ typedef enum : int {
  *
  * @param bridgeName Name of bridge.
  * @return Success or not.
+ * @since 10
  */
 - (BOOL)unRegister:(NSString*)bridgeName;
 
