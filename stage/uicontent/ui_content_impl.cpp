@@ -541,7 +541,7 @@ bool UIContentImpl::ProcessPointerEvent(const std::vector<uint8_t>& data)
 }
 
 bool UIContentImpl::ProcessKeyEvent(int32_t keyCode, int32_t keyAction, int32_t repeatTime, int64_t timeStamp,
-    int64_t timeStampStart, int32_t metaKey, int32_t sourceDevice, int32_t deviceId)
+    int64_t timeStampStart, int32_t metaKey, int32_t sourceDevice, int32_t deviceId, std::string msg)
 {
     LOGI("UIContentImpl: OnKeyUp called");
     auto container = AceEngine::Get().GetContainer(instanceId_);
@@ -551,7 +551,7 @@ bool UIContentImpl::ProcessKeyEvent(int32_t keyCode, int32_t keyAction, int32_t 
     CHECK_NULL_RETURN(aceView, false);
 
     return aceView->DispatchKeyEvent(
-        { keyCode, keyAction, repeatTime, timeStamp, timeStampStart, metaKey, sourceDevice, deviceId });
+        { keyCode, keyAction, repeatTime, timeStamp, timeStampStart, metaKey, sourceDevice, deviceId, msg });
 }
 
 void UIContentImpl::UpdateConfiguration(const std::shared_ptr<OHOS::AbilityRuntime::Platform::Configuration>& config)
