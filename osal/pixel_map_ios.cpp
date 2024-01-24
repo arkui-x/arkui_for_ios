@@ -176,4 +176,32 @@ void* PixelMapIOS::GetWritablePixels() const
     return pixmap_->GetWritablePixels();
 }
 
+void PixelMapIOS::Scale(float xAxis, float yAxis)
+{
+    CHECK_NULL_VOID(pixmap_);
+    pixmap_->scale(xAxis, yAxis);
+}
+
+void PixelMapIOS::Scale(float xAxis, float yAxis, const AceAntiAliasingOption &option)
+{
+    CHECK_NULL_VOID(pixmap_);
+    switch (option) {
+        case AceAntiAliasingOption::NONE:
+            pixmap_->scale(xAxis, yAxis, Media::AntiAliasingOption::NONE);
+            break;
+        case AceAntiAliasingOption::LOW:
+            pixmap_->scale(xAxis, yAxis, Media::AntiAliasingOption::LOW);
+            break;
+        case AceAntiAliasingOption::MEDIUM:
+            pixmap_->scale(xAxis, yAxis, Media::AntiAliasingOption::MEDIUM);
+            break;
+        case AceAntiAliasingOption::HIGH:
+            pixmap_->scale(xAxis, yAxis, Media::AntiAliasingOption::HIGH);
+            break;
+        default:
+            pixmap_->scale(xAxis, yAxis, Media::AntiAliasingOption::NONE);
+            break;
+    }
+}
+
 } // namespace OHOS::Ace

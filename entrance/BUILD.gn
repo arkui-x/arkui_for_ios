@@ -58,6 +58,8 @@ template("ace_ios_standard_source_set") {
       "display_info.mm",
       "download_manager.cpp",
       "foldable_window_ios.cpp",
+      "msdp/interaction_impl.cpp",
+      "udmf/udmf_impl.cpp",
       "virtual_rs_window.mm",
     ]
 
