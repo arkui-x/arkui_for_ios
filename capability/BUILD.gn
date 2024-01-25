@@ -63,6 +63,7 @@ ohos_source_set("text_input") {
   sources = [
     "$ace_root/adapter/ios/capability/editing/KeyboardTypeMapper.m",
     "$ace_root/adapter/ios/capability/editing/iOSTxtInputManager.mm",
+    "//third_party/flutter/engine/flutter/fml/platform/darwin/string_range_sanitization.mm",
   ]
 }
 
