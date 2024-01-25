@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2023-2024 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -244,6 +244,11 @@ int32_t AbilityContextAdapter::StartAbilityForResult(
 
 int32_t AbilityContextAdapter::TerminateAbilityWithResult(
     const std::string& instanceName, const AAFwk::Want& resultWant, int32_t resultCode)
+{
+    return ERR_OK;
+}
+
+int32_t AbilityContextAdapter::ReportDrawnCompleted(const std::string& instanceName)
 {
     return ERR_OK;
 }
