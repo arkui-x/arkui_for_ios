@@ -225,9 +225,9 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
         
         flutter::PointerData pointer_data;
         pointer_data.Clear();
-        
-        constexpr int kMicrosecondsPerSecond = 1000 * 1000;
-        pointer_data.time_stamp = touch.timestamp * kMicrosecondsPerSecond;
+
+        int64_t sysTimeStamp = OHOS::Ace::GetSysTimestamp();
+        pointer_data.time_stamp = sysTimeStamp;
         
         pointer_data.change = PointerDataChangeFromUITouchPhase(touch.phase);
         
