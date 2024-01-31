@@ -56,8 +56,8 @@ void ConvertTouchEvent(const std::vector<uint8_t>& data, std::vector<TouchEvent>
     auto end = current + size;
 
     while (current < end) {
-        std::chrono::microseconds micros(current->time_stamp);
-        TimeStamp time(micros);
+        std::chrono::nanoseconds nanos(current->time_stamp);
+        TimeStamp time(nanos);
         TouchEvent point { static_cast<int32_t>(current->device), static_cast<float>(current->physical_x),
             static_cast<float>(current->physical_y), static_cast<float>(current->physical_x),
             static_cast<float>(current->physical_y), TouchType::UNKNOWN, TouchType::UNKNOWN, time, current->size,
