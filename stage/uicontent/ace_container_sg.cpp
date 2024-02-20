@@ -578,7 +578,7 @@ void AceContainerSG::UpdateConfiguration(
     ContainerScope scope(instanceId_);
     auto themeManager = pipelineContext_->GetThemeManager();
     CHECK_NULL_VOID(themeManager);
-    OnConfigurationChange configurationChange;
+    ConfigurationChange configurationChange;
     auto resConfig = GetResourceConfiguration();
     if (!colorMode.empty()) {
         configurationChange.colorModeUpdate = true;
@@ -602,10 +602,12 @@ void AceContainerSG::UpdateConfiguration(
         } else if (direction == "horizontal") {
             resConfig.SetOrientation(DeviceOrientation::LANDSCAPE);
         }
+        configurationChange.directionUpdate = true;
     }
     if (!densityDpi.empty()) {
         double density = std::stoi(densityDpi);
         LOGI("resconfig density : %{public}f", density);
+        configurationChange.dpiUpdate = true;
         resConfig.SetDensity(density);
         SystemProperties::SetResolution(density);
     }
