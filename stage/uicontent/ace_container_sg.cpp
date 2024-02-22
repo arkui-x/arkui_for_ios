@@ -916,6 +916,7 @@ void AceContainerSG::DestroyContainer(int32_t instanceId, const std::function<vo
     container->DestroyView(); // Stop all threads(ui,gpu,io) for current ability.
     auto removeContainerTask = [instanceId, destroyCallback] {
         LOGI("Remove on Platform thread...");
+        AcePlatformPlugin::ReleaseInstance(instanceId);
         EngineHelper::RemoveEngine(instanceId);
         AceEngine::Get().RemoveContainer(instanceId);
         if (destroyCallback) {

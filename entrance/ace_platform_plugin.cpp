@@ -74,4 +74,10 @@ void* AcePlatformPlugin::GetNativeWindow(int32_t instanceId, int64_t textureId)
     return nullptr;
 }
 
+void AcePlatformPlugin::ReleaseInstance(int32_t instanceId)
+{
+    g_nativeLayerMaps.erase(instanceId);
+    g_resRegisters.erase(instanceId);
+}
+
 }

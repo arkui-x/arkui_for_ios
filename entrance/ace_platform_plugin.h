@@ -34,6 +34,7 @@ public:
     static void RegisterSurface(int32_t instanceId, int64_t texture_id, void* surface);
     static void UnregisterSurface(int32_t instanceId, int64_t texture_id);
     static void* GetNativeWindow(int32_t instanceId, int64_t textureId);
+    static void ReleaseInstance(int32_t instanceId);
 
 };
 } // namespace OHOS::Ace::Platform

@@ -148,11 +148,11 @@ CGFloat _brightness = 0.0;
 
 - (void)dealloc {
     NSLog(@"StageVC->%@ dealloc", self);
+    [_platformPlugin platformRelease];
+    _platformPlugin = nil;
     [_windowView notifySurfaceDestroyed];
     [_windowView notifyWindowDestroyed];
     _windowView = nil;
-    [_platformPlugin platformRelease];
-    _platformPlugin = nil;
     [BridgePluginManager innerUnbridgePluginManager:_instanceId];
     _bridgePluginManager = nil;
     [self deallocArkUIXPlugin];
