@@ -235,4 +235,9 @@ bool SystemProperties::GetSideBarContainerBlurEnable()
     return sideBarContainerBlurEnable_;
 }
 
+bool SystemProperties::GetGridIrregularLayoutEnabled()
+{
+    return false;
+}
+
 } // namespace OHOS::Ace
