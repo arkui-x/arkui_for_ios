@@ -790,3 +790,8 @@ __ZNK4OHOS5Rosen11DisplayInfo21GetDisplayOrientationEv
 __ZNK4OHOS5Rosen11DisplayInfo8GetWidthEv
 __ZNK4OHOS5Rosen11DisplayInfo9GetHeightEv
 _OH_ResourceManager_*
+_ucol_close_72
+_ucol_open_72
+_ucol_setAttribute_72
+_ucol_strcollIter_72
+_uiter_setUTF8_72
