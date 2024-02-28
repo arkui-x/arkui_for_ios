@@ -45,6 +45,7 @@ video_components_support = true
 use_components_lib = false
 web_components_support = true
 video_texture_support = true
+xcomponent_components_support = true
 
 cflags_cc = [
   "-std=c++17",
@@ -72,6 +73,10 @@ platform_deps = [
 ]
 
 libace_target = "//foundation/arkui/ace_engine/adapter/ios/build:arkui_ios"
+
+if (xcomponent_components_support) {
+  defines += [ "XCOMPONENT_SUPPORTED" ]
+}
 
 if (defined(pixel_map_support) && pixel_map_support) {
   defines += [ "PIXEL_MAP_SUPPORTED" ]

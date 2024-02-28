@@ -49,7 +49,7 @@
         IAceOnCallSyncResourceMethod callSetTextureSize = ^NSString*(NSDictionary* param) {
             if (weakSelf) {
                 return [weakSelf setSurfaceBounds:param];
-            }else {
+            } else {
                  NSLog(@"AceSurfaceView: setSurfaceBounds fail");
                  return FAIL;
             }

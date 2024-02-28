@@ -25,7 +25,7 @@
 #include "adapter/ios/entrance/ace_platform_plugin.h"
 #include "core/common/container_scope.h"
 
-@interface AcePlatformPlugin()<IAceOnCallEvent, AceTextureDelegate>
+@interface AcePlatformPlugin()<IAceOnCallEvent, IAceSurface, AceTextureDelegate>
 {
     AceVideoResourcePlugin* _videoResourcePlugin;
     AceSurfacePlugin* _aceSurfacePlugin;
@@ -53,7 +53,7 @@
                 _videoResourcePlugin = [AceVideoResourcePlugin createRegister:moduleName abilityInstanceId:instanceId];
                 [self addResourcePlugin:_videoResourcePlugin];
 
-                _aceSurfacePlugin = [AceSurfacePlugin createRegister:target abilityInstanceId:instanceId];
+                _aceSurfacePlugin = [AceSurfacePlugin createRegister:target abilityInstanceId:instanceId delegate:self];
                 [self addResourcePlugin:_aceSurfacePlugin];
 
                 _webResourcePlugin = [AceWebResourcePlugin createRegister:target abilityInstanceId:instanceId];
@@ -134,6 +134,12 @@
 {
     NSLog(@"AceTextureDelegate getNativeWindow");
     return OHOS::Ace::Platform::AcePlatformPlugin::GetNativeWindow(instanceId,textureId);
+}
+
+#pragma mark IAceSurface
+- (uintptr_t)attachNaitveSurface:(CALayer *)layer {
+    uintptr_t address = reinterpret_cast<uintptr_t>(layer);
+    return address;
 }
 
 - (void)dealloc

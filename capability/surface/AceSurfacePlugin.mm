@@ -13,28 +13,32 @@
  * limitations under the License.
  */
 
-#import "AceSurfacePlugin.h"
 #import "AceSurfaceView.h"
+#import "AceSurfacePlugin.h"
 
 @interface AceSurfacePlugin()
 @property (nonatomic, strong) NSMutableDictionary<NSString*, AceSurfaceView*> *objectMap;
+@property (nonatomic, weak) id<IAceSurface> delegate;
 @property (nonatomic, assign) UIViewController *target;
 @property (nonatomic, assign) int32_t instanceId;
 @end
 @implementation AceSurfacePlugin
 
 + (AceSurfacePlugin *)createRegister:(UIViewController *)target abilityInstanceId:(int32_t)abilityInstanceId
+    delegate:(id<IAceSurface>)delegate
 {
-    return [[AceSurfacePlugin alloc] initWithTarget:target abilityInstanceId:abilityInstanceId];
+    return [[AceSurfacePlugin alloc] initWithTarget:target abilityInstanceId:abilityInstanceId delegate:delegate];
 }
 
 - (instancetype)initWithTarget:(UIViewController *)target abilityInstanceId:(int32_t)abilityInstanceId
+    delegate:(id<IAceSurface>)delegate
 {
     self = [super init:@"surface" version:1];
     if (self) {
         self.objectMap = [[NSMutableDictionary alloc] init];
         self.target = target;
         self.instanceId = abilityInstanceId;
+        self.delegate = delegate;
     }
     return self;
 }
@@ -55,7 +59,8 @@
          return -1L;
     }
     AceSurfaceView * aceSurface = [[AceSurfaceView alloc] 
-        initWithId:incId callback:callback param:param superTarget:self.target abilityInstanceId:self.instanceId];
+        initWithId:incId callback:callback param:param superTarget:self.target abilityInstanceId:self.instanceId
+        delegate:self.delegate];
     [self addResource:incId surface:aceSurface];
     return incId;
 }
@@ -90,7 +95,7 @@
                 [aceSurface releaseObject];
                 [aceSurface removeFromSuperview];
                 aceSurface = nil;
-            }else {
+            } else {
                 NSLog(@"AceSurfacePlugin releaseObject fail aceSurface is null"); 
             }
         }];
