@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2024 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -12,20 +12,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#ifndef FOUNDATION_ADAPTER_CAPABILITY_SURFACE_IACESURFACE_H
+#define FOUNDATION_ADAPTER_CAPABILITY_SURFACE_IACESURFACE_H
 
-#ifndef FOUNDATION_ACE_ADAPTER_IOS_ENTRANCE_ACESURFACEHOLDER_H
-#define FOUNDATION_ACE_ADAPTER_IOS_ENTRANCE_ACESURFACEHOLDER_H
+#import <Foundation/Foundation.h>
 
-#import <UIKit/UIKit.h>
+@protocol IAceSurface <NSObject>
 
-NS_ASSUME_NONNULL_BEGIN
+- (uintptr_t)attachNaitveSurface:(CALayer *)layer;
 
-@interface AceSurfaceHolder : NSObject
-+ (CALayer *)getLayerWithId:(long)layerId inceId:(long)inceId;
-+ (void)addLayer:(CALayer *)layer withId:(long)layerId inceId:(long)inceId;
-+ (void)removeLayerWithId:(long)layerId inceId:(long)inceId;
 @end
 
-NS_ASSUME_NONNULL_END
-
-#endif // FOUNDATION_ACE_ADAPTER_IOS_ENTRANCE_ACESURFACEHOLDER_H
+#endif // FOUNDATION_ADAPTER_CAPABILITY_SURFACE_IACESURFACE_H
