@@ -55,11 +55,7 @@
 #define SURFACE_SET_BOUNDS @"setSurfaceBounds"
 
 + (Class)layerClass {
-#if TARGET_IPHONE_SIMULATOR
-  return [CALayer class];
-#else
-  return [CAEAGLLayer class];
-#endif
+    return [CALayer class];
 }
 
 - (instancetype)initWithId:(int64_t)incId callback:(IAceOnResourceEvent)callback
