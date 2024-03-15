@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2023-2024 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -170,6 +170,8 @@ std::map<std::string, std::pair<uint32_t, std::shared_ptr<Window>>> Window::wind
 std::map<uint32_t, std::vector<sptr<IWindowLifeCycle>>> Window::lifecycleListeners_;
 std::recursive_mutex Window::globalMutex_;
 std::map<uint32_t, std::vector<sptr<IOccupiedAreaChangeListener>>> Window::occupiedAreaChangeListeners_;
+constexpr Rect emptyRect = {0, 0, 0, 0};
+CGFloat keyBoardHieght = 0;
 
 Window::Window(std::shared_ptr<AbilityRuntime::Platform::Context> context, uint32_t windowId)
     : context_(context), windowId_(windowId)
@@ -969,6 +971,8 @@ void Window::NotifyWillTeminate()
 
 void Window::NotifyKeyboardHeightChanged(int32_t height)
 {
+    LOGI("keyBoardHeight : %{public}d", height);
+    keyBoardHieght = height;
     auto occupiedAreaChangeListeners = GetListeners<IOccupiedAreaChangeListener>();
     for (auto& listener : occupiedAreaChangeListeners) {
         if (listener != nullptr) {
@@ -1067,6 +1071,71 @@ WMError Window::UnregisterListener(std::vector<sptr<T>>& holder, const sptr<T>& 
         [listener](sptr<T> registeredListener) {
             return registeredListener == listener;
         }), holder.end());
+    return WMError::WM_OK;
+}
+
+WMError Window::SetLayoutFullScreen(bool status) {
+    StageViewController* controller = [StageApplication getApplicationTopViewController];
+    if (![controller isKindOfClass:[StageViewController class]]) {
+        return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+    if (status == true) {
+        LOGI("isLayoutFullScreen is ture");
+        controller.edgesForExtendedLayout = UIRectEdgeAll;
+        controller.navigationController.navigationBar.translucent = YES;
+    } else {
+        LOGI("isLayoutFullScreen is false");
+        controller.edgesForExtendedLayout = UIRectEdgeNone;
+        controller.navigationController.navigationBar.translucent = NO;
+    }
+    return WMError::WM_OK;
+}
+
+WMError Window::SetSpecificBarProperty(WindowType type, const SystemBarProperty& property) {
+    StageViewController* controller = [StageApplication getApplicationTopViewController];
+    if (![controller isKindOfClass:[StageViewController class]]) {
+        return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+    if (type == WindowType::WINDOW_TYPE_STATUS_BAR || type == WindowType::WINDOW_TYPE_NAVIGATION_BAR) {
+        return SetSystemBarProperty(type, property);
+    } else if (type == WindowType::WINDOW_TYPE_NAVIGATION_INDICATOR && @available(iOS 11.0, *)) {
+        LOGI("Set homeIndicatorAutoHidden");
+        if (!property.enable_) {
+            LOGI("Set homeIndicatorAutoHidden - hidden");
+            controller.homeIndicatorHidden = YES;
+            [controller setNeedsUpdateOfHomeIndicatorAutoHidden];
+        } else {
+            LOGI("Set homeIndicatorAutoHidden - show");
+            controller.homeIndicatorHidden = NO;
+            [controller setNeedsUpdateOfHomeIndicatorAutoHidden];
+        }
+    }
+    return WMError::WM_OK;
+}
+
+WMError Window::GetAvoidAreaByType(AvoidAreaType type, AvoidArea& avoidArea) {
+    avoidArea.topRect_ = emptyRect;
+    avoidArea.leftRect_ = emptyRect;
+    avoidArea.rightRect_ = emptyRect;
+    avoidArea.bottomRect_ = emptyRect;
+
+    if (@available(iOS 11.0, *)) {
+        StageViewController* controller = [StageApplication getApplicationTopViewController];
+        UIEdgeInsets insets = [UIApplication sharedApplication].delegate.window.safeAreaInsets;
+        CGFloat screenWidth = UIScreen.mainScreen.bounds.size.width;
+        CGFloat screenHeight = UIScreen.mainScreen.bounds.size.height;
+        
+        if (type == AvoidAreaType::TYPE_CUTOUT) {
+            avoidArea.topRect_ = controller.statusBarHidden ? emptyRect : (Rect){0, 0, screenWidth, insets.top};
+        } else if (type == AvoidAreaType::TYPE_KEYBOARD) {
+            avoidArea.bottomRect_ = {0, screenHeight - insets.bottom, screenWidth, insets.bottom + keyBoardHieght};
+        } else if (type == AvoidAreaType::TYPE_SYSTEM) {
+            avoidArea.topRect_ = controller.statusBarHidden ? emptyRect : (Rect){0, 0, screenWidth, insets.top};
+            avoidArea.bottomRect_ = {0, screenHeight - insets.bottom, screenWidth, insets.bottom};
+        } else if (type == AvoidAreaType::TYPE_NAVIGATION_INDICATOR) {
+            avoidArea.bottomRect_ = {0, screenHeight - insets.bottom, screenWidth, insets.bottom};
+        }
+    }
     return WMError::WM_OK;
 }
 } // namespace OHOS::Rosen
