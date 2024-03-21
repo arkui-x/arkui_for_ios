@@ -70,18 +70,19 @@
 
 - (void)addResourcePlugin:(AceResourcePlugin *)plugin
 {
-    if(plugin){
+    if(plugin && _resRegister){
         [_resRegister registerPlugin:plugin];
     }
 }
 
 - (void)notifyLifecycleChanged:(BOOL)isBackground
 {
-    [_resRegister notifyLifecycleChanged:isBackground];
+    if(_resRegister){
+        [_resRegister notifyLifecycleChanged:isBackground];
+    }
 }
 
 - (void)platformRelease {
-    NSLog(@"platformRelease dealloc");
     if (_videoResourcePlugin) {
         [_videoResourcePlugin releaseObject];
         _videoResourcePlugin = nil;
@@ -101,6 +102,7 @@
     }
     if (_resRegister) {
         [_resRegister releaseObject];
+        [_resRegister release];
         _resRegister = nil;
     }
 }
