@@ -342,9 +342,6 @@ typedef enum : NSUInteger {
         if (self.player_.rate != self.speed) {
             [self updateSpeed:self.speed];
         }
-
-        NSString *param = [NSString stringWithFormat:@"isplaying=%d", 1];
-        [self fireCallback:@"onplaystatus" params:param];
     }
 }
 
@@ -362,8 +359,6 @@ typedef enum : NSUInteger {
     if (self.player_) {
         [self.player_ pause];
         self.state = PAUSED;
-        NSString *param = [NSString stringWithFormat:@"isplaying=%d", 0];
-        [self fireCallback:@"onplaystatus" params:param];
     }
 }
 
