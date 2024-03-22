@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2023-2024 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -22,11 +22,7 @@
 #import "AceSurfaceHolder.h"
 #import "WindowView.h"
 
-@interface AceSurfaceView () {
-    float _surfaceLeft;
-    float _surfaceTop;
-    float _surfaceWidth;
-    float _surfaceHeight;
+@interface AceSurfaceView (){
     BOOL _viewAdded;
 }
 @property (nonatomic, assign) int64_t incId;
@@ -99,21 +95,23 @@
     return self;
 }
 
-- (void)callSurfaceChange:(CGRect)oldRect
+- (void)callSurfaceChange:(CGRect)surfaceRect
 {
+    UIScreen *screen = [UIScreen mainScreen];
+    CGFloat scale = screen.scale;
+    
+    CGRect oldRect = self.frame;
+    CGRect newRect = CGRectMake(surfaceRect.origin.x/scale,
+        surfaceRect.origin.y/scale, surfaceRect.size.width/scale, surfaceRect.size.height/scale);
+
     if (self.layer) {
-        CGRect newRect = self.layer.frame;
         if (oldRect.origin.x != newRect.origin.x
             || oldRect.origin.y != newRect.origin.y
             || oldRect.size.width != newRect.size.width
             || oldRect.size.height != newRect.size.height){
-            UIScreen *screen = [UIScreen mainScreen];
-            CGFloat scale = screen.scale;
-            CGFloat width = newRect.size.width * scale;
-            CGFloat height = newRect.size.height * scale;
-            NSString * param = [NSString stringWithFormat:@"surfaceWidth=%f&surfaceHeight=%f",width,height];
-            NSLog(@"AceSurfaceView callSurfaceChange (%f, %f) - (%f x %f) ", 
-                newRect.origin.x, newRect.origin.y, newRect.size.width, newRect.size.height);
+            self.frame = newRect;
+            NSString * param = [NSString stringWithFormat:@"surfaceWidth=%f&surfaceHeight=%f",
+                surfaceRect.size.width, surfaceRect.size.height];
             [self fireCallback:@"onChanged" params:param];
         }
     }
@@ -139,20 +137,14 @@
         return FAIL;
     }
     @try {
-        UIScreen *screen = [UIScreen mainScreen];
-        CGFloat scale = screen.scale;
-
-        _surfaceLeft = [params[SURFACE_LEFT_KEY] floatValue] / scale;
-        _surfaceTop = [params[SURFACE_TOP_KEY] floatValue] / scale;
-        _surfaceWidth = [params[SURFACE_WIDTH_KEY] floatValue] / scale;
-        _surfaceHeight = [params[SURFACE_HEIGHT_KEY] floatValue] / scale;
-        
+        CGFloat surface_x = [params[SURFACE_LEFT_KEY] floatValue];
+        CGFloat surface_y = [params[SURFACE_TOP_KEY] floatValue];
+        CGFloat surface_width = [params[SURFACE_WIDTH_KEY] floatValue];
+        CGFloat surface_height = [params[SURFACE_HEIGHT_KEY] floatValue];
         NSLog(@"AceSurfaceView setSurfaceBounds (%f, %f) - (%f x %f) ", 
-            _surfaceLeft, _surfaceTop, _surfaceWidth, _surfaceHeight);
-        
-        CGRect oldRect = self.frame;
-        self.frame = CGRectMake(_surfaceLeft, _surfaceTop, _surfaceWidth, _surfaceHeight);
-        [self callSurfaceChange:oldRect];
+            surface_x, surface_y, surface_width, surface_height);
+        CGRect surfaceRect = CGRectMake(surface_x, surface_y, surface_width, surface_height);
+        [self callSurfaceChange:surfaceRect];
        
         if (_viewAdded) {
             [self layoutIfNeeded];
