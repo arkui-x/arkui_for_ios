@@ -168,6 +168,7 @@ void DummyWindowRelease(Window* window)
 std::map<uint32_t, std::vector<std::shared_ptr<Window>>> Window::subWindowMap_;
 std::map<std::string, std::pair<uint32_t, std::shared_ptr<Window>>> Window::windowMap_;
 std::map<uint32_t, std::vector<sptr<IWindowLifeCycle>>> Window::lifecycleListeners_;
+std::map<uint32_t, std::vector<sptr<IWindowChangeListener>>> Window::windowChangeListeners_;
 std::recursive_mutex Window::globalMutex_;
 std::map<uint32_t, std::vector<sptr<IOccupiedAreaChangeListener>>> Window::occupiedAreaChangeListeners_;
 
@@ -485,8 +486,6 @@ WMError Window::ShowWindow()
     return WMError::WM_OK;
 }
 
-
-
 WMError Window::MoveWindowTo(int32_t x, int32_t y)
 {   
     if (!windowView_) {
@@ -603,7 +602,6 @@ void Window::CreateSurfaceNode(void* layer)
 
     if (!uiContent_) {
         LOGW("Window Notify uiContent_ Surface Created, uiContent_ is nullptr, delay notify.");
-        delayNotifySurfaceCreated_ = true;
     } else {
         LOGI("Window Notify uiContent_ Surface Created");
         uiContent_->NotifySurfaceCreated();
@@ -612,6 +610,9 @@ void Window::CreateSurfaceNode(void* layer)
 
 void Window::NotifySurfaceChanged(int32_t width, int32_t height, float density)
 {
+    rect_.width_ = width;
+    rect_.height_ = height;
+    NotifySizeChange(rect_);
     if (!surfaceNode_) {
         LOGE("Window Notify Surface Changed, surfaceNode_ is nullptr!");
         return;
@@ -619,16 +620,12 @@ void Window::NotifySurfaceChanged(int32_t width, int32_t height, float density)
     LOGI("Window Notify Surface Changed wh:[%{public}d, %{public}d]", width, height);
     surfaceWidth_ = width;
     surfaceHeight_ = height;
-    rect_.width_ = width;
-    rect_.height_ = height;
-    
     surfaceNode_->SetBoundsWidth(surfaceWidth_);
     surfaceNode_->SetBoundsHeight(surfaceHeight_);
     density_ = density;
 
     if (!uiContent_) {
         LOGW("Window Notify uiContent_ Surface Created, uiContent_ is nullptr, delay notify.");
-        delayNotifySurfaceChanged_ = true;
     } else {
         LOGI("Window Notify uiContent_ Surface Created");
         Ace::ViewportConfig config;
@@ -685,22 +682,16 @@ void Window::DelayNotifyUIContentIfNeeded()
         return;
     }
 
-    if (delayNotifySurfaceCreated_) {
-        LOGI("Window Delay Notify uiContent_ Surface Created");
-        uiContent_->NotifySurfaceCreated();
-        delayNotifySurfaceCreated_ = false;
-    }
+    LOGI("Window Delay Notify uiContent_ Surface Created");
+    uiContent_->NotifySurfaceCreated();
 
-    if (delayNotifySurfaceChanged_) {
-        LOGI("Window Delay Notify uiContent_ Surface Changed wh:[%{public}d, %{public}d]",
-            surfaceWidth_, surfaceHeight_);
-        Ace::ViewportConfig config;
-        config.SetDensity(density_);
-        config.SetSize(surfaceWidth_, surfaceHeight_);
-        config.SetOrientation(surfaceWidth_ <= surfaceHeight_ ? 0 : 1);
-        uiContent_->UpdateViewportConfig(config, WindowSizeChangeReason::RESIZE);
-        delayNotifySurfaceChanged_ = false;
-    }
+    LOGI("Window Delay Notify uiContent_ Surface Changed wh:[%{public}d, %{public}d]",
+        surfaceWidth_, surfaceHeight_);
+    Ace::ViewportConfig config;
+    config.SetDensity(density_);
+    config.SetSize(surfaceWidth_, surfaceHeight_);
+    config.SetOrientation(surfaceWidth_ <= surfaceHeight_ ? 0 : 1);
+    uiContent_->UpdateViewportConfig(config, WindowSizeChangeReason::RESIZE);
 
     if (delayNotifySurfaceDestroyed_) {
         LOGI("Window Delay Notify uiContent_ Surface Destroyed");
@@ -710,24 +701,33 @@ void Window::DelayNotifyUIContentIfNeeded()
 }
 
 WMError Window::SetUIContent(const std::string& contentInfo,
-    NativeEngine* engine, napi_value storage, bool isdistributed, AbilityRuntime::Platform::Ability* ability)
+    NativeEngine* engine, napi_value storage, bool isdistributed,
+    AbilityRuntime::Platform::Ability* ability, bool loadContentByName)
 {
     LOGI("Window::SetUIContent : Start");
     using namespace OHOS::Ace::Platform;
     (void)ability;
+    if (uiContent_) {
+        uiContent_->Destroy();
+    }
     std::unique_ptr<UIContent> uiContent;
     uiContent = UIContent::Create(context_.get(), engine);
     if (uiContent == nullptr) {
         LOGE("Window::SetUIContent : Create UIContent Failed!");
         return WMError::WM_ERROR_NULLPTR;
     }
-    uiContent->Initialize(this, contentInfo, storage);
+    if (loadContentByName) {
+        LOGI("Window::SetUIContent: InitializeByName");
+        uiContent->InitializeByName(this, contentInfo, storage);
+    }else {
+        uiContent->Initialize(this, contentInfo, storage);
+    }
+
     // make uiContent available after Initialize/Restore
     uiContent_ = std::move(uiContent);
 
-    uiContent_->Foreground();
-
     DelayNotifyUIContentIfNeeded();
+    uiContent_->Foreground();
     LOGI("Window::SetUIContent : End!!!");
     return WMError::WM_OK;
 }
@@ -967,6 +967,16 @@ void Window::NotifyWillTeminate()
     }
 }
 
+void Window::NotifySizeChange(Rect rect)
+{
+    auto windowChangeListeners = GetListeners<IWindowChangeListener>();
+    for (auto& listener : windowChangeListeners) {
+        if (listener != nullptr) {
+            listener->OnSizeChange(rect);
+        }
+    }
+}
+
 void Window::NotifyKeyboardHeightChanged(int32_t height)
 {
     auto occupiedAreaChangeListeners = GetListeners<IOccupiedAreaChangeListener>();
@@ -1004,6 +1014,21 @@ WMError Window::UnregisterLifeCycleListener(const sptr<IWindowLifeCycle>& listen
     LOGD("Start unregister");
     std::lock_guard<std::recursive_mutex> lock(globalMutex_);
     return UnregisterListener(lifecycleListeners_[GetWindowId()], listener);
+}
+
+
+WMError Window::RegisterWindowChangeListener(const sptr<IWindowChangeListener>& listener)
+{
+    LOGD("Start register");
+    std::lock_guard<std::recursive_mutex> lock(globalMutex_);
+    return RegisterListener(windowChangeListeners_[GetWindowId()], listener);
+}
+
+WMError Window::UnregisterWindowChangeListener(const sptr<IWindowChangeListener>& listener)
+{
+    LOGD("Start unregister");
+    std::lock_guard<std::recursive_mutex> lock(globalMutex_);
+    return UnregisterListener(windowChangeListeners_[GetWindowId()], listener);
 }
 
 ColorSpace Window::GetColorSpaceFromSurfaceGamut(GraphicColorGamut colorGamut) const

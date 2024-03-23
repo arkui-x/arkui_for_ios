@@ -150,8 +150,9 @@ public:
     bool ProcessKeyEvent(
         int32_t keyCode, int32_t keyAction, int32_t repeatTime, int64_t timeStamp = 0, int64_t timeStampStart = 0, int32_t metaKey = 0);
 
-    WMError SetUIContent(const std::string& contentInfo, NativeEngine* engine, napi_value storage, bool isdistributed,
-        AbilityRuntime::Platform::Ability* ability);
+    WMError SetUIContent(const std::string& contentInfo,
+        NativeEngine* engine, napi_value storage, bool isdistributed,
+        AbilityRuntime::Platform::Ability* ability, bool loadContentByName);
     Ace::Platform::UIContent* GetUIContent();
         
     WMError SetBackgroundColor(uint32_t color);
@@ -234,6 +235,8 @@ public:
     void SetRequestedOrientation(Orientation);
     WMError RegisterLifeCycleListener(const sptr<IWindowLifeCycle>& listener);
     WMError UnregisterLifeCycleListener(const sptr<IWindowLifeCycle>& listener);
+    WMError RegisterWindowChangeListener(const sptr<IWindowChangeListener>& listener);
+    WMError UnregisterWindowChangeListener(const sptr<IWindowChangeListener>& listener);
     bool ProcessBasicEvent(const std::vector<Ace::TouchEvent>& touchEvents);
     int64_t GetVSyncPeriod()
     {
@@ -289,6 +292,19 @@ private:
         }
         return lifecycleListeners;
     }
+    template<typename T>
+    inline EnableIfSame<T, IWindowChangeListener, std::vector<sptr<IWindowChangeListener>>> GetListeners()
+    {
+        std::vector<sptr<IWindowChangeListener>> windowChangeListeners;
+        {
+            std::lock_guard<std::recursive_mutex> lock(globalMutex_);
+            for (auto& listener : windowChangeListeners_[GetWindowId()]) {
+                windowChangeListeners.push_back(listener);
+            }
+        }
+        return windowChangeListeners;
+    }
+
     inline void NotifyAfterForeground(bool needNotifyListeners = true, bool needNotifyUiContent = true)
     {
         if (needNotifyListeners) {
@@ -326,6 +342,7 @@ private:
     }
 
     void ClearListenersById(uint32_t winId);
+    void NotifySizeChange(Rect rect);
 
 private:
     int32_t surfaceWidth_ = 0;
@@ -373,6 +390,7 @@ private:
     static std::map<std::string, std::pair<uint32_t, std::shared_ptr<Window>>> windowMap_;
     static std::map<uint32_t, std::vector<std::shared_ptr<Window>>> subWindowMap_;
     static std::map<uint32_t, std::vector<sptr<IWindowLifeCycle>>> lifecycleListeners_;
+    static std::map<uint32_t, std::vector<sptr<IWindowChangeListener>>> windowChangeListeners_;
 
     ACE_DISALLOW_COPY_AND_MOVE(Window);
 
