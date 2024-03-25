@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2023-2024 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -743,6 +743,18 @@ void AceContainerSG::SetLocalStorage(NativeReference* storage, NativeReference* 
             }
         },
         TaskExecutor::TaskType::JS);
+}
+
+bool AceContainerSG::MaybeRelease()
+{
+    CHECK_NULL_RETURN(taskExecutor_, true);
+    if (taskExecutor_->WillRunOnCurrentThread(TaskExecutor::TaskType::PLATFORM)) {
+        LOGI("Destroy AceContainer on PLATFORM thread.");
+        return true;
+    } else {
+        LOGI("Post Destroy AceContainer Task to PLATFORM thread.");
+        return !taskExecutor_->PostTask([this] { delete this; }, TaskExecutor::TaskType::PLATFORM);
+    }
 }
 
 bool AceContainerSG::OnBackPressed(int32_t instanceId)

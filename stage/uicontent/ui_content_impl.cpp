@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2023-2024 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -24,7 +24,6 @@
 #include "stage_asset_manager.h"
 
 #include "adapter/ios/entrance/ace_application_info_impl.h"
-#include "adapter/ios/entrance/capability_registry.h"
 #include "adapter/ios/osal/accessibility_manager_impl.h"
 #include "adapter/ios/osal/file_asset_provider.h"
 #include "adapter/ios/osal/page_url_checker_ios.h"
@@ -357,7 +356,6 @@ void UIContentImpl::InitOnceAceInfo()
     std::call_once(onceFlag, [&context]() {
         LOGI("Initialize for current process.");
         Container::UpdateCurrent(INSTANCE_ID_PLATFORM);
-        Platform::CapabilityRegistry::Register();
         AceApplicationInfo::GetInstance().SetProcessName(context->GetBundleName());
         AceApplicationInfo::GetInstance().SetPackageName(context->GetBundleName());
         AceApplicationInfo::GetInstance().SetDataFileDirPath(context->GetFilesDir());
@@ -377,7 +375,6 @@ void UIContentImpl::InitAceInfoFromResConfig()
     if (resourceManager != nullptr) {
         resourceManager->GetResConfig(*resConfig);
         auto localeInfo = resConfig->GetLocaleInfo();
-        Platform::AceApplicationInfoImpl::GetInstance().SetResourceManager(resourceManager);
         if (localeInfo != nullptr) {
             auto language = localeInfo->getLanguage();
             auto region = localeInfo->getCountry();
