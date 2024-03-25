@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2023-2024 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -69,6 +69,7 @@ CGFloat _brightness = 0.0;
         }
         _pluginList = [[NSMutableArray alloc] init];
         [self initBridge];
+        self.homeIndicatorHidden = NO;
     }
     return self;
 }
@@ -261,6 +262,10 @@ CGFloat _brightness = 0.0;
 
 - (BOOL)prefersStatusBarHidden {
     return self.statusBarHidden;
+}
+
+- (BOOL)prefersHomeIndicatorAutoHidden {
+    return self.homeIndicatorHidden;
 }
 
 - (void)pressesBegan:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event {
