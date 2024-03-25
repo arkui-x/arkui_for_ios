@@ -971,7 +971,6 @@ void Window::NotifyWillTeminate()
 
 void Window::NotifyKeyboardHeightChanged(int32_t height)
 {
-    LOGI("keyBoardHeight : %{public}d", height);
     keyBoardHieght = height;
     auto occupiedAreaChangeListeners = GetListeners<IOccupiedAreaChangeListener>();
     for (auto& listener : occupiedAreaChangeListeners) {
@@ -1098,17 +1097,24 @@ WMError Window::SetSpecificBarProperty(WindowType type, const SystemBarProperty&
     }
     if (type == WindowType::WINDOW_TYPE_STATUS_BAR || type == WindowType::WINDOW_TYPE_NAVIGATION_BAR) {
         return SetSystemBarProperty(type, property);
-    } else if (type == WindowType::WINDOW_TYPE_NAVIGATION_INDICATOR && @available(iOS 11.0, *)) {
-        LOGI("Set homeIndicatorAutoHidden");
-        if (!property.enable_) {
-            LOGI("Set homeIndicatorAutoHidden - hidden");
-            controller.homeIndicatorHidden = YES;
-            [controller setNeedsUpdateOfHomeIndicatorAutoHidden];
+    } else if (type == WindowType::WINDOW_TYPE_NAVIGATION_INDICATOR) {
+        if (@available(iOS 11.0, *)) {
+            if (!property.enable_) {
+                LOGI("Set homeIndicatorAutoHidden - hidden");
+                controller.homeIndicatorHidden = YES;
+                [controller setNeedsUpdateOfHomeIndicatorAutoHidden];
+            } else {
+                LOGI("Set homeIndicatorAutoHidden - show");
+                controller.homeIndicatorHidden = NO;
+                [controller setNeedsUpdateOfHomeIndicatorAutoHidden];
+            }
         } else {
-            LOGI("Set homeIndicatorAutoHidden - show");
-            controller.homeIndicatorHidden = NO;
-            [controller setNeedsUpdateOfHomeIndicatorAutoHidden];
+            LOGE("Set SetSpecificBarProperty failed, iOS version less than 11");
+            return WMError::WM_ERROR_INVALID_PARAM;
         }
+    } else {
+        LOGE("Set SetSpecificBarProperty failed, invalid parm");
+        return WMError::WM_ERROR_INVALID_PARAM;
     }
     return WMError::WM_OK;
 }
@@ -1134,7 +1140,16 @@ WMError Window::GetAvoidAreaByType(AvoidAreaType type, AvoidArea& avoidArea) {
             avoidArea.bottomRect_ = {0, screenHeight - insets.bottom, screenWidth, insets.bottom};
         } else if (type == AvoidAreaType::TYPE_NAVIGATION_INDICATOR) {
             avoidArea.bottomRect_ = {0, screenHeight - insets.bottom, screenWidth, insets.bottom};
+        } else if (type == AvoidAreaType::TYPE_SYSTEM_GESTURE) {
+            avoidArea.leftRect_ = emptyRect;
+            avoidArea.rightRect_ = emptyRect;
+        } else {
+            LOGE("GetAvoidAreaByType failed, AvoidAreaType is invalid");
+            return WMError::WM_ERROR_INVALID_PARAM;
         }
+    } else {
+        return WMError::WM_ERROR_INVALID_PARAM;
+        LOGE("GetAvoidAreaByType failed, iOS version less than 11");
     }
     return WMError::WM_OK;
 }
