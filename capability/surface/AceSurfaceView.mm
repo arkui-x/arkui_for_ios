@@ -103,7 +103,7 @@
     CGRect oldRect = self.frame;
     CGRect newRect = CGRectMake(surfaceRect.origin.x/scale,
         surfaceRect.origin.y/scale, surfaceRect.size.width/scale, surfaceRect.size.height/scale);
-
+    self.frame = newRect;
     if (self.layer) {
         if (oldRect.origin.x != newRect.origin.x
             || oldRect.origin.y != newRect.origin.y
