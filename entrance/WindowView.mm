@@ -137,19 +137,19 @@
 }
 
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event {
-    [self dispatchTouches:touches];
+    [self dispatchTouches:touches withEvent: event];
 }
 
 - (void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event {
-    [self dispatchTouches:touches];
+    [self dispatchTouches:touches withEvent: event];
 }
 
 - (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event {
-    [self dispatchTouches:touches];
+    [self dispatchTouches:touches withEvent: event];
 }
 
 - (void)touchesCancelled:(NSSet *)touches withEvent:(UIEvent *)event {
-    [self dispatchTouches:touches];
+    [self dispatchTouches:touches withEvent: event];
 }
 
 - (float)updateBrightness {
@@ -200,9 +200,13 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
     int32_t deviceId;
     auto iter = _deviceMap.find(device);
     if (iter == _deviceMap.end()) {
-        _deviceMap[device] = _deviceId;
-        deviceId = _deviceId;
-        _deviceId++;
+        if (phase == UIPressPhaseBegan) {
+            _deviceMap[device] = _deviceId;
+            deviceId = _deviceId;
+            _deviceId++;
+        } else {
+            return -1;
+        }
     } else {
         deviceId = _deviceMap[device];
         if (phase == UITouchPhaseEnded || phase == UITouchPhaseCancelled) {
@@ -215,12 +219,13 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
     return deviceId;
 }
 
-- (void)dispatchTouches:(NSSet *)touches {
+- (void)dispatchTouches:(NSSet *)touches withEvent:(UIEvent *) event {
+    NSSet<UITouch *> *allTouches = [event allTouches];
     const CGFloat scale = [UIScreen mainScreen].scale;
-    std::unique_ptr<flutter::PointerDataPacket> packet = std::make_unique<flutter::PointerDataPacket>(touches.count);
+    std::unique_ptr<flutter::PointerDataPacket> packet = std::make_unique<flutter::PointerDataPacket>(allTouches.count);
 
     size_t pointer_index = 0;
-    for (UITouch *touch in touches) {
+    for (UITouch *touch in allTouches) {
         CGPoint windowCoordinates = [touch locationInView:self];
         
         flutter::PointerData pointer_data;
@@ -228,7 +233,7 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
 
         int64_t sysTimeStamp = OHOS::Ace::GetSysTimestamp();
         pointer_data.time_stamp = sysTimeStamp;
-        
+        pointer_data.size = allTouches.count;
         pointer_data.change = PointerDataChangeFromUITouchPhase(touch.phase);
         
         pointer_data.kind = DeviceKindFromTouchType(touch);
