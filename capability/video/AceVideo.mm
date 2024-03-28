@@ -595,10 +595,6 @@ typedef enum : NSUInteger {
         return NO;
     }
 
-    [[NSNotificationCenter defaultCenter] removeObserver:self];
-    [[NSNotificationCenter defaultCenter] addObserver:self
-        selector:@selector(playDidEndNotification:) name:AVPlayerItemDidPlayToEndTimeNotification object:nil];
-
     self.isAutoPlay = [[param objectForKey:@"autoplay"] boolValue];
     self.isMute = [[param objectForKey:@"mute"] boolValue];
     self.isLoop = [[param objectForKey:@"loop"] boolValue];
@@ -627,6 +623,11 @@ typedef enum : NSUInteger {
         } else {
             self.player_ = [[AVPlayer alloc] initWithPlayerItem:playerItem];
         }
+
+        [[NSNotificationCenter defaultCenter] removeObserver:self];
+        [[NSNotificationCenter defaultCenter] addObserver:self
+        selector:@selector(playDidEndNotification:) name:AVPlayerItemDidPlayToEndTimeNotification object:nil];
+
         return playerItem;
     } @catch (NSException *exception) {
         NSLog(@"AceVideo: playerItem create failed");
