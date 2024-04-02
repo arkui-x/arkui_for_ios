@@ -36,16 +36,28 @@
 
 namespace OHOS::Ace::Platform {
 namespace {
-TouchPoint ConvertTouchPoint(flutter::PointerData* pointerItem)
+void UpdateTouchEvent(std::vector<TouchEvent>& events)
 {
-    TouchPoint touchPoint;
-    // just get the max of width and height
-    touchPoint.size = pointerItem->size;
-    touchPoint.id = pointerItem->device;
-    touchPoint.force = pointerItem->pressure;
-    touchPoint.x = pointerItem->physical_x;
-    touchPoint.y = pointerItem->physical_y;
-    return touchPoint;
+    if (events.empty()) {
+        return;
+    }
+    std::vector<TouchPoint> pointers;
+    for (auto& event : events) {
+        TouchPoint touchPoint;
+        touchPoint.size = event.size;
+        touchPoint.id = event.id;
+        touchPoint.force = event.force;
+        touchPoint.downTime = event.time;
+        touchPoint.x = event.x;
+        touchPoint.y = event.y;
+        touchPoint.screenX = event.screenX;
+        touchPoint.screenY = event.screenY;
+        touchPoint.isPressed = (event.type == TouchType::DOWN);
+        pointers.emplace_back(std::move(touchPoint));
+    }
+    for (auto& evt : events) {
+        std::copy(pointers.begin(), pointers.end(), std::back_inserter(evt.pointers));
+    } 
 }
 
 void ConvertTouchEvent(const std::vector<uint8_t>& data, std::vector<TouchEvent>& events)
@@ -56,6 +68,10 @@ void ConvertTouchEvent(const std::vector<uint8_t>& data, std::vector<TouchEvent>
     auto end = current + size;
 
     while (current < end) {
+        if (current->device == -1) {
+            current++;
+            continue;
+        }
         std::chrono::nanoseconds nanos(current->time_stamp);
         TimeStamp time(nanos);
         TouchEvent point;
@@ -70,7 +86,6 @@ void ConvertTouchEvent(const std::vector<uint8_t>& data, std::vector<TouchEvent>
             .SetSize(current->size)
             .SetSourceType(SourceType::NONE);
         point.sourceType = SourceType::TOUCH;
-        point.pointers.emplace_back(ConvertTouchPoint(current));
         switch (current->change) {
             case flutter::PointerData::Change::kCancel:
                 point.type = TouchType::CANCEL;
@@ -95,6 +110,7 @@ void ConvertTouchEvent(const std::vector<uint8_t>& data, std::vector<TouchEvent>
         }
         current++;
     }
+    UpdateTouchEvent(events);
 }
 } // namespace
 
