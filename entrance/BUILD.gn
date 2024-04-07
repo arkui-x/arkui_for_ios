@@ -61,6 +61,7 @@ template("ace_ios_standard_source_set") {
       "msdp/interaction_impl.cpp",
       "touch_event.cpp",
       "udmf/udmf_impl.cpp",
+      "utils.cpp",
       "virtual_rs_window.mm",
     ]
 

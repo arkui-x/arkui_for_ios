@@ -24,11 +24,11 @@
 #include "stage_asset_manager.h"
 
 #include "adapter/ios/entrance/ace_application_info_impl.h"
+#include "adapter/ios/entrance/utils.h"
 #include "adapter/ios/osal/accessibility_manager_impl.h"
 #include "adapter/ios/osal/file_asset_provider.h"
 #include "adapter/ios/osal/page_url_checker_ios.h"
 #include "adapter/ios/stage/ability/stage_asset_provider.h"
-#include "adapter/ios/stage/uicontent/ace_container_sg.h"
 #include "adapter/ios/stage/uicontent/ace_view_sg.h"
 #include "adapter/ios/stage/uicontent/platform_event_callback.h"
 #include "base/log/ace_trace.h"
@@ -110,6 +110,52 @@ public:
     }
 
 private:
+    int32_t instanceId_ = -1;
+};
+
+class AvoidAreaChangedListener : public OHOS::Rosen::IAvoidAreaChangedListener {
+public:
+    explicit AvoidAreaChangedListener(int32_t instanceId) : instanceId_(instanceId) {}
+    ~AvoidAreaChangedListener() = default;
+
+    void OnAvoidAreaChanged(const OHOS::Rosen::AvoidArea avoidArea, OHOS::Rosen::AvoidAreaType type) override
+    {
+        LOGD("Avoid area changed, type:%{public}d, topRect: avoidArea:x:%{public}d, y:%{public}d, "
+             "width:%{public}d, height%{public}d; bottomRect: avoidArea:x:%{public}d, y:%{public}d, "
+             "width:%{public}d, height%{public}d",
+            type, avoidArea.topRect_.posX_, avoidArea.topRect_.posY_, (int32_t)avoidArea.topRect_.width_,
+            (int32_t)avoidArea.topRect_.height_, avoidArea.bottomRect_.posX_, avoidArea.bottomRect_.posY_,
+            (int32_t)avoidArea.bottomRect_.width_, (int32_t)avoidArea.bottomRect_.height_);
+        auto container = Platform::AceContainerSG::GetContainer(instanceId_);
+        CHECK_NULL_VOID(container);
+        auto pipeline = container->GetPipelineContext();
+        CHECK_NULL_VOID(pipeline);
+        auto taskExecutor = container->GetTaskExecutor();
+        CHECK_NULL_VOID(taskExecutor);
+        if (type == Rosen::AvoidAreaType::TYPE_SYSTEM) {
+            systemSafeArea_ = ConvertAvoidArea(avoidArea);
+        } else if (type == Rosen::AvoidAreaType::TYPE_NAVIGATION_INDICATOR) {
+            navigationBar_ = ConvertAvoidArea(avoidArea);
+        }
+        auto safeArea = systemSafeArea_;
+        auto navSafeArea = navigationBar_;
+        ContainerScope scope(instanceId_);
+        taskExecutor->PostTask(
+            [pipeline, safeArea, navSafeArea, type, avoidArea] {
+                if (type == Rosen::AvoidAreaType::TYPE_SYSTEM) {
+                    pipeline->UpdateSystemSafeArea(safeArea);
+                } else if (type == Rosen::AvoidAreaType::TYPE_NAVIGATION_INDICATOR) {
+                    pipeline->UpdateNavSafeArea(navSafeArea);
+                }
+                // for ui extension component
+                pipeline->UpdateOriginAvoidArea(avoidArea, static_cast<uint32_t>(type));
+            },
+            TaskExecutor::TaskType::UI);
+    }
+
+private:
+    NG::SafeAreaInsets systemSafeArea_;
+    NG::SafeAreaInsets navigationBar_;
     int32_t instanceId_ = -1;
 };
 
@@ -345,7 +391,38 @@ void UIContentImpl::CommonInitialize(OHOS::Rosen::Window* window, const std::str
                 reinterpret_cast<NativeReference*>(ref), context->GetBindingObject()->Get<NativeReference>());
         }
     }
+
+    InitializeSafeArea(container);
 }
+
+
+void UIContentImpl::InitializeSafeArea(const RefPtr<Platform::AceContainerSG>& container)
+{
+    constexpr static int32_t PLATFORM_VERSION_TEN = 10;
+    auto pipeline = container->GetPipelineContext();
+    if (pipeline && pipeline->GetMinPlatformVersion() >= PLATFORM_VERSION_TEN &&
+        (pipeline->GetIsAppWindow())) {
+        avoidAreaChangedListener_ = new AvoidAreaChangedListener(instanceId_);
+        window_->RegisterAvoidAreaChangeListener(avoidAreaChangedListener_);
+        pipeline->UpdateSystemSafeArea(GetViewSafeAreaByType(Rosen::AvoidAreaType::TYPE_SYSTEM));
+        pipeline->UpdateCutoutSafeArea(GetViewSafeAreaByType(Rosen::AvoidAreaType::TYPE_CUTOUT));
+        pipeline->UpdateNavSafeArea(GetViewSafeAreaByType(Rosen::AvoidAreaType::TYPE_NAVIGATION_INDICATOR));
+    }
+}
+
+NG::SafeAreaInsets UIContentImpl::GetViewSafeAreaByType(OHOS::Rosen::AvoidAreaType type)
+{
+    CHECK_NULL_RETURN(window_, {});
+    Rosen::AvoidArea avoidArea;
+    Rosen::WMError ret = window_->GetAvoidAreaByType(type, avoidArea);
+    if (ret == Rosen::WMError::WM_OK) {
+        auto safeAreaInsets = ConvertAvoidArea(avoidArea);
+        LOGI("SafeArea get success, area type is:%{public}d insets area is:%{public}s", static_cast<int32_t>(type),
+            safeAreaInsets.ToString().c_str());
+        return safeAreaInsets;
+    }
+    return {};
+ }
 
 void UIContentImpl::InitOnceAceInfo()
 {
