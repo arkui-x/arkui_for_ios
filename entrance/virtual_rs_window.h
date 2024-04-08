@@ -106,6 +106,16 @@ public:
     virtual void OnSizeChange(const Rect &rect, OccupiedAreaType type) {}
 };
 
+/**
+ * @class IAvoidAreaChangedListener
+ *
+ * @brief IAvoidAreaChangedListener is used to observe AvoidArea change.
+ */
+class IAvoidAreaChangedListener : public RefBase {
+public:
+    virtual void OnAvoidAreaChanged(const OHOS::Rosen::AvoidArea avoidArea, OHOS::Rosen::AvoidAreaType type);
+};
+
 class Window : public RefBase {
 #define CALL_LIFECYCLE_LISTENER(windowLifecycleCb, listeners) \
     do {                                                      \
@@ -175,6 +185,7 @@ public:
 
     WMError RegisterOccupiedAreaChangeListener(const sptr<IOccupiedAreaChangeListener> &listener);
     WMError UnregisterOccupiedAreaChangeListener(const sptr<IOccupiedAreaChangeListener> &listener);
+    WMError RegisterAvoidAreaChangeListener(const sptr<IAvoidAreaChangedListener> &listener);
 
     WMError SetColorSpace(ColorSpace colorSpace);
     ColorSpace GetColorSpace() const;
@@ -284,6 +295,18 @@ private:
         }
         return occupiedAreaChangeListeners;
     }
+    template <typename T>
+    inline EnableIfSame<T, IAvoidAreaChangedListener, std::vector<sptr<IAvoidAreaChangedListener>>> GetListeners()
+    {
+        std::vector<sptr<IAvoidAreaChangedListener>> avoidAreaChangedListeners;
+        {
+            std::lock_guard<std::recursive_mutex> lock(globalMutex_);
+            for (auto &listener : avoidAreaChangedListeners_[GetWindowId()]) {
+                avoidAreaChangedListeners.push_back(listener);
+            }
+        }
+        return avoidAreaChangedListeners;
+    }
     template<typename T>
     inline EnableIfSame<T, IWindowLifeCycle, std::vector<wptr<IWindowLifeCycle>>> GetListeners()
     {
@@ -371,6 +394,8 @@ private:
     NotifyNativeWinDestroyFunc notifyNativefunc_;
     NotifyWillTerminateFunc notifyWillTerminatefunc_;
     static std::map<uint32_t, std::vector<sptr<IOccupiedAreaChangeListener>>> occupiedAreaChangeListeners_;
+    static std::map<uint32_t, std::vector<sptr<IAvoidAreaChangedListener>>> avoidAreaChangedListeners_;
+
     static std::recursive_mutex globalMutex_;
     bool delayNotifySurfaceCreated_ = false;
     bool delayNotifySurfaceChanged_ = false;

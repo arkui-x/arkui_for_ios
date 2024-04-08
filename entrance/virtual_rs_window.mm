@@ -171,6 +171,7 @@ std::map<uint32_t, std::vector<sptr<IWindowLifeCycle>>> Window::lifecycleListene
 std::map<uint32_t, std::vector<sptr<IWindowChangeListener>>> Window::windowChangeListeners_;
 std::recursive_mutex Window::globalMutex_;
 std::map<uint32_t, std::vector<sptr<IOccupiedAreaChangeListener>>> Window::occupiedAreaChangeListeners_;
+std::map<uint32_t, std::vector<sptr<IAvoidAreaChangedListener>>> Window::avoidAreaChangedListeners_;
 constexpr Rect emptyRect = {0, 0, 0, 0};
 CGFloat keyBoardHieght = 0;
 
@@ -1003,6 +1004,13 @@ WMError Window::UnregisterOccupiedAreaChangeListener(const sptr<IOccupiedAreaCha
     LOGD("Start unregister");
     std::lock_guard<std::recursive_mutex> lock(globalMutex_);
     return UnregisterListener(occupiedAreaChangeListeners_[GetWindowId()], listener);
+}
+
+WMError Window::RegisterAvoidAreaChangeListener(const sptr<IAvoidAreaChangedListener> &listener)
+{
+    LOGD("Start register");
+    std::lock_guard<std::recursive_mutex> lock(globalMutex_);
+    return RegisterListener(avoidAreaChangedListeners_[GetWindowId()], listener);
 }
 
 WMError Window::RegisterLifeCycleListener(const sptr<IWindowLifeCycle>& listener)

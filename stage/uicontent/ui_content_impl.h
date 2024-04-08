@@ -17,6 +17,7 @@
 #define FOUNDATION_ACE_ADAPTER_IOS_STAGE_UI_CONTENT_IMPL_H
 
 #include "adapter/ios/entrance/virtual_rs_window.h"
+#include "adapter/ios/stage/uicontent/ace_container_sg.h"
 #include "base/utils/macros.h"
 #include "core/accessibility/accessibility_node.h"
 #include "core/event/key_event.h"
@@ -89,6 +90,8 @@ private:
     void InitializeInner(
         OHOS::Rosen::Window* window, const std::string& url, napi_value storage, bool isNamedRouter);
     void CommonInitialize(OHOS::Rosen::Window* window, const std::string& url, napi_value storage);
+    void InitializeSafeArea(const RefPtr<Platform::AceContainerSG>& container);
+    NG::SafeAreaInsets GetViewSafeAreaByType(OHOS::Rosen::AvoidAreaType type);
 
     void DestroyCallback() const;
 
@@ -103,6 +106,7 @@ private:
     std::string lastConfig_;
     int32_t instanceId_ = -1;
     OHOS::Rosen::IOccupiedAreaChangeListener *occupiedAreaChangeListener_ = nullptr;
+    OHOS::sptr<OHOS::Rosen::IAvoidAreaChangedListener> avoidAreaChangedListener_ = nullptr;
 };
 } // namespace OHOS::Ace::Platform
 #endif // FOUNDATION_ACE_ADAPTER_IOS_STAGE_UI_CONTENT_IMPL_H
