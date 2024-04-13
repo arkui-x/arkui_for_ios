@@ -23,6 +23,8 @@
 #import "StageAssetManager.h"
 #import "StageConfigurationManager.h"
 #import "StageViewController.h"
+#import "StageContainerView.h"
+
 #import "WindowView.h"
 
 #include "app_main.h"
@@ -85,12 +87,12 @@ CGFloat _brightness = 0.0;
 
 - (void)initWindowView {
     _windowView = [[WindowView alloc] init];
-    _windowView.notifyDelegate = self;
     _windowView.frame = self.view.bounds;
     _windowView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     WindowViwAdapter::GetInstance()->AddWindowView(_cInstanceName, (__bridge void*)_windowView);
     _brightness = [UIScreen mainScreen].brightness;
     [self.view addSubview: _windowView];
+    [(StageContainerView*)self.view setMainWindow:_windowView];
 }
 
 - (void)initBridge {
@@ -99,6 +101,8 @@ CGFloat _brightness = 0.0;
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+     self.view = [[StageContainerView alloc]init];
+        ((StageContainerView*)self.view).notifyDelegate = self;
     self.view.backgroundColor = UIColor.whiteColor;
     NSLog(@"StageVC->%@ viewDidLoad call.", self);
     [self initColorMode];
@@ -115,7 +119,6 @@ CGFloat _brightness = 0.0;
 - (void)viewDidAppear:(BOOL)animated {
     [super viewDidAppear:animated];
     [_windowView updateBrightness];
-    [_windowView notifyForeground];
     NSLog(@"StageVC->%@ viewDidAppear call.", self);
     if (_needOnForeground) {
         AppMain::GetInstance()->DispatchOnForeground(_cInstanceName);
@@ -124,19 +127,21 @@ CGFloat _brightness = 0.0;
     if (_platformPlugin) {
         [_platformPlugin notifyLifecycleChanged:false];
     }
-    [_windowView notifyFocusChanged:YES];
+    [(StageContainerView*)self.view  notifyForeground];
+    [(StageContainerView*)self.view  notifyActiveChanged:YES];
 }
 
 - (void)viewDidDisappear:(BOOL)animated {
     [super viewDidDisappear:animated];
     [UIScreen mainScreen].brightness = _brightness;
-    [_windowView notifyBackground];
+
     NSLog(@"StageVC->%@ viewDidDisappear call.", self);
     AppMain::GetInstance()->DispatchOnBackground(_cInstanceName);
     if (_platformPlugin) {
         [_platformPlugin notifyLifecycleChanged:true];
     }
-    [_windowView notifyFocusChanged:NO];
+    [(StageContainerView*)self.view  notifyBackground];
+    [(StageContainerView*)self.view  notifyActiveChanged:NO];
 }
 
 - (void)didReceiveMemoryWarning {
@@ -228,7 +233,6 @@ CGFloat _brightness = 0.0;
 #pragma mark - WindowViewDelegate 
 - (void)notifyApplicationWillEnterForeground {
     if ([self isTopController]) {
-        [_windowView notifyForeground];
         if (_platformPlugin) {
             [_platformPlugin notifyLifecycleChanged:false];
         }
@@ -237,7 +241,6 @@ CGFloat _brightness = 0.0;
 
 - (void)notifyApplicationDidEnterBackground {
     if ([self isTopController]) {
-        [_windowView notifyBackground];
         if (_platformPlugin) {
             [_platformPlugin notifyLifecycleChanged:true];
         }
@@ -246,18 +249,6 @@ CGFloat _brightness = 0.0;
 
 - (void)notifyApplicationWillTerminateNotification {
    [_bridgePluginManager platformWillTerminate];
-}
-
-- (void)notifyApplicationBecameActive {
-    if ([self isTopController]) {
-        [_windowView notifyFocusChanged:YES];
-    }
-}
-
-- (void)notifyApplicationWillResignActive {
-    if ([self isTopController]) {
-        [_windowView notifyFocusChanged:NO];
-    }
 }
 
 - (BOOL)prefersStatusBarHidden {

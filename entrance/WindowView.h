@@ -22,37 +22,33 @@ namespace OHOS::Rosen {
 class Window;
 }
 
-@protocol WindowViewDelegate <NSObject>
-@optional
-- (void)notifyApplicationWillEnterForeground;
-- (void)notifyApplicationDidEnterBackground;
-- (void)notifyApplicationWillTerminateNotification;
-- (void)notifyApplicationBecameActive;
-- (void)notifyApplicationWillResignActive;
-@end
-
 @interface WindowView : UIView
 @property (nonatomic, assign) UIInterfaceOrientationMask OrientationMask;
 @property (nonatomic, assign) UIViewController*viewController;
-@property (nonatomic, weak) id<WindowViewDelegate> notifyDelegate;
 @property (nonatomic, assign) UIInterfaceOrientation orientation;
+@property (nonatomic, assign) BOOL focusable;
+@property (nonatomic, assign) BOOL isFocused;
+@property (nonatomic, assign) BOOL fullScreen;
 
 - (UIViewController*)getViewController;
 
 - (void)setNewOrientation:(UIInterfaceOrientation)Orientation;
 - (void)setWindowDelegate:(std::shared_ptr<OHOS::Rosen::Window>)window;
 - (void)createSurfaceNode;
+- (BOOL)requestFocus;
+- (void)setTouchHotAreas:(CGRect[])rects size:(NSInteger)size;
+- (BOOL)showOnView:(UIView*)rootView;
+- (BOOL)hide;
 - (void)notifySurfaceChangedWithWidth:(int32_t)width height:(int32_t)height density:(float)density;
 - (void)notifySurfaceDestroyed;
 - (void)notifyForeground;
 - (void)notifyBackground;
-/* only for main window */
+- (void)notifyHandleWillTerminate;
+- (void)notifyActiveChanged:(BOOL)isActive;
 - (void)notifyWindowDestroyed;
 - (std::shared_ptr<OHOS::Rosen::Window>)getWindow;
 - (void)updateBrightness;
-- (void)notifyFocusChanged:(BOOL)focus;
 - (BOOL)processBackPressed;
-
 @end
 
 #endif  // FOUNDATION_ACE_ADAPTER_IOS_ENTRANCE_WINDOW_VIEW_H

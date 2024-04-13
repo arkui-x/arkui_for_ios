@@ -169,11 +169,95 @@ std::map<uint32_t, std::vector<std::shared_ptr<Window>>> Window::subWindowMap_;
 std::map<std::string, std::pair<uint32_t, std::shared_ptr<Window>>> Window::windowMap_;
 std::map<uint32_t, std::vector<sptr<IWindowLifeCycle>>> Window::lifecycleListeners_;
 std::map<uint32_t, std::vector<sptr<IWindowChangeListener>>> Window::windowChangeListeners_;
+std::map<uint32_t, std::vector<sptr<ITouchOutsideListener>>> Window::touchOutsideListeners_;
+
 std::recursive_mutex Window::globalMutex_;
 std::map<uint32_t, std::vector<sptr<IOccupiedAreaChangeListener>>> Window::occupiedAreaChangeListeners_;
 std::map<uint32_t, std::vector<sptr<IAvoidAreaChangedListener>>> Window::avoidAreaChangedListeners_;
 constexpr Rect emptyRect = {0, 0, 0, 0};
 CGFloat keyBoardHieght = 0;
+
+static uint32_t ColorConvertFromUIColor(UIColor* uiColor)
+{
+    if (uiColor == nullptr) {
+        return 0;
+    }
+    CGFloat red = 0;
+    CGFloat green = 0;
+    CGFloat blue = 0;
+    CGFloat alpha = 0;
+    [uiColor getRed:&red green:&green blue:&blue alpha:&alpha];
+    uint32_t result = ((uint8_t)(red * UINT8_MAX)<<24) |
+        ((uint8_t)(green * UINT8_MAX)<<16) |
+        ((uint8_t)(blue * UINT8_MAX)<<8) |
+        ((uint8_t)(alpha * UINT8_MAX));
+    return result;
+}
+
+static UIColor* ColorConvertToUIColor(uint32_t color)
+{
+    return [UIColor colorWithRed:(((color>>24)&UINT8_MAX)*1.0/UINT8_MAX)
+        green:(((color>>16)&UINT8_MAX)*1.0/UINT8_MAX)
+        blue:(((color>>8)&UINT8_MAX)*1.0/UINT8_MAX)
+        alpha:((color&UINT8_MAX)*1.0/UINT8_MAX)];
+}
+
+static WMError SetSystemBar(WindowType type, const SystemBarProperty& property)
+{
+    StageViewController *controller = [StageApplication getApplicationTopViewController];
+    if (![controller isKindOfClass:[StageViewController class]]) {
+        return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+    if (type ==  WindowType::WINDOW_TYPE_NAVIGATION_BAR) {
+        if (!property.enable_) {
+            [controller.navigationController setNavigationBarHidden:YES animated:NO];
+        } else {
+            [controller.navigationController setNavigationBarHidden:NO animated:NO];
+            [controller setNeedsStatusBarAppearanceUpdate];
+        }
+    } else if (type == WindowType::WINDOW_TYPE_STATUS_BAR) {
+        if (!property.enable_) {
+            controller.statusBarHidden = YES;
+            [controller setNeedsStatusBarAppearanceUpdate];
+        } else {
+            controller.statusBarHidden = NO;
+            [controller setNeedsStatusBarAppearanceUpdate];
+        }
+    }
+    return WMError::WM_OK;
+}
+
+static WMError SetSpecificBar(WindowType type, const SystemBarProperty& property) {
+    StageViewController* controller = [StageApplication getApplicationTopViewController];
+    WMError ret = WMError::WM_OK;
+    if (![controller isKindOfClass:[StageViewController class]]) {
+        return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+    if (type == WindowType::WINDOW_TYPE_STATUS_BAR || type == WindowType::WINDOW_TYPE_NAVIGATION_BAR) {
+        ret = SetSystemBar(type, property);
+    } else if (type == WindowType::WINDOW_TYPE_NAVIGATION_INDICATOR) {
+        if (@available(iOS 11.0, *)) {
+            if (!property.enable_) {
+                LOGI("Set homeIndicatorAutoHidden - hidden");
+                controller.homeIndicatorHidden = YES;
+                [controller setNeedsUpdateOfHomeIndicatorAutoHidden];
+            } else {
+                LOGI("Set homeIndicatorAutoHidden - show");
+                controller.homeIndicatorHidden = NO;
+                [controller setNeedsUpdateOfHomeIndicatorAutoHidden];
+            }
+
+        } else {
+            LOGE("Set SetSpecificBarProperty failed, iOS version less than 11");
+            return WMError::WM_ERROR_INVALID_PARAM;
+        }
+    } else {
+        LOGE("Set SetSpecificBarProperty failed, invalid parm");
+        return WMError::WM_ERROR_INVALID_PARAM;
+    }
+    // WINDOW_TYPE_NAVIGATION_INDICATOR
+    return WMError::WM_OK;
+}
 
 Window::Window(std::shared_ptr<AbilityRuntime::Platform::Context> context, uint32_t windowId)
     : context_(context), windowId_(windowId)
@@ -292,29 +376,6 @@ void Window::AddToSubWindowMap(std::shared_ptr<Window> window)
     HILOG_INFO("Window::AddToSubWindowMap : End!!!");
 }
 
-void Window::UpdateOtherWindowFocusStateToFalse(Window *window)
-{
-    uint32_t parentId = window->GetParentId();
-    if (parentId == INVALID_WINDOW_ID) {
-        HILOG_INFO("Window::DeleteFromSubWindowMap : parentId is invalid");
-        return;
-    }
-    auto iter1 = subWindowMap_.find(parentId);
-    if (iter1 == subWindowMap_.end()) {
-        HILOG_INFO("Window::DeleteFromSubWindowMap : find parentId failed");
-        return;
-    }
-    auto subWindows = iter1->second;
-    auto iter2 = subWindows.begin();
-    while (iter2 != subWindows.end()) {
-        if ((*iter2)->GetWindowId() != window->GetWindowId()) {
-            (*iter2)->WindowFocusChanged(false);
-            break;
-        } else {
-            iter2++;
-        }
-    }
-}
 void Window::DeleteFromSubWindowMap(std::shared_ptr<Window> window)
 {
     HILOG_INFO("Window::DeleteFromSubWindowMap : Start...");
@@ -373,7 +434,7 @@ WMError Window::Destroy()
     NotifyBeforeDestroy(GetWindowName());
 
     if (windowView_ != nullptr) {
-        [windowView_ removeFromSuperview];
+        [windowView_ hide];
         [windowView_ release];
         windowView_ = nullptr;
     }
@@ -472,21 +533,49 @@ WMError Window::ShowWindow()
         LOGE("Window: showWindow failed");
         return WMError::WM_ERROR_INVALID_PARENT;   
     }
-   
+
     StageViewController *controller = [StageApplication getApplicationTopViewController];
-     
-    if (windowView_.superview) {
-        [controller.view bringSubviewToFront:windowView_];
-    } else {
-        [controller.view addSubview:windowView_];
+
+    if (isFullScreen_) {
+        SystemBarProperty property;
+        property.enable_ = false;
+        SetSpecificBar(WindowType::WINDOW_TYPE_STATUS_BAR, property);
+        SetSpecificBar(WindowType::WINDOW_TYPE_NAVIGATION_BAR, property);
+        SetSpecificBar(WindowType::WINDOW_TYPE_NAVIGATION_INDICATOR, property);
     }
-    isWindowShow_ = true;
-    if (focusable_) {
-        WindowFocusChanged(true);
-        UpdateOtherWindowFocusStateToFalse(this);
+    if ([windowView_ showOnView:controller.view]) {
+        DelayNotifyUIContentIfNeeded();
+        NotifyAfterForeground();
+        isWindowShow_ = true;
+        return WMError::WM_OK;
     }
-    NotifyAfterForeground();
-    return WMError::WM_OK;
+    return WMError::WM_ERROR_INVALID_PARENT;
+}
+
+WMError Window::Hide()
+{
+    if (!windowView_) {
+        LOGE("Window: showWindow failed");
+        return WMError::WM_ERROR_INVALID_PARENT;
+    }
+
+    if (isFullScreen_) {
+        auto mainWindow = GetTopWindow();
+
+        SetSpecificBar(WindowType::WINDOW_TYPE_STATUS_BAR,
+            mainWindow->GetSystemBarPropertyByType(WindowType::WINDOW_TYPE_STATUS_BAR));
+        SetSpecificBar(WindowType::WINDOW_TYPE_NAVIGATION_BAR,
+            mainWindow->GetSystemBarPropertyByType(WindowType::WINDOW_TYPE_NAVIGATION_BAR));
+        SetSpecificBar(WindowType::WINDOW_TYPE_NAVIGATION_BAR,
+            mainWindow->GetSystemBarPropertyByType(WindowType::WINDOW_TYPE_NAVIGATION_INDICATOR));
+    }
+    if ([windowView_ hide]) {
+        isWindowShow_ = false;
+         NotifyAfterBackground();
+        return WMError::WM_OK;
+    }
+
+    return WMError::WM_ERROR_INVALID_PARENT;
 }
 
 WMError Window::MoveWindowTo(int32_t x, int32_t y)
@@ -521,13 +610,101 @@ bool Window::ProcessBasicEvent(const std::vector<Ace::TouchEvent>& touchEvents)
     return uiContent_->ProcessBasicEvent(touchEvents);
 }
 
-void Window::SetFocusable(bool focusable)
+WMError Window::SetFullScreen(bool status)
 {
-    focusable_ = focusable;
+    if (!windowView_) {
+        LOGE("Window: SetFullScreen failed");
+        return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+    windowView_.fullScreen = status;
+    isFullScreen_ = status;
+    return WMError::WM_OK;
 }
+
+WMError Window::SetAutoFullScreen(bool status)
+{
+    if (!windowView_) {
+        LOGE("Window: SetTouchable failed");
+        return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+    if (isFullScreen_ && !status) {
+        return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+    windowView_.fullScreen = status;
+    return WMError::WM_OK;
+}
+WMError Window::SetFocusable(bool focusable)
+{
+    if (!windowView_) {
+        LOGE("Window: SetFocusable failed");
+        return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+    windowView_.focusable = focusable;
+    focusable_ = focusable;
+    return WMError::WM_OK;
+}
+
 bool Window::GetFocusable() const
 {
     return focusable_;
+}
+
+WMError Window::SetTouchHotAreas(const std::vector<Rect>& rects)
+{
+    if (!windowView_) {
+        return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+    int size = rects.size();
+    if (size == 0) {
+        [windowView_ setTouchHotAreas:nullptr size:0];
+        return WMError::WM_OK;
+    }
+    CGRect* cgRects = (CGRect *)malloc(sizeof(CGRect) * size);
+    UIScreen *screen = [UIScreen mainScreen];
+    CGFloat scale = screen.scale;
+    if (scale < 1) {
+        return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+    for (int i = 0; i < size; i++) {
+        cgRects[i] = CGRectMake(rects[i].posX_/scale , rects[i].posY_/scale,
+            rects[i].width_/scale, rects[i].height_/scale);
+    }
+    [windowView_ setTouchHotAreas:cgRects size:size];
+    free(cgRects);
+    return WMError::WM_OK;
+}
+
+WMError Window::RequestFocus()
+{
+    if (!windowView_ || !focusable_ || !isWindowShow_) {
+        return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+    if ([windowView_ requestFocus]) {
+        return WMError::WM_OK;
+    } else {
+        return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+}
+bool Window::IsFocused() const
+{
+    return isFocused_;
+}
+WMError Window::SetTouchable(bool isTouchable)
+{
+    if (!windowView_) {
+        LOGE("Window: SetTouchable failed");
+        return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+    isTouchable_ = isTouchable;
+    return WMError::WM_OK;
+}
+bool Window::GetTouchable() const
+{
+    if(!windowView_) {
+        LOGE("Window: GetTouchable failed");
+        return true;
+    }
+    return isTouchable_;
 }
 
 WMError Window::ResizeWindowTo(int32_t width, int32_t height) {
@@ -636,6 +813,15 @@ void Window::NotifySurfaceChanged(int32_t width, int32_t height, float density)
         config.SetSize(surfaceWidth_, surfaceHeight_);
         config.SetOrientation(surfaceWidth_ <= surfaceHeight_ ? 0 : 1);
         uiContent_->UpdateViewportConfig(config, WindowSizeChangeReason::RESIZE);
+    }
+}
+void Window::NotifyTouchOutside()
+{
+    auto touchOutsideListeners = GetListeners<ITouchOutsideListener>();
+    for (auto& listener : touchOutsideListeners) {
+        if (listener != nullptr) {
+            listener->OnTouchOutside();
+        }
     }
 }
 
@@ -769,8 +955,21 @@ void Window::SetParentId(uint32_t parentId)
     parentId_ = parentId;
 }
 
+void Window::WindowActiveChanged(bool isActive)
+{
+    if (uiContent_) {
+       if (isActive && isFocused_) {
+            LOGI("Window: notify uiContent Focus");
+            uiContent_->Focus();
+        } else {
+            LOGI("Window: notify uiContent UnFocus");
+            uiContent_->UnFocus();
+        }
+    }
+}
 void Window::WindowFocusChanged(bool hasWindowFocus)
 {
+    isFocused_ = hasWindowFocus;
     if (uiContent_) {
        if (hasWindowFocus) {
             LOGI("Window: notify uiContent Focus");
@@ -832,8 +1031,9 @@ void Window::UpdateConfiguration(const std::shared_ptr<OHOS::AbilityRuntime::Pla
 
 WMError Window::SetBackgroundColor(uint32_t color)
 {
-    LOGI("Window::SetBackgroundColor : color=%{public}u, uiContent_=%{public}p", color, uiContent_.get());
+    LOGI("Window::SetBackgroundColor called. color=%u", color);
     backgroundColor_ = color;
+
     if (uiContent_) {
         uiContent_->SetBackgroundColor(color);
         return WMError::WM_OK;
@@ -880,32 +1080,10 @@ bool Window::IsKeepScreenOn()
 
 WMError Window::SetSystemBarProperty(WindowType type, const SystemBarProperty& property)
 {
-    HILOG_INFO("Window::SetSystemBarProperty : Start... / type=%{public}d, enable=%{public}d",
-        static_cast<int>(type), property.enable_);
-    StageViewController *controller = [StageApplication getApplicationTopViewController];   
-    if (type ==  WindowType::WINDOW_TYPE_NAVIGATION_BAR) {
-        HILOG_INFO("Window::SetSystemBarProperty : Set Navigation Bar");
-        if (!property.enable_) {
-            HILOG_INFO("Window::SetSystemBarProperty : Set Navigation Bar - hidden");
-            [controller.navigationController setNavigationBarHidden:YES animated:YES];
-        } else {
-            HILOG_INFO("Window::SetSystemBarProperty : Set Navigation Bar - show");
-            [controller.navigationController setNavigationBarHidden:NO animated:YES];
-            [controller setNeedsStatusBarAppearanceUpdate];
-        }
-    } else if (type == WindowType::WINDOW_TYPE_STATUS_BAR) {
-        HILOG_INFO("Window::SetSystemBarProperty : Set Status Bar");
-        if (!property.enable_) {
-            HILOG_INFO("Window::SetSystemBarProperty : Set Status Bar - hidden");
-            controller.statusBarHidden = YES;
-            [controller setNeedsStatusBarAppearanceUpdate];
-        } else {
-            HILOG_INFO("Window::SetSystemBarProperty : Set Status Bar - show");
-            controller.statusBarHidden = NO;
-            [controller setNeedsStatusBarAppearanceUpdate];
-        }
-    } 
-    sysBarPropMap_[type] = property;
+    WMError ret = SetSystemBar(type, property);
+    if ( ret == WMError::WM_OK) {
+        sysBarPropMap_[type] = property;
+    }
     return WMError::WM_OK;
 }
 
@@ -1027,7 +1205,6 @@ WMError Window::UnregisterLifeCycleListener(const sptr<IWindowLifeCycle>& listen
     return UnregisterListener(lifecycleListeners_[GetWindowId()], listener);
 }
 
-
 WMError Window::RegisterWindowChangeListener(const sptr<IWindowChangeListener>& listener)
 {
     LOGD("Start register");
@@ -1040,6 +1217,20 @@ WMError Window::UnregisterWindowChangeListener(const sptr<IWindowChangeListener>
     LOGD("Start unregister");
     std::lock_guard<std::recursive_mutex> lock(globalMutex_);
     return UnregisterListener(windowChangeListeners_[GetWindowId()], listener);
+}
+
+WMError Window::RegisterTouchOutsideListener(const sptr<ITouchOutsideListener>& listener)
+{
+    LOGD("Start register TouchOutsideListener");
+    std::lock_guard<std::recursive_mutex> lock(globalMutex_);
+    return RegisterListener(touchOutsideListeners_[GetWindowId()], listener);
+}
+
+WMError Window::UnregisterTouchOutsideListener(const sptr<ITouchOutsideListener>& listener)
+{
+    LOGD("Start unregister TouchOutsideListener");
+    std::lock_guard<std::recursive_mutex> lock(globalMutex_);
+    return UnregisterListener(touchOutsideListeners_[GetWindowId()], listener);
 }
 
 ColorSpace Window::GetColorSpaceFromSurfaceGamut(GraphicColorGamut colorGamut) const
@@ -1124,32 +1315,12 @@ WMError Window::SetLayoutFullScreen(bool status) {
 }
 
 WMError Window::SetSpecificBarProperty(WindowType type, const SystemBarProperty& property) {
-    StageViewController* controller = [StageApplication getApplicationTopViewController];
-    if (![controller isKindOfClass:[StageViewController class]]) {
-        return WMError::WM_ERROR_INVALID_WINDOW;
+    WMError ret = SetSpecificBar(type, property);
+    if (ret == WMError::WM_OK) {
+        sysBarPropMap_[type] = property;
     }
-    if (type == WindowType::WINDOW_TYPE_STATUS_BAR || type == WindowType::WINDOW_TYPE_NAVIGATION_BAR) {
-        return SetSystemBarProperty(type, property);
-    } else if (type == WindowType::WINDOW_TYPE_NAVIGATION_INDICATOR) {
-        if (@available(iOS 11.0, *)) {
-            if (!property.enable_) {
-                LOGI("Set homeIndicatorAutoHidden - hidden");
-                controller.homeIndicatorHidden = YES;
-                [controller setNeedsUpdateOfHomeIndicatorAutoHidden];
-            } else {
-                LOGI("Set homeIndicatorAutoHidden - show");
-                controller.homeIndicatorHidden = NO;
-                [controller setNeedsUpdateOfHomeIndicatorAutoHidden];
-            }
-        } else {
-            LOGE("Set SetSpecificBarProperty failed, iOS version less than 11");
-            return WMError::WM_ERROR_INVALID_PARAM;
-        }
-    } else {
-        LOGE("Set SetSpecificBarProperty failed, invalid parm");
-        return WMError::WM_ERROR_INVALID_PARAM;
-    }
-    return WMError::WM_OK;
+    // WINDOW_TYPE_NAVIGATION_INDICATOR
+    return ret;
 }
 
 WMError Window::GetAvoidAreaByType(AvoidAreaType type, AvoidArea& avoidArea) {

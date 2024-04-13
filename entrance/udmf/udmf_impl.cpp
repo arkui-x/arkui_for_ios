@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-#include "adapter/android/entrance/java/jni/udmf/udmf_impl.h"
+#include "udmf_impl.h"
 
 #include <memory>
 #include <unordered_map>
