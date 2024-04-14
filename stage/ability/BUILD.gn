@@ -61,6 +61,7 @@ template("stage_ios_standard_source_set") {
       "StageApplication.mm",
       "StageAssetManager.mm",
       "StageConfigurationManager.mm",
+      "StageContainerView.mm",
       "StageViewController.mm",
       "ability_context_adapter.mm",
       "application_context_adapter.mm",
