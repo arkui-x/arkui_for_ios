@@ -121,4 +121,9 @@ ImageSource::Size ImageSourceIOS::GetImageSize()
     }
     return { info.size.width, info.size.height };
 }
+
+uint32_t ImageSourceIOS::GetFrameCount()
+{
+    return 0;
+}
 } // namespace OHOS::Ace
