@@ -45,7 +45,7 @@ public:
     AceContainerSG(int32_t instanceId, FrontendType type,
         std::weak_ptr<OHOS::AbilityRuntime::Platform::Context> runtimeContext,
         std::weak_ptr<OHOS::AppExecFwk::AbilityInfo> abilityInfo, std::unique_ptr<PlatformEventCallback> callback,
-        bool useCurrentEventRunner = false);
+        bool useCurrentEventRunner = false, bool isSubContainer = false);
 
     ~AceContainerSG() override = default;
 
@@ -258,6 +258,60 @@ public:
         return true;
     }
 
+    void SetWindowName(const std::string& name)
+    {
+        windowName_ = name;
+    }
+
+    std::string& GetWindowName()
+    {
+        return windowName_;
+    }
+
+    void* GetSharedRuntime() override
+    {
+        return sharedRuntime_;
+    }
+
+    void SetParentId(int32_t parentId)
+    {
+        parentId_ = parentId;
+    }
+
+    int32_t GetParentId() const
+    {
+        return parentId_;
+    }
+
+    void SetHapPath(const std::string& hapPath)
+    {
+        resourceInfo_.SetHapPath(hapPath);
+    }
+
+    std::string GetPackagePathStr() const
+    {
+        return resourceInfo_.GetPackagePath();
+    }
+
+    void SetPackagePathStr(const std::string& packagePath)
+    {
+        resourceInfo_.SetPackagePath(packagePath);
+    }
+
+    void SetIsSubContainer(bool isSubContainer)
+    {
+        isSubContainer_ = isSubContainer;
+    }
+
+    bool IsSubContainer() const override
+    {
+        return isSubContainer_;
+    }
+
+    static void SetUIWindow(int32_t instanceId, sptr<OHOS::Rosen::Window> uiWindow);
+    static sptr<OHOS::Rosen::Window> GetUIWindow(int32_t instanceId);
+    void InitializeSubContainer(int32_t parentContainerId);
+
 private:
     virtual bool MaybeRelease() override;
     void InitializeFrontend();
@@ -269,6 +323,8 @@ private:
     void SetGetViewScaleCallback();
     void InitThemeManager();
     void SetupRootElement();
+    void SetUIWindowInner(sptr<OHOS::Rosen::Window> uiWindow);
+    sptr<OHOS::Rosen::Window> GetUIWindowInner() const;
 
     AceView* aceView_ { nullptr };
     RefPtr<TaskExecutor> taskExecutor_;
@@ -304,6 +360,11 @@ private:
 
     mutable std::mutex frontendMutex_;
     mutable std::mutex pipelineMutex_;
+
+    int32_t parentId_ = 0;
+    sptr<OHOS::Rosen::Window> uiWindow_ = nullptr;
+    std::string windowName_;
+    bool isSubContainer_ = false;
 
     ACE_DISALLOW_COPY_AND_MOVE(AceContainerSG);
 };
