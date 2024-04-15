@@ -24,6 +24,8 @@
 
 @interface AceSurfaceView (){
     BOOL _viewAdded;
+    CGRect _currentFrame;
+
 }
 @property (nonatomic, assign) int64_t incId;
 @property (nonatomic, assign) int32_t instanceId;
@@ -99,17 +101,17 @@
 {
     UIScreen *screen = [UIScreen mainScreen];
     CGFloat scale = screen.scale;
-    
-    CGRect oldRect = self.frame;
+
     CGRect newRect = CGRectMake(surfaceRect.origin.x/scale,
         surfaceRect.origin.y/scale, surfaceRect.size.width/scale, surfaceRect.size.height/scale);
     self.frame = newRect;
     if (self.layer) {
-        if (oldRect.origin.x != newRect.origin.x
-            || oldRect.origin.y != newRect.origin.y
-            || oldRect.size.width != newRect.size.width
-            || oldRect.size.height != newRect.size.height){
+        if (_currentFrame.origin.x != surfaceRect.origin.x
+            || _currentFrame.origin.y != surfaceRect.origin.y
+            || _currentFrame.size.width != surfaceRect.size.width
+            || _currentFrame.size.height != surfaceRect.size.height){
             self.frame = newRect;
+            _currentFrame = surfaceRect;
             NSString * param = [NSString stringWithFormat:@"surfaceWidth=%f&surfaceHeight=%f",
                 surfaceRect.size.width, surfaceRect.size.height];
             [self fireCallback:@"onChanged" params:param];
@@ -141,8 +143,6 @@
         CGFloat surface_y = [params[SURFACE_TOP_KEY] floatValue];
         CGFloat surface_width = [params[SURFACE_WIDTH_KEY] floatValue];
         CGFloat surface_height = [params[SURFACE_HEIGHT_KEY] floatValue];
-        NSLog(@"AceSurfaceView setSurfaceBounds (%f, %f) - (%f x %f) ", 
-            surface_x, surface_y, surface_width, surface_height);
         CGRect surfaceRect = CGRectMake(surface_x, surface_y, surface_width, surface_height);
         [self callSurfaceChange:surfaceRect];
        

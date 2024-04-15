@@ -110,7 +110,6 @@
 #pragma mark IAceOnCallEvent
 - (void)onEvent:(NSString *)eventId param:(NSString *)param
 {
-    NSLog(@"IAceOnCallEvent OC call C++: %@ --- %@",eventId,param);
     auto resRegister = OHOS::Ace::Platform::AcePlatformPlugin::GetResRegister(self.instanceId);
     OHOS::Ace::ContainerScope scope(self.instanceId);
     const char* eventIdcString = [eventId UTF8String];

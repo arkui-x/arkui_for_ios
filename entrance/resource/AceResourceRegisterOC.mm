@@ -123,7 +123,6 @@
 
 - (NSString *)onCallMethod:(NSString *)methodId param:(NSString *)param
 {
-    NSLog(@"AceResourcePlugin methodId  %@ --- %@",methodId,param);
     IAceOnCallSyncResourceMethod resourceMethod = [self.callSyncMethodMap objectForKey:methodId];
     if (resourceMethod) {
         return resourceMethod([self buildParamMap:param]);
