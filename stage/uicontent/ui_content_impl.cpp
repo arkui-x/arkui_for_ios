@@ -120,7 +120,7 @@ public:
     explicit TouchOutsideListener(int32_t instanceId) : instanceId_(instanceId) {}
     ~TouchOutsideListener() = default;
 
-    void OnTouchOutside() override
+    void OnTouchOutside() const
     {
         LOGI("window is touching outside. instance id is %{public}d", instanceId_);
         auto container = Platform::AceContainerSG::GetContainer(instanceId_);
@@ -726,7 +726,6 @@ void UIContentImpl::UpdateViewportConfig(const ViewportConfig& config, OHOS::Ros
             Platform::AceViewSG::SurfaceChanged(aceView, config.Width(), config.Height(), config.Orientation(),
                 static_cast<WindowSizeChangeReason>(reason));
             Platform::AceViewSG::SurfacePositionChanged(aceView, config.Left(), config.Top());
-            SubwindowManager::GetInstance()->ClearToastInSubwindow();
         },
         TaskExecutor::TaskType::PLATFORM);
 }
