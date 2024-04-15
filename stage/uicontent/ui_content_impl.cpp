@@ -34,6 +34,7 @@
 #include "base/log/ace_trace.h"
 #include "base/log/event_report.h"
 #include "base/log/log.h"
+#include "base/subwindow/subwindow_manager.h"
 #include "core/common/ace_engine.h"
 #include "core/common/ace_view.h"
 #include "core/common/asset_manager_impl.h"
@@ -46,6 +47,7 @@
 namespace OHOS::Ace::Platform {
 namespace {
 const std::string START_PARAMS_KEY = "__startParams";
+const std::string SUBWINDOW_PREFIX = "ARK_APP_SUBWINDOW_";
 constexpr int32_t ORIENTATION_PORTRAIT = 1;
 constexpr int32_t ORIENTATION_LANDSCAPE = 2;
 constexpr double DPI_BASE { 160.0f };
@@ -111,6 +113,33 @@ public:
 
 private:
     int32_t instanceId_ = -1;
+};
+
+class TouchOutsideListener : public OHOS::Rosen::ITouchOutsideListener {
+public:
+    explicit TouchOutsideListener(int32_t instanceId) : instanceId_(instanceId) {}
+    ~TouchOutsideListener() = default;
+
+    void OnTouchOutside() override
+    {
+        LOGI("window is touching outside. instance id is %{public}d", instanceId_);
+        auto container = Platform::AceContainerSG::GetContainer(instanceId_);
+        CHECK_NULL_VOID(container);
+        auto taskExecutor = container->GetTaskExecutor();
+        CHECK_NULL_VOID(taskExecutor);
+        ContainerScope scope(instanceId_);
+        taskExecutor->PostTask(
+            [instanceId = instanceId_, targetId = targetId_] {
+                SubwindowManager::GetInstance()->ClearMenu();
+                SubwindowManager::GetInstance()->ClearMenuNG(instanceId, targetId, true, true);
+                SubwindowManager::GetInstance()->ClearPopupInSubwindow(instanceId);
+            },
+            TaskExecutor::TaskType::UI);
+    }
+
+private:
+    int32_t instanceId_ = -1;
+    int32_t targetId_ = -1;
 };
 
 class AvoidAreaChangedListener : public OHOS::Rosen::IAvoidAreaChangedListener {
@@ -226,6 +255,11 @@ void UIContentImpl::CommonInitialize(OHOS::Rosen::Window* window, const std::str
     startUrl_ = url;
     CHECK_NULL_VOID(window_);
 
+    if (StringUtils::StartWith(window->GetWindowName(), SUBWINDOW_PREFIX)) {
+        InitializeSubWindow();
+        return;
+    }
+
     InitOnceAceInfo();
     InitAceInfoFromResConfig();
 
@@ -320,6 +354,8 @@ void UIContentImpl::CommonInitialize(OHOS::Rosen::Window* window, const std::str
     CHECK_NULL_VOID(container);
     AceEngine::Get().AddContainer(instanceId_, container);
     ContainerScope::Add(instanceId_);
+    container->SetWindowName(window_->GetWindowName());
+    container->SetWindowId(window_->GetWindowId());
     container->SetInstanceName(info->name);
     container->SetHostClassName(info->name);
     if (runtime_) {
@@ -690,6 +726,7 @@ void UIContentImpl::UpdateViewportConfig(const ViewportConfig& config, OHOS::Ros
             Platform::AceViewSG::SurfaceChanged(aceView, config.Width(), config.Height(), config.Orientation(),
                 static_cast<WindowSizeChangeReason>(reason));
             Platform::AceViewSG::SurfacePositionChanged(aceView, config.Left(), config.Top());
+            SubwindowManager::GetInstance()->ClearToastInSubwindow();
         },
         TaskExecutor::TaskType::PLATFORM);
 }
@@ -773,5 +810,27 @@ std::unique_ptr<UIContent> UIContent::Create(OHOS::AbilityRuntime::Platform::Con
     std::unique_ptr<UIContent> content;
     content.reset(new UIContentImpl(context, runtime));
     return content;
+}
+
+void UIContentImpl::InitializeSubWindow()
+{
+    CHECK_NULL_VOID(window_);
+    LOGI("The window name is %{public}s", window_->GetWindowName().c_str());
+    instanceId_ = window_->GetWindowId();
+    std::weak_ptr<OHOS::AppExecFwk::AbilityInfo> abilityInfo;
+    std::weak_ptr<OHOS::AbilityRuntime::Platform::Context> runtimeContext;
+
+    auto container = AceType::MakeRefPtr<Platform::AceContainerSG>(instanceId_, FrontendType::DECLARATIVE_JS,
+        runtimeContext, abilityInfo, std::make_unique<ContentEventCallback>([] {
+            // Sub-window ,just return.
+            LOGI("Content event callback");
+        }),
+        false, true);
+
+    AceEngine::Get().AddContainer(instanceId_, container);
+    touchOutsideListener_ = new TouchOutsideListener(instanceId_);
+    window_->RegisterTouchOutsideListener(touchOutsideListener_);
+    occupiedAreaChangeListener_ = new OccupiedAreaChangeListener(instanceId_);
+    window_->RegisterOccupiedAreaChangeListener(occupiedAreaChangeListener_);
 }
 } // namespace OHOS::Ace::Platform
