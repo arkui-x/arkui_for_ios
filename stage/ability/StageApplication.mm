@@ -93,12 +93,27 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
 }
 
 + (void)setLocale {
-    NSString *localeLanguageCode = [[NSUserDefaults standardUserDefaults] objectForKey:@"AppleLanguages"][0];
-    NSArray *array = [localeLanguageCode componentsSeparatedByString:@"-"];
+    NSString *currentLanguage = [[NSLocale preferrendLanguages] objectAtIndex:0];
+    NSArray *array = [currentLanguage componentsSeparatedByString:@"-"];
     std::string language = "";
     std::string country = "";
     std::string script = "";
-    if (array.count == 2) {
+    
+    if ([currentLanguage hasPrefix:@"zh-Hans"]) {
+        language = "zh";
+        country = "CN";
+        script = "Hans";
+    } else if ([currentLanguage hasPrefix:@"zh-HK"] || [currentLanguage hasPrefix:@"zh-Hant-HK"]) {
+        language = "zh";
+        country = "HK";
+        script = "Hant";
+    } else if ([currentLanguage hasPrefix:@"zh-TW"] || [currentLanguage hasPrefix:@"zh-Hant"]) {
+        language = "zh";
+        country = "TW";
+        script = "Hant";
+    } else if (array.count == 1) {
+        language = [array[0] UTF8String];
+    } else if (array.count == 2) {
         language = [array[0] UTF8String];
         country = [array[1] UTF8String];
     } else if (array.count == 3) {
@@ -106,6 +121,8 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
         country = [array[2] UTF8String];
         script = [array[1] UTF8String];
     }
+    NSLog(@"%s, language : %s, country : %s script : %s",
+        __FUNCTION__, language.c_str(), country.c_str(), script.c_str());
     OHOS::AbilityRuntime::Platform::StageApplicationInfoAdapter::GetInstance()->SetLocale(language, country, script);
 }
 
