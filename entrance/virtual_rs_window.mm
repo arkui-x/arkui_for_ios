@@ -536,13 +536,6 @@ WMError Window::ShowWindow()
 
     StageViewController *controller = [StageApplication getApplicationTopViewController];
 
-    if (isFullScreen_) {
-        SystemBarProperty property;
-        property.enable_ = false;
-        SetSpecificBar(WindowType::WINDOW_TYPE_STATUS_BAR, property);
-        SetSpecificBar(WindowType::WINDOW_TYPE_NAVIGATION_BAR, property);
-        SetSpecificBar(WindowType::WINDOW_TYPE_NAVIGATION_INDICATOR, property);
-    }
     if ([windowView_ showOnView:controller.view]) {
         DelayNotifyUIContentIfNeeded();
         NotifyAfterForeground();
@@ -559,16 +552,6 @@ WMError Window::Hide()
         return WMError::WM_ERROR_INVALID_PARENT;
     }
 
-    if (isFullScreen_) {
-        auto mainWindow = GetTopWindow();
-
-        SetSpecificBar(WindowType::WINDOW_TYPE_STATUS_BAR,
-            mainWindow->GetSystemBarPropertyByType(WindowType::WINDOW_TYPE_STATUS_BAR));
-        SetSpecificBar(WindowType::WINDOW_TYPE_NAVIGATION_BAR,
-            mainWindow->GetSystemBarPropertyByType(WindowType::WINDOW_TYPE_NAVIGATION_BAR));
-        SetSpecificBar(WindowType::WINDOW_TYPE_NAVIGATION_BAR,
-            mainWindow->GetSystemBarPropertyByType(WindowType::WINDOW_TYPE_NAVIGATION_INDICATOR));
-    }
     if ([windowView_ hide]) {
         isWindowShow_ = false;
          NotifyAfterBackground();
@@ -583,6 +566,9 @@ WMError Window::MoveWindowTo(int32_t x, int32_t y)
     if (!windowView_) {
         LOGE("Window: MoveWindowTo failed");
         return WMError::WM_ERROR_INVALID_PARENT;   
+    }
+    if (isFullScreen_) {
+        return WMError::WM_ERROR_INVALID_PARENT;
     }
     x = x < 0 ? 0 : x;
     y = y < 0 ? 0 : y;
@@ -621,18 +607,6 @@ WMError Window::SetFullScreen(bool status)
     return WMError::WM_OK;
 }
 
-WMError Window::SetAutoFullScreen(bool status)
-{
-    if (!windowView_) {
-        LOGE("Window: SetTouchable failed");
-        return WMError::WM_ERROR_INVALID_WINDOW;
-    }
-    if (isFullScreen_ && !status) {
-        return WMError::WM_ERROR_INVALID_WINDOW;
-    }
-    windowView_.fullScreen = status;
-    return WMError::WM_OK;
-}
 WMError Window::SetFocusable(bool focusable)
 {
     if (!windowView_) {
@@ -714,9 +688,13 @@ WMError Window::ResizeWindowTo(int32_t width, int32_t height) {
         return WMError::WM_ERROR_INVALID_PARENT;   
     }
     LOGI("Window: ResizeWindowTo %d %d", width, height);
+    if (isFullScreen_) {
+        return WMError::WM_ERROR_INVALID_PARENT;
+    }
     UIScreen *screen = [UIScreen mainScreen];
     CGFloat scale = screen.scale;
     windowView_.frame = CGRectMake(windowView_.frame.origin.x, windowView_.frame.origin.y, width / scale, height / scale);
+
     rect_.width_ = width;
     rect_.height_ = height;
     return WMError::WM_OK;
