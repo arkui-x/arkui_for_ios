@@ -665,7 +665,6 @@ void SubwindowIos::ShowToast(const std::string& message, int32_t duration, const
         ShowWindow(false);
         ResizeWindow();
         window_->SetTouchable(false);
-        window_->SetAutoFullScreen(true);
     }
     delegate->ShowToast(message, duration, bottom, showMode, alignment, offset);
 }
