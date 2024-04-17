@@ -93,7 +93,7 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
 }
 
 + (void)setLocale {
-    NSString *currentLanguage = [[NSLocale preferrendLanguages] objectAtIndex:0];
+    NSString *currentLanguage = [[NSLocale preferredLanguages] objectAtIndex:0];
     NSArray *array = [currentLanguage componentsSeparatedByString:@"-"];
     std::string language = "";
     std::string country = "";
