@@ -266,10 +266,6 @@ public:
     void NotifyWillTeminate();
     /* if status is true, hide statusbar and navigationBar, auto resize width and height. */
     WMError SetFullScreen(bool status);
-    /* do not change statusbar and navigationBar ,only auto resize width and height.
-        if fullScreen is True,can not set AutoFullScreen to false.
-    */
-    WMError SetAutoFullScreen(bool status);
     WMError SetFocusable(bool isFocusable);
     WMError SetTouchable(bool isTouchable);
     bool GetFocusable() const;

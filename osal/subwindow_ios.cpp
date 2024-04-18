@@ -228,7 +228,6 @@ void SubwindowIos::clearStatus()
 {
     isMenuWindow_ = false;
     SetIsToastWindow(false);
-    window_->SetFullScreen(false);
 }
 
 void SubwindowIos::HideWindow()
@@ -407,7 +406,7 @@ void SubwindowIos::ShowPopupNG(int32_t targetId, const NG::PopupInfo& popupInfo)
     CHECK_NULL_VOID(context);
     auto overlayManager = context->GetOverlayManager();
     CHECK_NULL_VOID(overlayManager);
-
+    window_->SetFullScreen(true);
     ShowWindow(false);
     window_->SetTouchable(true);
 
@@ -460,6 +459,7 @@ void SubwindowIos::ShowMenuNG(const RefPtr<NG::FrameNode> menuNode, int32_t targ
     CHECK_NULL_VOID(context);
     auto overlay = context->GetOverlayManager();
     CHECK_NULL_VOID(overlay);
+    window_->SetFullScreen(true);
     ShowWindow();
     ResizeWindow();
     isMenuWindow_ = isShowed_;
@@ -661,10 +661,10 @@ void SubwindowIos::ShowToast(const std::string& message, int32_t duration, const
     auto parentContainer = Platform::AceContainerSG::GetContainer(parentContainerId_);
     CHECK_NULL_VOID(parentContainer);
     if (parentContainer->IsScenceBoardWindow() || showMode == NG::ToastShowMode::TOP_MOST) {
+        window_->SetFullScreen(true);
         ShowWindow(false);
         ResizeWindow();
         window_->SetTouchable(false);
-        window_->SetAutoFullScreen(true);
     }
     delegate->ShowToast(message, duration, bottom, showMode, alignment, offset);
 }

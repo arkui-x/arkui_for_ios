@@ -101,8 +101,8 @@ CGFloat _brightness = 0.0;
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-     self.view = [[StageContainerView alloc]init];
-        ((StageContainerView*)self.view).notifyDelegate = self;
+    self.view = [[StageContainerView alloc]initWithFrame:self.view.bounds];
+    ((StageContainerView*)self.view).notifyDelegate = self;
     self.view.backgroundColor = UIColor.whiteColor;
     NSLog(@"StageVC->%@ viewDidLoad call.", self);
     [self initColorMode];

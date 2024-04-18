@@ -159,7 +159,6 @@
         _activeWindow.isFocused = NO;
         _activeWindow = activeWindow;
         _activeWindow.isFocused = YES;
-        // _activeWindows.insert(activeWindow);
     }
 }
 
