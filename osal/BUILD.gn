@@ -37,6 +37,7 @@ template("ace_osal_ios_source_set") {
       "advance/image_analyzer_mgr.cpp",
       "app_bar_helper_impl.cpp",
       "drag_window.cpp",
+      "drawing_color_filter_ios.cpp",
       "event_report.cpp",
       "exception_handler.cpp",
       "fetch_manager.cpp",
