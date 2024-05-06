@@ -436,8 +436,7 @@ void UIContentImpl::InitializeSafeArea(const RefPtr<Platform::AceContainerSG>& c
 {
     constexpr static int32_t PLATFORM_VERSION_TEN = 10;
     auto pipeline = container->GetPipelineContext();
-    if (pipeline && pipeline->GetMinPlatformVersion() >= PLATFORM_VERSION_TEN &&
-        (pipeline->GetIsAppWindow())) {
+    if (pipeline && pipeline->GetMinPlatformVersion() >= PLATFORM_VERSION_TEN) {
         avoidAreaChangedListener_ = new AvoidAreaChangedListener(instanceId_);
         window_->RegisterAvoidAreaChangeListener(avoidAreaChangedListener_);
         pipeline->UpdateSystemSafeArea(GetViewSafeAreaByType(Rosen::AvoidAreaType::TYPE_SYSTEM));
@@ -702,6 +701,15 @@ void UIContentImpl::UpdateConfiguration(const std::shared_ptr<OHOS::AbilityRunti
     }
 }
 
+bool IsNeedAvoidWindowMode(OHOS::Rosen::Window* rsWindow)
+{
+    return (rsWindow->GetMode() == Rosen::WindowMode::WINDOW_MODE_FLOATING ||
+               rsWindow->GetMode() == Rosen::WindowMode::WINDOW_MODE_SPLIT_PRIMARY ||
+               rsWindow->GetMode() == Rosen::WindowMode::WINDOW_MODE_SPLIT_SECONDARY) &&
+           (SystemProperties::GetDeviceType() == DeviceType::PHONE ||
+               SystemProperties::GetDeviceType() == DeviceType::TABLET);
+}
+
 void UIContentImpl::UpdateViewportConfig(const ViewportConfig& config, OHOS::Rosen::WindowSizeChangeReason reason)
 {
     LOGI("UIContentImpl: UpdateViewportConfig %{public}s", config.ToString().c_str());
@@ -713,12 +721,18 @@ void UIContentImpl::UpdateViewportConfig(const ViewportConfig& config, OHOS::Ros
     auto taskExecutor = container->GetTaskExecutor();
     CHECK_NULL_VOID(taskExecutor);
     taskExecutor->PostTask(
-        [config, container, reason]() {
+        [config, container, reason, rsWindow = window_]() {
             container->SetWindowPos(config.Left(), config.Top());
             auto pipelineContext = container->GetPipelineContext();
             if (pipelineContext) {
                 pipelineContext->SetDisplayWindowRectInfo(
                     Rect(Offset(config.Left(), config.Top()), Size(config.Width(), config.Height())));
+            }
+            if (rsWindow) {
+                pipelineContext->SetIsLayoutFullScreen(
+                    rsWindow->GetMode() == Rosen::WindowMode::WINDOW_MODE_FULLSCREEN);
+                auto isNeedAvoidWindowMode = IsNeedAvoidWindowMode(rsWindow);
+                pipelineContext->SetIsNeedAvoidWindow(isNeedAvoidWindowMode);
             }
             auto aceView = static_cast<Platform::AceViewSG*>(container->GetAceView());
             CHECK_NULL_VOID(aceView);

@@ -36,8 +36,11 @@
 #include "napi/native_api.h"
 #include "core/event/touch_event.h"
 #include "core/event/key_event.h"
+#include "core/pipeline/pipeline_base.h"
 
 namespace OHOS::Rosen {
+#define BOTTOM_SAFE_AREA_HEIGHT_VP 28.0
+
 Ace::KeyCode KeyCodeToAceKeyCode(int32_t keyCode)
 {
     Ace::KeyCode aceKeyCode = Ace::KeyCode::KEY_UNKNOWN;
@@ -287,6 +290,7 @@ std::shared_ptr<Window> Window::Create(
     window->SetWindowView((WindowView*)windowView);
     window->SetWindowName(windowName);
     window->IncStrongRef(window.get());
+    window->SetMode(Rosen::WindowMode::WINDOW_MODE_FULLSCREEN);
     [(WindowView*)windowView setWindowDelegate:window];
     AddToWindowMap(window);
     return window;
@@ -928,6 +932,11 @@ void Window::SetWindowType(WindowType windowType)
     windowType_ = windowType;
 }
 
+void Window::SetMode(WindowMode windowMode)
+{
+    windowMode_ = windowMode;
+}
+
 void Window::SetParentId(uint32_t parentId)
 {
     parentId_ = parentId;
@@ -1312,16 +1321,16 @@ WMError Window::GetAvoidAreaByType(AvoidAreaType type, AvoidArea& avoidArea) {
         UIEdgeInsets insets = [UIApplication sharedApplication].delegate.window.safeAreaInsets;
         CGFloat screenWidth = UIScreen.mainScreen.bounds.size.width;
         CGFloat screenHeight = UIScreen.mainScreen.bounds.size.height;
-        
+        double bottomSafeAreaHeight = insets.bottom ? Ace::PipelineBase::Vp2PxWithCurrentDensity(BOTTOM_SAFE_AREA_HEIGHT_VP) : 0;
         if (type == AvoidAreaType::TYPE_CUTOUT) {
             avoidArea.topRect_ = controller.statusBarHidden ? emptyRect : (Rect){0, 0, screenWidth, insets.top};
         } else if (type == AvoidAreaType::TYPE_KEYBOARD) {
-            avoidArea.bottomRect_ = {0, screenHeight - insets.bottom, screenWidth, insets.bottom + keyBoardHieght};
+            avoidArea.bottomRect_ = {0, screenHeight - keyBoardHieght, screenWidth, keyBoardHieght};
         } else if (type == AvoidAreaType::TYPE_SYSTEM) {
             avoidArea.topRect_ = controller.statusBarHidden ? emptyRect : (Rect){0, 0, screenWidth, insets.top};
-            avoidArea.bottomRect_ = {0, screenHeight - insets.bottom, screenWidth, insets.bottom};
+            avoidArea.bottomRect_ = {0, screenHeight - bottomSafeAreaHeight, screenWidth, bottomSafeAreaHeight};
         } else if (type == AvoidAreaType::TYPE_NAVIGATION_INDICATOR) {
-            avoidArea.bottomRect_ = {0, screenHeight - insets.bottom, screenWidth, insets.bottom};
+            avoidArea.bottomRect_ = {0, screenHeight - bottomSafeAreaHeight, screenWidth, bottomSafeAreaHeight};
         } else if (type == AvoidAreaType::TYPE_SYSTEM_GESTURE) {
             avoidArea.leftRect_ = emptyRect;
             avoidArea.rightRect_ = emptyRect;
