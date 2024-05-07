@@ -408,7 +408,8 @@ static char kBridgeQueueMapKey;
         return;
     }
 
-    [bridgePlugin jsSendMessage:data];
+    RawValue* rawValue = [[BridgeJsonCodec sharedInstance] decode:data];
+    [bridgePlugin jsSendMessage:rawValue.result];
 }
 
 - (void)jsSendMessageResponseInner:(NSString*)bridgeName data:(NSString*)data {
