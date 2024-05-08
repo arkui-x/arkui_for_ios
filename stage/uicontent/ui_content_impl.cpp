@@ -34,6 +34,7 @@
 #include "base/log/ace_trace.h"
 #include "base/log/event_report.h"
 #include "base/log/log.h"
+#include "base/perfmonitor/perf_monitor.h"
 #include "base/subwindow/subwindow_manager.h"
 #include "core/common/ace_engine.h"
 #include "core/common/ace_view.h"
@@ -532,6 +533,7 @@ void UIContentImpl::InitAceInfoFromResConfig()
 void UIContentImpl::Foreground()
 {
     LOGI("UIContentImpl: window foreground");
+    PerfMonitor::GetPerfMonitor()->SetAppStartStatus();
     ContainerScope::UpdateRecentForeground(instanceId_);
     Platform::AceContainerSG::OnShow(instanceId_);
     // set the flag isForegroundCalled to be true
