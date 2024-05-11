@@ -281,6 +281,7 @@ private:
     void SetWindowView(WindowView* windowView);
     void SetWindowName(const std::string& windowName);
     void SetWindowType(WindowType windowType);
+    void SetMode(WindowMode windowMode);
     void SetParentId(uint32_t parentId);
     void ReleaseWindowView();
 
@@ -353,7 +354,7 @@ private:
         return windowChangeListeners;
     }
 
-        template<typename T>
+    template<typename T>
     inline EnableIfSame<T, ITouchOutsideListener, std::vector<wptr<ITouchOutsideListener>>> GetListeners()
     {
         std::vector<wptr<ITouchOutsideListener>> touchOutsideListeners;
