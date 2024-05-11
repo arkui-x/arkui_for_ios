@@ -298,32 +298,6 @@ void SubwindowIos::SetHotAreas(const std::vector<Rect>& rects, int32_t overlayId
     window_->SetTouchHotAreas(hotAreas);
 }
 
-void SubwindowIos::SetDialogHotAreas(const std::vector<Rect>& rects, int32_t overlayId)
-{
-    TAG_LOGD(AceLogTag::ACE_SUB_WINDOW, "Set dialog hot areas enter.");
-    CHECK_NULL_VOID(window_);
-    std::vector<Rosen::Rect> hotAreas;
-    Rosen::Rect rosenRect {};
-    for (const auto& rect : rects) {
-        RectConverter(rect, rosenRect);
-        hotAreas.emplace_back(rosenRect);
-    }
-    if (overlayId >= 0) {
-        hotAreasMap_[overlayId] = hotAreas;
-    }
-    std::vector<Rosen::Rect> hotAreas2;
-    for (auto it = hotAreasMap_.begin(); it != hotAreasMap_.end(); it++) {
-        for (auto it2 = it->second.begin(); it2 != it->second.end(); it2++) {
-            hotAreas2.emplace_back(*it2);
-        }
-    }
-    OHOS::Rosen::WMError ret = window_->SetTouchHotAreas(hotAreas2);
-    if (ret != OHOS::Rosen::WMError::WM_OK) {
-        TAG_LOGE(AceLogTag::ACE_SUB_WINDOW, "Set hot areas failed with errCode: %{public}d", static_cast<int32_t>(ret));
-        return;
-    }
-}
-
 void SubwindowIos::DeleteHotAreas(int32_t overlayId)
 {
     TAG_LOGD(AceLogTag::ACE_SUB_WINDOW, "Delete hot areas enter.");
@@ -332,39 +306,6 @@ void SubwindowIos::DeleteHotAreas(int32_t overlayId)
     hotAreasMap_.erase(overlayId);
     std::vector<Rosen::Rect> hotAreas;
     for (auto it = hotAreasMap_.begin(); it != hotAreasMap_.end(); it++) {
-        for (auto it2 = it->second.begin(); it2 != it->second.end(); it2++) {
-            hotAreas.emplace_back(*it2);
-        }
-    }
-    window_->SetTouchHotAreas(hotAreas);
-}
-
-void SubwindowIos::SetPopupHotAreas(const std::vector<Rect>& rects, int32_t overlayId)
-{
-        CHECK_NULL_VOID(window_);
-    std::vector<Rosen::Rect> hotAreas;
-    Rosen::Rect rosenRect {};
-    for (const auto& rect : rects) {
-        RectConverter(rect, rosenRect);
-        hotAreas.emplace_back(rosenRect);
-    }
-    if (overlayId >= 0) {
-                popupHotAreasMap_[overlayId] = hotAreas;
-    }
-    std::vector<Rosen::Rect> hotAreasNow;
-    for (auto it = popupHotAreasMap_.begin(); it != popupHotAreasMap_.end(); it++) {
-        for (auto it2 = it->second.begin(); it2 != it->second.end(); it2++) {
-            hotAreasNow.emplace_back(*it2);
-        }
-    }
-    window_->SetTouchHotAreas(hotAreasNow);
-}
-
-void SubwindowIos::DeletePopupHotAreas(int32_t overlayId)
-{
-    popupHotAreasMap_.erase(overlayId);
-    std::vector<Rosen::Rect> hotAreas;
-    for (auto it = popupHotAreasMap_.begin(); it != popupHotAreasMap_.end(); it++) {
         for (auto it2 = it->second.begin(); it2 != it->second.end(); it2++) {
             hotAreas.emplace_back(*it2);
         }
