@@ -61,9 +61,11 @@ template("ace_ios_standard_source_set") {
       "foldable_window_ios.cpp",
       "msdp/interaction_impl.cpp",
       "touch_event.cpp",
+      "touch_event_convertor.cpp",
       "udmf/udmf_impl.cpp",
       "utils.cpp",
       "virtual_rs_window.mm",
+      "xcollie/xcollieInterface_impl.cpp",
     ]
 
     if (target_cpu == "arm64") {

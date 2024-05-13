@@ -126,4 +126,9 @@ uint32_t ImageSourceIOS::GetFrameCount()
 {
     return 0;
 }
+
+std::string ImageSourceIOS::GetEncodedFormat()
+{
+    return "";
+}
 } // namespace OHOS::Ace
