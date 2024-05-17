@@ -32,6 +32,8 @@ ohos_combine_darwin_framework("libarkui_ios") {
     "$ace_root/adapter/ios/capability/bridge/ResultValue.h",
     "$ace_root/adapter/ios/capability/bridge/TaskOption.h",
     "$ace_root/adapter/ios/capability/bridge/codec/BridgeArray.h",
+    "$ace_root/adapter/ios/capability/platformview/IPlatformView.h",
+    "$ace_root/adapter/ios/capability/platformview/PlatformViewFactory.h",
     "$ace_root/adapter/ios/stage/ability/StageViewController.h",
     "$ace_root/adapter/ios/stage/ability/StageApplication.h",
     "$ace_root/adapter/ios/entrance/plugin_lifecycle/IArkUIXPlugin.h",

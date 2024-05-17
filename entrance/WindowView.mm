@@ -27,6 +27,7 @@
 #include "UINavigationController+StatusBar.h"
 #include "core/event/key_event.h"
 #import "AceWebResourcePlugin.h"
+#import "AcePlatformViewPlugin.h"
 #import "AceWeb.h"
 #import "StageContainerView.h"
 
@@ -168,8 +169,16 @@
             isPointWebView = true;
         }
     }];
-
-    return isPointWebView?nil:view;
+    __block bool isPointPlatformView = false;
+    [AcePlatformViewPlugin.getObjectMap enumerateKeysAndObjectsUsingBlock:^(
+        NSString * _Nonnull key, AcePlatformView * _Nonnull aceplatformview, BOOL * _Nonnull stop) {
+        UIView *uiview = [aceplatformview getPlatformView];
+        CGPoint platformPoint = [self convertPoint:point toView:uiview];
+        if ([uiview pointInside:platformPoint withEvent:event]) {
+            isPointPlatformView = true;
+        }
+    }];
+    return (isPointWebView || isPointPlatformView)?nil:view;
 }
 
 - (void)setWindowDelegate:(std::shared_ptr<OHOS::Rosen::Window>)window {

@@ -282,4 +282,11 @@ CGFloat _brightness = 0.0;
         [_windowView pressesCancelled:presses withEvent:event];
     }
 }
+
+- (void)registerPlatformViewFactory:(NSObject<PlatformViewFactory> *)platformViewFactory{
+    if (_platformPlugin) {
+        [_platformPlugin registerPlatformViewFactory:platformViewFactory];
+    }
+}
+
 @end

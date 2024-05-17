@@ -20,18 +20,21 @@
 #import "AceVideoResourcePlugin.h"
 #import "AceSurfacePlugin.h"
 #import "adapter/ios/capability/web/AceWebResourcePlugin.h"
+#import "AcePlatformViewPlugin.h"
+#import "AcePlatformViewDelegate.h"
 
 #include "adapter/ios/entrance/ace_resource_register.h"
 #include "adapter/ios/entrance/ace_platform_plugin.h"
 #include "core/common/container_scope.h"
 
-@interface AcePlatformPlugin()<IAceOnCallEvent, IAceSurface, AceTextureDelegate>
+@interface AcePlatformPlugin()<IAceOnCallEvent, IAceSurface, AceTextureDelegate, AcePlatformViewDelegate>
 {
     AceVideoResourcePlugin* _videoResourcePlugin;
     AceSurfacePlugin* _aceSurfacePlugin;
     AceResourceRegisterOC* _resRegister;
     AceWebResourcePlugin* _webResourcePlugin;
     AceTextureResourcePlugin* _textureResourcePlugin;
+    AcePlatformViewPlugin* _platformViewPlugin;
 }
 @property (nonatomic, assign) int32_t instanceId;
 @end
@@ -62,6 +65,10 @@
                 _textureResourcePlugin = [AceTextureResourcePlugin createTexturePluginWithInstanceId:instanceId];
                 _textureResourcePlugin.delegate = self;
                 [self addResourcePlugin:_textureResourcePlugin];
+
+                _platformViewPlugin = [AcePlatformViewPlugin createRegister:moduleName abilityInstanceId:instanceId];
+                _platformViewPlugin.delegate = self;
+                [self addResourcePlugin:_platformViewPlugin];
             }
         }
     }
@@ -141,6 +148,26 @@
 - (uintptr_t)attachNaitveSurface:(CALayer *)layer {
     uintptr_t address = reinterpret_cast<uintptr_t>(layer);
     return address;
+}
+
+#pragma mark AcePlatformViewDelegate
+- (void)registerBufferWithInstanceId:(int32_t)instanceId textureId:(int64_t)textureId
+    texturePixelBuffer:(void*)texturePixelBuffer
+{
+    // register PixelBuffer address
+    OHOS::Ace::Platform::AcePlatformPlugin::RegisterSurface(instanceId, textureId, texturePixelBuffer);
+}
+
+- (void)unregisterBufferWithInstanceId:(int32_t)instanceId textureId:(int64_t)textureId
+{
+    OHOS::Ace::Platform::AcePlatformPlugin::UnregisterSurface(instanceId, textureId);
+}
+
+- (void)registerPlatformViewFactory:(NSObject<PlatformViewFactory> *)platformViewFactory
+{
+    if (_platformViewPlugin) {
+        [_platformViewPlugin registerPlatformViewFactory:platformViewFactory];
+    }
 }
 
 - (void)dealloc
