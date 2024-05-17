@@ -17,6 +17,7 @@
 #define FOUNDATION_ACE_ADAPTER_IOS_STAGE_ABILITY_STAGEVIEWCONTROLLER_H
 
 #import <UIKit/UIKit.h>
+#import "PlatformViewFactory.h"
 
 @interface StageViewController : UIViewController
 
@@ -74,6 +75,12 @@
  * @return The PluginContext.
  */
 - (id)getPluginContext;
+
+/**
+ * Register the factory of platform view.
+ * @return void
+ */
+- (void)registerPlatformViewFactory:(NSObject<PlatformViewFactory> *)platformViewFactory;
 @end
 
 #endif // FOUNDATION_ACE_ADAPTER_IOS_STAGE_ABILITY_STAGEVIEWCONTROLLER_H

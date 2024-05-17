@@ -12,24 +12,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef FOUNDATION_ACE_ADAPTER_IOS_ENTRANCE_ACE_PLATFORM_PLUGIN_H
-#define FOUNDATION_ACE_ADAPTER_IOS_ENTRANCE_ACE_PLATFORM_PLUGIN_H
+#ifndef FOUNDATION_ADAPTER_CAPABILITY_IPLATFORMVIEW_H
+#define FOUNDATION_ADAPTER_CAPABILITY_IPLATFORMVIEW_H
 
-#import <Foundation/Foundation.h>
-#import "adapter/ios/entrance/resource/AceResourceRegisterOC.h"
-#import "PlatformViewFactory.h"
+#import <UIKit/UIKit.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface AcePlatformPlugin : NSObject
+/**
+ * include `UIView` for embedding in arkui framework
+ */
+@protocol IPlatformView <NSObject>
+/**
+ * return a reference to `UIView` .
+ */
+- (UIView*)view;
 
-- (instancetype)initPlatformPlugin:(id)target
-    instanceId:(int32_t)instanceId moduleName:(NSString *_Nonnull)moduleName;
-- (void)notifyLifecycleChanged:(BOOL)isBackground;
-- (void)platformRelease;
-- (void)registerPlatformViewFactory:(NSObject<PlatformViewFactory> *)platformViewFactory;
+/**
+  * dispose platform view
+  */
+- (void) onDispose;
+
+/**
+  * return tag of platform view
+  */
+- (NSString*)getXComponentID;
+
 @end
 
 NS_ASSUME_NONNULL_END
 
-#endif // FOUNDATION_ACE_ADAPTER_IOS_ENTRANCE_ACE_PLATFORM_PLUGIN_H
+#endif // FOUNDATION_ADAPTER_CAPABILITY_IPLATFORMVIEW_H

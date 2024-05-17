@@ -38,6 +38,8 @@ template("stage_ios_standard_source_set") {
       "$ace_root/frameworks",
       "$ace_root",
       "//foundation/arkui/ace_engine/adapter/ios/entrance/plugin_lifecycle",
+      "$ace_root/adapter/ios/capability/platformview",
+      "$ace_root/adapter/ios/osal/platformview",
     ]
 
     if (target_cpu == "arm64") {

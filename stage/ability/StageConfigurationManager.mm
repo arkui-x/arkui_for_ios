@@ -20,6 +20,7 @@
 #include <app_main.h>
 
 #include "capability_registry.h"
+#include "platform_view_register.h"
 
 #define APPLICATION_DIRECTION @"ohos.application.direction"
 #define COLOR_MODE_LIGHT @"light"
@@ -76,6 +77,7 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
     }
     AppMain::GetInstance()->InitConfiguration(json);
     OHOS::Ace::Platform::CapabilityRegistry::Register();
+    OHOS::Ace::Platform::PlatformViewRegister::Register();
 }
 
 - (void)directionUpdate:(UIDeviceOrientation)direction {
