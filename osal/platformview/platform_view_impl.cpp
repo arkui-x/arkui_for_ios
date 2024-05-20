@@ -40,7 +40,7 @@ void PlatformViewImpl::InitPlatformView()
     CHECK_NULL_VOID(container);
     auto uiTaskExecutor = SingleTaskExecutor::Make(container->GetTaskExecutor(), TaskExecutor::TaskType::UI);
     auto errorCallback = [weak = WeakClaim(this), uiTaskExecutor](const std::string& errorId,
-                             const std::string& param) { uiTaskExecutor.PostSyncTask([weak, errorId, param] {}); };
+                             const std::string& param) { uiTaskExecutor.PostSyncTask([weak, errorId, param] {}, "ArkUI-XPlatformViewImplInitPlatformView"); };
     platformViewDelegate_ = AceType::MakeRefPtr<PlatformViewDelegate>(container->GetPipelineContext(), errorCallback);
     platformViewDelegate_->Create(id_);
     platformViewDelegate_->SetPlatformViewReadyCallback([weak = WeakClaim(this)]() {
