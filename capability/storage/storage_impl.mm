@@ -29,7 +29,7 @@ void StorageImpl::SetString(const std::string& key, const std::string& value)
           NSString *strVal = [NSString stringWithCString:value.c_str() encoding:NSUTF8StringEncoding];
           [[NSUserDefaults standardUserDefaults] setObject:strVal?:@"" forKey:strKey];
           [[NSUserDefaults standardUserDefaults] synchronize]; 
-        }, TaskExecutor::TaskType::JS);
+        }, TaskExecutor::TaskType::JS, "ArkUI-XStorageImplSetString");
     }
 }
 
@@ -45,7 +45,7 @@ std::string StorageImpl::GetString(const std::string& key)
                NSString *strValue = (NSString *)strObj;
                result = strValue.UTF8String;
             }
-        }, TaskExecutor::TaskType::JS);
+        }, TaskExecutor::TaskType::JS, "ArkUI-XStorageImplGetString");
     }
     return result;
 }
@@ -57,7 +57,7 @@ void StorageImpl::SetDouble(const std::string& key, const double value)
             NSString *strKey = [NSString stringWithCString:key.c_str() encoding:NSUTF8StringEncoding];
             [[NSUserDefaults standardUserDefaults] setDouble:value forKey:strKey];
             [[NSUserDefaults standardUserDefaults] synchronize]; 
-        }, TaskExecutor::TaskType::JS);
+        }, TaskExecutor::TaskType::JS, "ArkUI-XStorageImplSetDouble");
     }
 }
 
@@ -67,7 +67,7 @@ bool StorageImpl::GetDouble(const std::string& key, double& value)
         taskExecutor_->PostSyncTask([key, &value] { 
            NSString *strKey = [NSString stringWithCString:key.c_str() encoding:NSUTF8StringEncoding];
            value =[[NSUserDefaults standardUserDefaults] doubleForKey:strKey]; 
-        }, TaskExecutor::TaskType::JS);
+        }, TaskExecutor::TaskType::JS, "ArkUI-XStorageImplGetDouble");
     }
     return true;
 }
@@ -79,7 +79,7 @@ void StorageImpl::SetBoolean(const std::string& key, const bool value)
             NSString *strKey = [NSString stringWithCString:key.c_str() encoding:NSUTF8StringEncoding];
             [[NSUserDefaults standardUserDefaults] setBool:value ? YES : NO forKey:strKey];
             [[NSUserDefaults standardUserDefaults] synchronize]; 
-        }, TaskExecutor::TaskType::JS);
+        }, TaskExecutor::TaskType::JS, "ArkUI-XStorageImplSetBoolean");
     }
 }
 
@@ -89,7 +89,7 @@ bool StorageImpl::GetBoolean(const std::string& key, bool& value)
         taskExecutor_->PostSyncTask([key, &value] { 
            NSString *strKey = [NSString stringWithCString:key.c_str() encoding:NSUTF8StringEncoding];
            value = [[NSUserDefaults standardUserDefaults] boolForKey:strKey] ? true : false; 
-        }, TaskExecutor::TaskType::JS);
+        }, TaskExecutor::TaskType::JS, "ArkUI-XStorageImplGetBoolean");
     }
     return true;
 }
@@ -104,7 +104,7 @@ void StorageImpl::Clear()
               [defatluts removeObjectForKey:key];
             }
             [defatluts synchronize];
-        }, TaskExecutor::TaskType::JS);
+        }, TaskExecutor::TaskType::JS, "ArkUI-XStorageImplClear");
     }
 }
 
@@ -117,7 +117,7 @@ void StorageImpl::Delete(const std::string& key)
             if (strObj) {
                 [[NSUserDefaults standardUserDefaults] removeObjectForKey:strKey];
             }
-        }, TaskExecutor::TaskType::JS);
+        }, TaskExecutor::TaskType::JS, "ArkUI-XStorageImplDelete");
     }
 }
 

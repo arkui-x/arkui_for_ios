@@ -46,9 +46,9 @@ void ClipboardImpl::SetData(const std::string& data, CopyOptions copyOption, boo
                 executor->PostTask([data]{
                     UIPasteboard *pasteboard = [UIPasteboard generalPasteboard];
                     pasteboard.string = [NSString stringWithCString:data.c_str() encoding:NSUTF8StringEncoding];
-                },TaskExecutor::TaskType::BACKGROUND);
+                },TaskExecutor::TaskType::BACKGROUND, "ArkUI-XClipboardImplSetDataBackground");
             }
-        },TaskExecutor::TaskType::PLATFORM);
+        },TaskExecutor::TaskType::PLATFORM, "ArkUI-XClipboardImplSetDataPlatform");
     }
 }
 
@@ -80,7 +80,7 @@ void ClipboardImpl::SetPixelMapData(const RefPtr<PixelMap>& pixmap, CopyOptions 
     }
     taskExecutor_->PostTask([callbackSetClipboardPixmapData = callbackSetClipboardPixmapData_,
                                 pixmap] { callbackSetClipboardPixmapData(pixmap); },
-        TaskExecutor::TaskType::UI);
+        TaskExecutor::TaskType::UI, "ArkUI-XClipboardImplSetPixelMapData");
 }
 
 void ClipboardImpl::GetPixelMapData(const std::function<void(const RefPtr<PixelMap>&)>& callback, bool syncMode)
@@ -91,7 +91,7 @@ void ClipboardImpl::GetPixelMapData(const std::function<void(const RefPtr<PixelM
     }
     taskExecutor_->PostTask([callbackGetClipboardPixmapData = callbackGetClipboardPixmapData_,
                                 callback] { callback(callbackGetClipboardPixmapData()); },
-        TaskExecutor::TaskType::UI);
+        TaskExecutor::TaskType::UI, "ArkUI-XClipboardImplGetPixelMapData");
 }
 
 void ClipboardImpl::RegisterCallbackSetClipboardPixmapData(CallbackSetClipboardPixmapData callback)
@@ -113,9 +113,9 @@ void ClipboardImpl::Clear()
                 executor->PostTask([]{
                     UIPasteboard *pasteboard = [UIPasteboard generalPasteboard];
                     pasteboard.string = @"";
-                },TaskExecutor::TaskType::BACKGROUND);
+                },TaskExecutor::TaskType::BACKGROUND, "ArkUI-XClipboardImplClearBackground");
             }
-        },TaskExecutor::TaskType::PLATFORM);
+        },TaskExecutor::TaskType::PLATFORM, "ArkUI-XClipboardImplClearPlatform");
     }
 }
 

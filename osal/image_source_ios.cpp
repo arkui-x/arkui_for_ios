@@ -78,12 +78,12 @@ std::string ImageSourceIOS::GetProperty(const std::string& key)
     return value;
 }
 
-RefPtr<PixelMap> ImageSourceIOS::CreatePixelMap(const Size& size)
+RefPtr<PixelMap> ImageSourceIOS::CreatePixelMap(const Size& size, AIImageQuality imageQuality)
 {
-    return CreatePixelMap(0, size);
+    return CreatePixelMap(0, size, imageQuality);
 }
 
-RefPtr<PixelMap> ImageSourceIOS::CreatePixelMap(uint32_t index, const Size& size)
+RefPtr<PixelMap> ImageSourceIOS::CreatePixelMap(uint32_t index, const Size& size, AIImageQuality imageQuality)
 {
     Media::DecodeOptions options;
     if (size.first > 0 && size.second > 0) {

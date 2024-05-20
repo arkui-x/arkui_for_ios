@@ -66,6 +66,11 @@ AlphaType PixelMapIOS::AlphaTypeConverter(Media::AlphaType alphaType)
     }
 }
 
+RefPtr<PixelMap> PixelMap::CopyPixelMap(const RefPtr<PixelMap>& pixelMap)
+{
+    return nullptr;
+}
+
 int32_t PixelMapIOS::GetWidth() const
 {
     CHECK_NULL_RETURN(pixmap_, 0);
@@ -145,6 +150,11 @@ std::string PixelMapIOS::GetModifyId()
 std::shared_ptr<Media::PixelMap> PixelMapIOS::GetPixelMapSharedPtr()
 {
     return pixmap_;
+}
+
+RefPtr<PixelMap> PixelMapIOS::GetCropPixelMap(const Rect& srcRect)
+{
+    return nullptr;
 }
 
 RefPtr<PixelMap> PixelMap::CreatePixelMap(void* rawPtr)
