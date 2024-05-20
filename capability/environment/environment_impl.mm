@@ -32,7 +32,7 @@ std::string EnvironmentImpl::GetAccessibilityEnabled()
           if(enabled){
             result = "true";
           }
-        }, TaskExecutor::TaskType::JS);
+        }, TaskExecutor::TaskType::JS, "ArkUI-XEnvironmentImplGetAccessibilityEnabled");
     }
     return result;
 }

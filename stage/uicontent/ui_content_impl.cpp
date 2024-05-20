@@ -108,7 +108,7 @@ public:
                     CHECK_NULL_VOID(context);
                     context->OnVirtualKeyboardAreaChange(keyboardRect);
                 },
-                TaskExecutor::TaskType::UI);
+                TaskExecutor::TaskType::UI, "ArkUI-XUIContentImplOnSizeChange");
         }
     }
 
@@ -135,7 +135,7 @@ public:
                 SubwindowManager::GetInstance()->ClearMenuNG(instanceId, targetId, true, true);
                 SubwindowManager::GetInstance()->ClearPopupInSubwindow(instanceId);
             },
-            TaskExecutor::TaskType::UI);
+            TaskExecutor::TaskType::UI, "ArkUI-XUIContentImplOnTouchOutside");
     }
 
 private:
@@ -180,7 +180,7 @@ public:
                 // for ui extension component
                 pipeline->UpdateOriginAvoidArea(avoidArea, static_cast<uint32_t>(type));
             },
-            TaskExecutor::TaskType::UI);
+            TaskExecutor::TaskType::UI, "ArkUI-XUIContentImplOnAvoidAreaChanged");
     }
 
 private:
@@ -603,7 +603,7 @@ uint32_t UIContentImpl::GetBackgroundColor()
             CHECK_NULL_VOID(pipelineContext);
             bgColor = pipelineContext->GetAppBgColor().GetValue();
         },
-        TaskExecutor::TaskType::UI);
+        TaskExecutor::TaskType::UI, "ArkUI-XUIContentImplGetBackgroundColor");
 
     LOGI("UIContentImpl::GetBackgroundColor, value is %{public}u", bgColor);
     return bgColor;
@@ -624,7 +624,7 @@ void UIContentImpl::SetBackgroundColor(uint32_t color)
             CHECK_NULL_VOID(pipelineContext);
             pipelineContext->SetAppBgColor(Color(bgColor));
         },
-        TaskExecutor::TaskType::UI);
+        TaskExecutor::TaskType::UI, "ArkUI-XUIContentImplSetBackgroundColor");
 }
 
 bool UIContentImpl::ProcessBackPressed()
@@ -699,7 +699,7 @@ void UIContentImpl::UpdateConfiguration(const std::shared_ptr<OHOS::AbilityRunti
                 CHECK_NULL_VOID(container);
                 container->UpdateConfiguration(colorMode, direction, densityDpi);
             },
-            TaskExecutor::TaskType::UI);
+            TaskExecutor::TaskType::UI, "ArkUI-XUIContentImplUpdateConfiguration");
     }
 }
 
@@ -743,7 +743,7 @@ void UIContentImpl::UpdateViewportConfig(const ViewportConfig& config, OHOS::Ros
                 static_cast<WindowSizeChangeReason>(reason));
             Platform::AceViewSG::SurfacePositionChanged(aceView, config.Left(), config.Top());
         },
-        TaskExecutor::TaskType::PLATFORM);
+        TaskExecutor::TaskType::PLATFORM, "ArkUI-XUIContentImplUpdateViewportConfig");
 }
 
 // Control filtering
