@@ -47,6 +47,7 @@ web_components_support = true
 render_extract_support = true
 xcomponent_components_support = true
 platform_view_support = true
+use_platform_font = true
 
 cflags_cc = [
   "-std=c++17",
@@ -96,4 +97,8 @@ if (defined(web_components_support) && web_components_support) {
 
 if (defined(render_extract_support) && render_extract_support) {
   defines += [ "RENDER_EXTRACT_SUPPORTED" ]
+}
+
+if (defined(use_platform_font) && use_platform_font) {
+  defines += [ "USE_PLATFORM_FONT" ]
 }
