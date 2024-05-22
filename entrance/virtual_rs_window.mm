@@ -1318,6 +1318,9 @@ WMError Window::GetAvoidAreaByType(AvoidAreaType type, AvoidArea& avoidArea) {
 
     if (@available(iOS 11.0, *)) {
         StageViewController* controller = [StageApplication getApplicationTopViewController];
+        if (![controller isKindOfClass:[StageViewController class]]) {
+            return WMError::WM_ERROR_INVALID_WINDOW;
+        }
         UIEdgeInsets insets = [UIApplication sharedApplication].delegate.window.safeAreaInsets;
         CGFloat screenWidth = UIScreen.mainScreen.bounds.size.width;
         CGFloat screenHeight = UIScreen.mainScreen.bounds.size.height;
