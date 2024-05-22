@@ -817,7 +817,7 @@ typedef void (^PostMessageResultMethod)(NSString* ocResult);
         [self.callSyncMethodMap removeAllObjects];
         self.callSyncMethodMap = nil;
     }
-    
+    [self.webView removeFromSuperview];
     self.webView = nil;
     self.preferences = nil;
     self.webpagePreferences = nil;
