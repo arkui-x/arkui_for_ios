@@ -652,6 +652,15 @@ Rect SubwindowIos::GetUIExtensionHostWindowRect() const
     return rect;
 }
 
+bool SubwindowIos::CheckHostWindowStatus() const
+{
+    auto parentContainer = Platform::AceContainerSG::GetContainer(parentContainerId_);
+    CHECK_NULL_RETURN(parentContainer, false);
+    auto parentWindow = parentContainer->GetUIWindow(parentContainerId_);
+    CHECK_NULL_RETURN(parentWindow, false);
+    return true;
+}
+
 const RefPtr<NG::OverlayManager> SubwindowIos::GetOverlayManager()
 {
     auto aceContainer = Platform::AceContainerSG::GetContainer(childContainerId_);
