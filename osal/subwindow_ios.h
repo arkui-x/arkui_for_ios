@@ -145,10 +145,7 @@ public:
 
     Rect GetUIExtensionHostWindowRect() const override;
 
-    bool CheckHostWindowStatus() const override
-    {
-        return false;
-    }
+    bool CheckHostWindowStatus() const override;
 
     bool IsFocused() override
     {
