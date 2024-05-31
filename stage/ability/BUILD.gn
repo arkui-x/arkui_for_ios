@@ -1,0 +1,121 @@
+# Copyright (c) 2023 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import("//build/ohos.gni")
+import("//foundation/arkui/ace_engine/ace_config.gni")
+
+# build static
+template("stage_ios_standard_source_set") {
+  forward_variables_from(invoker, "*")
+  ohos_source_set(target_name) {
+    defines = []
+    defines += invoker.defines
+    cflags_cc += invoker.cflags_cc
+
+    configs = [
+      "$ace_root:ace_config",
+      "//foundation/appframework/ability/ability_runtime/cross_platform/interfaces/kits/native/appkit:appkit_native_config",
+      "//third_party/json:nlohmann_json_config",
+    ]
+
+    include_dirs = [
+      "./",
+      "//foundation/arkui/ace_engine/adapter/ios/entrance",
+      "//foundation/appframework/ability/ability_runtime/cross_platform/interfaces/kits/native/appkit",
+      "//foundation/arkui/ace_engine/adapter/ios/capability/bridge",
+      "//third_party/",
+      "//third_party/flutter/engine",
+      "$ace_root/frameworks",
+      "$ace_root",
+      "//foundation/arkui/ace_engine/adapter/ios/entrance/plugin_lifecycle",
+    ]
+
+    if (target_cpu == "arm64") {
+      defines += [ "_ARM64_" ]
+    }
+
+    defines += [ "BUILD_FOR_ARKUI" ]
+
+    cflags_objc = [
+      "-fvisibility=default",
+      "-fobjc-arc",
+      "-fobjc-weak",
+      "-Wno-nullability-completeness",
+      "-O0",
+    ]
+
+    cflags_objcc = cflags_objc
+
+    sources = [
+      "InstanceIdGenerator.mm",
+      "StageApplication.mm",
+      "StageAssetManager.mm",
+      "StageConfigurationManager.mm",
+      "StageViewController.mm",
+      "ability_context_adapter.mm",
+      "application_context_adapter.mm",
+      "stage_application_info_adapter.cpp",
+      "stage_asset_provider.mm",
+      "window_view_adapter.mm",
+    ]
+    deps = [
+      "//foundation/appframework/ability/ability_runtime/cross_platform/interfaces/kits/native/appkit:cross_platform_appkit_native",
+      "//foundation/arkui/ace_engine/adapter/ios/entrance:ace_ios_entrance",
+      "//foundation/arkui/ace_engine/adapter/ios/entrance/plugin_lifecycle:plugin_lifecycle",
+    ]
+
+    if (ace_use_new_skia) {
+      deps += [ "$ace_flutter_engine_root:flutter_for_ng" ]
+    } else {
+      deps += [
+        "$ace_flutter_engine_root:third_party_flutter_engine_$platform",
+        "$ace_flutter_engine_root/skia:ace_skia_$platform",
+      ]
+    }
+
+    frameworks = [
+      "CoreFoundation.framework",
+      "Foundation.framework",
+      "UIKit.framework",
+    ]
+
+    subsystem_name = "arkui"
+  }
+}
+
+foreach(item, ace_platforms) {
+  platform = item.name
+  if (platform == "ios") {
+    stage_ios_standard_source_set("stage_ios_entrance") {
+      if (!ace_use_new_skia) {
+        platform = item.name
+      }
+      defines = []
+      cflags_cc = []
+      config = {
+      }
+
+      if (defined(item.config)) {
+        config = item.config
+      }
+
+      if (defined(config.defines)) {
+        defines = config.defines
+      }
+
+      if (defined(config.cflags_cc)) {
+        cflags_cc = config.cflags_cc
+      }
+    }
+  }
+}

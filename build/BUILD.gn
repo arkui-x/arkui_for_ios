@@ -1,0 +1,205 @@
+# Copyright (c) 2022-2023 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import("//build/config/config.gni")
+import("//build/ohos.gni")
+import("//foundation/arkui/ace_engine/ace_config.gni")
+
+# import(
+#     "//foundation/arkui/ace_engine/frameworks/core/components_ng/components_plugin.gni")
+import("//foundation/arkui/ace_engine/interfaces/napi/kits/napi_lib.gni")
+import("//plugins/plugin_lib.gni")
+import("config.gni")
+
+# combine framework and xcframework
+ohos_combine_darwin_framework("libarkui_ios") {
+  deps = [ ":arkui_ios" ]
+
+  _export_framework_headers = [
+    "$ace_root/adapter/ios/capability/bridge/BridgePlugin.h",
+    "$ace_root/adapter/ios/capability/bridge/BridgePluginManager.h",
+    "$ace_root/adapter/ios/capability/bridge/MethodData.h",
+    "$ace_root/adapter/ios/capability/bridge/ResultValue.h",
+    "$ace_root/adapter/ios/capability/bridge/TaskOption.h",
+    "$ace_root/adapter/ios/capability/bridge/codec/BridgeArray.h",
+    "$ace_root/adapter/ios/stage/ability/StageViewController.h",
+    "$ace_root/adapter/ios/stage/ability/StageApplication.h",
+    "$ace_root/adapter/ios/entrance/plugin_lifecycle/IArkUIXPlugin.h",
+    "$ace_root/adapter/ios/entrance/plugin_lifecycle/PluginContext.h",
+  ]
+
+  subsystem_name = "arkui"
+  part_name = "arkui-x"
+}
+
+# libace target
+ohos_shared_library("arkui_ios") {
+  ldflags = [
+    "-Wl",
+    "-install_name",
+    "@rpath/libarkui_ios.framework/libarkui_ios",
+  ]
+
+  deps = [
+    "$ace_root/build:libace_static_ios",
+    "//foundation/appframework:appframework_napis",
+    "//foundation/appframework/icu_data:static_icudata",
+    "//plugins/interfaces/native:ace_plugin_util_inner_ios",
+  ]
+  if (defined(ark_engine)) {
+    deps += [
+      "//arkcompiler/runtime_core/libpandabase:libarkbase_static",
+      "//arkcompiler/runtime_core/libpandafile:libarkfile_static",
+    ]
+
+    if (runtime_mode != "release") {
+      deps += [
+        # for enable debugger
+        "//arkcompiler/toolchain/inspector:ark_debugger_static",
+        "//arkcompiler/toolchain/inspector:connectserver_debugger_static",
+        "//arkcompiler/toolchain/tooling:libark_ecma_debugger_set",
+      ]
+    }
+  }
+
+  deps +=
+      [ "//foundation/appframework/arkui/uicontent:ace_uicontent_interface" ]
+
+  cflags_cc += [
+    "-Wall",
+    "-frtti",
+  ]
+
+  exported_symbols_list = "libarkui_ios.txt"
+  part_name = "arkui-x"
+  subsystem_name = "arkui"
+}
+
+# napi target
+common_napi_modules = []
+foreach(module, common_napi_libs) {
+  module_path_names = []
+  module_path_names = string_split(module, "/")
+  prefix_dir = module_path_names[0]
+
+  module_path = prefix_dir
+  if (prefix_dir != module) {
+    module_path = module_path_names[1]
+  }
+
+  module_name_ext = string_replace(module_path, "_", "")
+
+  module_name = string_replace(module, "_", "")
+  module_name = string_replace(module_name, "/", "_")
+  lib_name = "lib" + module_name
+  ohos_shared_library(module_name) {
+    ldflags = [
+      "-Wl",
+      "-install_name",
+      "@rpath/${lib_name}.framework/$lib_name",
+    ]
+    deps = [ "$ace_root/interfaces/napi/kits/${module_path}:${module_name_ext}_static_ios" ]
+    deps += [ ":arkui_ios" ]
+    subsystem_name = "arkui"
+    part_name = "arkui-x"
+  }
+
+  ohos_combine_darwin_framework(lib_name) {
+    deps = [ ":$module_name" ]
+
+    subsystem_name = "arkui"
+    part_name = "arkui-x"
+  }
+  common_napi_modules += [ ":${lib_name}" ]
+}
+
+# plugin target
+common_plugin_modules = []
+foreach(module, common_plugin_libs) {
+  plugin_name = module
+  target_name_ext = string_replace(module, "_", "")
+  target_name_ext = string_replace(target_name_ext, "/", "_")
+  plugin_name_ext = string_replace(plugin_name, "/", "_")
+  lib_name = "lib" + target_name_ext
+  ohos_shared_library(target_name_ext) {
+    ldflags = [
+      "-Wl",
+      "-install_name",
+      "@rpath/${lib_name}.framework/$lib_name",
+    ]
+    deps = [ "//plugins/$module:${plugin_name_ext}_static_ios" ]
+    deps += [ ":arkui_ios" ]
+
+    frameworks = [
+      "AVFoundation.framework",
+      "Foundation.framework",
+      "UIKit.framework",
+      "WebKit.framework",
+    ]
+
+    # relative_install_dir = "module"
+    subsystem_name = "arkui"
+    part_name = "plugins"
+  }
+  ohos_combine_darwin_framework(lib_name) {
+    deps = [ ":$target_name_ext" ]
+
+    subsystem_name = "arkui"
+    part_name = "plugins"
+  }
+  common_plugin_modules += [ ":${lib_name}" ]
+}
+
+# components target
+# component_plugin_modules = []
+# foreach(module, component_plugins) {
+#   sub_name = string_replace(module, "_", "")
+#   module_name = "arkui_$sub_name"
+#   lib_name = "lib" + module_name
+#   ohos_shared_library(module_name) {
+#     ldflags = [
+#       "-Wl",
+#       "-install_name",
+#       "@rpath/${lib_name}.framework/$lib_name",
+#     ]
+#     deps = [ "$ace_root/frameworks/core/components_ng/pattern/${module}:components_plugins_${module}_source_ios" ]
+#     deps += [ ":arkui_ios" ]
+#     frameworks = [
+#       "AVFoundation.framework",
+#       "Foundation.framework",
+#       "UIKit.framework",
+#       "WebKit.framework",
+#     ]
+
+#     # relative_install_dir = "module"
+#     subsystem_name = "arkui"
+#     part_name = "arkui_components"
+#   }
+#   ohos_combine_darwin_framework(lib_name) {
+#     deps = [ ":$module_name" ]
+
+#     subsystem_name = "arkui"
+#     part_name = "arkui_components"
+#   }
+#   component_plugin_modules += [ ":${lib_name}" ]
+# }
+
+# Install packages
+group("ace_packages") {
+  deps = [ ":libarkui_ios" ]
+  deps += common_napi_modules
+  deps += common_plugin_modules
+  if (defined(use_components_lib) && use_components_lib) {
+    deps += component_plugin_modules
+  }
+}
