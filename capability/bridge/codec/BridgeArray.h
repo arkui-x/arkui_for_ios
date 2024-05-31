@@ -16,6 +16,16 @@
 #import <Foundation/Foundation.h>
 
 NS_ASSUME_NONNULL_BEGIN
+
+/**
+ * Type of array data items encoded in a `BridgeArrayType`.
+ *
+ * - BridgeArrayTypeBooL: bool list  `NSNumber numberWithBool:`
+ * - BridgeArrayTypeInt32: 32-bit signed list `NSNumber numberWithInt:`
+ * - BridgeArrayTypeInt64: 64-bit signed list `NSNumber numberWithInt:
+ * - BridgeArrayTypeDouble: double list  `NSNumber numberWithDouble:`
+ * - BridgeArrayTypeString: NSString list `NSString`
+ */
 typedef enum {
     BridgeArrayTypeBooL = 1,
     BridgeArrayTypeInt32,
@@ -25,8 +35,30 @@ typedef enum {
 } BridgeArrayType;
 
 @interface BridgeArray : NSObject
+
+/**
+ * Initializes this BridgeArray. 
+ * Using BINARY_ TYPE encode, when sending an array of a specified type, 
+ * the array needs to be converted to the BridgeArray class
+ * BridgeArrayTypeBooL、BridgeArrayTypeInt32、BridgeArrayTypeInt64、BridgeArrayTypeDouble、
+ * The above four types need to be converted to an NSNumber array
+ * 
+ * @param bridgeArray array
+ * @param type BridgeArrayType.
+ * @since 11
+ */
 + (instancetype)bridgeArray:(NSArray*)array type:(BridgeArrayType)type;
+
+/**
+ * The type of the encoded array.
+ * @since 11
+ */
 @property (readonly, nonatomic, assign) BridgeArrayType arrayType;
+
+/**
+ * Get array
+ * @since 11
+ */
 @property (readonly, nonatomic) NSArray* array;
 
 @end

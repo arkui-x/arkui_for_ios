@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2023 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -14,7 +14,6 @@
  */
 
 #import "AceTexture.h"
-#import "FlutterTexture.h"
 
 #define TEXTURE_FLAG    @"texture@"
 #define PARAM_AND       @"#HWJS-&-#"
@@ -29,51 +28,111 @@
 #define KEY_VALUE       @"value"
 #define FILE_SCHEME     @"file://"
 #define HAP_SCHEME      @"/"
-#define SECOND_TO_MSEC  (1000)
 
-@interface AceTexture()<FlutterTexture>
-
+@interface AceTexture()
+@property(nonatomic, assign) int64_t textureId;
+@property(nonatomic, assign) int32_t instanceId;
 @property(nonatomic, copy) IAceOnResourceEvent onEvent;
-
-@property (nonatomic) CVPixelBufferRef textureRef;
-
-@property (nonatomic, strong) NSObject<FlutterTextureRegistry> *textures_;
-
+@property (nonatomic, strong) NSMutableDictionary<NSString*, IAceOnCallSyncResourceMethod>* callMethodMap;
 @end
 
 @implementation AceTexture
-- (instancetype)initWithRegister:(NSObject<FlutterTextureRegistry> *)textures onEvent:(IAceOnResourceEvent)callback{
+- (instancetype)initWithEvents:(IAceOnResourceEvent)callback
+    textureId:(int64_t)textureId abilityInstanceId:(int32_t)abilityInstanceId
+{
     if (self = [super init]) {
-        self.textures_ = textures; 
         self.onEvent = callback;
+        self.textureId = textureId;
+        self.instanceId = abilityInstanceId;
+
+        __weak AceTexture* weakSelf = self;
+        IAceOnCallSyncResourceMethod callSetTextureSize = ^NSString*(NSDictionary* param) {
+            if (weakSelf) {
+                return [weakSelf setSurfaceBounds:param];
+            }else {
+                 NSLog(@"AceSurfaceView: setSurfaceBounds fail");
+                 return FAIL;
+            }
+        };
+        [self.callMethodMap setObject:[callSetTextureSize copy] forKey:[self method_hashFormat:@"setTextureBounds"]];
     }
     return self;
 }
 
-- (CVPixelBufferRef _Nullable)copyPixelBuffer{
-    if (self.delegate && [self.delegate respondsToSelector:@selector(getPixelBuffer)]) {
-        return [self.delegate getPixelBuffer];
-    }
-    return self.textureRef;
+- (NSDictionary<NSString*, IAceOnCallSyncResourceMethod>*)getCallMethod
+{
+    return [self.callMethodMap copy];
 }
 
-- (void)releaseObject{
-    if (self.textures_) {
-        [self.textures_ unregisterTexture:self.incId];
-    }
-    
-    self.textureRef = nil;
+- (void)refreshPixelBuffer
+{
+    [self markTextureAvailable];
 }
 
-- (void)markTextureFrameAvailable{
-    
+- (void)releaseObject
+{
+    NSLog(@"AceTextureReleaseObject");
+    if (self.videoOutput) {
+        self.videoOutput = nil;
+    }
+    if (self.callMethodMap) {
+        for (id key in self.callMethodMap) {
+            IAceOnCallSyncResourceMethod block = [self.callMethodMap objectForKey:key];
+            block = nil;
+        }
+        [self.callMethodMap removeAllObjects];
+        self.callMethodMap = nil;
+    }
+    self.onEvent = nil;
+}
+
+- (void)dealloc
+{
+    NSLog(@"AceTexture->%@ dealloc", self);
+}
+
+- (void)markTextureAvailable
+{
     if (self.onEvent) {
-        NSString *param = @"";
-        NSString *prepared_method_hash = [NSString stringWithFormat:@"%@%lld%@%@%@%@", TEXTURE_FLAG, self.incId, EVENT, PARAM_EQUALS, @"markTextureFrameAvailable", PARAM_BEGIN];
+        NSString *param = [NSString stringWithFormat:@"instanceId=%lld&textureId=%lld",
+            self.instanceId, self.textureId];
+        NSString *prepared_method_hash = [NSString stringWithFormat:@"%@%lld%@%@%@%@",
+                TEXTURE_FLAG, self.textureId, EVENT, PARAM_EQUALS, @"markTextureAvailable", PARAM_BEGIN];
         self.onEvent(prepared_method_hash, param);
     }
-    
-    [self.textures_ textureFrameAvailable:self.incId];
+}
+
+- (NSString*)setSurfaceBounds:(NSDictionary*)params
+{
+    return SUCCESS;
+}
+
+- (NSString *)method_hashFormat:(NSString *)method
+{
+    return [NSString stringWithFormat:@"%@%lld%@%@%@%@",
+            TEXTURE_FLAG, self.textureId, METHOD, PARAM_EQUALS, method, PARAM_BEGIN];
+}
+
+- (AVPlayerItemVideoOutput *)videoOutput
+{
+    if(!_videoOutput){
+        NSDictionary* pixBuffAttributes = @{
+                    (id)kCVPixelBufferPixelFormatTypeKey : @(kCVPixelFormatType_32BGRA),
+                    (id)kCVPixelBufferIOSurfacePropertiesKey : @{}
+                };
+        _videoOutput = [[AVPlayerItemVideoOutput alloc] initWithPixelBufferAttributes:pixBuffAttributes];
+    }
+    return _videoOutput;
+}
+
+- (CVPixelBufferRef)getPixelBuffer
+{
+    CMTime outputItemTime = [self.videoOutput itemTimeForHostTime:CACurrentMediaTime()];
+    if ([self.videoOutput hasNewPixelBufferForItemTime:outputItemTime]) {
+        return [self.videoOutput copyPixelBufferForItemTime:outputItemTime itemTimeForDisplay:NULL];
+    } else {
+        return NULL;
+    }
 }
 
 @end

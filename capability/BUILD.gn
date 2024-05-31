@@ -63,6 +63,7 @@ ohos_source_set("text_input") {
   sources = [
     "$ace_root/adapter/ios/capability/editing/KeyboardTypeMapper.m",
     "$ace_root/adapter/ios/capability/editing/iOSTxtInputManager.mm",
+    "//third_party/flutter/engine/flutter/fml/platform/darwin/string_range_sanitization.mm",
   ]
 }
 
@@ -124,11 +125,17 @@ template("ace_capability_ios_source_set") {
       "$ace_root/adapter/ios/capability/video/AceVideoResourcePlugin.mm",
 
       # bridge
+      "$ace_root/adapter/ios/capability/bridge/BridgeManagerHolder.mm",
       "$ace_root/adapter/ios/capability/bridge/BridgePlugin+jsMessage.mm",
       "$ace_root/adapter/ios/capability/bridge/BridgePlugin.mm",
+      "$ace_root/adapter/ios/capability/bridge/BridgePluginManager+internal.mm",
       "$ace_root/adapter/ios/capability/bridge/BridgePluginManager.mm",
+      "$ace_root/adapter/ios/capability/bridge/BridgeTaskInfo.mm",
+      "$ace_root/adapter/ios/capability/bridge/BridgeTaskQueue.mm",
+      "$ace_root/adapter/ios/capability/bridge/BridgeTaskQueueHandler.mm",
       "$ace_root/adapter/ios/capability/bridge/MethodData.mm",
       "$ace_root/adapter/ios/capability/bridge/ResultValue.mm",
+      "$ace_root/adapter/ios/capability/bridge/TaskOption.mm",
       "$ace_root/adapter/ios/capability/bridge/bridge_manager.mm",
       "$ace_root/adapter/ios/capability/bridge/codec/BridgeArray.m",
       "$ace_root/adapter/ios/capability/bridge/codec/BridgeBinaryCodec.mm",
@@ -142,8 +149,10 @@ template("ace_capability_ios_source_set") {
       "$ace_root/adapter/ios/capability/web/AceWebCallbackObjectWrapper.cpp",
       "$ace_root/adapter/ios/capability/web/AceWebControllerBridge.mm",
       "$ace_root/adapter/ios/capability/web/AceWebErrorReceiveInfoObject.cpp",
+      "$ace_root/adapter/ios/capability/web/AceWebObject.cpp",
       "$ace_root/adapter/ios/capability/web/AceWebPatternBridge.cpp",
       "$ace_root/adapter/ios/capability/web/AceWebResourcePlugin.mm",
+      "$ace_root/adapter/ios/capability/web/WebMessageChannel.mm",
     ]
 
     deps = [ ":text_input" ]

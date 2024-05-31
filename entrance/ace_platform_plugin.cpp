@@ -20,7 +20,9 @@
 #include "base/utils/utils.h"
 
 namespace OHOS::Ace::Platform {
+using NativeLayerMap = std::unordered_map<int64_t, void*>;
 std::unordered_map<int, RefPtr<PlatformResRegister>> g_resRegisters;
+std::unordered_map<int, NativeLayerMap> g_nativeLayerMaps;
 
 void AcePlatformPlugin::InitResRegister(int32_t instanceId, const RefPtr<PlatformResRegister>& resRegister)
 {
@@ -35,4 +37,47 @@ RefPtr<PlatformResRegister> AcePlatformPlugin::GetResRegister(int32_t instanceId
 {
     return g_resRegisters[instanceId];
 }
+
+void AcePlatformPlugin::RegisterSurface(int32_t instanceId, int64_t texture_id, void* surface)
+{
+    auto iter = g_nativeLayerMaps.find(static_cast<int32_t>(instanceId));
+    if (iter != g_nativeLayerMaps.end()) {
+        iter->second.emplace(static_cast<int64_t>(texture_id), surface);
+    } else {
+        std::unordered_map<int64_t, void*> nativeLayerMap;
+        nativeLayerMap.emplace(static_cast<int64_t>(texture_id), surface);
+        g_nativeLayerMaps.emplace(static_cast<int32_t>(instanceId), nativeLayerMap);
+    }
+}
+
+void AcePlatformPlugin::UnregisterSurface(int32_t instanceId, int64_t texture_id)
+{
+    auto iter = g_nativeLayerMaps.find(static_cast<int32_t>(instanceId));
+    if (iter == g_nativeLayerMaps.end()) {
+        LOGW("UnregisterSurface fail, instanceId :%{public}d", instanceId);
+        return;
+    }
+
+    iter->second.erase(static_cast<int64_t>(texture_id));
+}
+
+void* AcePlatformPlugin::GetNativeWindow(int32_t instanceId, int64_t textureId)
+{
+    auto iter = g_nativeLayerMaps.find(static_cast<int32_t>(instanceId));
+    if (iter != g_nativeLayerMaps.end()) {
+        auto map =  iter->second;
+        auto nativeWindowIter = map.find(static_cast<int64_t>(textureId));
+        if (nativeWindowIter != map.end()) {
+            return nativeWindowIter->second;
+        }
+    }
+    return nullptr;
+}
+
+void AcePlatformPlugin::ReleaseInstance(int32_t instanceId)
+{
+    g_nativeLayerMaps.erase(instanceId);
+    g_resRegisters.erase(instanceId);
+}
+
 }

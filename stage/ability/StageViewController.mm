@@ -13,14 +13,17 @@
  * limitations under the License.
  */
 
-#import "adapter/ios/entrance/AcePlatformPlugin.h"
-#import "InstanceIdGenerator.h"
-#import "StageViewController.h"
-#import "StageConfigurationManager.h"
-#import "StageAssetManager.h"
-#import "WindowView.h"
-#import "StageApplication.h"
+#import "AcePlatformPlugin.h"
+#import "ArkUIXPluginRegistry.h"
 #import "BridgePluginManager.h"
+#import "BridgePluginManager+internal.h"
+#import "InstanceIdGenerator.h"
+#import "PluginContext.h"
+#import "StageApplication.h"
+#import "StageAssetManager.h"
+#import "StageConfigurationManager.h"
+#import "StageViewController.h"
+#import "WindowView.h"
 
 #include "app_main.h"
 #include "window_view_adapter.h"
@@ -33,7 +36,11 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
     std::string _cInstanceName;
     WindowView *_windowView;
     AcePlatformPlugin *_platformPlugin;
+    BridgePluginManager *_bridgePluginManager;
     BOOL _needOnForeground;
+    NSMutableArray *_pluginList;
+    ArkUIXPluginRegistry *_arkUIXPluginRegistry;
+    PluginContext *_pluginContext;
 }
 
 @property (nonatomic, strong, readwrite) NSString *instanceName;
@@ -60,6 +67,8 @@ CGFloat _brightness = 0.0;
             self.moduleName = nameArray[1];
             self.abilityName = nameArray[2];
         }
+        _pluginList = [[NSMutableArray alloc] init];
+        [self initBridge];
     }
     return self;
 }
@@ -73,7 +82,6 @@ CGFloat _brightness = 0.0;
     }
 }
 
-
 - (void)initWindowView {
     _windowView = [[WindowView alloc] init];
     _windowView.notifyDelegate = self;
@@ -84,6 +92,10 @@ CGFloat _brightness = 0.0;
     [self.view addSubview: _windowView];
 }
 
+- (void)initBridge {
+    _bridgePluginManager = [BridgePluginManager innerBridgePluginManager:_instanceId];
+}
+
 - (void)viewDidLoad {
     [super viewDidLoad];
     self.view.backgroundColor = UIColor.whiteColor;
@@ -91,6 +103,7 @@ CGFloat _brightness = 0.0;
     [self initColorMode];
     [self initWindowView];
     [self initPlatformPlugin];
+    [self initArkUIXPlugin];
     [_windowView createSurfaceNode];
 
     std::string paramsString = [self getCPPString:self.params.length ? self.params : @""];
@@ -110,6 +123,7 @@ CGFloat _brightness = 0.0;
     if (_platformPlugin) {
         [_platformPlugin notifyLifecycleChanged:false];
     }
+    [_windowView notifyFocusChanged:YES];
 }
 
 - (void)viewDidDisappear:(BOOL)animated {
@@ -121,6 +135,7 @@ CGFloat _brightness = 0.0;
     if (_platformPlugin) {
         [_platformPlugin notifyLifecycleChanged:true];
     }
+    [_windowView notifyFocusChanged:NO];
 }
 
 - (void)didReceiveMemoryWarning {
@@ -133,12 +148,15 @@ CGFloat _brightness = 0.0;
 
 - (void)dealloc {
     NSLog(@"StageVC->%@ dealloc", self);
+    [_platformPlugin platformRelease];
+    _platformPlugin = nil;
     [_windowView notifySurfaceDestroyed];
     [_windowView notifyWindowDestroyed];
     _windowView = nil;
-    _platformPlugin = nil;
+    [BridgePluginManager innerUnbridgePluginManager:_instanceId];
+    _bridgePluginManager = nil;
+    [self deallocArkUIXPlugin];
     AppMain::GetInstance()->DispatchOnDestroy(_cInstanceName);
-    [[BridgePluginManager shareManager] UnRegisterBridgePluginWithInstanceId:_instanceId];
 }
 
 - (void)traitCollectionDidChange:(UITraitCollection *)previousTraitCollection {
@@ -151,6 +169,36 @@ CGFloat _brightness = 0.0;
 
 - (int32_t)getInstanceId {
     return _instanceId;
+}
+
+- (void)addPlugin:(NSString *)pluginName {
+    if (pluginName == nil) {
+        NSLog(@"StageVC->%@ plugin name is nil!", self);
+    } else {
+        NSLog(@"StageVC->%@ add plugin: %@", self, pluginName);
+        [_pluginList addObject:pluginName];
+    }
+}
+
+- (void)initArkUIXPlugin {
+    _pluginContext = [[PluginContext alloc] initPluginContext:[self getBridgeManager] moduleName:self.moduleName];
+    _arkUIXPluginRegistry = [[ArkUIXPluginRegistry alloc] initArkUIXPluginRegistry:_pluginContext];
+    [_arkUIXPluginRegistry registryPlugins:_pluginList];
+}
+
+- (void)deallocArkUIXPlugin {
+    [_pluginList removeAllObjects];
+    [_arkUIXPluginRegistry unRegistryAllPlugins];
+    _arkUIXPluginRegistry = nil;
+    _pluginContext = nil;
+}
+
+- (id)getBridgeManager {
+    return _bridgePluginManager;
+}
+
+- (id)getPluginContext {
+    return _pluginContext;
 }
 
 #pragma mark - private method
@@ -170,6 +218,10 @@ CGFloat _brightness = 0.0;
         return true;
     }
     return false;
+}
+
+- (BOOL)processBackPress {
+    return [_windowView processBackPressed];
 }
 
 #pragma mark - WindowViewDelegate 
@@ -192,10 +244,46 @@ CGFloat _brightness = 0.0;
 }
 
 - (void)notifyApplicationWillTerminateNotification {
-   [[BridgePluginManager shareManager] platformWillTerminate];
+   [_bridgePluginManager platformWillTerminate];
+}
+
+- (void)notifyApplicationBecameActive {
+    if ([self isTopController]) {
+        [_windowView notifyFocusChanged:YES];
+    }
+}
+
+- (void)notifyApplicationWillResignActive {
+    if ([self isTopController]) {
+        [_windowView notifyFocusChanged:NO];
+    }
 }
 
 - (BOOL)prefersStatusBarHidden {
     return self.statusBarHidden;
+}
+
+- (void)pressesBegan:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event {
+    if (_windowView) {
+        [_windowView pressesBegan:presses withEvent:event];
+    }
+}
+
+- (void)pressesEnded:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event {
+    if (_windowView) {
+        [_windowView pressesEnded:presses withEvent:event];
+    }
+}
+
+- (void)pressesChanged:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event {
+    if (_windowView) {
+        [_windowView pressesChanged:presses withEvent:event];
+    }
+}
+
+- (void)pressesCancelled:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event {
+    if (_windowView) {
+        [_windowView pressesCancelled:presses withEvent:event];
+    }
 }
 @end

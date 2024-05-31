@@ -45,7 +45,7 @@ public:
         if (data_) {
             free(data_);
             data_ = nullptr;
-            LOGI("oc free buffer.");
+            LOGI("free buffer.");
         }
     }
 

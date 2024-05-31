@@ -37,12 +37,18 @@ ohos_source_set("bridge") {
   ]
 
   sources = [
+    "BridgeManagerHolder.mm",
     "BridgePlugin+jsMessage.mm",
     "BridgePlugin.mm",
+    "BridgePluginManager+internal.mm",
     "BridgePluginManager.mm",
+    "BridgeTaskInfo.m",
+    "BridgeTaskQueue.m",
+    "BridgeTaskQueueHandler.m",
     "MethodData.mm",
     "ResultValue.mm",
-    "baridge_manager.mm",
+    "TaskOption.mm",
+    "bridge_manager.mm",
   ]
 
   deps = [ "$ace_root/adapter/ios/capability/bridge/codec:bridegecodec" ]

@@ -45,6 +45,7 @@ template("ace_ios_standard_source_set") {
     sources = [
       "AcePlatformPlugin.mm",
       "AceSurfaceHolder.mm",
+      "AceTextureHolder.mm",
       "DownloadManager.mm",
       "UINavigationController+StatusBar.mm",
       "WindowView.mm",
@@ -56,6 +57,10 @@ template("ace_ios_standard_source_set") {
       "capability_registry.cpp",
       "display_info.mm",
       "download_manager.cpp",
+      "foldable_window_ios.cpp",
+      "msdp/interaction_impl.cpp",
+      "touch_event.cpp",
+      "udmf/udmf_impl.cpp",
       "virtual_rs_window.mm",
     ]
 
@@ -111,6 +116,7 @@ template("ace_ios_standard_source_set") {
 
     if (defined(config.enable_rosen_backend) && config.enable_rosen_backend) {
       deps += [ "//foundation/graphic/graphic_2d/rosen/modules/render_service_client:librender_service_client_static" ]
+      deps += [ "//foundation/arkui/napi:ace_napi" ]
     }
   }
 }

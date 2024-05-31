@@ -22,7 +22,6 @@
 #include <objc/objc.h>
 #include "WindowView.h"
 #include "base/log/log.h"
-#include "flutter/shell/platform/darwin/ios/framework/Source/vsync_waiter_ios.h"
 #include "foundation/appframework/arkui/uicontent/ui_content.h"
 #include "shell/common/vsync_waiter.h"
 #include "transaction/rs_interfaces.h"
@@ -34,9 +33,132 @@
 #include "window_option.h"
 #include "InstanceIdGenerator.h"
 #include "hilog.h"
+#include "napi/native_api.h"
 #include "core/event/touch_event.h"
+#include "core/event/key_event.h"
 
 namespace OHOS::Rosen {
+Ace::KeyCode KeyCodeToAceKeyCode(int32_t keyCode)
+{
+    Ace::KeyCode aceKeyCode = Ace::KeyCode::KEY_UNKNOWN;
+    const static std::map<int32_t, Ace::KeyCode> TO_OHOS_KEYCODE_MAP = {
+        { 4      /* UIKeyboardHIDUsageKeyboardA */,                      Ace::KeyCode::KEY_A               },
+        { 5      /* UIKeyboardHIDUsageKeyboardB */,                      Ace::KeyCode::KEY_B               },
+        { 6      /* UIKeyboardHIDUsageKeyboardC */,                      Ace::KeyCode::KEY_C               },
+        { 7      /* UIKeyboardHIDUsageKeyboardD */,                      Ace::KeyCode::KEY_D               },
+        { 8      /* UIKeyboardHIDUsageKeyboardE */,                      Ace::KeyCode::KEY_E               },
+        { 9      /* UIKeyboardHIDUsageKeyboardF */,                      Ace::KeyCode::KEY_F               },
+        { 10     /* UIKeyboardHIDUsageKeyboardG */,                      Ace::KeyCode::KEY_G               },
+        { 11     /* UIKeyboardHIDUsageKeyboardH */,                      Ace::KeyCode::KEY_H               },
+        { 12     /* UIKeyboardHIDUsageKeyboardI */,                      Ace::KeyCode::KEY_I               },
+        { 13     /* UIKeyboardHIDUsageKeyboardJ */,                      Ace::KeyCode::KEY_J               },
+        { 14     /* UIKeyboardHIDUsageKeyboardK */,                      Ace::KeyCode::KEY_K               },
+        { 15     /* UIKeyboardHIDUsageKeyboardL */,                      Ace::KeyCode::KEY_L               },
+        { 16     /* UIKeyboardHIDUsageKeyboardM */,                      Ace::KeyCode::KEY_M               },
+        { 17     /* UIKeyboardHIDUsageKeyboardN */,                      Ace::KeyCode::KEY_N               },
+        { 18     /* UIKeyboardHIDUsageKeyboardO */,                      Ace::KeyCode::KEY_O               },
+        { 19     /* UIKeyboardHIDUsageKeyboardP */,                      Ace::KeyCode::KEY_P               },
+        { 20     /* UIKeyboardHIDUsageKeyboardQ */,                      Ace::KeyCode::KEY_Q               },
+        { 21     /* UIKeyboardHIDUsageKeyboardR */,                      Ace::KeyCode::KEY_R               },
+        { 22     /* UIKeyboardHIDUsageKeyboardS */,                      Ace::KeyCode::KEY_S               },
+        { 23     /* UIKeyboardHIDUsageKeyboardT */,                      Ace::KeyCode::KEY_T               },
+        { 24     /* UIKeyboardHIDUsageKeyboardU */,                      Ace::KeyCode::KEY_U               },
+        { 25     /* UIKeyboardHIDUsageKeyboardV */,                      Ace::KeyCode::KEY_V               },
+        { 26     /* UIKeyboardHIDUsageKeyboardW */,                      Ace::KeyCode::KEY_W               },
+        { 27     /* UIKeyboardHIDUsageKeyboardX */,                      Ace::KeyCode::KEY_X               },
+        { 28     /* UIKeyboardHIDUsageKeyboardY */,                      Ace::KeyCode::KEY_Y               },
+        { 29     /* UIKeyboardHIDUsageKeyboardZ */,                      Ace::KeyCode::KEY_Z               },
+        { 30     /* UIKeyboardHIDUsageKeyboard1 */,                      Ace::KeyCode::KEY_1               },
+        { 31     /* UIKeyboardHIDUsageKeyboard2 */,                      Ace::KeyCode::KEY_2               },
+        { 32     /* UIKeyboardHIDUsageKeyboard3 */,                      Ace::KeyCode::KEY_3               },
+        { 33     /* UIKeyboardHIDUsageKeyboard4 */,                      Ace::KeyCode::KEY_4               },
+        { 34     /* UIKeyboardHIDUsageKeyboard5 */,                      Ace::KeyCode::KEY_5               },
+        { 35     /* UIKeyboardHIDUsageKeyboard6 */,                      Ace::KeyCode::KEY_6               },
+        { 36     /* UIKeyboardHIDUsageKeyboard7 */,                      Ace::KeyCode::KEY_7               },
+        { 37     /* UIKeyboardHIDUsageKeyboard8 */,                      Ace::KeyCode::KEY_8               },
+        { 38     /* UIKeyboardHIDUsageKeyboard9 */,                      Ace::KeyCode::KEY_9               },
+        { 39     /* UIKeyboardHIDUsageKeyboard0 */,                      Ace::KeyCode::KEY_0               },
+        { 40     /* UIKeyboardHIDUsageKeyboardReturnOrEnter */,          Ace::KeyCode::KEY_ENTER           },
+        { 41     /* UIKeyboardHIDUsageKeyboardEscape */,                 Ace::KeyCode::KEY_ESCAPE          },
+        { 42     /* UIKeyboardHIDUsageKeyboardDeleteOrBackspace */,      Ace::KeyCode::KEY_DEL             },
+        { 43     /* UIKeyboardHIDUsageKeyboardTab */,                    Ace::KeyCode::KEY_TAB             },
+        { 44     /* UIKeyboardHIDUsageKeyboardSpacebar */,               Ace::KeyCode::KEY_SPACE           },
+        { 45     /* UIKeyboardHIDUsageKeyboardHyphen */,                 Ace::KeyCode::KEY_MINUS           },
+        { 46     /* UIKeyboardHIDUsageKeyboardEqualSign */,              Ace::KeyCode::KEY_EQUALS          },
+        { 47     /* UIKeyboardHIDUsageKeyboardOpenBracket */,            Ace::KeyCode::KEY_LEFT_BRACKET    },
+        { 48     /* UIKeyboardHIDUsageKeyboardCloseBracket */,           Ace::KeyCode::KEY_RIGHT_BRACKET   },
+        { 49     /* UIKeyboardHIDUsageKeyboardBackslash */,              Ace::KeyCode::KEY_BACKSLASH       },
+        { 51     /* UIKeyboardHIDUsageKeyboardSemicolon */,              Ace::KeyCode::KEY_SEMICOLON       },
+        { 52     /* UIKeyboardHIDUsageKeyboardQuote */,                  Ace::KeyCode::KEY_APOSTROPHE      },
+        { 53     /* UIKeyboardHIDUsageKeyboardGraveAccentAndTilde */,    Ace::KeyCode::KEY_GRAVE           },
+        { 54     /* UIKeyboardHIDUsageKeyboardComma */,                  Ace::KeyCode::KEY_COMMA           },
+        { 55     /* UIKeyboardHIDUsageKeyboardPeriod */,                 Ace::KeyCode::KEY_PERIOD          },
+        { 56     /* UIKeyboardHIDUsageKeyboardSlash */,                  Ace::KeyCode::KEY_SLASH           },
+        { 57     /* UIKeyboardHIDUsageKeyboardCapsLock */,               Ace::KeyCode::KEY_CAPS_LOCK       },
+        { 58     /* UIKeyboardHIDUsageKeyboardF1 */,                     Ace::KeyCode::KEY_F1              },
+        { 59     /* UIKeyboardHIDUsageKeyboardF2 */,                     Ace::KeyCode::KEY_F2              },
+        { 60     /* UIKeyboardHIDUsageKeyboardF3 */,                     Ace::KeyCode::KEY_F3              },
+        { 61     /* UIKeyboardHIDUsageKeyboardF4 */,                     Ace::KeyCode::KEY_F4              },
+        { 62     /* UIKeyboardHIDUsageKeyboardF5 */,                     Ace::KeyCode::KEY_F5              },
+        { 63     /* UIKeyboardHIDUsageKeyboardF6 */,                     Ace::KeyCode::KEY_F6              },
+        { 64     /* UIKeyboardHIDUsageKeyboardF7 */,                     Ace::KeyCode::KEY_F7              },
+        { 65     /* UIKeyboardHIDUsageKeyboardF8 */,                     Ace::KeyCode::KEY_F8              },
+        { 66     /* UIKeyboardHIDUsageKeyboardF9 */,                     Ace::KeyCode::KEY_F9              },
+        { 67     /* UIKeyboardHIDUsageKeyboardF10 */,                    Ace::KeyCode::KEY_F10             },
+        { 68     /* UIKeyboardHIDUsageKeyboardF11 */,                    Ace::KeyCode::KEY_F11             },
+        { 69     /* UIKeyboardHIDUsageKeyboardF12 */,                    Ace::KeyCode::KEY_F12             },
+        { 70     /* UIKeyboardHIDUsageKeyboardPrintScreen */,            Ace::KeyCode::KEY_SYSRQ           },
+        { 71     /* UIKeyboardHIDUsageKeyboardScrollLock */,             Ace::KeyCode::KEY_SCROLL_LOCK     },
+        { 72     /* UIKeyboardHIDUsageKeyboardPause */,                  Ace::KeyCode::KEY_BREAK           },
+        { 73     /* UIKeyboardHIDUsageKeyboardInsert */,                 Ace::KeyCode::KEY_INSERT          },
+        { 74     /* UIKeyboardHIDUsageKeyboardHome */,                   Ace::KeyCode::KEY_MOVE_HOME       },
+        { 75     /* UIKeyboardHIDUsageKeyboardPageUp */,                 Ace::KeyCode::KEY_PAGE_UP         },
+        { 76     /* UIKeyboardHIDUsageKeyboardDeleteForward */,          Ace::KeyCode::KEY_FORWARD_DEL     },
+        { 77     /* UIKeyboardHIDUsageKeyboardEnd */,                    Ace::KeyCode::KEY_MOVE_END        },
+        { 78     /* UIKeyboardHIDUsageKeyboardPageDown */,               Ace::KeyCode::KEY_PAGE_DOWN       },
+        { 79     /* UIKeyboardHIDUsageKeyboardRightArrow */,             Ace::KeyCode::KEY_DPAD_RIGHT      },
+        { 80     /* UIKeyboardHIDUsageKeyboardLeftArrow */,              Ace::KeyCode::KEY_DPAD_LEFT       },
+        { 81     /* UIKeyboardHIDUsageKeyboardDownArrow */,              Ace::KeyCode::KEY_DPAD_DOWN       },
+        { 82     /* UIKeyboardHIDUsageKeyboardUpArrow */,                Ace::KeyCode::KEY_DPAD_UP         },
+        { 83     /* UIKeyboardHIDUsageKeypadNumLock */,                  Ace::KeyCode::KEY_NUM_LOCK        },
+        { 84     /* UIKeyboardHIDUsageKeypadSlash */,                    Ace::KeyCode::KEY_NUMPAD_DIVIDE   },
+        { 85     /* UIKeyboardHIDUsageKeypadAsterisk */,                 Ace::KeyCode::KEY_NUMPAD_MULTIPLY },
+        { 86     /* UIKeyboardHIDUsageKeypadHyphen */,                   Ace::KeyCode::KEY_NUMPAD_SUBTRACT },
+        { 87     /* UIKeyboardHIDUsageKeypadPlus */,                     Ace::KeyCode::KEY_NUMPAD_ADD      },
+        { 88     /* UIKeyboardHIDUsageKeypadEnter */,                    Ace::KeyCode::KEY_NUMPAD_ENTER    },
+        { 89     /* UIKeyboardHIDUsageKeypad1 */,                        Ace::KeyCode::KEY_NUMPAD_1        },
+        { 90     /* UIKeyboardHIDUsageKeypad2 */,                        Ace::KeyCode::KEY_NUMPAD_2        },
+        { 91     /* UIKeyboardHIDUsageKeypad3 */,                        Ace::KeyCode::KEY_NUMPAD_3        },
+        { 92     /* UIKeyboardHIDUsageKeypad4 */,                        Ace::KeyCode::KEY_NUMPAD_4        },
+        { 93     /* UIKeyboardHIDUsageKeypad5 */,                        Ace::KeyCode::KEY_NUMPAD_5        },
+        { 94     /* UIKeyboardHIDUsageKeypad6 */,                        Ace::KeyCode::KEY_NUMPAD_6        },
+        { 95     /* UIKeyboardHIDUsageKeypad7 */,                        Ace::KeyCode::KEY_NUMPAD_7        },
+        { 96     /* UIKeyboardHIDUsageKeypad8 */,                        Ace::KeyCode::KEY_NUMPAD_8        },
+        { 97     /* UIKeyboardHIDUsageKeypad9 */,                        Ace::KeyCode::KEY_NUMPAD_9        },
+        { 98     /* UIKeyboardHIDUsageKeypad0 */,                        Ace::KeyCode::KEY_NUMPAD_0        },
+        { 99     /* UIKeyboardHIDUsageKeypadPeriod */,                   Ace::KeyCode::KEY_NUMPAD_DOT      },
+        { 101    /* UIKeyboardHIDUsageKeyboardApplication */,            (Ace::KeyCode)2466                },
+        { 224    /* UIKeyboardHIDUsageKeyboardLeftControl */,            Ace::KeyCode::KEY_CTRL_LEFT       },
+        { 225    /* UIKeyboardHIDUsageKeyboardLeftShift */,              Ace::KeyCode::KEY_SHIFT_LEFT      },
+        { 226    /* UIKeyboardHIDUsageKeyboardLeftAlt */,                Ace::KeyCode::KEY_ALT_LEFT        },
+        { 227    /* UIKeyboardHIDUsageKeyboardLeftGUI */,                Ace::KeyCode::KEY_META_LEFT       },
+        { 228    /* UIKeyboardHIDUsageKeyboardRightControl */,           Ace::KeyCode::KEY_CTRL_RIGHT      },
+        { 229    /* UIKeyboardHIDUsageKeyboardRightShift */,             Ace::KeyCode::KEY_SHIFT_RIGHT     },
+        { 230    /* UIKeyboardHIDUsageKeyboardRightAlt */,               Ace::KeyCode::KEY_ALT_RIGHT       },
+        { 231    /* UIKeyboardHIDUsageKeyboardRightGUI */,               Ace::KeyCode::KEY_META_RIGHT      },
+    };
+    
+    auto checkIter = TO_OHOS_KEYCODE_MAP.find(keyCode);
+    if (checkIter != TO_OHOS_KEYCODE_MAP.end()) {
+        aceKeyCode = checkIter->second;
+    }
+    return aceKeyCode;
+}
+
+const std::map<ColorSpace, GraphicColorGamut> COLOR_SPACE_JS_TO_GAMUT_MAP {
+    { ColorSpace::COLOR_SPACE_DEFAULT, GraphicColorGamut::GRAPHIC_COLOR_GAMUT_SRGB },
+    { ColorSpace::COLOR_SPACE_WIDE_GAMUT, GraphicColorGamut::GRAPHIC_COLOR_GAMUT_DCI_P3 },
+};
 
 void DummyWindowRelease(Window* window)
 {
@@ -48,10 +170,6 @@ std::map<std::string, std::pair<uint32_t, std::shared_ptr<Window>>> Window::wind
 std::map<uint32_t, std::vector<sptr<IWindowLifeCycle>>> Window::lifecycleListeners_;
 std::recursive_mutex Window::globalMutex_;
 std::map<uint32_t, std::vector<sptr<IOccupiedAreaChangeListener>>> Window::occupiedAreaChangeListeners_;
-
-Window::Window(const flutter::TaskRunners& taskRunners)
-    : vsyncWaiter_(std::make_shared<flutter::VsyncWaiterIOS>(taskRunners))
-{}
 
 Window::Window(std::shared_ptr<AbilityRuntime::Platform::Context> context, uint32_t windowId)
     : context_(context), windowId_(windowId)
@@ -168,6 +286,30 @@ void Window::AddToSubWindowMap(std::shared_ptr<Window> window)
     uint32_t parentId = window->GetParentId();
     subWindowMap_[parentId].push_back(window);
     HILOG_INFO("Window::AddToSubWindowMap : End!!!");
+}
+
+void Window::UpdateOtherWindowFocusStateToFalse(Window *window)
+{
+    uint32_t parentId = window->GetParentId();
+    if (parentId == INVALID_WINDOW_ID) {
+        HILOG_INFO("Window::DeleteFromSubWindowMap : parentId is invalid");
+        return;
+    }
+    auto iter1 = subWindowMap_.find(parentId);
+    if (iter1 == subWindowMap_.end()) {
+        HILOG_INFO("Window::DeleteFromSubWindowMap : find parentId failed");
+        return;
+    }
+    auto subWindows = iter1->second;
+    auto iter2 = subWindows.begin();
+    while (iter2 != subWindows.end()) {
+        if ((*iter2)->GetWindowId() != window->GetWindowId()) {
+            (*iter2)->WindowFocusChanged(false);
+            break;
+        } else {
+            iter2++;
+        }
+    }
 }
 void Window::DeleteFromSubWindowMap(std::shared_ptr<Window> window)
 {
@@ -335,6 +477,10 @@ WMError Window::ShowWindow()
         [controller.view addSubview:windowView_];
     }
     isWindowShow_ = true;
+    if (focusable_) {
+        WindowFocusChanged(true);
+        UpdateOtherWindowFocusStateToFalse(this);
+    }
     NotifyAfterForeground();
     return WMError::WM_OK;
 }
@@ -355,6 +501,15 @@ WMError Window::MoveWindowTo(int32_t x, int32_t y)
     return WMError::WM_OK;
 }
 
+bool Window::ProcessBackPressed()
+{
+    if (!uiContent_) {
+        LOGW("Window::ProcessBackPressed uiContent_ is nullptr");
+        return false;
+    }
+    return uiContent_->ProcessBackPressed();
+}
+
 bool Window::ProcessBasicEvent(const std::vector<Ace::TouchEvent>& touchEvents)
 {
     if (!uiContent_) {
@@ -362,6 +517,15 @@ bool Window::ProcessBasicEvent(const std::vector<Ace::TouchEvent>& touchEvents)
         return false;
     }
     return uiContent_->ProcessBasicEvent(touchEvents);
+}
+
+void Window::SetFocusable(bool focusable)
+{
+    focusable_ = focusable;
+}
+bool Window::GetFocusable() const
+{
+    return focusable_;
 }
 
 WMError Window::ResizeWindowTo(int32_t width, int32_t height) {
@@ -401,13 +565,6 @@ void Window::RequestVsync(const std::shared_ptr<VsyncCallback>& vsyncCallback)
         };
         receiver_->RequestNextVSync(fcb);
         return;
-    }
-
-    // fa model
-    if (vsyncWaiter_) {
-        vsyncWaiter_->AsyncWaitForVsync([vsyncCallback](fml::TimePoint frameStart, fml::TimePoint frameTarget) {
-            vsyncCallback->onCallback(frameStart.ToEpochDelta().ToNanoseconds());
-        });
     }
 }
 
@@ -505,12 +662,20 @@ bool Window::ProcessPointerEvent(const std::vector<uint8_t>& data)
 }
 
 bool Window::ProcessKeyEvent(int32_t keyCode, int32_t keyAction, int32_t repeatTime, int64_t timeStamp,
-    int64_t timeStampStart)
+    int64_t timeStampStart, int32_t metaKey)
 {
     if (!uiContent_) {
         return false;
     }
-    return uiContent_->ProcessKeyEvent(keyCode, keyAction, repeatTime, timeStamp, timeStampStart);
+
+    Ace::KeyCode aceKeyCode = KeyCodeToAceKeyCode(keyCode);
+    Ace::SourceType sourceType = Ace::SourceType::NONE;
+
+    if (aceKeyCode != Ace::KeyCode::KEY_UNKNOWN) {
+        sourceType = Ace::SourceType::KEYBOARD;
+    } 
+
+    return uiContent_->ProcessKeyEvent(static_cast<int32_t>(aceKeyCode), keyAction, repeatTime, timeStamp, timeStampStart, metaKey, static_cast<int32_t>(sourceType));
 }
 
 void Window::DelayNotifyUIContentIfNeeded()
@@ -545,11 +710,14 @@ void Window::DelayNotifyUIContentIfNeeded()
 }
 
 WMError Window::SetUIContent(const std::string& contentInfo,
-    NativeEngine* engine, NativeValue* storage, bool isdistributed, AbilityRuntime::Platform::Ability* ability)
+    NativeEngine* engine, napi_value storage, bool isdistributed, AbilityRuntime::Platform::Ability* ability)
 {
     LOGI("Window::SetUIContent : Start");
     using namespace OHOS::Ace::Platform;
     (void)ability;
+    if (uiContent_) {
+        uiContent_->Destroy();
+    }
     std::unique_ptr<UIContent> uiContent;
     uiContent = UIContent::Create(context_.get(), engine);
     if (uiContent == nullptr) {
@@ -561,7 +729,6 @@ WMError Window::SetUIContent(const std::string& contentInfo,
     uiContent_ = std::move(uiContent);
 
     uiContent_->Foreground();
-    isWindowShow_ = true;
 
     DelayNotifyUIContentIfNeeded();
     LOGI("Window::SetUIContent : End!!!");
@@ -604,18 +771,22 @@ void Window::SetParentId(uint32_t parentId)
 
 void Window::WindowFocusChanged(bool hasWindowFocus)
 {
-    if (!uiContent_) {
-        LOGW("Window::Focus uiContent_ is nullptr");
-        return;
+    if (uiContent_) {
+       if (hasWindowFocus) {
+            LOGI("Window: notify uiContent Focus");
+            uiContent_->Focus();
+        } else {
+            LOGI("Window: notify uiContent UnFocus");
+            uiContent_->UnFocus();
+        }
     }
-    if (hasWindowFocus) {
-        LOGI("Window: notify uiContent Focus");
-        uiContent_->Focus();
-        NotifyAfterActive();
-    } else {
-        LOGI("Window: notify uiContent UnFocus");
-        uiContent_->UnFocus();
-        NotifyAfterInactive();
+    if (isActive_ != hasWindowFocus) {
+        isActive_ = hasWindowFocus;
+        if (isActive_) {
+            NotifyAfterActive();
+        } else {
+            NotifyAfterInactive();
+        }
     }
 }
 
@@ -836,6 +1007,41 @@ WMError Window::UnregisterLifeCycleListener(const sptr<IWindowLifeCycle>& listen
     LOGD("Start unregister");
     std::lock_guard<std::recursive_mutex> lock(globalMutex_);
     return UnregisterListener(lifecycleListeners_[GetWindowId()], listener);
+}
+
+ColorSpace Window::GetColorSpaceFromSurfaceGamut(GraphicColorGamut colorGamut) const
+{
+    for (auto& item : COLOR_SPACE_JS_TO_GAMUT_MAP) {
+        if (item.second == colorGamut) {
+            return item.first;
+        }
+    }
+    return ColorSpace::COLOR_SPACE_DEFAULT;
+}
+
+GraphicColorGamut Window::GetSurfaceGamutFromColorSpace(ColorSpace colorSpace) const
+{
+    for (auto& item : COLOR_SPACE_JS_TO_GAMUT_MAP) {
+        if (item.first == colorSpace) {
+            return item.second;
+        }
+    }
+    return GraphicColorGamut::GRAPHIC_COLOR_GAMUT_SRGB;
+}
+
+WMError Window::SetColorSpace(ColorSpace colorSpace)
+{
+    auto surfaceGamut = GetSurfaceGamutFromColorSpace(colorSpace);
+    LOGI("Window::SetColorSpace called. colorSpace=%{public}d, surfaceGamut=%{public}d", colorSpace, surfaceGamut);
+    surfaceNode_->SetColorSpace(surfaceGamut);
+    return WMError::WM_OK;
+}
+
+ColorSpace Window::GetColorSpace() const
+{
+    GraphicColorGamut gamut = surfaceNode_->GetColorSpace();
+    ColorSpace colorSpace = GetColorSpaceFromSurfaceGamut(gamut);
+    return colorSpace;
 }
 
 template<typename T>

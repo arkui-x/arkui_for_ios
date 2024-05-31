@@ -30,10 +30,10 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void)jsSendMessageResponse:(id)data;
 
-- (void)jsCancelMethod:(NSString*)bridgeName
-            methodName:(NSString*)methodName;
+- (void)jsCancelMethod:(NSString*)bridgeName methodName:(NSString*)methodName;
 
 - (void)callPlatformError:(ResultValue*)object;
+
 @end
 
 NS_ASSUME_NONNULL_END

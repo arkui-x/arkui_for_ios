@@ -169,20 +169,21 @@
         AceResourcePlugin *plugin;
         while ((plugin = [plugins nextObject])) {
             if (plugin) {
-                 @try { 
-                    [plugin releaseObject];
-                    plugin = nil;
-                 } @catch (NSException *exception) { 
-
-                 }
+                [plugin releaseObject];
+                plugin = nil;
             }
         }
+        [self.pluginMap removeAllObjects];
+        self.pluginMap = nil;
     }
-    self.pluginMap = nil;
+ 
     if (self.callSyncMethodMap) {
         [self.callSyncMethodMap removeAllObjects];
+        self.callSyncMethodMap = nil;
     }
-    self.callSyncMethodMap = nil;
+
+    self.callbackHandler = nil;
+    self.parent = nil;
 
     return YES;
 }

@@ -24,6 +24,41 @@
      onEvent:(IAceOnResourceEvent)callback
      abilityInstanceId:(int32_t)abilityInstanceId;
 -(void)loadUrl:(NSString*)url header:(NSDictionary*)httpHeaders;
+- (void)loadData:(NSString*)data
+        mimeType:(NSString*)mimeType
+        encoding:(NSString*)encoding
+         baseUrl:(NSString*)baseUrl
+      historyUrl:(NSString*)historyUrl;
+- (NSString*)getUrl;
+- (void)EvaluateJavaScript:(NSString*)script callback:(void (^)(NSString* ocResult))callback;
+- (bool)accessBackward;
+- (bool)accessForward;
+- (void)backward;
+- (void)forward;
+- (void)refresh;
+- (void)removeCache:(bool)value;
+- (void)backOrForward:(NSInteger)step;
+- (NSString*)getTitle;
+- (CGFloat)getPageHeight;
+- (void)createWebMessagePorts:(NSArray*)portsName;
+- (void)postWebMessage:(NSString*)message port:(NSString*)port targetUrl:(NSString*)targetUrl;
+- (void)postMessageEvent:(NSString*)message;
+- (void)onMessageEvent:(void (^)(NSString* ocResult))callback;
+- (void)closePort;
++ (bool)saveHttpAuthCredentials:(NSString*)host
+                          realm:(NSString*)realm
+                       username:(NSString*)username
+                       password:(NSString*)password;
++ (NSURLCredential*)getHttpAuthCredentials:(NSString*)host realm:(NSString*)realm;
++ (bool)existHttpAuthCredentials;
++ (bool)deleteHttpAuthCredentials;
+- (bool)accessStep:(NSInteger)step;
+- (void)scrollTo:(CGFloat)x y:(CGFloat)y;
+- (void)scrollBy:(CGFloat)deltaX deltaY:(CGFloat)deltaY;
+- (void)zoom:(CGFloat)factor;
+- (void)stop;
+- (void)setCustomUserAgent:(NSString*)userAgent;
+- (NSString*)getCustomUserAgent;
 -(NSDictionary<NSString *, IAceOnCallSyncResourceMethod> *)getSyncCallMethod;
 -(void)releaseObject;
 -(int64_t)getWebId;

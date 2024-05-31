@@ -44,6 +44,17 @@ const char* LOG_TAGS[] = {
     "Console",
 };
 
+#ifdef ACE_INSTANCE_LOG
+constexpr const char* INSTANCE_ID_GEN_REASONS[] = {
+    "scope",
+    "active",
+    "default",
+    "singleton",
+    "foreground",
+    "undefined",
+};
+#endif
+
 } // namespace
 
 // initial static member object
@@ -78,7 +89,7 @@ std::string GetTimeStamp()
 constexpr os_log_type_t LOG_TYPE[] = { OS_LOG_TYPE_DEBUG, OS_LOG_TYPE_INFO, OS_LOG_TYPE_DEFAULT, OS_LOG_TYPE_ERROR,
     OS_LOG_TYPE_FAULT };
     
-void LogWrapper::PrintLog(LogDomain domain, LogLevel level, const char* fmt, va_list args)
+void LogWrapper::PrintLog(LogDomain domain, LogLevel level, AceLogTag tag, const char* fmt, va_list args)
 {
     std::string newFmt(fmt);
     StripFormatString("{public}", newFmt);
@@ -94,13 +105,19 @@ void LogWrapper::PrintLog(LogDomain domain, LogLevel level, const char* fmt, va_
     os_log(log, "[%{public}s] %{public}s", GetNameForLogLevel(level), buf);
 }
 
+#ifdef ACE_INSTANCE_LOG
 int32_t LogWrapper::GetId()
 {
-#ifdef ACE_INSTANCE_LOG
     return Container::CurrentId();
-#else
-    return 0;
-#endif
 }
+
+const std::string LogWrapper::GetIdWithReason()
+{
+    int32_t currentId = ContainerScope::CurrentId();
+    std::pair<int32_t, InstanceIdGenReason> idWithReason = ContainerScope::CurrentIdWithReason();
+    return std::to_string(currentId) + ":" + std::to_string(idWithReason.first) + ":" +
+           INSTANCE_ID_GEN_REASONS[static_cast<uint32_t>(idWithReason.second)];
+}
+#endif
 
 } // namespace OHOS::Ace

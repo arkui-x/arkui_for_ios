@@ -25,6 +25,7 @@
 #include "flutter/lib/ui/window/pointer_data_packet.h"
 #include "virtual_rs_window.h"
 #include "UINavigationController+StatusBar.h"
+#include "core/event/key_event.h"
 #import "AceWebResourcePlugin.h"
 #import "AceWeb.h"
 #define ACE_ENABLE_GL
@@ -118,6 +119,23 @@
 - (std::shared_ptr<OHOS::Rosen::Window>)getWindow {
     return _windowDelegate.lock();
 }
+
+- (void)pressesBegan:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event {
+    [self dispatchKeys:presses];
+}
+
+- (void)pressesChanged:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event {
+    [self dispatchKeys:presses];
+}
+
+- (void)pressesEnded:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event {
+    [self dispatchKeys:presses];
+}
+
+- (void)pressesCancelled:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event {
+    [self dispatchKeys:presses];
+}
+
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event {
     [self dispatchTouches:touches];
 }
@@ -207,9 +225,9 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
         
         flutter::PointerData pointer_data;
         pointer_data.Clear();
-        
-        constexpr int kMicrosecondsPerSecond = 1000 * 1000;
-        pointer_data.time_stamp = touch.timestamp * kMicrosecondsPerSecond;
+
+        int64_t sysTimeStamp = OHOS::Ace::GetSysTimestamp();
+        pointer_data.time_stamp = sysTimeStamp;
         
         pointer_data.change = PointerDataChangeFromUITouchPhase(touch.phase);
         
@@ -250,7 +268,61 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
         
         _windowDelegate.lock()->ProcessPointerEvent(packet->data());
     }
-    
+}
+
+#pragma mark - Key event handling
+
+static OHOS::Ace::KeyAction KeyActionChangeFromUIPressPhase(UIPressPhase phase) {
+    switch (phase) {
+        case UIPressPhaseBegan:
+            return OHOS::Ace::KeyAction::DOWN;
+        case UIPressPhaseChanged:
+        case UIPressPhaseStationary:
+        case UIPressPhaseEnded:
+        case UIPressPhaseCancelled:
+            return OHOS::Ace::KeyAction::UP;
+    }
+    return OHOS::Ace::KeyAction::UNKNOWN;
+}
+
+static int32_t GetModifierKeys(UIKeyModifierFlags modifierFlags) {
+    int32_t ctrlKeysBit = 0;
+    static enum CtrlKeysBit {
+        ctrl = 1,
+        shift = 2,
+        alt = 4,
+        meta = 8,
+    };
+    if (modifierFlags & UIKeyModifierControl) {
+        ctrlKeysBit |= CtrlKeysBit::ctrl;
+    }
+    if (modifierFlags & UIKeyModifierShift) {
+        ctrlKeysBit |= CtrlKeysBit::shift;
+    }
+    if (modifierFlags & UIKeyModifierAlternate) {
+        ctrlKeysBit |= CtrlKeysBit::alt;
+    }
+    if (modifierFlags & UIKeyModifierCommand) {
+        ctrlKeysBit |= CtrlKeysBit::meta;
+    }
+    return ctrlKeysBit;
+}
+
+- (void)dispatchKeys:(NSSet<UIPress *> *)presses {
+    for (UIPress *press in presses) {
+        UIKey *pressKey = press.key;
+        UIKeyboardHIDUsage pressKeyCode = [pressKey keyCode];
+        OHOS::Ace::KeyAction keyAction = KeyActionChangeFromUIPressPhase(press.phase);
+        UIKeyModifierFlags modifierFlags = [pressKey modifierFlags];
+        int32_t modifierKeys = GetModifierKeys(modifierFlags);
+        int32_t repeatTime = 0;
+        // trans NSTimeInterval(double) to int64_t
+        int64_t timestamp = static_cast<int64_t>(press.timestamp * 1000);
+        if (_windowDelegate.lock() != nullptr) {
+            _windowDelegate.lock()->ProcessKeyEvent(
+                static_cast<int32_t>(pressKeyCode), static_cast<int32_t>(keyAction), repeatTime, timestamp, timestamp, modifierKeys);
+        }
+    }
 }
 
 - (void)createSurfaceNode {
@@ -325,14 +397,14 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
 #pragma mark - Application lifecycle notifications
 
 - (void)applicationBecameActive:(NSNotification *)notification {
-    if (_windowDelegate.lock() != nullptr) {
-        _windowDelegate.lock()->WindowFocusChanged(true);
+    if ([self.notifyDelegate respondsToSelector:@selector(notifyApplicationBecameActive)]) {
+        [self.notifyDelegate notifyApplicationBecameActive];
     }
 }
 
 - (void)applicationWillResignActive:(NSNotification *)notification {
-    if (_windowDelegate.lock() != nullptr) {
-        _windowDelegate.lock()->WindowFocusChanged(false);
+    if ([self.notifyDelegate respondsToSelector:@selector(notifyApplicationWillResignActive)]) {
+        [self.notifyDelegate notifyApplicationWillResignActive];
     }
 }
 
@@ -344,6 +416,12 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
 - (void)notifyBackground {
     if (_windowDelegate.lock() != nullptr) {
         _windowDelegate.lock()->Background();
+    }
+}
+
+- (void)notifyFocusChanged:(BOOL)focus{
+    if (_windowDelegate.lock() != nullptr) {
+        _windowDelegate.lock()->WindowFocusChanged(focus);
     }
 }
 
@@ -382,6 +460,13 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
     if (_windowDelegate.lock() != nullptr) {
         _windowDelegate.lock()->NotifyWillTeminate();
     }
+}
+
+- (BOOL)processBackPressed {
+     if (_windowDelegate.lock() != nullptr) {
+      return _windowDelegate.lock()->ProcessBackPressed();
+    }
+    return false;
 }
 
 - (void)dealloc {

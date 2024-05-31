@@ -37,37 +37,66 @@ typedef enum : int {
     BRIDGE_END,
 } ErrorCode;
 
-extern NSString *const BRIDGE_ERROR_NO_MESSAGE;
-extern NSString *const BRIDGE_NAME_ERROR_MESSAGE;
-extern NSString *const BRIDGE_CREATE_ERROR_MESSAGE;
-extern NSString *const BRIDGE_INVALID_MESSAGE;
-extern NSString *const BRIDGE_METHOD_NAME_ERROR_MESSAGE;
-extern NSString *const BRIDGE_METHOD_RUNNING_MESSAGE;
-extern NSString *const BRIDGE_METHOD_UNIMPL_MESSAGE;
-extern NSString *const BRIDGE_METHOD_PARAM_ERROR_MESSAGE;
-extern NSString *const BRIDGE_METHOD_EXISTS_MESSAGE;
-extern NSString *const BRIDGE_DATA_ERROR_MESSAGE;
-extern NSString *const BRIDGE_BOTTOM_COMMUNICATION_ERROR_MESSAGE;
-extern NSString *const BRIDGE_CODEC_TYPE_MISMATCH_MESSAGE;
-extern NSString *const BRIDGE_CODEC_INVALID_MESSAGE;
-extern NSString *const BRIDGE_END_MESSAGE;
+extern NSString* const BRIDGE_ERROR_NO_MESSAGE;
+extern NSString*const BRIDGE_NAME_ERROR_MESSAGE;
+extern NSString* const BRIDGE_CREATE_ERROR_MESSAGE;
+extern NSString* const BRIDGE_INVALID_MESSAGE;
+extern NSString* const BRIDGE_METHOD_NAME_ERROR_MESSAGE;
+extern NSString* const BRIDGE_METHOD_RUNNING_MESSAGE;
+extern NSString* const BRIDGE_METHOD_UNIMPL_MESSAGE;
+extern NSString* const BRIDGE_METHOD_PARAM_ERROR_MESSAGE;
+extern NSString* const BRIDGE_METHOD_EXISTS_MESSAGE;
+extern NSString* const BRIDGE_DATA_ERROR_MESSAGE;
+extern NSString* const BRIDGE_BOTTOM_COMMUNICATION_ERROR_MESSAGE;
+extern NSString* const BRIDGE_CODEC_TYPE_MISMATCH_MESSAGE;
+extern NSString* const BRIDGE_CODEC_INVALID_MESSAGE;
+extern NSString* const BRIDGE_END_MESSAGE;
 
-extern NSString *const ResultValueError(ErrorCode type);
+extern NSString* const ResultValueError(ErrorCode type);
 
 @interface ResultValue : NSObject
 
-@property (nonatomic, strong) NSString *methodName;
+/**
+ * ArkUI method name
+ * 
+ * @since 10
+ */
+@property (nonatomic, strong) NSString* methodName;
 
-@property (nonatomic, strong) NSString *result;
+/**
+ * ArkUI return data
+ * 
+ * @since 10
+ */
+@property (nonatomic, strong) NSString* result;
 
+/**
+ * Return error code, please refer to the ErrorCode for details
+ * 
+ * @since 10
+ */
 @property (nonatomic, assign) ErrorCode errorCode;
 
-@property (nonatomic, strong) NSString *errorMessage;
+/**
+ * Return error errorMessage info
+ * 
+ * @since 10
+ */
+@property (nonatomic, strong) NSString* errorMessage;
 
-- (instancetype)initWithMethodName:(NSString *)methodName
-                            result:(NSString *)result
-                         errorCode:(ErrorCode)errorCode
-                      errorMessage:(NSString *)errorMessage;
+/**
+ * Initializes ResultValue
+ * 
+ * @param methodName  method name.
+ * @param result result
+ * @param errorCode  error code
+ * @param errorMessage  error message
+ * @since 10
+ */
+- (instancetype)initWithMethodName:(NSString*)methodName
+                            result:(NSString*)result
+                            errorCode:(ErrorCode)errorCode
+                            errorMessage:(NSString*)errorMessage;
 @end
 
 NS_ASSUME_NONNULL_END

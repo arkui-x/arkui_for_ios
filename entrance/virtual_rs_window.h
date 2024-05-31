@@ -23,7 +23,6 @@
 #include "base/log/log.h"
 #include "base/utils/noncopyable.h"
 
-#include "flutter/shell/common/vsync_waiter.h"
 #include "refbase.h"
 #include "render_service_client/core/ui/rs_surface_node.h"
 #include "vsync_receiver.h"
@@ -31,8 +30,8 @@
 #include "foundation/appframework/window_manager/interfaces/innerkits/wm/window_interface.h"
 #include "core/event/touch_event.h"
 
-class NativeValue;
 class NativeEngine;
+typedef struct napi_value__* napi_value;
 #ifdef __OBJC__
 @class WindowView;
 @class UIViewController;
@@ -123,7 +122,6 @@ public:
     static std::shared_ptr<Window> CreateSubWindow(
         std::shared_ptr<OHOS::AbilityRuntime::Platform::Context> context,
         std::shared_ptr<OHOS::Rosen::WindowOption> option);
-    explicit Window(const flutter::TaskRunners& taskRunners);
     explicit Window(std::shared_ptr<AbilityRuntime::Platform::Context> context, uint32_t windowId);
     virtual ~Window() override;
     static std::vector<std::shared_ptr<Window>> GetSubWindow(uint32_t parentId);
@@ -139,6 +137,7 @@ public:
     bool CreateVSyncReceiver(std::shared_ptr<AppExecFwk::EventHandler> handler);
     void RequestNextVsync(std::function<void(int64_t, void*)> callback);
 
+    virtual void FlushFrameRate(int32_t rate) {}
     virtual void RequestVsync(const std::shared_ptr<VsyncCallback>& vsyncCallback);
 
     void CreateSurfaceNode(void* layer);
@@ -146,12 +145,13 @@ public:
     void NotifyKeyboardHeightChanged(int32_t height);
     void NotifySurfaceDestroyed();
 
+    bool ProcessBackPressed();
     bool ProcessPointerEvent(const std::vector<uint8_t>& data);
     bool ProcessKeyEvent(
-        int32_t keyCode, int32_t keyAction, int32_t repeatTime, int64_t timeStamp = 0, int64_t timeStampStart = 0);
+        int32_t keyCode, int32_t keyAction, int32_t repeatTime, int64_t timeStamp = 0, int64_t timeStampStart = 0, int32_t metaKey = 0);
 
-    WMError SetUIContent(const std::string& contentInfo, NativeEngine* engine,
-        NativeValue* storage, bool isdistributed, AbilityRuntime::Platform::Ability* ability);
+    WMError SetUIContent(const std::string& contentInfo, NativeEngine* engine, napi_value storage, bool isdistributed,
+        AbilityRuntime::Platform::Ability* ability);
     Ace::Platform::UIContent* GetUIContent();
         
     WMError SetBackgroundColor(uint32_t color);
@@ -174,6 +174,9 @@ public:
 
     WMError RegisterOccupiedAreaChangeListener(const sptr<IOccupiedAreaChangeListener> &listener);
     WMError UnregisterOccupiedAreaChangeListener(const sptr<IOccupiedAreaChangeListener> &listener);
+
+    WMError SetColorSpace(ColorSpace colorSpace);
+    ColorSpace GetColorSpace() const;
 
     bool IsSubWindow() const
     {
@@ -226,6 +229,7 @@ public:
         return state_;
     }
 
+    void UpdateOtherWindowFocusStateToFalse(Window *window);
     SystemBarProperty GetSystemBarPropertyByType(WindowType type) const;
     void SetRequestedOrientation(Orientation);
     WMError RegisterLifeCycleListener(const sptr<IWindowLifeCycle>& listener);
@@ -236,6 +240,8 @@ public:
         return static_cast<int64_t>(1000000000.0f / 60); // SyncPeriod of 60 fps
     }
     void NotifyWillTeminate();
+    void SetFocusable(bool focusable);
+    bool GetFocusable() const;
 private:
     void SetWindowView(WindowView* windowView);
     void SetWindowName(const std::string& windowName);
@@ -246,6 +252,11 @@ private:
     void DelayNotifyUIContentIfNeeded();
     bool IsWindowValid() const;
 
+    GraphicColorGamut GetSurfaceGamutFromColorSpace(ColorSpace colorSpace) const;
+    ColorSpace GetColorSpaceFromSurfaceGamut(GraphicColorGamut colorGamut) const;
+
+    bool isActive_ = false;
+    bool focusable_ = true;
     template<typename T1, typename T2, typename Ret>
     using EnableIfSame = typename std::enable_if<std::is_same_v<T1, T2>, Ret>::type;
     template<typename T> WMError RegisterListener(std::vector<sptr<T>>& holder, const sptr<T>& listener);
@@ -297,13 +308,13 @@ private:
     inline void NotifyAfterActive()
     {
         auto lifecycleListeners = GetListeners<IWindowLifeCycle>();
-        CALL_LIFECYCLE_LISTENER(AfterActive, lifecycleListeners);
+        CALL_LIFECYCLE_LISTENER(AfterFocused, lifecycleListeners);
     }
 
     inline void NotifyAfterInactive()
     {
         auto lifecycleListeners = GetListeners<IWindowLifeCycle>();
-        CALL_LIFECYCLE_LISTENER(AfterInactive, lifecycleListeners);
+        CALL_LIFECYCLE_LISTENER(AfterUnfocused, lifecycleListeners);
     }
 
     inline void NotifyBeforeDestroy(std::string windowName)
@@ -323,7 +334,6 @@ private:
     std::string name_;
     float density_ = 0;
     std::shared_ptr<RSSurfaceNode> surfaceNode_;
-    std::shared_ptr<flutter::VsyncWaiter> vsyncWaiter_;
     bool isWindowShow_ = false;
     WindowView* windowView_ = nullptr;
     std::shared_ptr<UIViewController> viewController_ = nullptr;

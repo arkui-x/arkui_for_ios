@@ -30,11 +30,10 @@
 #include "core/common/ace_view.h"
 #include "core/common/connect_server_manager.h"
 #include "core/common/container_scope.h"
-#include "core/common/flutter/flutter_asset_manager.h"
-#include "core/common/flutter/flutter_task_executor.h"
 #include "core/common/font_manager.h"
 #include "core/common/platform_window.h"
 #include "core/components_ng/pattern/text_field/text_field_manager.h"
+#include "core/common/task_executor_impl.h"
 #include "core/common/thread_checker.h"
 #include "core/common/watch_dog.h"
 #include "core/common/window.h"
@@ -82,16 +81,16 @@ AceContainerSG::AceContainerSG(int32_t instanceId, FrontendType type,
 
     useStageModel_ = true;
 
-    auto flutterTaskExecutor = Referenced::MakeRefPtr<FlutterTaskExecutor>();
-    flutterTaskExecutor->InitPlatformThread(useCurrentEventRunner_, useStageModel_);
+    auto taskExecutorImpl = Referenced::MakeRefPtr<TaskExecutorImpl>();
+    taskExecutorImpl->InitPlatformThread(useCurrentEventRunner_, useStageModel_);
 
     if (type_ == FrontendType::DECLARATIVE_JS) {
         GetSettings().useUIAsJSThread = true;
     } else {
-        flutterTaskExecutor->InitJsThread();
+        taskExecutorImpl->InitJsThread();
     }
 
-    taskExecutor_ = flutterTaskExecutor;
+    taskExecutor_ = taskExecutorImpl;
 
     platformEventCallback_ = std::move(callback);
 }
@@ -222,7 +221,8 @@ void AceContainerSG::InitializeCallback()
     ACE_DCHECK(aceView_ && taskExecutor_ && pipelineContext_);
     auto weak = AceType::WeakClaim(AceType::RawPtr(pipelineContext_));
     auto instanceId = aceView_->GetInstanceId();
-    auto&& touchEventCallback = [weak, instanceId](const TouchEvent& event, const std::function<void()>& markProcess) {
+    auto&& touchEventCallback = [weak, instanceId](const TouchEvent& event, const std::function<void()>& markProcess,
+                                    const RefPtr<OHOS::Ace::NG::FrameNode>& node) {
         auto context = weak.Upgrade();
         CHECK_NULL_VOID(context);
 
@@ -256,7 +256,8 @@ void AceContainerSG::InitializeCallback()
     };
     aceView_->RegisterKeyEventCallback(keyEventCallback);
 
-    auto&& mouseEventCallback = [weak, instanceId](const MouseEvent& event, const std::function<void()>& markProcess) {
+    auto&& mouseEventCallback = [weak, instanceId](const MouseEvent& event, const std::function<void()>& markProcess,
+                                    const RefPtr<OHOS::Ace::NG::FrameNode>& node) {
         auto context = weak.Upgrade();
         CHECK_NULL_VOID(context);
 
@@ -517,15 +518,15 @@ void AceContainerSG::AttachView(
 #ifdef ENABLE_ROSEN_BACKEND
     auto* aceView = static_cast<Platform::AceViewSG*>(aceView_);
     CHECK_NULL_VOID(aceView);
-    auto flutterTaskExecutor = AceType::DynamicCast<FlutterTaskExecutor>(taskExecutor_);
-    CHECK_NULL_VOID(flutterTaskExecutor);
-    flutterTaskExecutor->InitOtherThreads(aceView->GetThreadModel());
+    auto taskExecutorImpl = AceType::DynamicCast<TaskExecutorImpl>(taskExecutor_);
+    CHECK_NULL_VOID(taskExecutorImpl);
+    taskExecutorImpl->InitOtherThreads(aceView->GetThreadModel());
 #endif
     ContainerScope scope(instanceId);
     if (type_ == FrontendType::DECLARATIVE_JS) {
         // for declarative js frontend display ui in js thread
 #ifdef ENABLE_ROSEN_BACKEND
-        flutterTaskExecutor->InitJsThread(false);
+        taskExecutorImpl->InitJsThread(false);
 #endif
         InitializeFrontend();
         auto front = GetFrontend();
@@ -577,7 +578,7 @@ void AceContainerSG::UpdateConfiguration(
     ContainerScope scope(instanceId_);
     auto themeManager = pipelineContext_->GetThemeManager();
     CHECK_NULL_VOID(themeManager);
-    OnConfigurationChange configurationChange;
+    ConfigurationChange configurationChange;
     auto resConfig = GetResourceConfiguration();
     if (!colorMode.empty()) {
         configurationChange.colorModeUpdate = true;
@@ -601,10 +602,12 @@ void AceContainerSG::UpdateConfiguration(
         } else if (direction == "horizontal") {
             resConfig.SetOrientation(DeviceOrientation::LANDSCAPE);
         }
+        configurationChange.directionUpdate = true;
     }
     if (!densityDpi.empty()) {
         double density = std::stoi(densityDpi);
         LOGI("resconfig density : %{public}f", density);
+        configurationChange.dpiUpdate = true;
         resConfig.SetDensity(density);
         SystemProperties::SetResolution(density);
     }
@@ -619,8 +622,8 @@ void AceContainerSG::UpdateConfiguration(
     } else {
         pipelineContext_->SetAppBgColor(Color::WHITE);
     }
-    pipelineContext_->NotifyConfigurationChange(configurationChange);
-    pipelineContext_->FlushReload();
+    pipelineContext_->NotifyConfigurationChange();
+    pipelineContext_->FlushReload(configurationChange);
     pipelineContext_->FlushReloadTransition();
 }
 
@@ -890,7 +893,7 @@ void AceContainerSG::OnNewRequest(int32_t instanceId, const std::string& data)
 void AceContainerSG::DestroyView()
 {
     ContainerScope scope(instanceId_);
-    CHECK_NULL_VOID_NOLOG(aceView_);
+    CHECK_NULL_VOID(aceView_);
     auto aceView = static_cast<AceViewSG*>(aceView_);
     if (aceView) {
         aceView->DecRefCount();
@@ -913,6 +916,7 @@ void AceContainerSG::DestroyContainer(int32_t instanceId, const std::function<vo
     container->DestroyView(); // Stop all threads(ui,gpu,io) for current ability.
     auto removeContainerTask = [instanceId, destroyCallback] {
         LOGI("Remove on Platform thread...");
+        AcePlatformPlugin::ReleaseInstance(instanceId);
         EngineHelper::RemoveEngine(instanceId);
         AceEngine::Get().RemoveContainer(instanceId);
         if (destroyCallback) {
@@ -945,7 +949,7 @@ bool AceContainerSG::RunPage(int32_t instanceId, int32_t pageId, const std::stri
     auto front = container->GetFrontend();
     if (front) {
         LOGD("RunPage content=[%{private}s]", content.c_str());
-        front->RunPage(pageId, content, params);
+        front->RunPage(content, params);
         return true;
     }
 

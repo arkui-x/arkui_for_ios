@@ -15,6 +15,7 @@
 
 #include "adapter/ios/stage/uicontent/ace_view_sg.h"
 
+#include "adapter/ios/entrance/ace_platform_plugin.h"
 #include "adapter/ios/entrance/ace_resource_register.h"
 #include "adapter/ios/stage/uicontent/ace_container_sg.h"
 #include "base/log/dump_log.h"
@@ -55,8 +56,8 @@ void ConvertTouchEvent(const std::vector<uint8_t>& data, std::vector<TouchEvent>
     auto end = current + size;
 
     while (current < end) {
-        std::chrono::microseconds micros(current->time_stamp);
-        TimeStamp time(micros);
+        std::chrono::nanoseconds nanos(current->time_stamp);
+        TimeStamp time(nanos);
         TouchEvent point { static_cast<int32_t>(current->device), static_cast<float>(current->physical_x),
             static_cast<float>(current->physical_y), static_cast<float>(current->physical_x),
             static_cast<float>(current->physical_y), TouchType::UNKNOWN, TouchType::UNKNOWN, time, current->size,
@@ -188,7 +189,7 @@ bool AceViewSG::Dump(const std::vector<std::string>& params)
 
 const void* AceViewSG::GetNativeWindowById(uint64_t textureId)
 {
-    return nullptr;
+    return AcePlatformPlugin::GetNativeWindow(instanceId_, static_cast<int64_t>(textureId));
 }
 
 std::unique_ptr<DrawDelegate> AceViewSG::GetDrawDelegate()
@@ -214,7 +215,7 @@ bool AceViewSG::DispatchBasicEvent(const std::vector<TouchEvent>& touchEvents)
             continue;
         }
         if (touchEventCallback_) {
-            touchEventCallback_(point, nullptr);
+            touchEventCallback_(point, nullptr, nullptr);
         }
     }
     // if it is last page, let os know to quit app
@@ -233,7 +234,7 @@ bool AceViewSG::DispatchTouchEvent(const std::vector<uint8_t>& data)
             continue;
         }
         if (touchEventCallback_) {
-            touchEventCallback_(point, nullptr);
+            touchEventCallback_(point, nullptr, nullptr);
         }
     }
     // if it is last page, let os know to quit app
@@ -243,19 +244,23 @@ bool AceViewSG::DispatchTouchEvent(const std::vector<uint8_t>& data)
 bool AceViewSG::IsLastPage() const
 {
     auto container = AceEngine::Get().GetContainer(instanceId_);
-    CHECK_NULL_RETURN_NOLOG(container, false);
+    CHECK_NULL_RETURN(container, false);
     ContainerScope scope(instanceId_);
     auto context = container->GetPipelineContext();
-    CHECK_NULL_RETURN_NOLOG(context, false);
+    CHECK_NULL_RETURN(context, false);
     return context->IsLastPage();
 }
 
 bool AceViewSG::DispatchKeyEvent(const KeyEventInfo& eventInfo)
 {
-    CHECK_NULL_RETURN_NOLOG(keyEventCallback_, false);
+    CHECK_NULL_RETURN(keyEventCallback_, false);
 
     auto keyEvents = keyEventRecognizer_.GetKeyEvents(eventInfo.keyCode, eventInfo.keyAction, eventInfo.repeatTime,
-        eventInfo.timeStamp, eventInfo.timeStampStart, eventInfo.metaKey, eventInfo.sourceDevice, eventInfo.deviceId);
+        eventInfo.timeStamp, eventInfo.timeStampStart, eventInfo.metaKey, eventInfo.sourceDevice, eventInfo.deviceId,
+        eventInfo.msg);
+    if (keyEvents.size() == 0) {
+        return false;
+    } 
     // distribute special event firstly
     // because platform receives a raw event, the special event processing is ignored
     if (keyEvents.size() > 1) {
@@ -287,7 +292,7 @@ void AceViewSG::NotifyDensityChanged(double density)
 
 void AceViewSG::SetViewportMetrics(AceViewSG* view, const ViewportConfig& config)
 {
-    CHECK_NULL_VOID_NOLOG(view);
+    CHECK_NULL_VOID(view);
     view->NotifyDensityChanged(config.Density());
 }
 
@@ -308,7 +313,7 @@ void AceViewSG::SurfaceChanged(AceViewSG* view, int32_t width, int32_t height, i
 
 void AceViewSG::SurfacePositionChanged(AceViewSG* view, int32_t posX, int32_t posY)
 {
-    CHECK_NULL_VOID_NOLOG(view);
+    CHECK_NULL_VOID(view);
     view->NotifySurfacePositionChanged(posX, posY);
 }
 

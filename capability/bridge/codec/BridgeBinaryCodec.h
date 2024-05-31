@@ -16,8 +16,8 @@
 #ifndef FOUNDATION_ADAPTER_CAPABILITY_BRIDGE_CODEC_BridgeBinaryCodec_H
 #define FOUNDATION_ADAPTER_CAPABILITY_BRIDGE_CODEC_BridgeBinaryCodec_H
 
-#import "BridgeCodesDelegate.h"
 #import <Foundation/Foundation.h>
+#import "BridgeCodesDelegate.h"
 NS_ASSUME_NONNULL_BEGIN
 
 @interface BridgeBinaryCodec : NSObject <BridgeCodesDelegate>

@@ -43,8 +43,8 @@ public:
     }
     std::unique_ptr<NativeEngine> nativeEngine_;
     // UI content lifecycles
-    void Initialize(OHOS::Rosen::Window* window, const std::string& url, NativeValue* storage) override;
-    NativeValue* GetUIContext() override;
+    void Initialize(OHOS::Rosen::Window* window, const std::string& url, napi_value storage) override;
+    napi_value GetUINapiContext() override;
     void Foreground() override;
     void Background() override;
     void Focus() override;
@@ -56,8 +56,10 @@ public:
     // UI content event process
     bool ProcessBackPressed() override;
     bool ProcessPointerEvent(const std::vector<uint8_t>& data) override;
+    bool ProcessMouseEvent(const std::vector<uint8_t>& data) override { return true; };
     bool ProcessKeyEvent(int32_t keyCode, int32_t keyAction, int32_t repeatTime, int64_t timeStamp = 0,
-        int64_t timeStampStart = 0, int32_t metaKey = 0, int32_t sourceDevice = 0, int32_t deviceId = 0) override;
+        int64_t timeStampStart = 0, int32_t metaKey = 0, int32_t sourceDevice = 0, int32_t deviceId = 0,
+        std::string msg = "") override;
 
     void NotifySurfaceCreated() override;
     void NotifySurfaceDestroyed() override;
@@ -83,7 +85,7 @@ public:
     bool ProcessBasicEvent(const std::vector<TouchEvent>& touchEvents) override;
 
 private:
-    void CommonInitialize(OHOS::Rosen::Window* window, const std::string& url, NativeValue* storage);
+    void CommonInitialize(OHOS::Rosen::Window* window, const std::string& url, napi_value storage);
 
     void DestroyCallback() const;
 

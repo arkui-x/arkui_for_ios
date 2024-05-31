@@ -270,7 +270,7 @@ std::string StageAssetProvider::GetAppDataModuleDir() const
     NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
     NSString *documentsDirectory = [paths objectAtIndex:0];
     NSString *filesDirectory = [[documentsDirectory stringByAppendingPathComponent:@"files"]
-                                                         stringByAppendingPathComponent:@"arkui-x"];
+                                                         stringByAppendingPathComponent:@"arkui-x"];    
     std::string stageDynamicDir = [filesDirectory UTF8String];
     return stageDynamicDir;
 }
@@ -280,7 +280,7 @@ std::vector<std::string> StageAssetProvider::GetAllFilePath()
     std::vector<std::string> fileFullPaths;
 
     NSArray *filePathArray = [[StageAssetManager assetManager] getAssetAllFilePathList];
-    for (NSString *filePath in filePathArray) {
+    for (NSString *filePath in filePathArray) {        
         std::string file = [filePath UTF8String];
         fileFullPaths.emplace_back(file);
     }
@@ -294,7 +294,7 @@ bool StageAssetProvider::GetAppDataModuleAssetList(
     NSString *bundlePath = GetOCstring(path);
     NSFileManager *fileMgr = [NSFileManager defaultManager];
     BOOL isDirectroy = NO;
-    NSArray *moduleArray = [fileMgr subpathsOfDirectoryAtPath:bundlePath error:&error];
+    NSArray *moduleArray = [fileMgr subpathsOfDirectoryAtPath:bundlePath error:&error];    
 
     if (error || moduleArray.count <= 0) {
         return false;

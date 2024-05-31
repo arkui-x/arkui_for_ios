@@ -1,4 +1,4 @@
-# Copyright (c) 2022 Huawei Device Co., Ltd.
+# Copyright (c) 2022-2023 Huawei Device Co., Ltd.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -14,8 +14,9 @@
 import("//build/config/config.gni")
 import("//build/ohos.gni")
 import("//foundation/arkui/ace_engine/ace_config.gni")
-import(
-    "//foundation/arkui/ace_engine/frameworks/core/components_ng/components_plugin.gni")
+
+# import(
+#     "//foundation/arkui/ace_engine/frameworks/core/components_ng/components_plugin.gni")
 import("//foundation/arkui/ace_engine/interfaces/napi/kits/napi_lib.gni")
 import("//plugins/plugin_lib.gni")
 import("config.gni")
@@ -26,11 +27,15 @@ ohos_combine_darwin_framework("libarkui_ios") {
 
   _export_framework_headers = [
     "$ace_root/adapter/ios/capability/bridge/BridgePlugin.h",
-    "$ace_root/adapter/ios/capability/bridge/ResultValue.h",
+    "$ace_root/adapter/ios/capability/bridge/BridgePluginManager.h",
     "$ace_root/adapter/ios/capability/bridge/MethodData.h",
+    "$ace_root/adapter/ios/capability/bridge/ResultValue.h",
+    "$ace_root/adapter/ios/capability/bridge/TaskOption.h",
     "$ace_root/adapter/ios/capability/bridge/codec/BridgeArray.h",
     "$ace_root/adapter/ios/stage/ability/StageViewController.h",
     "$ace_root/adapter/ios/stage/ability/StageApplication.h",
+    "$ace_root/adapter/ios/entrance/plugin_lifecycle/IArkUIXPlugin.h",
+    "$ace_root/adapter/ios/entrance/plugin_lifecycle/PluginContext.h",
   ]
 
   subsystem_name = "arkui"
@@ -134,6 +139,7 @@ foreach(module, common_plugin_libs) {
     ]
     deps = [ "//plugins/$module:${plugin_name_ext}_static_ios" ]
     deps += [ ":arkui_ios" ]
+
     frameworks = [
       "AVFoundation.framework",
       "Foundation.framework",
@@ -155,38 +161,38 @@ foreach(module, common_plugin_libs) {
 }
 
 # components target
-component_plugin_modules = []
-foreach(module, component_plugins) {
-  sub_name = string_replace(module, "_", "")
-  module_name = "arkui_$sub_name"
-  lib_name = "lib" + module_name
-  ohos_shared_library(module_name) {
-    ldflags = [
-      "-Wl",
-      "-install_name",
-      "@rpath/${lib_name}.framework/$lib_name",
-    ]
-    deps = [ "$ace_root/frameworks/core/components_ng/pattern/${module}:components_plugins_${module}_source_ios" ]
-    deps += [ ":arkui_ios" ]
-    frameworks = [
-      "AVFoundation.framework",
-      "Foundation.framework",
-      "UIKit.framework",
-      "WebKit.framework",
-    ]
+# component_plugin_modules = []
+# foreach(module, component_plugins) {
+#   sub_name = string_replace(module, "_", "")
+#   module_name = "arkui_$sub_name"
+#   lib_name = "lib" + module_name
+#   ohos_shared_library(module_name) {
+#     ldflags = [
+#       "-Wl",
+#       "-install_name",
+#       "@rpath/${lib_name}.framework/$lib_name",
+#     ]
+#     deps = [ "$ace_root/frameworks/core/components_ng/pattern/${module}:components_plugins_${module}_source_ios" ]
+#     deps += [ ":arkui_ios" ]
+#     frameworks = [
+#       "AVFoundation.framework",
+#       "Foundation.framework",
+#       "UIKit.framework",
+#       "WebKit.framework",
+#     ]
 
-    # relative_install_dir = "module"
-    subsystem_name = "arkui"
-    part_name = "arkui_components"
-  }
-  ohos_combine_darwin_framework(lib_name) {
-    deps = [ ":$module_name" ]
+#     # relative_install_dir = "module"
+#     subsystem_name = "arkui"
+#     part_name = "arkui_components"
+#   }
+#   ohos_combine_darwin_framework(lib_name) {
+#     deps = [ ":$module_name" ]
 
-    subsystem_name = "arkui"
-    part_name = "arkui_components"
-  }
-  component_plugin_modules += [ ":${lib_name}" ]
-}
+#     subsystem_name = "arkui"
+#     part_name = "arkui_components"
+#   }
+#   component_plugin_modules += [ ":${lib_name}" ]
+# }
 
 # Install packages
 group("ace_packages") {
