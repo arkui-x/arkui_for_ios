@@ -338,7 +338,8 @@ void SubwindowIos::GetPopupInfoNG(int32_t targetId, NG::PopupInfo& popupInfo)
     popupInfo = overlayManager->GetPopupInfo(targetId);
 }
 
-void SubwindowIos::ShowPopupNG(int32_t targetId, const NG::PopupInfo& popupInfo)
+void SubwindowIos::ShowPopupNG(int32_t targetId, const NG::PopupInfo& popupInfo,
+    const std::function<void(int32_t)>&& onWillDismiss, bool interactiveDismiss)
 {
     TAG_LOGD(AceLogTag::ACE_SUB_WINDOW, "Show popup ng enter.");
     CHECK_NULL_VOID(window_);

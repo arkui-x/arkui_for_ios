@@ -26,6 +26,11 @@ RefPtr<DrawingColorFilter> DrawingColorFilter::CreateDrawingColorFilter(const st
     return nullptr;
 }
 
+RefPtr<DrawingColorFilter> DrawingColorFilter::CreateDrawingColorFilterFromNative(void* sptrAddr)
+{
+    return nullptr;
+}
+
 void* DrawingColorFilterIos::GetDrawingColorFilterSptrAddr()
 {
     return nullptr;

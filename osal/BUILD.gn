@@ -66,6 +66,8 @@ template("ace_osal_ios_source_set") {
       "response_data.cpp",
       "ressched_report.cpp",
       "socperf_client_impl.cpp",
+      "stylus_detector_default.cpp",
+      "stylus_detector_mgr.cpp",
       "subwindow_ios.cpp",
       "system_properties.cpp",
       "time_event_proxy_ios.cpp",
