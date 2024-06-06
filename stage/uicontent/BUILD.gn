@@ -31,6 +31,7 @@ template("ace_uicontent_ios_source_set") {
     ]
 
     include_dirs = [
+      "//third_party/zlib",
       "//arkcompiler/ets_runtime",
       "//arkcompiler/runtime_core",
       "//base/global/resource_management/interfaces/inner_api/include",

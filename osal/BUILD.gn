@@ -86,6 +86,7 @@ template("ace_osal_ios_source_set") {
       "$app_framework_window_path/interfaces/innerkits/dm",
       "$app_framework_window_path/interfaces/innerkits/wm",
       "$app_framework_window_path/utils/include",
+      "//third_party/zlib",
       "$c_utils_root/base/include",
       "$flutter_root/engine/",
     ]
