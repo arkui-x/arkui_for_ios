@@ -55,7 +55,8 @@ static NSMutableDictionary<NSString*, AceWeb*> *objectMap;
     IAceOnResourceEvent callback = [self getEventCallback];
     AceWeb *aceWeb = [[AceWeb alloc] init:incId target:(UIViewController*)self.target onEvent:callback abilityInstanceId:self.instanceId];
     [aceWeb loadUrl:[param valueForKey:URL_SRC] header:[NSMutableDictionary dictionary]];
-    [self.target.view insertSubview:aceWeb.getWeb atIndex:0];
+    NSUInteger insertIndex = [self.target.view.subviews count] - 1;
+    [self.target.view insertSubview:aceWeb.getWeb atIndex:insertIndex];
     [self addResource:incId web:aceWeb];
     return incId;
 }

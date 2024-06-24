@@ -28,7 +28,7 @@ NS_ASSUME_NONNULL_BEGIN
 /**
  * When using the 'callMethod:' method of BrigdePlugin, 
  * implement the 'IMethodResult' delegate to listen for returned results and error messages
- * 
+ *
  * @since 10
  */
 @protocol IMethodResult <NSObject>
@@ -36,7 +36,7 @@ NS_ASSUME_NONNULL_BEGIN
 /*
  * The iOS platform calls the method registered by Arkui, and after a successful call,
  * this method will be called, returning the name and value of the calling method
- * 
+ *
  * @param methodName  method name.
  * @param resultValue method resultValue.
  * @since 10
@@ -48,7 +48,7 @@ NS_ASSUME_NONNULL_BEGIN
  * The iOS platform calls a method registered with Arkui, but if the call fails,
  * it will call and return the method name, error code, and error log.
  * The error code is checked in the 'ResultValue' class
- * 
+ *
  * @param methodName  method name.
  * @param errorCode errorCode. success : 0
  * @param errorMessage errorMessage.
@@ -72,14 +72,14 @@ NS_ASSUME_NONNULL_BEGIN
  * Using the sendMessage method of BrigdePlugin,
  * implement this delegate to listen to the information sent by Arkui calling the sendmessage method and
  * obtain the data returned by Arkui
- * 
+ *
  * @since 10
  */
 @protocol IMessageListener <NSObject>
 
 /**
  * This method can listen to the data passed by Arkui calling the 'sendMessage' method
- * 
+ *
  * @return object.
  * @param data data.
  * @since 10
@@ -101,7 +101,7 @@ NS_ASSUME_NONNULL_BEGIN
  * Encoding type of Bridge.
  * JSON_ TYPE is JSON string format, JSON_ TYPE is Default type
  * BINARY_TYPE is Unit_8 format
- * 
+ *
  * @since 11
  */
 typedef enum : int {
@@ -113,28 +113,28 @@ typedef enum : int {
 
 /**
  * The bridge name.
- * 
+ *
  * @since 10
  */
 @property(nonatomic, strong, readonly) NSString* bridgeName;
 
 /**
  * The bridgeManager.
- * 
+ *
  * @since 10
  */
 @property(nonatomic, strong, readonly) BridgePluginManager* bridgeManager;
 
 /**
  * Callmethod result delegate
- * 
+ *
  * @since 10
  */
 @property(nonatomic, assign) id<IMethodResult> methodResult;
 
 /**
  * SendMessage listerner delegate
- * 
+ *
  * @since 10
  */
 @property(nonatomic, assign) id<IMessageListener> messageListener;
@@ -147,14 +147,14 @@ typedef enum : int {
 
 /**
  * The current encoding format data format, default is JSON_TYPE
- * 
+ *
  * @since 10
  */
 @property(nonatomic, assign, readonly) BridgeType type;
 
 /**
  * The type of current queue task
- * 
+ *
  * @since 11
  */
 @property(nonatomic, strong, readonly) TaskOption* taskOption;
@@ -163,7 +163,7 @@ typedef enum : int {
  * Initializes this BridgePlugin. 
  * This API is supported since API version 10 and deprecated since API version 11.
  * You are advised to use BridgePluginManager related construction methods
- * 
+ *
  * @param bridgeName  bridgeName.
  * @param instanceId instanceId.
  * @since 10
@@ -176,7 +176,7 @@ typedef enum : int {
 /**
  * Initializes this BridgePlugin.
  * Obtain the BridgePluginManager object through the 'getBridgeManager' of StageViewController
- * 
+ *
  * @param bridgeName  bridgeName.
  * @param bridgeManager bridgeManager.
  * @since 11
@@ -200,7 +200,7 @@ typedef enum : int {
 /**
  * Initializes this BridgePlugin.
  * Obtain the BridgePluginManager object through the 'getBridgeManager' of StageViewController
- * 
+ *
  * @param bridgeName  bridgeName.
  * @param bridgeManager bridgeManager.
  * @param type type.
@@ -223,7 +223,7 @@ typedef enum : int {
 /**
  * sendMessage to arkui.
  * use 'messageListener' deleate, Listening to call results.
- * 
+ *
  * @param data  data.
  * @since 10
  */

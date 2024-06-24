@@ -67,7 +67,7 @@ bool AceWebResourceObjectWrapper::IsRedirect(void *object)
     return false;
 }
 
-class AceWebResourceErrorObject final : public OHOS::Ace::WebResourceErrorObject{
+class AceWebResourceErrorObject final : public OHOS::Ace::WebResourceErrorObject {
 public:
     std::string GetErrorInfo(void *object);
     int GetErrorCode(void *object);

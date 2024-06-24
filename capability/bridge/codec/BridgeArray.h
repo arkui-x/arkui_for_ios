@@ -37,12 +37,12 @@ typedef enum {
 @interface BridgeArray : NSObject
 
 /**
- * Initializes this BridgeArray. 
- * Using BINARY_ TYPE encode, when sending an array of a specified type, 
+ * Initializes this BridgeArray.
+ * Using BINARY_ TYPE encode, when sending an array of a specified type,
  * the array needs to be converted to the BridgeArray class
  * BridgeArrayTypeBooL、BridgeArrayTypeInt32、BridgeArrayTypeInt64、BridgeArrayTypeDouble、
  * The above four types need to be converted to an NSNumber array
- * 
+ *
  * @param bridgeArray array
  * @param type BridgeArrayType.
  * @since 11

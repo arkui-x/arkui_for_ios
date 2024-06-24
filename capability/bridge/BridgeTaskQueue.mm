@@ -42,10 +42,6 @@
 
 - (void)dispatch:(dispatch_block_t)block {
     NSBlockOperation* operation = [NSBlockOperation blockOperationWithBlock:block];
-    // __weak BridgeTaskQueue* weakSelf = self;
-    // [operation setCompletionBlock:^{
-    //     [weakSelf printQueueLog];
-    // }];
     [self.queue addOperation:operation];
 }
 
@@ -56,15 +52,7 @@
     }
     NSLog(@"----------[Bridge Queue] dump:----------");
     NSLog(@"[Bridge Queue] name: %@",  _queue.name);
-    // NSLog(@"[Bridge Queue] Max Concurrent Operations: %ld", _queue.maxConcurrentOperationCount);
-    // NSLog(@"[Bridge Queue] Operation Count: %ld", _queue.operationCount);
-    // NSLog(@"[Bridge Queue] Suspended: %@", _queue.isSuspended ? @"YES" : @"NO");
     NSLog(@"[Bridge Queue] TreadInfo: %@", [NSThread currentThread]);
-
-    // NSArray<NSOperation*>* operations = [_queue operations];
-    // for (NSOperation* operation in operations) {
-    //     NSLog(@"[Bridge Queue] Operation Queue Priority: %ld", operation.queuePriority);
-    // }
 }
 
 @end

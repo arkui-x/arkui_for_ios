@@ -31,6 +31,7 @@ template("ace_uicontent_ios_source_set") {
     ]
 
     include_dirs = [
+      "//third_party/zlib",
       "//arkcompiler/ets_runtime",
       "//arkcompiler/runtime_core",
       "//base/global/resource_management/interfaces/inner_api/include",
@@ -38,6 +39,12 @@ template("ace_uicontent_ios_source_set") {
       "//third_party/flutter/engine",
       "//foundation/appframework/arkui/uicontent",
     ]
+
+    if (is_arkui_x) {
+      include_dirs += [
+        "//foundation/graphic/graphic_surface/interfaces/inner_api/surface",
+      ]
+    }
 
     deps = [
       "$ability_runtime_cross_platform_path/interfaces/kits/native/ability:cross_platform_abilitykit_native",
@@ -51,6 +58,8 @@ template("ace_uicontent_ios_source_set") {
     if (defined(config.enable_rosen_backend) && config.enable_rosen_backend) {
       deps += [ "//foundation/graphic/graphic_2d/rosen/modules/render_service_client:librender_service_client_static" ]
     }
+
+    deps += [ "//foundation/multimodalinput/input/frameworks/proxy:libmmi-client-crossplatform" ]
 
     configs = [
       "$ace_root:ace_config",

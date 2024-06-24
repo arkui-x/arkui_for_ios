@@ -522,7 +522,6 @@ typedef void (^PostMessageResultMethod)(NSString* ocResult);
                 NSLog(@"AceWeb: isZoomEnable same");
                 return SUCCESS;
             }
-            [self.webView reload];
             self.allowZoom = isZoomEnable;
             WKUserContentController *userController = [WKUserContentController new];
             NSString *injectionJSString;
@@ -817,7 +816,7 @@ typedef void (^PostMessageResultMethod)(NSString* ocResult);
         [self.callSyncMethodMap removeAllObjects];
         self.callSyncMethodMap = nil;
     }
-    
+    [self.webView removeFromSuperview];
     self.webView = nil;
     self.preferences = nil;
     self.webpagePreferences = nil;
@@ -848,15 +847,6 @@ typedef void (^PostMessageResultMethod)(NSString* ocResult);
         return;
     }
     [self fireCallback:@"onPageFinished" params:param];
-    
-    if(!self.allowZoom){
-        NSLog(@"didFinishNavigation allowZoom disable  === ");
-        NSString *injectionJSString = @"var script = document.createElement('meta');"
-        "script.name = 'viewport';"
-        "script.content=\"width=device-width, user-scalable=no\";"
-        "document.getElementsByTagName('head')[0].appendChild(script);";
-        [webView evaluateJavaScript:injectionJSString completionHandler:nil];
-    }
 }
 
 - (void)webView:(WKWebView*)webView

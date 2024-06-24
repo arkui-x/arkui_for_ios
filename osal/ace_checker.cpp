@@ -33,4 +33,7 @@ bool AceChecker::IsPerformanceCheckEnabled()
 void AceChecker::NotifyCaution(const std::string& tag) {}
 
 void AceChecker::InitPerformanceParameters() {}
+
+void AceTraceBeginCommercial(const char* name) {}
+void AceTraceEndCommercial() {}
 } // namespace OHOS::Ace

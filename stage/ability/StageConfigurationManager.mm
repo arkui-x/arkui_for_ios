@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2023-2024 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -18,6 +18,8 @@
 
 #include <string>
 #include <app_main.h>
+
+#include "capability_registry.h"
 
 #define APPLICATION_DIRECTION @"ohos.application.direction"
 #define COLOR_MODE_LIGHT @"light"
@@ -73,6 +75,7 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
         AppMain::GetInstance()->InitConfiguration(EMPTY_JSON);
     }
     AppMain::GetInstance()->InitConfiguration(json);
+    OHOS::Ace::Platform::CapabilityRegistry::Register();
 }
 
 - (void)directionUpdate:(UIDeviceOrientation)direction {

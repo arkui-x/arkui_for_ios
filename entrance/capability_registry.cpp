@@ -18,10 +18,14 @@
 #include "adapter/ios/capability/clipboard/clipboard_proxy_impl.h"
 #include "adapter/ios/capability/editing/text_input_plugin.h"
 #include "adapter/ios/capability/environment/environment_proxy_impl.h"
+#include "adapter/ios/capability/font/font_platform_proxy_impl.h"
 #include "adapter/ios/capability/storage/storage_proxy_impl.h"
 #include "adapter/ios/capability/vibrator/vibrator_proxy_impl.h"
 #include "core/common/clipboard/clipboard_proxy.h"
 #include "core/common/environment/environment_proxy.h"
+#ifdef USE_PLATFORM_FONT
+#include "core/common/font/font_platform_proxy.h"
+#endif
 #include "core/common/ime/text_input_proxy.h"
 #include "core/common/storage/storage_proxy.h"
 #include "core/common/vibrator/vibrator_proxy.h"
@@ -35,6 +39,9 @@ void CapabilityRegistry::Register()
     EnvironmentProxy::GetInstance()->SetDelegate(std::make_unique<EnvironmentProxyImpl>());
     StorageProxy::GetInstance()->SetDelegate(std::make_unique<StorageProxyImpl>());
     VibratorProxy::GetInstance().SetDelegate(std::make_unique<VibratorProxyImpl>());
+#ifdef USE_PLATFORM_FONT
+    FontPlatformProxy::GetInstance().SetDelegate(std::make_unique<FontPlatformProxyImpl>());
+#endif
 }
 
 } // namespace OHOS::Ace::Platform

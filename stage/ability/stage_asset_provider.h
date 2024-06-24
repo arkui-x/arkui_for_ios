@@ -53,7 +53,7 @@ public:
     bool GetAppDataModuleAssetList(const std::string& path, std::vector<std::string>& fileFullPaths, bool onlyChild);
     std::vector<std::string> GetAllFilePath();
     std::vector<uint8_t> GetBufferByAppDataPath(const std::string& fileFullPath);
-
+    std::vector<uint8_t> GetAotBuffer(const std::string &fileName);
 private:
     std::mutex providerLock_;
     static std::shared_ptr<StageAssetProvider> instance_;

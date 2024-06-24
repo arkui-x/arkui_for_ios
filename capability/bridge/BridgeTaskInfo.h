@@ -25,8 +25,8 @@ NS_ASSUME_NONNULL_BEGIN
 typedef void (^BridgeTaskHandler)(void);
 
 typedef enum : int {
-    INPUT,//js call native
-    OUTPUT,//native call js
+    INPUT, //js call native
+    OUTPUT, //native call js
 } QueueInOutType;
 
 @interface BridgeTaskInfo : NSObject

@@ -18,6 +18,7 @@ import("//foundation/arkui/ace_engine/ace_config.gni")
 # import(
 #     "//foundation/arkui/ace_engine/frameworks/core/components_ng/components_plugin.gni")
 import("//foundation/arkui/ace_engine/interfaces/napi/kits/napi_lib.gni")
+import("//plugins/component/components.gni")
 import("//plugins/plugin_lib.gni")
 import("config.gni")
 
@@ -32,6 +33,8 @@ ohos_combine_darwin_framework("libarkui_ios") {
     "$ace_root/adapter/ios/capability/bridge/ResultValue.h",
     "$ace_root/adapter/ios/capability/bridge/TaskOption.h",
     "$ace_root/adapter/ios/capability/bridge/codec/BridgeArray.h",
+    "$ace_root/adapter/ios/capability/platformview/IPlatformView.h",
+    "$ace_root/adapter/ios/capability/platformview/PlatformViewFactory.h",
     "$ace_root/adapter/ios/stage/ability/StageViewController.h",
     "$ace_root/adapter/ios/stage/ability/StageApplication.h",
     "$ace_root/adapter/ios/entrance/plugin_lifecycle/IArkUIXPlugin.h",
@@ -52,6 +55,7 @@ ohos_shared_library("arkui_ios") {
 
   deps = [
     "$ace_root/build:libace_static_ios",
+    "$ace_root/interfaces/native:ace_static_ndk",
     "//foundation/appframework:appframework_napis",
     "//foundation/appframework/icu_data:static_icudata",
     "//plugins/interfaces/native:ace_plugin_util_inner_ios",
@@ -194,11 +198,48 @@ foreach(module, common_plugin_libs) {
 #   component_plugin_modules += [ ":${lib_name}" ]
 # }
 
+components_modules = []
+
+foreach(module, arkui_x_components) {
+  sub_name = string_replace(module, "_", "")
+  module_name = "$sub_name"
+  lib_name = "lib" + module_name
+  ohos_shared_library(module_name) {
+    ldflags = [
+      "-Wl",
+      "-install_name",
+      "@rpath/${lib_name}.framework/$lib_name",
+    ]
+    deps = [
+      "//plugins/component/${module}:arkui_x_components_${module}_source_ios",
+    ]
+    deps += [ ":arkui_ios" ]
+    frameworks = [
+      "AVFoundation.framework",
+      "Foundation.framework",
+      "UIKit.framework",
+      "WebKit.framework",
+    ]
+
+    # relative_install_dir = "module"
+    subsystem_name = "arkui"
+    part_name = "arkui_components"
+  }
+  ohos_combine_darwin_framework(lib_name) {
+    deps = [ ":$module_name" ]
+
+    subsystem_name = "arkui"
+    part_name = "arkui_components"
+  }
+  components_modules += [ ":${lib_name}" ]
+}
+
 # Install packages
 group("ace_packages") {
   deps = [ ":libarkui_ios" ]
   deps += common_napi_modules
   deps += common_plugin_modules
+  deps += components_modules
   if (defined(use_components_lib) && use_components_lib) {
     deps += component_plugin_modules
   }

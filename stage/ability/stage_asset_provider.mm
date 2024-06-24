@@ -166,7 +166,7 @@ void StageAssetProvider::GetResIndexPath(const std::string& moduleName,
     }
 }
 
-std::vector<uint8_t> StageAssetProvider::GetModuleAbilityBuffer (
+std::vector<uint8_t> StageAssetProvider::GetModuleAbilityBuffer(
     const std::string& moduleName, const std::string& abilityName, std::string& modulePath, bool esmodule)
 {
     printf("%s, moduleName : %s, abilityName : %s", __func__, moduleName.c_str(), abilityName.c_str());
@@ -318,6 +318,12 @@ std::vector<uint8_t> StageAssetProvider::GetBufferByAppDataPath(const std::strin
     NSString *oc_dataAppPath = GetOCstring(fileFullPath);
     NSData *oc_dataAppPathData = [NSData dataWithContentsOfFile:oc_dataAppPath];
     buffer = GetVectorFromNSData(oc_dataAppPathData);
+    return buffer;
+}
+
+std::vector<uint8_t> StageAssetProvider::GetAotBuffer(const std::string &fileName)
+{
+    std::vector<uint8_t> buffer;
     return buffer;
 }
 } // namespace Platform

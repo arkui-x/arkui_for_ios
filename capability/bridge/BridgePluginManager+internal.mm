@@ -71,6 +71,7 @@ static std::unique_ptr<OHOS::Ace::Platform::BufferMapping> NSDataToBufferMapping
         self.pluginInstanceId = instanceId;
         self.bridgeMap = [[NSMutableDictionary alloc] init];
         self.bridgeQueueMap = [[NSMutableDictionary alloc] init];
+        [self updateCurrentInstanceId:instanceId];
     }
     return self;
 }
@@ -408,7 +409,8 @@ static char kBridgeQueueMapKey;
         return;
     }
 
-    [bridgePlugin jsSendMessage:data];
+    RawValue* rawValue = [[BridgeJsonCodec sharedInstance] decode:data];
+    [bridgePlugin jsSendMessage:rawValue.result];
 }
 
 - (void)jsSendMessageResponseInner:(NSString*)bridgeName data:(NSString*)data {
@@ -473,7 +475,7 @@ static char kBridgeQueueMapKey;
         OHOS::Ace::Platform::BridgeManager::PlatformCallMethod(instanceId, c_bridgeName, c_methodName, c_param);
     };
 
-    taskExecutor->PostTask(task, OHOS::Ace::TaskExecutor::TaskType::JS);
+    taskExecutor->PostTask(task, OHOS::Ace::TaskExecutor::TaskType::JS, "ArkUI-XBridgePluginManager+internalPlatformCallMethodInner");
 }
 
 - (void)platformSendMessageInner:(NSString*)bridgeName data:(id)data {
@@ -501,7 +503,7 @@ static char kBridgeQueueMapKey;
         OHOS::Ace::Platform::BridgeManager::PlatformSendMessage(instanceId, c_bridgeName, c_data);
     };
 
-    taskExecutor->PostTask(task, OHOS::Ace::TaskExecutor::TaskType::JS);
+    taskExecutor->PostTask(task, OHOS::Ace::TaskExecutor::TaskType::JS, "ArkUI-XBridgePluginManager+internalPlatformSendMessageInner");
 }
 
 - (void)platformSendMessageResponseInner:(NSString*)bridgeName data:(id)data {
@@ -529,7 +531,7 @@ static char kBridgeQueueMapKey;
         OHOS::Ace::Platform::BridgeManager::PlatformSendMessageResponse(instanceId, c_bridgeName, c_data);
     };
 
-    taskExecutor->PostTask(task, OHOS::Ace::TaskExecutor::TaskType::JS);
+    taskExecutor->PostTask(task, OHOS::Ace::TaskExecutor::TaskType::JS, "ArkUI-XBridgePluginManager+internalPlatformSendMessageResponseInner");
 }
 
 - (void)platformSendMethodResultInner:(NSString*)bridgeName methodName:(NSString*)methodName result:(NSString*)result {
@@ -557,7 +559,7 @@ static char kBridgeQueueMapKey;
         OHOS::Ace::Platform::BridgeManager::PlatformSendMethodResult(instanceId, c_bridgeName, c_methodName, c_result);
     };
 
-    taskExecutor->PostTask(task, OHOS::Ace::TaskExecutor::TaskType::JS);
+    taskExecutor->PostTask(task, OHOS::Ace::TaskExecutor::TaskType::JS, "ArkUI-XBridgePluginManager+internalPlatformSendMethodResultInner");
 }
 
 - (void)jsSendMessageBinaryInner:(NSString*)bridgeName data:(id)data {
@@ -635,7 +637,7 @@ static char kBridgeQueueMapKey;
                 c_methodName, errorCode, c_errorMessage, std::move(c_result));
     };
 
-    taskExecutor->PostTask(task, OHOS::Ace::TaskExecutor::TaskType::JS);
+    taskExecutor->PostTask(task, OHOS::Ace::TaskExecutor::TaskType::JS, "ArkUI-XBridgePluginManager+internalPlatformSendMethodResultBinaryInner");
 }
 
 - (void)platformSendMessageBinaryInner:(NSString*)bridgeName data:(id)data {
@@ -659,7 +661,7 @@ static char kBridgeQueueMapKey;
         OHOS::Ace::Platform::BridgeManager::PlatformSendMessageBinary(instanceId, c_bridgeName, std::move(c_data));
     };
 
-    taskExecutor->PostTask(task, OHOS::Ace::TaskExecutor::TaskType::JS);
+    taskExecutor->PostTask(task, OHOS::Ace::TaskExecutor::TaskType::JS, "ArkUI-XBridgePluginManager+internalPlatformSendMessageBinaryInner");
 }
 
 - (void)platformCallMethodBinaryInner:(NSString*)bridgeName
@@ -707,7 +709,7 @@ static char kBridgeQueueMapKey;
                 c_bridgeName, c_methodName, std::move(c_result));
     };
 
-    taskExecutor->PostTask(task, OHOS::Ace::TaskExecutor::TaskType::JS);
+    taskExecutor->PostTask(task, OHOS::Ace::TaskExecutor::TaskType::JS, "ArkUI-XBridgePluginManager+internalPlatformCallMethodBinaryInner");
 }
 
 
@@ -761,6 +763,10 @@ static char kBridgeQueueMapKey;
         return;
     }
     [handler dispatchTaskInfo:taskInfo];
+}
+
+- (void)updateCurrentInstanceId:(int)instanceId {
+    OHOS::Ace::Platform::BridgeManager::SetCurrentInstanceId(instanceId);
 }
 
 @end

@@ -17,7 +17,7 @@
 
 @implementation AceSurfaceHolder
 
-static NSMutableDictionary<NSString *, UIView *> *surfaceMap = nil;
+static NSMutableDictionary<NSString *, CALayer *> *surfaceMap = nil;
 
 + (void)initialize
 {
@@ -25,13 +25,13 @@ static NSMutableDictionary<NSString *, UIView *> *surfaceMap = nil;
     surfaceMap = [[NSMutableDictionary alloc] init];
 }
 
-+ (UIView *)getLayerWithId:(long)layerId inceId:(long)inceId
++ (CALayer *)getLayerWithId:(long)layerId inceId:(long)inceId
 {
     if (![self isValidId:layerId]) {
         return nil;
     }
     
-    UIView *layer = nil;
+    CALayer *layer = nil;
     @synchronized (self) {
         layer = [surfaceMap objectForKey:[self formatKeyId:layerId inceId:inceId]];
     }
@@ -39,7 +39,7 @@ static NSMutableDictionary<NSString *, UIView *> *surfaceMap = nil;
     return layer;
 }
 
-+ (void)addLayer:(UIView *)layer withId:(long)layerId inceId:(long)inceId
++ (void)addLayer:(CALayer *)layer withId:(long)layerId inceId:(long)inceId
 {
     if (![self isValidId:layerId] || !layer) {
         return;

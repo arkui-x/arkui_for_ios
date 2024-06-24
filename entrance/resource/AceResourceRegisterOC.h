@@ -26,7 +26,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @protocol IAceOnCallEvent <NSObject>
 @required
-- (void)onEvent:(NSString *)eventId param:(NSString *)param; 
+- (void)onEvent:(NSString *)eventId param:(NSString *)param;
 
 @end
 

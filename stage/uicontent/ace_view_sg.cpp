@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2023-2024 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -32,63 +32,9 @@
 #include "core/event/mouse_event.h"
 #include "core/event/touch_event.h"
 #include "core/image/image_cache.h"
-#include "flutter/lib/ui/window/pointer_data_packet.h"
 
 namespace OHOS::Ace::Platform {
 namespace {
-TouchPoint ConvertTouchPoint(flutter::PointerData* pointerItem)
-{
-    TouchPoint touchPoint;
-    // just get the max of width and height
-    touchPoint.size = pointerItem->size;
-    touchPoint.id = pointerItem->device;
-    touchPoint.force = pointerItem->pressure;
-    touchPoint.x = pointerItem->physical_x;
-    touchPoint.y = pointerItem->physical_y;
-    return touchPoint;
-}
-
-void ConvertTouchEvent(const std::vector<uint8_t>& data, std::vector<TouchEvent>& events)
-{
-    const auto* origin = reinterpret_cast<const flutter::PointerData*>(data.data());
-    size_t size = data.size() / sizeof(flutter::PointerData);
-    auto current = const_cast<flutter::PointerData*>(origin);
-    auto end = current + size;
-
-    while (current < end) {
-        std::chrono::nanoseconds nanos(current->time_stamp);
-        TimeStamp time(nanos);
-        TouchEvent point { static_cast<int32_t>(current->device), static_cast<float>(current->physical_x),
-            static_cast<float>(current->physical_y), static_cast<float>(current->physical_x),
-            static_cast<float>(current->physical_y), TouchType::UNKNOWN, TouchType::UNKNOWN, time, current->size,
-            static_cast<float>(current->pressure), static_cast<int64_t>(current->device) };
-        point.sourceType = SourceType::TOUCH;
-        point.pointers.emplace_back(ConvertTouchPoint(current));
-        switch (current->change) {
-            case flutter::PointerData::Change::kCancel:
-                point.type = TouchType::CANCEL;
-                events.push_back(point);
-                break;
-            case flutter::PointerData::Change::kAdd:
-            case flutter::PointerData::Change::kRemove:
-            case flutter::PointerData::Change::kHover:
-                break;
-            case flutter::PointerData::Change::kDown:
-                point.type = TouchType::DOWN;
-                events.push_back(point);
-                break;
-            case flutter::PointerData::Change::kMove:
-                point.type = TouchType::MOVE;
-                events.push_back(point);
-                break;
-            case flutter::PointerData::Change::kUp:
-                point.type = TouchType::UP;
-                events.push_back(point);
-                break;
-        }
-        current++;
-    }
-}
 } // namespace
 
 AceViewSG* AceViewSG::CreateView(int32_t instanceId)
@@ -222,20 +168,24 @@ bool AceViewSG::DispatchBasicEvent(const std::vector<TouchEvent>& touchEvents)
     return !(IsLastPage());
 }
 
-bool AceViewSG::DispatchTouchEvent(const std::vector<uint8_t>& data)
+bool AceViewSG::DispatchTouchEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent,
+    const RefPtr<OHOS::Ace::NG::FrameNode>& node, const std::function<void()>& callback)
 {
-    std::vector<TouchEvent> touchEvents;
-    ConvertTouchEvent(data, touchEvents);
-    LOGI(" ProcessTouchEvent event size%zu", touchEvents.size());
+    if (!pointerEvent) {
+        LOGE("DispatchTouchEvent pointerEvent is null return.");
+        return false;
+    }
+    auto instanceId = GetInstanceId();
+    LogPointInfo(pointerEvent, instanceId);
+
     bool forbiddenToPlatform = false;
-    for (const auto& point : touchEvents) {
-        if (point.type == TouchType::UNKNOWN) {
-            LOGW("Unknown event");
-            continue;
-        }
-        if (touchEventCallback_) {
-            touchEventCallback_(point, nullptr, nullptr);
-        }
+
+    auto container = Platform::AceContainerSG::GetContainer(instanceId);
+    container->SetCurPointerEvent(pointerEvent);
+    if (pointerEvent->GetSourceType() != MMI::PointerEvent::SOURCE_TYPE_MOUSE) {
+        // touch event
+        ProcessDragEvent(pointerEvent, node);
+        ProcessTouchEvent(pointerEvent, node, callback);
     }
     // if it is last page, let os know to quit app
     return forbiddenToPlatform || (!IsLastPage());
@@ -260,13 +210,77 @@ bool AceViewSG::DispatchKeyEvent(const KeyEventInfo& eventInfo)
         eventInfo.msg);
     if (keyEvents.size() == 0) {
         return false;
-    } 
+    }
     // distribute special event firstly
     // because platform receives a raw event, the special event processing is ignored
     if (keyEvents.size() > 1) {
+        DispatchEventToPerf(keyEvents.back());
         keyEventCallback_(keyEvents.back());
     }
+    DispatchEventToPerf(keyEvents.front());
     return keyEventCallback_(keyEvents.front());
+}
+
+void AceViewSG::DispatchEventToPerf(const TouchEvent& pointerEvent)
+{
+    static bool isFirstMove = false;
+    if (!PerfMonitor::GetPerfMonitor()) {
+        return;
+    }
+    int64_t inputTime = static_cast<int64_t>(
+        std::chrono::duration_cast<std::chrono::nanoseconds>(pointerEvent.time.time_since_epoch()).count());
+    if (inputTime <= 0) {
+        return;
+    }
+    PerfActionType inputType = UNKNOWN_ACTION;
+    PerfSourceType sourceType = UNKNOWN_SOURCE;
+    if (pointerEvent.sourceType == SourceType::MOUSE) {
+        sourceType = PERF_MOUSE_EVENT;
+    } else if (pointerEvent.sourceType == SourceType::TOUCH) {
+        sourceType = PERF_TOUCH_EVENT;
+    } else if (pointerEvent.sourceType == SourceType::TOUCH_PAD) {
+        sourceType = PERF_TOUCH_PAD;
+    } else {
+        sourceType = UNKNOWN_SOURCE;
+    }
+    if (pointerEvent.type == TouchType::DOWN) {
+        inputType = LAST_DOWN;
+        isFirstMove = true;
+    } else if (pointerEvent.type == TouchType::UP) {
+        inputType = LAST_UP;
+        isFirstMove = false;
+    } else if (isFirstMove && pointerEvent.type == TouchType::MOVE) {
+        inputType = FIRST_MOVE;
+        isFirstMove = false;
+    }
+    PerfMonitor::GetPerfMonitor()->RecordInputEvent(inputType, sourceType, inputTime);
+}
+
+void AceViewSG::DispatchEventToPerf(const KeyEvent& keyEvent)
+{
+    if (keyEvent.code != KeyCode::KEY_VOLUME_DOWN
+        && keyEvent.code != KeyCode::KEY_VOLUME_UP
+        && keyEvent.code != KeyCode::KEY_POWER
+        && keyEvent.code != KeyCode::KEY_META_LEFT
+        && keyEvent.code != KeyCode::KEY_ESCAPE) {
+        return;
+    }
+    if (!PerfMonitor::GetPerfMonitor()) {
+        return;
+    }
+    int64_t inputTime = static_cast<int64_t>(
+        std::chrono::duration_cast<std::chrono::nanoseconds>(keyEvent.timeStamp.time_since_epoch()).count());
+    if (inputTime <= 0) {
+        return;
+    }
+    PerfActionType inputType = UNKNOWN_ACTION;
+    if (keyEvent.action == KeyAction::UP) {
+        inputType = LAST_UP;
+    } else if (keyEvent.action == KeyAction::DOWN) {
+        inputType = LAST_DOWN;
+    }
+    PerfSourceType sourceType = PERF_KEY_EVENT;
+    PerfMonitor::GetPerfMonitor()->RecordInputEvent(inputType, sourceType, inputTime);
 }
 
 void AceViewSG::NotifySurfaceDestroyed() const
@@ -296,8 +310,68 @@ void AceViewSG::SetViewportMetrics(AceViewSG* view, const ViewportConfig& config
     view->NotifyDensityChanged(config.Density());
 }
 
-void AceViewSG::SurfaceChanged(AceViewSG* view, int32_t width, int32_t height, int32_t orientation,
-    WindowSizeChangeReason type)
+void AceViewSG::ProcessTouchEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent,
+    const RefPtr<OHOS::Ace::NG::FrameNode>& node, const std::function<void()>& callback)
+{
+    TouchEvent touchPoint = ConvertTouchEvent(pointerEvent);
+    if (touchPoint.type != TouchType::UNKNOWN) {
+        if (touchEventCallback_) {
+            touchEventCallback_(touchPoint, nullptr, nullptr);
+        }
+    }
+}
+
+void AceViewSG::ProcessDragEvent(
+    const std::shared_ptr<MMI::PointerEvent>& pointerEvent, const RefPtr<OHOS::Ace::NG::FrameNode>& node)
+{
+    DragEventAction action;
+    PointerEvent event;
+    ConvertPointerEvent(pointerEvent, event);
+    CHECK_NULL_VOID(dragEventCallback_);
+    int32_t orgAction = pointerEvent->GetPointerAction();
+    switch (orgAction) {
+        case OHOS::MMI::PointerEvent::POINTER_ACTION_PULL_MOVE: {
+            action = DragEventAction::DRAG_EVENT_MOVE;
+            event.x = event.windowX;
+            event.y = event.windowY;
+            dragEventCallback_(event, action, node);
+            break;
+        }
+        case OHOS::MMI::PointerEvent::POINTER_ACTION_PULL_UP: {
+            action = DragEventAction::DRAG_EVENT_END;
+            event.x = event.windowX;
+            event.y = event.windowY;
+            dragEventCallback_(event, action, node);
+            break;
+        }
+        case OHOS::MMI::PointerEvent::POINTER_ACTION_PULL_IN_WINDOW: {
+            action = DragEventAction::DRAG_EVENT_START;
+            event.x = event.displayX;
+            event.y = event.displayY;
+            dragEventCallback_(event, action, node);
+            break;
+        }
+        case OHOS::MMI::PointerEvent::POINTER_ACTION_PULL_OUT_WINDOW: {
+            action = DragEventAction::DRAG_EVENT_OUT;
+            event.x = event.displayX;
+            event.y = event.displayY;
+            dragEventCallback_(event, action, node);
+            break;
+        }
+        default:
+            break;
+    }
+}
+
+void AceViewSG::ProcessDragEvent(
+    int32_t x, int32_t y, const DragEventAction& action, const RefPtr<OHOS::Ace::NG::FrameNode>& node)
+{
+    CHECK_NULL_VOID(dragEventCallback_);
+    dragEventCallback_(PointerEvent(x, y), action, node);
+}
+
+void AceViewSG::SurfaceChanged(
+    AceViewSG* view, int32_t width, int32_t height, int32_t orientation, WindowSizeChangeReason type)
 {
     CHECK_NULL_VOID(view);
     view->NotifySurfaceChanged(width, height, type);
@@ -328,5 +402,23 @@ void AceViewSG::NotifySurfacePositionChanged(int32_t posX, int32_t posY)
     }
     posX_ = posX;
     posY_ = posY;
+}
+
+bool AceViewSG::DispatchTouchEventTargetHitTest(
+    const std::shared_ptr<OHOS::MMI::PointerEvent>& pointerEvent, const std::string& targetName)
+{
+    std::vector<TouchEvent> touchEvents;
+    pointerEvent->SetPointerAction(OHOS::MMI::PointerEvent::POINTER_ACTION_DOWN);
+    ConvertTouchEvent(pointerEvent, touchEvents);
+    if (touchEvents.size() != 1) {
+        return false;
+    }
+    TouchEvent touchEvent = touchEvents[0];
+    auto container = AceEngine::Get().GetContainer(instanceId_);
+    CHECK_NULL_RETURN(container, false);
+    ContainerScope scope(instanceId_);
+    auto context = container->GetPipelineContext();
+    CHECK_NULL_RETURN(context, false);
+    return context->OnTouchTargetHitTest(touchEvent, false, targetName);
 }
 } // namespace OHOS::Ace::Platform

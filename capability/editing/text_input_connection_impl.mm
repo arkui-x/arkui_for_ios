@@ -59,6 +59,8 @@ void TextInputConnectionImpl::Show(bool isFocusViewChanged, int32_t instanceId){
         inputAction = TextInputActionNext;
     }else if(actionType == TextInputAction::DONE){
         inputAction = TextInputActionDone;
+    }else if(actionType == TextInputAction::NEW_LINE){
+        inputAction = TextInputActionNewline;
     }
     
     TextInputType inputType = config_.type;
@@ -83,7 +85,7 @@ void TextInputConnectionImpl::Show(bool isFocusViewChanged, int32_t instanceId){
         obscureText = 1;
     }
 
-    NSString* inputFilter = [NSString stringWithFormat:@"%s", config_.inputFilter.c_str()];
+    NSString* inputFilter = [NSString stringWithUTF8String:config_.inputFilter.c_str()];
     int32_t maxLength = config_.maxLength;
     
     int32_t clientId = this->GetClientId();
@@ -170,6 +172,9 @@ void TextInputConnectionImpl::Show(bool isFocusViewChanged, int32_t instanceId){
                     case iOSTextInputActionDone:
                         actionType = TextInputAction::DONE;
                         break;
+                    case iOSTextInputActionNewline:
+                        actionType = TextInputAction::NEW_LINE;
+                        break; 
                     default:
                         break;
                 }

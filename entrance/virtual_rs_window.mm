@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2023-2024 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -36,8 +36,13 @@
 #include "napi/native_api.h"
 #include "core/event/touch_event.h"
 #include "core/event/key_event.h"
+#include "core/pipeline/pipeline_base.h"
+#include "interaction/interaction_impl.h"
+#include "mmi_event_convertor.h"
 
 namespace OHOS::Rosen {
+#define BOTTOM_SAFE_AREA_HEIGHT_VP 28.0
+const std::string DRAG_WINDOW_NAME = "dragWindow";
 Ace::KeyCode KeyCodeToAceKeyCode(int32_t keyCode)
 {
     Ace::KeyCode aceKeyCode = Ace::KeyCode::KEY_UNKNOWN;
@@ -168,8 +173,97 @@ void DummyWindowRelease(Window* window)
 std::map<uint32_t, std::vector<std::shared_ptr<Window>>> Window::subWindowMap_;
 std::map<std::string, std::pair<uint32_t, std::shared_ptr<Window>>> Window::windowMap_;
 std::map<uint32_t, std::vector<sptr<IWindowLifeCycle>>> Window::lifecycleListeners_;
+std::map<uint32_t, std::vector<sptr<IWindowChangeListener>>> Window::windowChangeListeners_;
+std::map<uint32_t, std::vector<sptr<ITouchOutsideListener>>> Window::touchOutsideListeners_;
+std::map<uint32_t, std::vector<sptr<IWindowSurfaceNodeListener>>> Window::surfaceNodeListeners_;
+
 std::recursive_mutex Window::globalMutex_;
 std::map<uint32_t, std::vector<sptr<IOccupiedAreaChangeListener>>> Window::occupiedAreaChangeListeners_;
+std::map<uint32_t, std::vector<sptr<IAvoidAreaChangedListener>>> Window::avoidAreaChangedListeners_;
+constexpr Rect emptyRect = {0, 0, 0, 0};
+CGFloat keyBoardHieght = 0;
+
+static uint32_t ColorConvertFromUIColor(UIColor* uiColor)
+{
+    if (uiColor == nullptr) {
+        return 0;
+    }
+    CGFloat red = 0;
+    CGFloat green = 0;
+    CGFloat blue = 0;
+    CGFloat alpha = 0;
+    [uiColor getRed:&red green:&green blue:&blue alpha:&alpha];
+    uint32_t result = ((uint8_t)(red * UINT8_MAX)<<24) |
+        ((uint8_t)(green * UINT8_MAX)<<16) |
+        ((uint8_t)(blue * UINT8_MAX)<<8) |
+        ((uint8_t)(alpha * UINT8_MAX));
+    return result;
+}
+
+static UIColor* ColorConvertToUIColor(uint32_t color)
+{
+    return [UIColor colorWithRed:(((color>>24)&UINT8_MAX)*1.0/UINT8_MAX)
+        green:(((color>>16)&UINT8_MAX)*1.0/UINT8_MAX)
+        blue:(((color>>8)&UINT8_MAX)*1.0/UINT8_MAX)
+        alpha:((color&UINT8_MAX)*1.0/UINT8_MAX)];
+}
+
+static WMError SetSystemBar(WindowType type, const SystemBarProperty& property)
+{
+    StageViewController *controller = [StageApplication getApplicationTopViewController];
+    if (![controller isKindOfClass:[StageViewController class]]) {
+        return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+    if (type ==  WindowType::WINDOW_TYPE_NAVIGATION_BAR) {
+        if (!property.enable_) {
+            [controller.navigationController setNavigationBarHidden:YES animated:NO];
+        } else {
+            [controller.navigationController setNavigationBarHidden:NO animated:NO];
+            [controller setNeedsStatusBarAppearanceUpdate];
+        }
+    } else if (type == WindowType::WINDOW_TYPE_STATUS_BAR) {
+        if (!property.enable_) {
+            controller.statusBarHidden = YES;
+            [controller setNeedsStatusBarAppearanceUpdate];
+        } else {
+            controller.statusBarHidden = NO;
+            [controller setNeedsStatusBarAppearanceUpdate];
+        }
+    }
+    return WMError::WM_OK;
+}
+
+static WMError SetSpecificBar(WindowType type, const SystemBarProperty& property) {
+    StageViewController* controller = [StageApplication getApplicationTopViewController];
+    WMError ret = WMError::WM_OK;
+    if (![controller isKindOfClass:[StageViewController class]]) {
+        return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+    if (type == WindowType::WINDOW_TYPE_STATUS_BAR || type == WindowType::WINDOW_TYPE_NAVIGATION_BAR) {
+        ret = SetSystemBar(type, property);
+    } else if (type == WindowType::WINDOW_TYPE_NAVIGATION_INDICATOR) {
+        if (@available(iOS 11.0, *)) {
+            if (!property.enable_) {
+                LOGI("Set homeIndicatorAutoHidden - hidden");
+                controller.homeIndicatorHidden = YES;
+                [controller setNeedsUpdateOfHomeIndicatorAutoHidden];
+            } else {
+                LOGI("Set homeIndicatorAutoHidden - show");
+                controller.homeIndicatorHidden = NO;
+                [controller setNeedsUpdateOfHomeIndicatorAutoHidden];
+            }
+
+        } else {
+            LOGE("Set SetSpecificBarProperty failed, iOS version less than 11");
+            return WMError::WM_ERROR_INVALID_PARAM;
+        }
+    } else {
+        LOGE("Set SetSpecificBarProperty failed, invalid parm");
+        return WMError::WM_ERROR_INVALID_PARAM;
+    }
+    // WINDOW_TYPE_NAVIGATION_INDICATOR
+    return WMError::WM_OK;
+}
 
 Window::Window(std::shared_ptr<AbilityRuntime::Platform::Context> context, uint32_t windowId)
     : context_(context), windowId_(windowId)
@@ -199,14 +293,15 @@ std::shared_ptr<Window> Window::Create(
     window->SetWindowView((WindowView*)windowView);
     window->SetWindowName(windowName);
     window->IncStrongRef(window.get());
+    window->SetMode(Rosen::WindowMode::WINDOW_MODE_FULLSCREEN);
     [(WindowView*)windowView setWindowDelegate:window];
     AddToWindowMap(window);
     return window;
 }
 
 std::shared_ptr<Window> Window::CreateSubWindow(
-        std::shared_ptr<OHOS::AbilityRuntime::Platform::Context> context, 
-        std::shared_ptr<OHOS::Rosen::WindowOption> option)
+    std::shared_ptr<OHOS::AbilityRuntime::Platform::Context> context,
+    std::shared_ptr<OHOS::Rosen::WindowOption> option)
 {
     if (CheckWindowNameExist(option->GetWindowName())) {
         HILOG_ERROR("Window::CreateSubWindow : windowName exist! windowName=%{public}s", option->GetWindowName().c_str());
@@ -234,6 +329,36 @@ std::shared_ptr<Window> Window::CreateSubWindow(
     AddToWindowMap(window);
     ShowSubWindowMap("Window::CreateSubWindow", window->GetParentId());
     
+    return window;
+}
+
+std::shared_ptr<Window> Window::CreateDragWindow(
+    std::shared_ptr<OHOS::AbilityRuntime::Platform::Context> context)
+{
+    auto mainWindow = Window::GetTopWindow(context);
+    if (!mainWindow) {
+        LOGI("Window::CreateDragWindow failed,can not find mainWindow");
+        return nullptr;
+    }
+    std::shared_ptr<WindowOption> option = std::make_shared<WindowOption>();
+    if (!option) {
+        LOGI("Window::CreateDragWindow failed,option ==nullptr");
+        return nullptr;
+    }
+    option->SetParentId(mainWindow->GetWindowId());
+    option->SetWindowType(Rosen::WindowType::WINDOW_TYPE_APP_SUB_WINDOW);
+    option->SetWindowMode(Rosen::WindowMode::WINDOW_MODE_FLOATING);
+    std::string windowName = mainWindow->GetWindowName() + DRAG_WINDOW_NAME;
+    option->SetWindowName(windowName);
+    std::shared_ptr<Window> window = Window::CreateSubWindow(context, option);
+    if (window == nullptr) {
+        HILOG_ERROR("drag window is null");
+        return nullptr;
+    }
+    window->SetTouchable(false);
+    window->SetFocusable(false);
+    window->SetFullScreen(true);
+    window->SetOnTop(true);
     return window;
 }
 
@@ -288,29 +413,6 @@ void Window::AddToSubWindowMap(std::shared_ptr<Window> window)
     HILOG_INFO("Window::AddToSubWindowMap : End!!!");
 }
 
-void Window::UpdateOtherWindowFocusStateToFalse(Window *window)
-{
-    uint32_t parentId = window->GetParentId();
-    if (parentId == INVALID_WINDOW_ID) {
-        HILOG_INFO("Window::DeleteFromSubWindowMap : parentId is invalid");
-        return;
-    }
-    auto iter1 = subWindowMap_.find(parentId);
-    if (iter1 == subWindowMap_.end()) {
-        HILOG_INFO("Window::DeleteFromSubWindowMap : find parentId failed");
-        return;
-    }
-    auto subWindows = iter1->second;
-    auto iter2 = subWindows.begin();
-    while (iter2 != subWindows.end()) {
-        if ((*iter2)->GetWindowId() != window->GetWindowId()) {
-            (*iter2)->WindowFocusChanged(false);
-            break;
-        } else {
-            iter2++;
-        }
-    }
-}
 void Window::DeleteFromSubWindowMap(std::shared_ptr<Window> window)
 {
     HILOG_INFO("Window::DeleteFromSubWindowMap : Start...");
@@ -369,7 +471,7 @@ WMError Window::Destroy()
     NotifyBeforeDestroy(GetWindowName());
 
     if (windowView_ != nullptr) {
-        [windowView_ removeFromSuperview];
+        [windowView_ hide];
         [windowView_ release];
         windowView_ = nullptr;
     }
@@ -468,30 +570,42 @@ WMError Window::ShowWindow()
         LOGE("Window: showWindow failed");
         return WMError::WM_ERROR_INVALID_PARENT;   
     }
-   
+
     StageViewController *controller = [StageApplication getApplicationTopViewController];
-     
-    if (windowView_.superview) {
-        [controller.view bringSubviewToFront:windowView_];
-    } else {
-        [controller.view addSubview:windowView_];
+
+    if ([windowView_ showOnView:controller.view]) {
+        DelayNotifyUIContentIfNeeded();
+        NotifyAfterForeground();
+        isWindowShow_ = true;
+        return WMError::WM_OK;
     }
-    isWindowShow_ = true;
-    if (focusable_) {
-        WindowFocusChanged(true);
-        UpdateOtherWindowFocusStateToFalse(this);
-    }
-    NotifyAfterForeground();
-    return WMError::WM_OK;
+    return WMError::WM_ERROR_INVALID_PARENT;
 }
 
+WMError Window::Hide()
+{
+    if (!windowView_) {
+        LOGE("Window: showWindow failed");
+        return WMError::WM_ERROR_INVALID_PARENT;
+    }
 
+    if ([windowView_ hide]) {
+        isWindowShow_ = false;
+         NotifyAfterBackground();
+        return WMError::WM_OK;
+    }
+
+    return WMError::WM_ERROR_INVALID_PARENT;
+}
 
 WMError Window::MoveWindowTo(int32_t x, int32_t y)
 {   
     if (!windowView_) {
         LOGE("Window: MoveWindowTo failed");
         return WMError::WM_ERROR_INVALID_PARENT;   
+    }
+    if (isFullScreen_) {
+        return WMError::WM_ERROR_INVALID_PARENT;
     }
     x = x < 0 ? 0 : x;
     y = y < 0 ? 0 : y;
@@ -519,13 +633,103 @@ bool Window::ProcessBasicEvent(const std::vector<Ace::TouchEvent>& touchEvents)
     return uiContent_->ProcessBasicEvent(touchEvents);
 }
 
-void Window::SetFocusable(bool focusable)
+WMError Window::SetFullScreen(bool status)
 {
-    focusable_ = focusable;
+    if (!windowView_) {
+        LOGE("Window: SetFullScreen failed");
+        return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+    windowView_.fullScreen = status;
+    isFullScreen_ = status;
+    return WMError::WM_OK;
 }
+
+WMError Window::SetOnTop(bool status)
+{
+    if (!windowView_) {
+        LOGE("Window: SetFullScreen failed");
+        return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+    if (status) {
+        windowView_.zOrder = NSIntegerMax;
+    } else {
+       windowView_.zOrder = 0;
+    }
+    return WMError::WM_OK;
+}
+WMError Window::SetFocusable(bool focusable)
+{
+    if (!windowView_) {
+        LOGE("Window: SetFocusable failed");
+        return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+    windowView_.focusable = focusable;
+    focusable_ = focusable;
+    return WMError::WM_OK;
+}
+
 bool Window::GetFocusable() const
 {
     return focusable_;
+}
+
+WMError Window::SetTouchHotAreas(const std::vector<Rect>& rects)
+{
+    if (!windowView_) {
+        return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+    int size = rects.size();
+    if (size == 0) {
+        [windowView_ setTouchHotAreas:nullptr size:0];
+        return WMError::WM_OK;
+    }
+    CGRect* cgRects = (CGRect *)malloc(sizeof(CGRect) * size);
+    UIScreen *screen = [UIScreen mainScreen];
+    CGFloat scale = screen.scale;
+    if (scale < 1) {
+        return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+    for (int i = 0; i < size; i++) {
+        cgRects[i] = CGRectMake(rects[i].posX_/scale , rects[i].posY_/scale,
+            rects[i].width_/scale, rects[i].height_/scale);
+    }
+    [windowView_ setTouchHotAreas:cgRects size:size];
+    free(cgRects);
+    return WMError::WM_OK;
+}
+
+WMError Window::RequestFocus()
+{
+    if (!windowView_ || !focusable_ || !isWindowShow_) {
+        return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+    if ([windowView_ requestFocus]) {
+        return WMError::WM_OK;
+    } else {
+        return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+}
+bool Window::IsFocused() const
+{
+    return isFocused_;
+}
+WMError Window::SetTouchable(bool isTouchable)
+{
+    if (!windowView_) {
+        LOGE("Window: SetTouchable failed");
+        return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+    windowView_.userInteractionEnabled = isTouchable;
+    isTouchable_ = isTouchable;
+    return WMError::WM_OK;
+}
+bool Window::GetTouchable() const
+{
+    if(!windowView_) {
+        LOGE("Window: GetTouchable failed");
+        return true;
+    }
+    return isTouchable_;
 }
 
 WMError Window::ResizeWindowTo(int32_t width, int32_t height) {
@@ -535,9 +739,13 @@ WMError Window::ResizeWindowTo(int32_t width, int32_t height) {
         return WMError::WM_ERROR_INVALID_PARENT;   
     }
     LOGI("Window: ResizeWindowTo %d %d", width, height);
+    if (isFullScreen_) {
+        return WMError::WM_ERROR_INVALID_PARENT;
+    }
     UIScreen *screen = [UIScreen mainScreen];
     CGFloat scale = screen.scale;
     windowView_.frame = CGRectMake(windowView_.frame.origin.x, windowView_.frame.origin.y, width / scale, height / scale);
+
     rect_.width_ = width;
     rect_.height_ = height;
     return WMError::WM_OK;
@@ -557,7 +765,7 @@ void Window::RequestVsync(const std::shared_ptr<VsyncCallback>& vsyncCallback)
     // stage model
     if (receiver_) {
         auto callback = [vsyncCallback](int64_t timestamp, void*) {
-            vsyncCallback->onCallback(timestamp);
+            vsyncCallback->onCallback(timestamp, 0);
         };
         OHOS::Rosen::VSyncReceiver::FrameCallback fcb = {
             .userData_ = this,
@@ -603,15 +811,24 @@ void Window::CreateSurfaceNode(void* layer)
 
     if (!uiContent_) {
         LOGW("Window Notify uiContent_ Surface Created, uiContent_ is nullptr, delay notify.");
-        delayNotifySurfaceCreated_ = true;
     } else {
         LOGI("Window Notify uiContent_ Surface Created");
         uiContent_->NotifySurfaceCreated();
+    }
+    delayNotifySurfaceCreated_ = true;
+    auto surfaceNodeListeners = GetListeners<IWindowSurfaceNodeListener>();
+    for (auto& listener : surfaceNodeListeners) {
+        if (listener != nullptr) {
+            listener->OnSurfaceNodeCreated();
+        }
     }
 }
 
 void Window::NotifySurfaceChanged(int32_t width, int32_t height, float density)
 {
+    rect_.width_ = width;
+    rect_.height_ = height;
+    NotifySizeChange(rect_);
     if (!surfaceNode_) {
         LOGE("Window Notify Surface Changed, surfaceNode_ is nullptr!");
         return;
@@ -619,16 +836,12 @@ void Window::NotifySurfaceChanged(int32_t width, int32_t height, float density)
     LOGI("Window Notify Surface Changed wh:[%{public}d, %{public}d]", width, height);
     surfaceWidth_ = width;
     surfaceHeight_ = height;
-    rect_.width_ = width;
-    rect_.height_ = height;
-    
     surfaceNode_->SetBoundsWidth(surfaceWidth_);
     surfaceNode_->SetBoundsHeight(surfaceHeight_);
     density_ = density;
 
     if (!uiContent_) {
         LOGW("Window Notify uiContent_ Surface Created, uiContent_ is nullptr, delay notify.");
-        delayNotifySurfaceChanged_ = true;
     } else {
         LOGI("Window Notify uiContent_ Surface Created");
         Ace::ViewportConfig config;
@@ -636,6 +849,23 @@ void Window::NotifySurfaceChanged(int32_t width, int32_t height, float density)
         config.SetSize(surfaceWidth_, surfaceHeight_);
         config.SetOrientation(surfaceWidth_ <= surfaceHeight_ ? 0 : 1);
         uiContent_->UpdateViewportConfig(config, WindowSizeChangeReason::RESIZE);
+    }
+
+    delayNotifySurfaceChanged_ = true;
+    auto surfaceNodeListeners = GetListeners<IWindowSurfaceNodeListener>();
+    for (auto& listener : surfaceNodeListeners) {
+        if (listener != nullptr) {
+            listener->OnSurfaceNodeChanged(width, height, density);
+        }
+    }
+}
+void Window::NotifyTouchOutside()
+{
+    auto touchOutsideListeners = GetListeners<ITouchOutsideListener>();
+    for (auto& listener : touchOutsideListeners) {
+        if (listener != nullptr) {
+            listener->OnTouchOutside();
+        }
     }
 }
 
@@ -650,6 +880,13 @@ void Window::NotifySurfaceDestroyed()
         LOGI("Window Notify uiContent_ Surface Destroyed");
         uiContent_->NotifySurfaceDestroyed();
     }
+
+    auto surfaceNodeListeners = GetListeners<IWindowSurfaceNodeListener>();
+    for (auto& listener : surfaceNodeListeners) {
+        if (listener != nullptr) {
+            listener->OnSurfaceNodeDestroyed();
+        }
+    }
 }
 
 bool Window::ProcessPointerEvent(const std::vector<uint8_t>& data)
@@ -658,7 +895,24 @@ bool Window::ProcessPointerEvent(const std::vector<uint8_t>& data)
         LOGW("Window::ProcessPointerEvent failed ,uicontent is nullptr");
         return false;
     }
-    return uiContent_->ProcessPointerEvent(data);
+    std::vector<std::shared_ptr<MMI::PointerEvent>> pointerEvents;
+    Ace::Platform::ConvertMmiPointerEvent(pointerEvents, data);
+    bool result = true;
+    for (auto& pointerEvent : pointerEvents) {
+         result &= uiContent_->ProcessPointerEvent(pointerEvent);
+    }
+    return result;
+}
+
+bool Window::ProcessPointerEventTargetHitTest(const std::vector<uint8_t>& data, const std::string& target)
+{
+    if (!uiContent_) {
+        LOGW("Window::ProcessPointerEventTargetHitTest failed, uicontent is nullptr");
+        return false;
+    }
+    std::shared_ptr<OHOS::MMI::PointerEvent> pointerEvent = OHOS::MMI::PointerEvent::Create();
+    Ace::Platform::ConvertMmiPointerEvent(pointerEvent, data);
+    return uiContent_->ProcessPointerEventTargetHitTest(pointerEvent, target);
 }
 
 bool Window::ProcessKeyEvent(int32_t keyCode, int32_t keyAction, int32_t repeatTime, int64_t timeStamp,
@@ -684,22 +938,19 @@ void Window::DelayNotifyUIContentIfNeeded()
         LOGE("Window Delay Notify uiContent_ is nullptr!");
         return;
     }
-
     if (delayNotifySurfaceCreated_) {
-        LOGI("Window Delay Notify uiContent_ Surface Created");
+        LOGD("Window Delay Notify uiContent_ Surface Created");
         uiContent_->NotifySurfaceCreated();
-        delayNotifySurfaceCreated_ = false;
     }
 
     if (delayNotifySurfaceChanged_) {
-        LOGI("Window Delay Notify uiContent_ Surface Changed wh:[%{public}d, %{public}d]",
-            surfaceWidth_, surfaceHeight_);
+        LOGD("Window Delay Notify uiContent_ Surface Changed wh:[%{public}d, %{public}d]", surfaceWidth_,
+            surfaceHeight_);
         Ace::ViewportConfig config;
         config.SetDensity(density_);
         config.SetSize(surfaceWidth_, surfaceHeight_);
         config.SetOrientation(surfaceWidth_ <= surfaceHeight_ ? 0 : 1);
         uiContent_->UpdateViewportConfig(config, WindowSizeChangeReason::RESIZE);
-        delayNotifySurfaceChanged_ = false;
     }
 
     if (delayNotifySurfaceDestroyed_) {
@@ -710,7 +961,8 @@ void Window::DelayNotifyUIContentIfNeeded()
 }
 
 WMError Window::SetUIContent(const std::string& contentInfo,
-    NativeEngine* engine, napi_value storage, bool isdistributed, AbilityRuntime::Platform::Ability* ability)
+    NativeEngine* engine, napi_value storage, bool isdistributed,
+    AbilityRuntime::Platform::Ability* ability, bool loadContentByName)
 {
     LOGI("Window::SetUIContent : Start");
     using namespace OHOS::Ace::Platform;
@@ -724,13 +976,18 @@ WMError Window::SetUIContent(const std::string& contentInfo,
         LOGE("Window::SetUIContent : Create UIContent Failed!");
         return WMError::WM_ERROR_NULLPTR;
     }
-    uiContent->Initialize(this, contentInfo, storage);
+    if (loadContentByName) {
+        LOGI("Window::SetUIContent: InitializeByName");
+        uiContent->InitializeByName(this, contentInfo, storage);
+    }else {
+        uiContent->Initialize(this, contentInfo, storage);
+    }
+
     // make uiContent available after Initialize/Restore
     uiContent_ = std::move(uiContent);
 
-    uiContent_->Foreground();
-
     DelayNotifyUIContentIfNeeded();
+    uiContent_->Foreground();
     LOGI("Window::SetUIContent : End!!!");
     return WMError::WM_OK;
 }
@@ -764,13 +1021,31 @@ void Window::SetWindowType(WindowType windowType)
     windowType_ = windowType;
 }
 
+void Window::SetMode(WindowMode windowMode)
+{
+    windowMode_ = windowMode;
+}
+
 void Window::SetParentId(uint32_t parentId)
 {
     parentId_ = parentId;
 }
 
+void Window::WindowActiveChanged(bool isActive)
+{
+    if (uiContent_) {
+       if (isActive && isFocused_) {
+            LOGI("Window: notify uiContent Focus");
+            uiContent_->Focus();
+        } else {
+            LOGI("Window: notify uiContent UnFocus");
+            uiContent_->UnFocus();
+        }
+    }
+}
 void Window::WindowFocusChanged(bool hasWindowFocus)
 {
+    isFocused_ = hasWindowFocus;
     if (uiContent_) {
        if (hasWindowFocus) {
             LOGI("Window: notify uiContent Focus");
@@ -832,8 +1107,9 @@ void Window::UpdateConfiguration(const std::shared_ptr<OHOS::AbilityRuntime::Pla
 
 WMError Window::SetBackgroundColor(uint32_t color)
 {
-    LOGI("Window::SetBackgroundColor : color=%{public}u, uiContent_=%{public}p", color, uiContent_.get());
+    LOGI("Window::SetBackgroundColor called. color=%u", color);
     backgroundColor_ = color;
+
     if (uiContent_) {
         uiContent_->SetBackgroundColor(color);
         return WMError::WM_OK;
@@ -880,32 +1156,10 @@ bool Window::IsKeepScreenOn()
 
 WMError Window::SetSystemBarProperty(WindowType type, const SystemBarProperty& property)
 {
-    HILOG_INFO("Window::SetSystemBarProperty : Start... / type=%{public}d, enable=%{public}d",
-        static_cast<int>(type), property.enable_);
-    StageViewController *controller = [StageApplication getApplicationTopViewController];   
-    if (type ==  WindowType::WINDOW_TYPE_NAVIGATION_BAR) {
-        HILOG_INFO("Window::SetSystemBarProperty : Set Navigation Bar");
-        if (!property.enable_) {
-            HILOG_INFO("Window::SetSystemBarProperty : Set Navigation Bar - hidden");
-            [controller.navigationController setNavigationBarHidden:YES animated:YES];
-        } else {
-            HILOG_INFO("Window::SetSystemBarProperty : Set Navigation Bar - show");
-            [controller.navigationController setNavigationBarHidden:NO animated:YES];
-            [controller setNeedsStatusBarAppearanceUpdate];
-        }
-    } else if (type == WindowType::WINDOW_TYPE_STATUS_BAR) {
-        HILOG_INFO("Window::SetSystemBarProperty : Set Status Bar");
-        if (!property.enable_) {
-            HILOG_INFO("Window::SetSystemBarProperty : Set Status Bar - hidden");
-            controller.statusBarHidden = YES;
-            [controller setNeedsStatusBarAppearanceUpdate];
-        } else {
-            HILOG_INFO("Window::SetSystemBarProperty : Set Status Bar - show");
-            controller.statusBarHidden = NO;
-            [controller setNeedsStatusBarAppearanceUpdate];
-        }
-    } 
-    sysBarPropMap_[type] = property;
+    WMError ret = SetSystemBar(type, property);
+    if ( ret == WMError::WM_OK) {
+        sysBarPropMap_[type] = property;
+    }
     return WMError::WM_OK;
 }
 
@@ -970,8 +1224,19 @@ void Window::NotifyWillTeminate()
     }
 }
 
+void Window::NotifySizeChange(Rect rect)
+{
+    auto windowChangeListeners = GetListeners<IWindowChangeListener>();
+    for (auto& listener : windowChangeListeners) {
+        if (listener != nullptr) {
+            listener->OnSizeChange(rect);
+        }
+    }
+}
+
 void Window::NotifyKeyboardHeightChanged(int32_t height)
 {
+    keyBoardHieght = height;
     auto occupiedAreaChangeListeners = GetListeners<IOccupiedAreaChangeListener>();
     for (auto& listener : occupiedAreaChangeListeners) {
         if (listener != nullptr) {
@@ -995,6 +1260,13 @@ WMError Window::UnregisterOccupiedAreaChangeListener(const sptr<IOccupiedAreaCha
     return UnregisterListener(occupiedAreaChangeListeners_[GetWindowId()], listener);
 }
 
+WMError Window::RegisterAvoidAreaChangeListener(const sptr<IAvoidAreaChangedListener> &listener)
+{
+    LOGD("Start register");
+    std::lock_guard<std::recursive_mutex> lock(globalMutex_);
+    return RegisterListener(avoidAreaChangedListeners_[GetWindowId()], listener);
+}
+
 WMError Window::RegisterLifeCycleListener(const sptr<IWindowLifeCycle>& listener)
 {
     LOGD("Start register");
@@ -1007,6 +1279,48 @@ WMError Window::UnregisterLifeCycleListener(const sptr<IWindowLifeCycle>& listen
     LOGD("Start unregister");
     std::lock_guard<std::recursive_mutex> lock(globalMutex_);
     return UnregisterListener(lifecycleListeners_[GetWindowId()], listener);
+}
+
+WMError Window::RegisterWindowChangeListener(const sptr<IWindowChangeListener>& listener)
+{
+    LOGD("Start register");
+    std::lock_guard<std::recursive_mutex> lock(globalMutex_);
+    return RegisterListener(windowChangeListeners_[GetWindowId()], listener);
+}
+
+WMError Window::UnregisterWindowChangeListener(const sptr<IWindowChangeListener>& listener)
+{
+    LOGD("Start unregister");
+    std::lock_guard<std::recursive_mutex> lock(globalMutex_);
+    return UnregisterListener(windowChangeListeners_[GetWindowId()], listener);
+}
+
+WMError Window::RegisterTouchOutsideListener(const sptr<ITouchOutsideListener>& listener)
+{
+    LOGD("Start register TouchOutsideListener");
+    std::lock_guard<std::recursive_mutex> lock(globalMutex_);
+    return RegisterListener(touchOutsideListeners_[GetWindowId()], listener);
+}
+
+WMError Window::UnregisterTouchOutsideListener(const sptr<ITouchOutsideListener>& listener)
+{
+    LOGD("Start unregister TouchOutsideListener");
+    std::lock_guard<std::recursive_mutex> lock(globalMutex_);
+    return UnregisterListener(touchOutsideListeners_[GetWindowId()], listener);
+}
+
+WMError Window::RegisterSurfaceNodeListener(const sptr<IWindowSurfaceNodeListener>& listener)
+{
+    LOGI("Start register SurfaceNodeListener");
+    std::lock_guard<std::recursive_mutex> lock(globalMutex_);
+    return RegisterListener(surfaceNodeListeners_[GetWindowId()], listener);
+}
+
+WMError Window::UnregisterSurfaceNodeListener(const sptr<IWindowSurfaceNodeListener>& listener)
+{
+    LOGI("Start unregister SurfaceNodeListener");
+    std::lock_guard<std::recursive_mutex> lock(globalMutex_);
+    return UnregisterListener(surfaceNodeListeners_[GetWindowId()], listener);
 }
 
 ColorSpace Window::GetColorSpaceFromSurfaceGamut(GraphicColorGamut colorGamut) const
@@ -1070,6 +1384,70 @@ WMError Window::UnregisterListener(std::vector<sptr<T>>& holder, const sptr<T>& 
         [listener](sptr<T> registeredListener) {
             return registeredListener == listener;
         }), holder.end());
+    return WMError::WM_OK;
+}
+
+WMError Window::SetLayoutFullScreen(bool status) {
+    StageViewController* controller = [StageApplication getApplicationTopViewController];
+    if (![controller isKindOfClass:[StageViewController class]]) {
+        return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+    if (status == true) {
+        LOGI("isLayoutFullScreen is ture");
+        controller.edgesForExtendedLayout = UIRectEdgeAll;
+        controller.navigationController.navigationBar.translucent = YES;
+    } else {
+        LOGI("isLayoutFullScreen is false");
+        controller.edgesForExtendedLayout = UIRectEdgeNone;
+        controller.navigationController.navigationBar.translucent = NO;
+    }
+    return WMError::WM_OK;
+}
+
+WMError Window::SetSpecificBarProperty(WindowType type, const SystemBarProperty& property) {
+    WMError ret = SetSpecificBar(type, property);
+    if (ret == WMError::WM_OK) {
+        sysBarPropMap_[type] = property;
+    }
+    // WINDOW_TYPE_NAVIGATION_INDICATOR
+    return ret;
+}
+
+WMError Window::GetAvoidAreaByType(AvoidAreaType type, AvoidArea& avoidArea) {
+    avoidArea.topRect_ = emptyRect;
+    avoidArea.leftRect_ = emptyRect;
+    avoidArea.rightRect_ = emptyRect;
+    avoidArea.bottomRect_ = emptyRect;
+
+    if (@available(iOS 11.0, *)) {
+        StageViewController* controller = [StageApplication getApplicationTopViewController];
+        if (![controller isKindOfClass:[StageViewController class]]) {
+            return WMError::WM_ERROR_INVALID_WINDOW;
+        }
+        UIEdgeInsets insets = [UIApplication sharedApplication].delegate.window.safeAreaInsets;
+        CGFloat screenWidth = UIScreen.mainScreen.bounds.size.width;
+        CGFloat screenHeight = UIScreen.mainScreen.bounds.size.height;
+        double bottomSafeAreaHeight = insets.bottom ? Ace::PipelineBase::Vp2PxWithCurrentDensity(BOTTOM_SAFE_AREA_HEIGHT_VP) : 0;
+        if (type == AvoidAreaType::TYPE_CUTOUT) {
+            avoidArea.topRect_ = controller.statusBarHidden ? emptyRect : (Rect){0, 0, screenWidth, insets.top};
+        } else if (type == AvoidAreaType::TYPE_KEYBOARD) {
+            avoidArea.bottomRect_ = {0, screenHeight - keyBoardHieght, screenWidth, keyBoardHieght};
+        } else if (type == AvoidAreaType::TYPE_SYSTEM) {
+            avoidArea.topRect_ = controller.statusBarHidden ? emptyRect : (Rect){0, 0, screenWidth, insets.top};
+            avoidArea.bottomRect_ = {0, screenHeight - bottomSafeAreaHeight, screenWidth, bottomSafeAreaHeight};
+        } else if (type == AvoidAreaType::TYPE_NAVIGATION_INDICATOR) {
+            avoidArea.bottomRect_ = {0, screenHeight - bottomSafeAreaHeight, screenWidth, bottomSafeAreaHeight};
+        } else if (type == AvoidAreaType::TYPE_SYSTEM_GESTURE) {
+            avoidArea.leftRect_ = emptyRect;
+            avoidArea.rightRect_ = emptyRect;
+        } else {
+            LOGE("GetAvoidAreaByType failed, AvoidAreaType is invalid");
+            return WMError::WM_ERROR_INVALID_PARAM;
+        }
+    } else {
+        return WMError::WM_ERROR_INVALID_PARAM;
+        LOGE("GetAvoidAreaByType failed, iOS version less than 11");
+    }
     return WMError::WM_OK;
 }
 } // namespace OHOS::Rosen

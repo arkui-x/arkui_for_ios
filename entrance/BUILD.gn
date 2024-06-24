@@ -33,6 +33,7 @@ template("ace_ios_standard_source_set") {
       "$ace_root/adapter/ios/capability/bridge",
       "$ace_root/adapter/ios/capability/texture",
       "$ace_root/adapter/ios/capability/video",
+      "$ace_root/adapter/ios/capability/platformview",
       "$ace_root/adapter/ios/capability/surface",
       "$ace_root/adapter/ios/capability/web",
       "//foundation/arkui/ace_engine/adapter/ios/stage/ability",
@@ -40,6 +41,8 @@ template("ace_ios_standard_source_set") {
       "//foundation/appframework/window_manager/interfaces/innerkits/dm",
       "//foundation/appframework/window_manager/dm/include",
       "//foundation/appframework/window_manager/utils/include",
+      "//foundation/graphic/graphic_surface/interfaces/inner_api/surface",
+      "//base/hiviewdfx/hilog/interfaces/native/innerkits/include",
     ]
 
     sources = [
@@ -53,26 +56,41 @@ template("ace_ios_standard_source_set") {
       "ace_bridge.mm",
       "ace_download_bridge.mm",
       "ace_platform_plugin.cpp",
+      "ace_pointer_data.cc",
+      "ace_pointer_data_packet.cc",
       "ace_resource_register.cpp",
       "capability_registry.cpp",
       "display_info.mm",
       "download_manager.cpp",
       "foldable_window_ios.cpp",
-      "msdp/interaction_impl.cpp",
+      "html/html_to_span.cpp",
+      "interaction/interaction_impl.cpp",
+      "mmi_event_convertor.mm",
+      "timepicker/timepicker_haptic_factory.cpp",
       "touch_event.cpp",
+      "touch_event_convertor.cpp",
       "udmf/udmf_impl.cpp",
+      "utils.cpp",
+      "vibrator/vibrator_impl.cpp",
       "virtual_rs_window.mm",
+      "xcollie/xcollieInterface_impl.cpp",
     ]
 
     if (target_cpu == "arm64") {
       defines += [ "_ARM64_" ]
     }
 
-    defines += [ "BUILD_FOR_ARKUI" ]
+    defines += [
+      "BUILD_FOR_ARKUI",
+      "CROSS_PLATFORM",
+    ]
 
     configs = [
       "$ace_root:ace_config",
+      "//foundation/appframework/ability/ability_runtime/cross_platform/interfaces/kits/native/ability:abilitykit_native_config",
+      "//foundation/appframework/ability/ability_runtime/cross_platform/interfaces/kits/native/appkit:appkit_native_config",
       "//foundation/appframework/ability/ability_runtime/cross_platform/interfaces/inner_api/hilog:ability_cross_platform_hilog_config",
+      "//foundation/appframework/ability/ability_runtime/cross_platform/interfaces/inner_api/jsruntime:jsruntime_config",
     ]
 
     cflags_objc = [
@@ -86,7 +104,9 @@ template("ace_ios_standard_source_set") {
       "$ace_root/adapter/ios/capability:ace_capability_ios",
       "$ace_root/adapter/ios/entrance/resource:resource",
       "$ace_root/frameworks/core/components/theme:build_theme_code",
+      "//foundation/distributeddatamgr/udmf/adapter:arkui_x_udmf_data_napi",
       "//foundation/graphic/graphic_2d/rosen/modules/render_service_client:librender_service_client_static",
+      "//third_party/zlib:libz",
     ]
 
     frameworks = [
@@ -103,6 +123,7 @@ template("ace_ios_standard_source_set") {
       "//third_party/flutter/engine/flutter/shell/platform/darwin/ios/framework/Headers",
       "//third_party/flutter/engine/flutter/shell/common",
       "//base/global/resource_management/interfaces/inner_api/include",
+      "//foundation/distributeddatamgr/udmf/interfaces/jskits/data",
     ]
 
     if (ace_use_new_skia) {
@@ -117,6 +138,15 @@ template("ace_ios_standard_source_set") {
     if (defined(config.enable_rosen_backend) && config.enable_rosen_backend) {
       deps += [ "//foundation/graphic/graphic_2d/rosen/modules/render_service_client:librender_service_client_static" ]
       deps += [ "//foundation/arkui/napi:ace_napi" ]
+    }
+
+    #add multimodalinput
+    deps += [ "//foundation/multimodalinput/input/frameworks/proxy:libmmi-client-crossplatform" ]
+
+    #add drag
+    if (defined(config.enable_drag_framework) && config.enable_drag_framework) {
+      defines += [ "OHOS_BUILD_ENABLE_ARKUI_X" ]
+      deps += [ "//base/msdp/device_status/services/interaction/drag:interaction_client_crossplatform" ]
     }
   }
 }

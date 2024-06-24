@@ -18,9 +18,11 @@
 #include "AceWebPatternBridge.h"
 #include "frameworks/core/components_ng/pattern/web/cross_platform/web_object_event.h"
 
-void AceWebObject(const std::string& id, const std::string& event, void* object) {
+void AceWebObject(const std::string& id, const std::string& event, void* object)
+{
     OHOS::Ace::WebObjectEventManager::GetInstance().OnObjectEvent(id, event, (void *)object);
 }
-bool AceWebObjectWithBoolReturn(const std::string& id, const std::string& event, void* object) {
+bool AceWebObjectWithBoolReturn(const std::string& id, const std::string& event, void* object)
+{
     return OHOS::Ace::WebObjectEventManager::GetInstance().OnObjectEventWithBoolReturn(id, event, (void*)object);
 }

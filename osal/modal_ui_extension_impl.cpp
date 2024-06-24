@@ -18,7 +18,7 @@
 namespace OHOS::Ace {
 
 RefPtr<NG::FrameNode> ModalUIExtension::Create(const AAFwk::Want& want, const ModalUIExtensionCallbacks& callbacks,
-    bool isAsyncModalBinding)
+    bool isAsyncModalBinding, bool isModal)
 {
     return nullptr;
 }

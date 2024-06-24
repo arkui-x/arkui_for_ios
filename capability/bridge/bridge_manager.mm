@@ -26,6 +26,7 @@
 namespace OHOS::Ace::Platform {
 std::map<int32_t, std::map<std::string, std::shared_ptr<BridgeReceiver>>> BridgeManager::bridgeList_;
 std::mutex BridgeManager::bridgeLock_;
+static int32_t g_currentInstanceId;
 
 NSString* getOCstring(const std::string& c_string) {
     return [NSString stringWithCString:c_string.c_str() encoding:NSUTF8StringEncoding];
@@ -90,7 +91,7 @@ bool BridgeManager::JSRegisterBridge(int32_t instanceId, std::shared_ptr<BridgeR
             return true;
         }
     }
-    return false;
+    return true;
 }
 
 void BridgeManager::JSUnRegisterBridge(int32_t instanceId, const std::string& bridgeName) {
@@ -284,5 +285,14 @@ void BridgeManager::PlatformSendMessageBinary(int32_t instanceId,
     if (receiver && receiver->sendMessageBinaryCallback_) {
         receiver->sendMessageBinaryCallback_(std::move(data));
     }
+}
+
+void BridgeManager::SetCurrentInstanceId(int32_t instanceId) {
+    auto id = static_cast<int32_t>(instanceId);
+    g_currentInstanceId = id;
+}
+
+int32_t BridgeManager::GetCurrentInstanceId() {
+    return g_currentInstanceId;
 }
 } // namespace OHOS::Ace::Platform

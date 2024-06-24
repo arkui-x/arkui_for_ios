@@ -26,11 +26,13 @@ namespace OHOS::Ace::Platform {
 void ClipboardImpl::AddPixelMapRecord(const RefPtr<PasteDataMix>& pasteData, const RefPtr<PixelMap>& pixmap) {}
 void ClipboardImpl::AddImageRecord(const RefPtr<PasteDataMix>& pasteData, const std::string& uri) {}
 void ClipboardImpl::AddTextRecord(const RefPtr<PasteDataMix>& pasteData, const std::string& selectedStr) {}
+void ClipboardImpl::AddSpanStringRecord(const RefPtr<PasteDataMix>& pasteData, std::vector<uint8_t>& data) {}
 void ClipboardImpl::SetData(const RefPtr<PasteDataMix>& pasteData, CopyOptions copyOption) {}
 void ClipboardImpl::GetData(const std::function<void(const std::string&, bool isLastRecord)>& textCallback,
     const std::function<void(const RefPtr<PixelMap>&, bool isLastRecord)>& pixelMapCallback,
     const std::function<void(const std::string&, bool isLastRecord)>& urlCallback, bool syncMode)
 {}
+void ClipboardImpl::GetSpanStringData(const std::function<void(std::vector<uint8_t>&, const std::string&)>& callback, bool syncMode) {}
 
 RefPtr<PasteDataMix> ClipboardImpl::CreatePasteDataMix()
 {
@@ -46,9 +48,9 @@ void ClipboardImpl::SetData(const std::string& data, CopyOptions copyOption, boo
                 executor->PostTask([data]{
                     UIPasteboard *pasteboard = [UIPasteboard generalPasteboard];
                     pasteboard.string = [NSString stringWithCString:data.c_str() encoding:NSUTF8StringEncoding];
-                },TaskExecutor::TaskType::BACKGROUND);
+                },TaskExecutor::TaskType::BACKGROUND, "ArkUI-XClipboardImplSetDataBackground");
             }
-        },TaskExecutor::TaskType::PLATFORM);
+        },TaskExecutor::TaskType::PLATFORM, "ArkUI-XClipboardImplSetDataPlatform");
     }
 }
 
@@ -72,6 +74,11 @@ void ClipboardImpl::HasData(const std::function<void(bool hasData)>& callback)
     }
 }
 
+void ClipboardImpl::HasDataType(const std::function<void(bool hasData)>& callback, const std::vector<std::string>& mimeTypes)
+{
+    HasData(callback);
+}
+
 void ClipboardImpl::SetPixelMapData(const RefPtr<PixelMap>& pixmap, CopyOptions copyOption)
 {
     if (!taskExecutor_ || !callbackSetClipboardPixmapData_) {
@@ -80,7 +87,7 @@ void ClipboardImpl::SetPixelMapData(const RefPtr<PixelMap>& pixmap, CopyOptions 
     }
     taskExecutor_->PostTask([callbackSetClipboardPixmapData = callbackSetClipboardPixmapData_,
                                 pixmap] { callbackSetClipboardPixmapData(pixmap); },
-        TaskExecutor::TaskType::UI);
+        TaskExecutor::TaskType::UI, "ArkUI-XClipboardImplSetPixelMapData");
 }
 
 void ClipboardImpl::GetPixelMapData(const std::function<void(const RefPtr<PixelMap>&)>& callback, bool syncMode)
@@ -91,7 +98,7 @@ void ClipboardImpl::GetPixelMapData(const std::function<void(const RefPtr<PixelM
     }
     taskExecutor_->PostTask([callbackGetClipboardPixmapData = callbackGetClipboardPixmapData_,
                                 callback] { callback(callbackGetClipboardPixmapData()); },
-        TaskExecutor::TaskType::UI);
+        TaskExecutor::TaskType::UI, "ArkUI-XClipboardImplGetPixelMapData");
 }
 
 void ClipboardImpl::RegisterCallbackSetClipboardPixmapData(CallbackSetClipboardPixmapData callback)
@@ -113,9 +120,9 @@ void ClipboardImpl::Clear()
                 executor->PostTask([]{
                     UIPasteboard *pasteboard = [UIPasteboard generalPasteboard];
                     pasteboard.string = @"";
-                },TaskExecutor::TaskType::BACKGROUND);
+                },TaskExecutor::TaskType::BACKGROUND, "ArkUI-XClipboardImplClearBackground");
             }
-        },TaskExecutor::TaskType::PLATFORM);
+        },TaskExecutor::TaskType::PLATFORM, "ArkUI-XClipboardImplClearPlatform");
     }
 }
 

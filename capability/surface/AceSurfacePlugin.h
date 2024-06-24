@@ -18,10 +18,12 @@
 
 #import <UIKit/UIKit.h>
 #import "AceResourcePlugin.h"
+#import "IAceSurface.h"
 NS_ASSUME_NONNULL_BEGIN
 
 @interface AceSurfacePlugin : AceResourcePlugin
-+ (AceSurfacePlugin *)createRegister:(UIViewController *)target abilityInstanceId:(int32_t)abilityInstanceId;
++ (AceSurfacePlugin *)createRegister:(UIViewController *)target abilityInstanceId:(int32_t)abilityInstanceId
+    delegate:(id<IAceSurface>)delegate;
 - (int64_t)create:(NSDictionary<NSString *, NSString *> *)param;
 - (id)getObject:(int64_t)incId;
 - (BOOL)release:(NSString *)incId;

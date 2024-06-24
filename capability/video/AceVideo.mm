@@ -111,7 +111,7 @@ typedef enum : NSUInteger {
         __strong __typeof(weakSelf)strongSelf = weakSelf;
         if (strongSelf) {
             return [strongSelf initMediaPlayer:param] ? SUCCESS : FAIL;
-        }else {
+        } else {
             NSLog(@"AceVideo: init fail");
             return FAIL;
         }
@@ -125,7 +125,7 @@ typedef enum : NSUInteger {
         if (strongSelf) {
             [strongSelf startPlay];
             return SUCCESS;
-        }else {
+        } else {
             NSLog(@"AceVideo: startPlay fail");
             return FAIL;
         }
@@ -142,7 +142,7 @@ typedef enum : NSUInteger {
         if (strongSelf) {
             [strongSelf pause];
             return SUCCESS;
-        }else {
+        } else {
             NSLog(@"AceVideo: pause fail");
             return FAIL;
         }
@@ -156,7 +156,7 @@ typedef enum : NSUInteger {
         if (strongSelf) {
             [strongSelf stop];
             return SUCCESS;
-        }else {
+        } else {
             NSLog(@"AceVideo: stop fail");
             return FAIL;
         }
@@ -173,7 +173,7 @@ typedef enum : NSUInteger {
             [strongSelf fireCallback:@"ongetcurrenttime"
                 params:[NSString stringWithFormat:@"currentpos=%lld", position]];
             return [NSString stringWithFormat:@"%@%lld",@"currentpos=", position];
-        }else {
+        } else {
             NSLog(@"AceVideo: currentpos fail");
             return FAIL;
         }
@@ -193,7 +193,7 @@ typedef enum : NSUInteger {
             CMTime time = CMTimeMake(msec/1000, 1);
             [strongSelf seekTo:time];
             return SUCCESS;
-        }else {
+        } else {
             NSLog(@"AceVideo: seekto fail");
             return FAIL;
         }
@@ -213,7 +213,7 @@ typedef enum : NSUInteger {
             float volumn = [[param objectForKey:KEY_VALUE] floatValue];
             [strongSelf setVolume:volumn];
             return SUCCESS;
-        }else {
+        } else {
             NSLog(@"AceVideo: setVolume fail");
             return FAIL;
         }
@@ -232,7 +232,7 @@ typedef enum : NSUInteger {
             BOOL loop = [[param objectForKey:@"loop"] boolValue];
             [strongSelf enableLooping:loop];
             return SUCCESS;
-        }else {
+        } else {
             NSLog(@"AceVideo: enablelooping fail");
             return FAIL;
         }
@@ -251,7 +251,7 @@ typedef enum : NSUInteger {
             float speed = [[param objectForKey:KEY_VALUE] floatValue];
             [strongSelf updateSpeed:speed];
             return SUCCESS;
-        }else {
+        } else {
             NSLog(@"AceVideo: setspeed fail");
             return FAIL;
         }
@@ -279,7 +279,7 @@ typedef enum : NSUInteger {
         __strong __typeof(weakSelf)strongSelf = weakSelf;
         if (strongSelf) {
             return [strongSelf setSuerface:param];
-        }else {
+        } else {
             NSLog(@"AceVideo: setsurface fail");
             return FAIL;
         }
@@ -293,7 +293,7 @@ typedef enum : NSUInteger {
         __strong __typeof(weakSelf)strongSelf = weakSelf;
         if (strongSelf) {
              return [strongSelf setUpdateResource:param];
-        }else {
+        } else {
             NSLog(@"AceVideo: updateresource fail");
             return FAIL;
         }
@@ -307,7 +307,7 @@ typedef enum : NSUInteger {
         __strong __typeof(weakSelf)strongSelf = weakSelf;
         if (strongSelf) {
              return [strongSelf setFullscreen:param];
-        }else {
+        } else {
             NSLog(@"AceVideo: fullscreen fail");
             return FAIL;
         }
@@ -327,7 +327,7 @@ typedef enum : NSUInteger {
     if (self.player_) {
         if (self.state == STOPPED) {
             [self updatePalyerItem];
-        }else {
+        } else {
             CMTime currentTime = self.player_.currentTime;
             int64_t duration = [self getMediaDuration] / 1000;
             if (currentTime.value / currentTime.timescale == duration || self.state == PLAYBACK_COMPLETE) {
@@ -342,9 +342,6 @@ typedef enum : NSUInteger {
         if (self.player_.rate != self.speed) {
             [self updateSpeed:self.speed];
         }
-
-        NSString *param = [NSString stringWithFormat:@"isplaying=%d", 1];
-        [self fireCallback:@"onplaystatus" params:param];
     }
 }
 
@@ -362,8 +359,6 @@ typedef enum : NSUInteger {
     if (self.player_) {
         [self.player_ pause];
         self.state = PAUSED;
-        NSString *param = [NSString stringWithFormat:@"isplaying=%d", 0];
-        [self fireCallback:@"onplaystatus" params:param];
     }
 }
 
@@ -423,7 +418,7 @@ typedef enum : NSUInteger {
         if (status == AVPlayerTimeControlStatusPlaying || self.isAutoPlay || self.state == STARTED) {
              NSLog(@"AceVideo: setspeed %f",speed);
             [self.player_ setRate:speed];
-        }else {
+        } else {
             NSLog(@"AceVideo: If the speed is greater than 0, the video will start playing.  setspeed");
         }
     }
@@ -457,10 +452,10 @@ typedef enum : NSUInteger {
             AceTexture *texture = (AceTexture*)[AceTextureHolder getTextureWithId:self.surfaceId
                 inceId:self.instanceId];
             self.renderTexture = texture;
-        }else{
+        } else{
             NSLog(@"AceVideo: setSurface id:%ld", self.surfaceId);
             AceSurfaceView * surfaceView = (AceSurfaceView *)[AceSurfaceHolder getLayerWithId:self.surfaceId
-                inceId:self.instanceId];
+                inceId:self.instanceId].delegate;
             if (surfaceView && self.player_) {
                 NSLog(@"AceVideo: MediaPlayer SetSurface");
                 AVPlayerLayer * playerLayer = (AVPlayerLayer *)surfaceView.layer;
@@ -482,7 +477,7 @@ typedef enum : NSUInteger {
         return;
     }
     AceSurfaceView * surfaceView = (AceSurfaceView *)[AceSurfaceHolder getLayerWithId:self.surfaceId
-        inceId:self.instanceId];
+        inceId:self.instanceId].delegate;
     if (!surfaceView) {
         return;
     }
@@ -511,7 +506,7 @@ typedef enum : NSUInteger {
             NSLog(@"AceVideo: src param is null");
             return FAIL;
         }
-        if(![self setDataSource:src]) {
+        if (![self setDataSource:src]) {
             return FAIL;
         }
 
@@ -572,7 +567,7 @@ typedef enum : NSUInteger {
     BOOL isFullScreen = [[param objectForKey:KEY_VALUE] boolValue];
     if (isFullScreen) {
         AceSurfaceView * surfaceView = (AceSurfaceView *)[AceSurfaceHolder getLayerWithId:self.surfaceId
-            inceId:self.instanceId];
+            inceId:self.instanceId].delegate;
         if (surfaceView) {
             [surfaceView bringSubviewToFront];
         }
@@ -592,17 +587,13 @@ typedef enum : NSUInteger {
         NSLog(@"AceVideo: src param is null");
         return NO;
     }
-    if(![self setDataSource:src]) {
+    if (![self setDataSource:src]) {
         return NO;
     }
 
     if (!self.url) {
         return NO;
     }
-
-    [[NSNotificationCenter defaultCenter] removeObserver:self];
-    [[NSNotificationCenter defaultCenter] addObserver:self
-        selector:@selector(playDidEndNotification:) name:AVPlayerItemDidPlayToEndTimeNotification object:nil];
 
     self.isAutoPlay = [[param objectForKey:@"autoplay"] boolValue];
     self.isMute = [[param objectForKey:@"mute"] boolValue];
@@ -629,9 +620,14 @@ typedef enum : NSUInteger {
 
         if (self.player_) {
             [self.player_ replaceCurrentItemWithPlayerItem:playerItem];
-        }else {
+        } else {
             self.player_ = [[AVPlayer alloc] initWithPlayerItem:playerItem];
         }
+
+        [[NSNotificationCenter defaultCenter] removeObserver:self];
+        [[NSNotificationCenter defaultCenter] addObserver:self
+        selector:@selector(playDidEndNotification:) name:AVPlayerItemDidPlayToEndTimeNotification object:nil];
+
         return playerItem;
     } @catch (NSException *exception) {
         NSLog(@"AceVideo: playerItem create failed");

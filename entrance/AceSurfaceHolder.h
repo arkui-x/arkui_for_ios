@@ -21,8 +21,8 @@
 NS_ASSUME_NONNULL_BEGIN
 
 @interface AceSurfaceHolder : NSObject
-+ (UIView *)getLayerWithId:(long)layerId inceId:(long)inceId;
-+ (void)addLayer:(UIView *)layer withId:(long)layerId inceId:(long)inceId;
++ (CALayer *)getLayerWithId:(long)layerId inceId:(long)inceId;
++ (void)addLayer:(CALayer *)layer withId:(long)layerId inceId:(long)inceId;
 + (void)removeLayerWithId:(long)layerId inceId:(long)inceId;
 @end
 

@@ -48,19 +48,16 @@ bool AceTraceEnabled()
     return false;
 }
 
-void AceTraceBegin(const char* name)
-{
-    printf(">>>>> trace start! %s:%s\n", GetTraceTimeStamp().c_str(), name);
-}
+void AceTraceBegin(const char* name) {}
 
-void AceTraceEnd()
-{
-    printf(">>>>> trace end! %s\n", GetTraceTimeStamp().c_str());
-}
+void AceTraceEnd() {}
 
 void AceAsyncTraceBegin(int32_t taskId, const char* name, bool isAnimationTrace) {}
 
 void AceAsyncTraceEnd(int32_t taskId, const char* name, bool isAnimationTrace) {}
+
+void AceAsyncTraceBeginCommercial(int32_t taskId, const char* name, bool isAnimationTrace) {}
+void AceAsyncTraceEndCommercial(int32_t taskId, const char* name, bool isAnimationTrace) {}
 
 void AceCountTrace(const char *key, int32_t count)
 {

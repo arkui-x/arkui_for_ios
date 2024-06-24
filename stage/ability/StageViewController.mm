@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2023-2024 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -23,6 +23,8 @@
 #import "StageAssetManager.h"
 #import "StageConfigurationManager.h"
 #import "StageViewController.h"
+#import "StageContainerView.h"
+
 #import "WindowView.h"
 
 #include "app_main.h"
@@ -69,6 +71,7 @@ CGFloat _brightness = 0.0;
         }
         _pluginList = [[NSMutableArray alloc] init];
         [self initBridge];
+        self.homeIndicatorHidden = NO;
     }
     return self;
 }
@@ -84,12 +87,12 @@ CGFloat _brightness = 0.0;
 
 - (void)initWindowView {
     _windowView = [[WindowView alloc] init];
-    _windowView.notifyDelegate = self;
     _windowView.frame = self.view.bounds;
     _windowView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     WindowViwAdapter::GetInstance()->AddWindowView(_cInstanceName, (__bridge void*)_windowView);
     _brightness = [UIScreen mainScreen].brightness;
     [self.view addSubview: _windowView];
+    [(StageContainerView*)self.view setMainWindow:_windowView];
 }
 
 - (void)initBridge {
@@ -98,6 +101,8 @@ CGFloat _brightness = 0.0;
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+    self.view = [[StageContainerView alloc]initWithFrame:self.view.bounds];
+    ((StageContainerView*)self.view).notifyDelegate = self;
     self.view.backgroundColor = UIColor.whiteColor;
     NSLog(@"StageVC->%@ viewDidLoad call.", self);
     [self initColorMode];
@@ -114,7 +119,6 @@ CGFloat _brightness = 0.0;
 - (void)viewDidAppear:(BOOL)animated {
     [super viewDidAppear:animated];
     [_windowView updateBrightness];
-    [_windowView notifyForeground];
     NSLog(@"StageVC->%@ viewDidAppear call.", self);
     if (_needOnForeground) {
         AppMain::GetInstance()->DispatchOnForeground(_cInstanceName);
@@ -123,19 +127,43 @@ CGFloat _brightness = 0.0;
     if (_platformPlugin) {
         [_platformPlugin notifyLifecycleChanged:false];
     }
-    [_windowView notifyFocusChanged:YES];
+    [(StageContainerView*)self.view  notifyForeground];
+    [(StageContainerView*)self.view  notifyActiveChanged:YES];
+}
+
+- (void)viewWillAppear:(BOOL)animated {
+    [super viewWillAppear:animated];
+    if (_bridgePluginManager) {
+        [_bridgePluginManager updateCurrentInstanceId:_instanceId];
+    }
 }
 
 - (void)viewDidDisappear:(BOOL)animated {
     [super viewDidDisappear:animated];
     [UIScreen mainScreen].brightness = _brightness;
-    [_windowView notifyBackground];
+
     NSLog(@"StageVC->%@ viewDidDisappear call.", self);
     AppMain::GetInstance()->DispatchOnBackground(_cInstanceName);
     if (_platformPlugin) {
         [_platformPlugin notifyLifecycleChanged:true];
     }
-    [_windowView notifyFocusChanged:NO];
+    [(StageContainerView*)self.view  notifyBackground];
+    [(StageContainerView*)self.view  notifyActiveChanged:NO];
+
+    if ([UIDevice currentDevice].systemVersion.floatValue >= 18.0 && ([self isBeingDismissed] || [self isMovingFromParentViewController])) {
+        NSLog(@"iOS 18 StageVC->%@ dealloc", self);
+        [_platformPlugin platformRelease];
+        _platformPlugin = nil;
+        [_windowView notifySurfaceDestroyed];
+        [_windowView notifyWindowDestroyed];
+        _windowView = nil;
+        [BridgePluginManager innerUnbridgePluginManager:_instanceId];
+        _bridgePluginManager = nil;
+        [self deallocArkUIXPlugin];
+        AppMain::GetInstance()->DispatchOnDestroy(_cInstanceName);
+        [self removeFromParentViewController];
+        [[NSNotificationCenter defaultCenter] removeObserver:self];
+    }
 }
 
 - (void)didReceiveMemoryWarning {
@@ -148,15 +176,32 @@ CGFloat _brightness = 0.0;
 
 - (void)dealloc {
     NSLog(@"StageVC->%@ dealloc", self);
-    [_platformPlugin platformRelease];
-    _platformPlugin = nil;
     [_windowView notifySurfaceDestroyed];
     [_windowView notifyWindowDestroyed];
     _windowView = nil;
+    [_platformPlugin platformRelease];
+    _platformPlugin = nil;
     [BridgePluginManager innerUnbridgePluginManager:_instanceId];
     _bridgePluginManager = nil;
     [self deallocArkUIXPlugin];
     AppMain::GetInstance()->DispatchOnDestroy(_cInstanceName);
+}
+
+- (void)destroyData {
+    if ([UIDevice currentDevice].systemVersion.floatValue >= 18.0) {
+        NSLog(@"iOS 18 StageVC->%@ dealloc destroyData", self);
+        [_platformPlugin platformRelease];
+        _platformPlugin = nil;
+        [_windowView notifySurfaceDestroyed];
+        [_windowView notifyWindowDestroyed];
+        _windowView = nil;
+        [BridgePluginManager innerUnbridgePluginManager:_instanceId];
+        _bridgePluginManager = nil;
+        [self deallocArkUIXPlugin];
+        AppMain::GetInstance()->DispatchOnDestroy(_cInstanceName);
+        [self removeFromParentViewController];
+        [[NSNotificationCenter defaultCenter] removeObserver:self];
+    }
 }
 
 - (void)traitCollectionDidChange:(UITraitCollection *)previousTraitCollection {
@@ -213,9 +258,11 @@ CGFloat _brightness = 0.0;
 
 - (BOOL)isTopController {
     StageViewController *controller = [StageApplication getApplicationTopViewController];
-    NSString *topInstanceName = controller.instanceName;
-    if ([self.instanceName isEqualToString:topInstanceName]) {
-        return true;
+    if ([controller respondsToSelector:@selector(instanceName)]) {
+        NSString *topInstanceName = controller.instanceName;
+        if ([self.instanceName isEqualToString:topInstanceName]) {
+            return true;
+        }
     }
     return false;
 }
@@ -227,7 +274,6 @@ CGFloat _brightness = 0.0;
 #pragma mark - WindowViewDelegate 
 - (void)notifyApplicationWillEnterForeground {
     if ([self isTopController]) {
-        [_windowView notifyForeground];
         if (_platformPlugin) {
             [_platformPlugin notifyLifecycleChanged:false];
         }
@@ -236,7 +282,6 @@ CGFloat _brightness = 0.0;
 
 - (void)notifyApplicationDidEnterBackground {
     if ([self isTopController]) {
-        [_windowView notifyBackground];
         if (_platformPlugin) {
             [_platformPlugin notifyLifecycleChanged:true];
         }
@@ -247,20 +292,12 @@ CGFloat _brightness = 0.0;
    [_bridgePluginManager platformWillTerminate];
 }
 
-- (void)notifyApplicationBecameActive {
-    if ([self isTopController]) {
-        [_windowView notifyFocusChanged:YES];
-    }
-}
-
-- (void)notifyApplicationWillResignActive {
-    if ([self isTopController]) {
-        [_windowView notifyFocusChanged:NO];
-    }
-}
-
 - (BOOL)prefersStatusBarHidden {
     return self.statusBarHidden;
+}
+
+- (BOOL)prefersHomeIndicatorAutoHidden {
+    return self.homeIndicatorHidden;
 }
 
 - (void)pressesBegan:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event {
@@ -286,4 +323,11 @@ CGFloat _brightness = 0.0;
         [_windowView pressesCancelled:presses withEvent:event];
     }
 }
+
+- (void)registerPlatformViewFactory:(NSObject<PlatformViewFactory> *)platformViewFactory{
+    if (_platformPlugin) {
+        [_platformPlugin registerPlatformViewFactory:platformViewFactory];
+    }
+}
+
 @end

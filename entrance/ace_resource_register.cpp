@@ -35,7 +35,7 @@ AceResourceRegister::AceResourceRegister(void* object) : client_(object)
 
 AceResourceRegister::~AceResourceRegister()
 {
-   delete static_cast<void*>(client_);
+    client_ = nullptr;
 }
 
 bool AceResourceRegister::OnMethodCall(const std::string& method, const std::string& param, std::string& result)
@@ -54,6 +54,9 @@ int64_t AceResourceRegister::CreateResource(const std::string& resourceType, con
 
 bool AceResourceRegister::ReleaseResource(const std::string& resourceHash)
 {
+    if (client_ == nullptr) {
+        return false;
+    }
     return CallOC_ReleaseResource(client_, resourceHash);
 }
 

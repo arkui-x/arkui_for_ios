@@ -38,6 +38,7 @@ template("stage_ios_standard_source_set") {
       "$ace_root/frameworks",
       "$ace_root",
       "//foundation/arkui/ace_engine/adapter/ios/entrance/plugin_lifecycle",
+      "$ace_root/adapter/ios/capability/platformview",
     ]
 
     if (target_cpu == "arm64") {
@@ -61,6 +62,7 @@ template("stage_ios_standard_source_set") {
       "StageApplication.mm",
       "StageAssetManager.mm",
       "StageConfigurationManager.mm",
+      "StageContainerView.mm",
       "StageViewController.mm",
       "ability_context_adapter.mm",
       "application_context_adapter.mm",
