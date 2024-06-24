@@ -42,6 +42,8 @@ public:
     void Scale(float xAxis, float yAxis) override;
     void Scale(float xAxis, float yAxis, const AceAntiAliasingOption &option) override;
     void SavePixelMapToFile(const std::string& dst) const override;
+    RefPtr<PixelMap> GetCropPixelMap(const Rect& srcRect) override;
+    bool EncodeTlv(std::vector<uint8_t>& buff) override;
 private:
     std::shared_ptr<Media::PixelMap> pixmap_;
 };

@@ -17,6 +17,7 @@
 
 #import <Foundation/Foundation.h>
 #import "adapter/ios/entrance/resource/AceResourceRegisterOC.h"
+#import "PlatformViewFactory.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -26,6 +27,7 @@ NS_ASSUME_NONNULL_BEGIN
     instanceId:(int32_t)instanceId moduleName:(NSString *_Nonnull)moduleName;
 - (void)notifyLifecycleChanged:(BOOL)isBackground;
 - (void)platformRelease;
+- (void)registerPlatformViewFactory:(NSObject<PlatformViewFactory> *)platformViewFactory;
 @end
 
 NS_ASSUME_NONNULL_END

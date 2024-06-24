@@ -20,11 +20,13 @@
 #import <UIKit/UIKit.h>
 #import "IAceOnResourceEvent.h"
 #import "IAceOnCallResourceMethod.h"
+#import "IAceSurface.h"
 NS_ASSUME_NONNULL_BEGIN
 
 @interface AceSurfaceView : UIView
 - (instancetype)initWithId:(int64_t)incId callback:(IAceOnResourceEvent)callback
-    param:(NSDictionary*)initParam superTarget:(id)target abilityInstanceId:(int32_t)abilityInstanceId;
+    param:(NSDictionary*)initParam superTarget:(id)target abilityInstanceId:(int32_t)abilityInstanceId
+    delegate:(id<IAceSurface>)delegate;
 
 /**
  * Get the call method map.
@@ -40,13 +42,6 @@ NS_ASSUME_NONNULL_BEGIN
  * @return result of setting texture size
  */
 - (NSString*)setSurfaceBounds:(NSDictionary*)params;
-
-/**
- * Get the surface.
- *
- * @return Surface
- */
-- (AVPlayerLayer*)getSurface;
 
 /**
  * Release the surface.

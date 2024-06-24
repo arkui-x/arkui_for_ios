@@ -42,7 +42,7 @@ void AcePlatformPlugin::RegisterSurface(int32_t instanceId, int64_t texture_id, 
 {
     auto iter = g_nativeLayerMaps.find(static_cast<int32_t>(instanceId));
     if (iter != g_nativeLayerMaps.end()) {
-        iter->second.emplace(static_cast<int64_t>(texture_id), surface);
+        iter->second[texture_id] = surface;       
     } else {
         std::unordered_map<int64_t, void*> nativeLayerMap;
         nativeLayerMap.emplace(static_cast<int64_t>(texture_id), surface);

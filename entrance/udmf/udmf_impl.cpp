@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-#include "adapter/android/entrance/java/jni/udmf/udmf_impl.h"
+#include "udmf_impl.h"
 
 #include <memory>
 #include <unordered_map>
@@ -62,6 +62,11 @@ int32_t UdmfClientImpl::GetData(const RefPtr<UnifiedData>& unifiedData, const st
 int32_t UdmfClientImpl::GetSummary(std::string& key, std::map<std::string, int64_t>& summaryMap)
 {
     return -1;
+}
+
+bool UdmfClientImpl::GetRemoteStatus(std::string& key)
+{
+    return false;
 }
 
 void UdmfClientImpl::AddFormRecord(

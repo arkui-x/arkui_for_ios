@@ -33,6 +33,7 @@ template("ace_ios_standard_source_set") {
       "$ace_root/adapter/ios/capability/bridge",
       "$ace_root/adapter/ios/capability/texture",
       "$ace_root/adapter/ios/capability/video",
+      "$ace_root/adapter/ios/capability/platformview",
       "$ace_root/adapter/ios/capability/surface",
       "$ace_root/adapter/ios/capability/web",
       "//foundation/arkui/ace_engine/adapter/ios/stage/ability",
@@ -40,6 +41,8 @@ template("ace_ios_standard_source_set") {
       "//foundation/appframework/window_manager/interfaces/innerkits/dm",
       "//foundation/appframework/window_manager/dm/include",
       "//foundation/appframework/window_manager/utils/include",
+      "//foundation/graphic/graphic_surface/interfaces/inner_api/surface",
+      "//base/hiviewdfx/hilog/interfaces/native/innerkits/include",
     ]
 
     sources = [
@@ -60,8 +63,11 @@ template("ace_ios_standard_source_set") {
       "foldable_window_ios.cpp",
       "msdp/interaction_impl.cpp",
       "touch_event.cpp",
+      "touch_event_convertor.cpp",
       "udmf/udmf_impl.cpp",
+      "utils.cpp",
       "virtual_rs_window.mm",
+      "xcollie/xcollieInterface_impl.cpp",
     ]
 
     if (target_cpu == "arm64") {

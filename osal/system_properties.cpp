@@ -27,10 +27,9 @@ constexpr char UNDEFINED_PARAM[] = "undefined parameter";
 
 } // namespace
 
-// currently it is unused, use ATrace_isEnabled
-bool SystemProperties::traceEnabled_ = false;
 bool SystemProperties::isRound_ = false;
 bool SystemProperties::isDeviceAccess_ = false;
+bool SystemProperties::developerModeOn_ = false;
 int32_t SystemProperties::deviceWidth_ = 0;
 int32_t SystemProperties::deviceHeight_ = 0;
 int32_t SystemProperties::devicePhysicalWidth_ = 0;
@@ -55,11 +54,14 @@ bool SystemProperties::rosenBackendEnabled_ = true;
 bool SystemProperties::svgTraceEnable_ = false;
 bool SystemProperties::downloadByNetworkEnabled_ = false;
 bool SystemProperties::isHookModeEnabled_ = false;
+bool SystemProperties::syncDebugTraceEnable_ = false;
+bool SystemProperties::textTraceEnable_ = false;
 bool SystemProperties::accessibilityEnabled_ = false;
 bool SystemProperties::windowAnimationEnabled_ = false;
 bool SystemProperties::debugEnabled_ = false;
 bool SystemProperties::debugBoundaryEnabled_ = false;
 bool SystemProperties::debugAutoUIEnabled_ = false;
+bool SystemProperties::debugOffsetLogEnabled_ = false;
 bool SystemProperties::extSurfaceEnabled_ = true;
 uint32_t SystemProperties::dumpFrameCount_ = 0;
 bool SystemProperties::layoutTraceEnable_ = false;
@@ -68,6 +70,16 @@ bool SystemProperties::enableScrollableItemPool_ = false;
 bool SystemProperties::navigationBlurEnabled_ = true;
 bool SystemProperties::gridCacheEnabled_ = false;
 bool SystemProperties::sideBarContainerBlurEnable_ = false;
+bool SystemProperties::acePerformanceMonitorEnable_ = false;
+bool SystemProperties::imageFileCacheConvertAstc_ = false;
+int32_t SystemProperties::imageFileCacheConvertAstcThreshold_ = 2;
+bool SystemProperties::traceInputEventEnable_ = false;
+std::pair<float, float> SystemProperties::brightUpPercent_ = {};
+
+bool SystemProperties::IsOpIncEnable()
+{
+    return false;
+}
 
 void SystemProperties::InitDeviceType(DeviceType type)
 {
@@ -235,9 +247,24 @@ bool SystemProperties::GetSideBarContainerBlurEnable()
     return sideBarContainerBlurEnable_;
 }
 
+bool SystemProperties::GetGridIrregularLayoutEnabled()
+{
+    return false;
+}
+
+bool SystemProperties::WaterFlowUseSegmentedLayout()
+{
+    return false;
+}
+
 float SystemProperties::GetDefaultResolution()
 {
     return 1.0f;
+}
+
+std::string SystemProperties::GetAtomicServiceBundleName()
+{
+    return UNDEFINED_PARAM;
 }
 
 } // namespace OHOS::Ace

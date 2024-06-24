@@ -32,6 +32,8 @@ ohos_combine_darwin_framework("libarkui_ios") {
     "$ace_root/adapter/ios/capability/bridge/ResultValue.h",
     "$ace_root/adapter/ios/capability/bridge/TaskOption.h",
     "$ace_root/adapter/ios/capability/bridge/codec/BridgeArray.h",
+    "$ace_root/adapter/ios/capability/platformview/IPlatformView.h",
+    "$ace_root/adapter/ios/capability/platformview/PlatformViewFactory.h",
     "$ace_root/adapter/ios/stage/ability/StageViewController.h",
     "$ace_root/adapter/ios/stage/ability/StageApplication.h",
     "$ace_root/adapter/ios/entrance/plugin_lifecycle/IArkUIXPlugin.h",
@@ -52,6 +54,7 @@ ohos_shared_library("arkui_ios") {
 
   deps = [
     "$ace_root/build:libace_static_ios",
+    "$ace_root/interfaces/native:ace_static_ndk",
     "//foundation/appframework:appframework_napis",
     "//foundation/appframework/icu_data:static_icudata",
     "//plugins/interfaces/native:ace_plugin_util_inner_ios",

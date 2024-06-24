@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2023-2024 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -36,16 +36,28 @@
 
 namespace OHOS::Ace::Platform {
 namespace {
-TouchPoint ConvertTouchPoint(flutter::PointerData* pointerItem)
+void UpdateTouchEvent(std::vector<TouchEvent>& events)
 {
-    TouchPoint touchPoint;
-    // just get the max of width and height
-    touchPoint.size = pointerItem->size;
-    touchPoint.id = pointerItem->device;
-    touchPoint.force = pointerItem->pressure;
-    touchPoint.x = pointerItem->physical_x;
-    touchPoint.y = pointerItem->physical_y;
-    return touchPoint;
+    if (events.empty()) {
+        return;
+    }
+    std::vector<TouchPoint> pointers;
+    for (auto& event : events) {
+        TouchPoint touchPoint;
+        touchPoint.size = event.size;
+        touchPoint.id = event.id;
+        touchPoint.force = event.force;
+        touchPoint.downTime = event.time;
+        touchPoint.x = event.x;
+        touchPoint.y = event.y;
+        touchPoint.screenX = event.screenX;
+        touchPoint.screenY = event.screenY;
+        touchPoint.isPressed = (event.type == TouchType::DOWN);
+        pointers.emplace_back(std::move(touchPoint));
+    }
+    for (auto& evt : events) {
+        std::copy(pointers.begin(), pointers.end(), std::back_inserter(evt.pointers));
+    } 
 }
 
 void ConvertTouchEvent(const std::vector<uint8_t>& data, std::vector<TouchEvent>& events)
@@ -56,14 +68,24 @@ void ConvertTouchEvent(const std::vector<uint8_t>& data, std::vector<TouchEvent>
     auto end = current + size;
 
     while (current < end) {
+        if (current->device == -1) {
+            current++;
+            continue;
+        }
         std::chrono::nanoseconds nanos(current->time_stamp);
         TimeStamp time(nanos);
-        TouchEvent point { static_cast<int32_t>(current->device), static_cast<float>(current->physical_x),
-            static_cast<float>(current->physical_y), static_cast<float>(current->physical_x),
-            static_cast<float>(current->physical_y), TouchType::UNKNOWN, TouchType::UNKNOWN, time, current->size,
-            static_cast<float>(current->pressure), static_cast<int64_t>(current->device) };
+        TouchEvent point;
+        point.SetId(static_cast<int32_t>(current->device))
+            .SetX(static_cast<float>(current->physical_x))
+            .SetY(static_cast<float>(current->physical_y))
+            .SetScreenX(static_cast<float>(current->physical_x))
+            .SetScreenY(static_cast<float>(current->physical_y))
+            .SetType(TouchType::UNKNOWN)
+            .SetPullType(TouchType::UNKNOWN)
+            .SetTime(time)
+            .SetSize(current->size)
+            .SetSourceType(SourceType::NONE);
         point.sourceType = SourceType::TOUCH;
-        point.pointers.emplace_back(ConvertTouchPoint(current));
         switch (current->change) {
             case flutter::PointerData::Change::kCancel:
                 point.type = TouchType::CANCEL;
@@ -88,6 +110,7 @@ void ConvertTouchEvent(const std::vector<uint8_t>& data, std::vector<TouchEvent>
         }
         current++;
     }
+    UpdateTouchEvent(events);
 }
 } // namespace
 
@@ -229,6 +252,7 @@ bool AceViewSG::DispatchTouchEvent(const std::vector<uint8_t>& data)
     LOGI(" ProcessTouchEvent event size%zu", touchEvents.size());
     bool forbiddenToPlatform = false;
     for (const auto& point : touchEvents) {
+        DispatchEventToPerf(point);
         if (point.type == TouchType::UNKNOWN) {
             LOGW("Unknown event");
             continue;
@@ -264,9 +288,73 @@ bool AceViewSG::DispatchKeyEvent(const KeyEventInfo& eventInfo)
     // distribute special event firstly
     // because platform receives a raw event, the special event processing is ignored
     if (keyEvents.size() > 1) {
+        DispatchEventToPerf(keyEvents.back());
         keyEventCallback_(keyEvents.back());
     }
+    DispatchEventToPerf(keyEvents.front());
     return keyEventCallback_(keyEvents.front());
+}
+
+void AceViewSG::DispatchEventToPerf(const TouchEvent& pointerEvent)
+{
+    static bool isFirstMove = false;
+    if (!PerfMonitor::GetPerfMonitor()) {
+        return;
+    }
+    int64_t inputTime = static_cast<int64_t>(
+        std::chrono::duration_cast<std::chrono::nanoseconds>(pointerEvent.time.time_since_epoch()).count());
+    if (inputTime <= 0) {
+        return;
+    }
+    PerfActionType inputType = UNKNOWN_ACTION;
+    PerfSourceType sourceType = UNKNOWN_SOURCE;
+    if (pointerEvent.sourceType == SourceType::MOUSE) {
+        sourceType = PERF_MOUSE_EVENT;
+    } else if (pointerEvent.sourceType == SourceType::TOUCH) {
+        sourceType = PERF_TOUCH_EVENT;
+    } else if (pointerEvent.sourceType == SourceType::TOUCH_PAD) {
+        sourceType = PERF_TOUCH_PAD;
+    } else {
+        sourceType = UNKNOWN_SOURCE;
+    }
+    if (pointerEvent.type == TouchType::DOWN) {
+        inputType = LAST_DOWN;
+        isFirstMove = true;
+    } else if (pointerEvent.type == TouchType::UP) {
+        inputType = LAST_UP;
+        isFirstMove = false;
+    } else if (isFirstMove && pointerEvent.type == TouchType::MOVE) {
+        inputType = FIRST_MOVE;
+        isFirstMove = false;
+    }
+    PerfMonitor::GetPerfMonitor()->RecordInputEvent(inputType, sourceType, inputTime);
+}
+
+void AceViewSG::DispatchEventToPerf(const KeyEvent& keyEvent)
+{
+    if (keyEvent.code != KeyCode::KEY_VOLUME_DOWN
+        && keyEvent.code != KeyCode::KEY_VOLUME_UP
+        && keyEvent.code != KeyCode::KEY_POWER
+        && keyEvent.code != KeyCode::KEY_META_LEFT
+        && keyEvent.code != KeyCode::KEY_ESCAPE) {
+        return;
+    }
+    if (!PerfMonitor::GetPerfMonitor()) {
+        return;
+    }
+    int64_t inputTime = static_cast<int64_t>(
+        std::chrono::duration_cast<std::chrono::nanoseconds>(keyEvent.timeStamp.time_since_epoch()).count());
+    if (inputTime <= 0) {
+        return;
+    }
+    PerfActionType inputType = UNKNOWN_ACTION;
+    if (keyEvent.action == KeyAction::UP) {
+        inputType = LAST_UP;
+    } else if (keyEvent.action == KeyAction::DOWN) {
+        inputType = LAST_DOWN;
+    }
+    PerfSourceType sourceType = PERF_KEY_EVENT;
+    PerfMonitor::GetPerfMonitor()->RecordInputEvent(inputType, sourceType, inputTime);
 }
 
 void AceViewSG::NotifySurfaceDestroyed() const

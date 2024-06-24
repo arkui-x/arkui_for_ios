@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2023-2024 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -13,22 +13,26 @@
  * limitations under the License.
  */
 
-#import "AceSurfaceHolder.h"
 #import "AceSurfaceView.h"
+
+#import <QuartzCore/QuartzCore.h>
+#import <OpenGLES/ES3/gl.h>
+#import <OpenGLES/ES3/glext.h>
+
+#import "AceSurfaceHolder.h"
 #import "WindowView.h"
 
-@interface AceSurfaceView () {
-    float _surfaceLeft;
-    float _surfaceTop;
-    float _surfaceWidth;
-    float _surfaceHeight;
+@interface AceSurfaceView (){
     BOOL _viewAdded;
+    CGRect _currentFrame;
+
 }
 @property (nonatomic, assign) int64_t incId;
 @property (nonatomic, assign) int32_t instanceId;
 @property (nonatomic, copy) IAceOnResourceEvent callback;
 @property (nonatomic, strong) NSMutableDictionary<NSString*, IAceOnCallSyncResourceMethod>* callMethodMap;
 @property (nonatomic, weak) UIViewController* target;
+@property (nonatomic, weak) id<IAceSurface> surfeceDelegate;
 @end
 
 @implementation AceSurfaceView
@@ -48,18 +52,13 @@
 #define SURFACE_HEIGHT_KEY @"surfaceHeight"
 #define SURFACE_SET_BOUNDS @"setSurfaceBounds"
 
-+ (Class)layerClass
-{
-    return [AVPlayerLayer class];
-}
-
-- (AVPlayerLayer *)playerLayer
-{
-    return (AVPlayerLayer *)self.layer;
++ (Class)layerClass {
+    return [CALayer class];
 }
 
 - (instancetype)initWithId:(int64_t)incId callback:(IAceOnResourceEvent)callback
     param:(NSDictionary*)initParam superTarget:(id)target abilityInstanceId:(int32_t)abilityInstanceId
+    delegate:(id<IAceSurface>)delegate
 {
     if (self = [super init]) {
         NSLog(@"AceSurfaceView: init initParam: %@  incId: %lld",initParam,incId);
@@ -68,39 +67,53 @@
         self.callback = callback;
         self.callMethodMap = [[NSMutableDictionary alloc] init];
         self.target = target;
+        self.surfeceDelegate = delegate;
         self.autoresizesSubviews = YES;
-        self.backgroundColor = UIColor.blackColor;
+
         [self layerCreate];
 
         __weak AceSurfaceView* weakSelf = self;
         IAceOnCallSyncResourceMethod callSetSurfaceSize = ^NSString*(NSDictionary* param) {
-            NSLog(@"AceSurfaceView: setSurfaceBounds");
             if (weakSelf) {
                 return [weakSelf setSurfaceBounds:param];
-            }else {
+            } else {
                  NSLog(@"AceSurfaceView: setSurfaceBounds fail");
                  return FAIL;
             }
            
         };
         [self.callMethodMap setObject:[callSetSurfaceSize copy] forKey:[self method_hashFormat:@"setSurfaceBounds"]];
+
+        IAceOnCallSyncResourceMethod callAttachNativeWindow = ^NSString*(NSDictionary* param) {
+            if (weakSelf) {
+                return [weakSelf setAttachNativeWindow:param];
+            } else {
+                 NSLog(@"AceSurfaceView: callAttachNativeWindow fail");
+                 return FAIL;
+            }
+        };
+        [self.callMethodMap setObject:[callAttachNativeWindow copy] forKey:[self method_hashFormat:@"attachNativeWindow"]];
     }
     return self;
 }
 
-- (void)callSurfaceChange:(CGRect)oldRect
+- (void)callSurfaceChange:(CGRect)surfaceRect
 {
-    if (self.playerLayer) {
-        CGRect newRect = self.playerLayer.frame;
-        if (oldRect.origin.x != newRect.origin.x
-            || oldRect.origin.y != newRect.origin.y
-            || oldRect.size.width != newRect.size.width
-            || oldRect.size.height != newRect.size.height){
-            CGFloat width = newRect.size.width;
-            CGFloat height = newRect.size.height;
-            NSString * param = [NSString stringWithFormat:@"surfaceWidth=%f&surfaceHeight=%f",width,height];
-            NSLog(@"AceSurfaceView callSurfaceChange (%f, %f) - (%f x %f) ", 
-                newRect.origin.x, newRect.origin.y, newRect.size.width, newRect.size.height);
+    UIScreen *screen = [UIScreen mainScreen];
+    CGFloat scale = screen.scale;
+
+    CGRect newRect = CGRectMake(surfaceRect.origin.x/scale,
+        surfaceRect.origin.y/scale, surfaceRect.size.width/scale, surfaceRect.size.height/scale);
+    self.frame = newRect;
+    if (self.layer) {
+        if (_currentFrame.origin.x != surfaceRect.origin.x
+            || _currentFrame.origin.y != surfaceRect.origin.y
+            || _currentFrame.size.width != surfaceRect.size.width
+            || _currentFrame.size.height != surfaceRect.size.height){
+            self.frame = newRect;
+            _currentFrame = surfaceRect;
+            NSString * param = [NSString stringWithFormat:@"surfaceWidth=%f&surfaceHeight=%f",
+                surfaceRect.size.width, surfaceRect.size.height];
             [self fireCallback:@"onChanged" params:param];
         }
     }
@@ -108,19 +121,11 @@
 
 - (void)layerCreate
 {
-    self.playerLayer.backgroundColor = UIColor.blackColor.CGColor;
-    self.playerLayer.hidden = true;
-    NSMutableDictionary *newActions = [[NSMutableDictionary alloc] initWithObjectsAndKeys:[NSNull null], @"bounds", [NSNull null], @"position", nil];
-    self.playerLayer.actions = newActions;
-    self.playerLayer.videoGravity = AVLayerVideoGravityResize;
-    [AceSurfaceHolder addLayer:self withId:self.incId inceId:self.instanceId];
-    NSLog(@"AceSurfaceView Surface Created");
+    [AceSurfaceHolder addLayer:self.layer withId:self.incId inceId:self.instanceId];
 
     UIViewController* superViewController = (UIViewController*)self.target;
     WindowView *windowView = (WindowView *)[self findWindowViewInView:superViewController.view];
     [superViewController.view addSubview:self];
-    superViewController.view.backgroundColor = UIColor.blackColor;
-    self.hidden = true;
 }
 
 - (NSDictionary<NSString*, IAceOnCallSyncResourceMethod>*)getCallMethod
@@ -134,32 +139,22 @@
         return FAIL;
     }
     @try {
-        UIScreen *screen = [UIScreen mainScreen];
-        CGFloat scale = screen.scale;
-
-        _surfaceLeft = [params[SURFACE_LEFT_KEY] floatValue] / scale;
-        _surfaceTop = [params[SURFACE_TOP_KEY] floatValue] / scale;
-        _surfaceWidth = [params[SURFACE_WIDTH_KEY] floatValue] / scale;
-        _surfaceHeight = [params[SURFACE_HEIGHT_KEY] floatValue] / scale;
-        
-        NSLog(@"AceSurfaceView setSurfaceBounds (%f, %f) - (%f x %f) ", 
-            _surfaceLeft, _surfaceTop, _surfaceWidth, _surfaceHeight);
-        
-        CGRect oldRect = self.frame;
-        self.frame = CGRectMake(_surfaceLeft, _surfaceTop, _surfaceWidth, _surfaceHeight);
-        [self callSurfaceChange:oldRect];
+        CGFloat surface_x = [params[SURFACE_LEFT_KEY] floatValue];
+        CGFloat surface_y = [params[SURFACE_TOP_KEY] floatValue];
+        CGFloat surface_width = [params[SURFACE_WIDTH_KEY] floatValue];
+        CGFloat surface_height = [params[SURFACE_HEIGHT_KEY] floatValue];
+        CGRect surfaceRect = CGRectMake(surface_x, surface_y, surface_width, surface_height);
+        [self callSurfaceChange:surfaceRect];
        
         if (_viewAdded) {
             [self layoutIfNeeded];
         } else {
             _viewAdded = YES;
-            self.hidden = false;
             UIViewController* superViewController = (UIViewController*)self.target;
             self.frame = superViewController.view.bounds;
             self.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
             WindowView *windowView = (WindowView *)[self findWindowViewInView:superViewController.view];
             [superViewController.view bringSubviewToFront:windowView];
-            [self performSelector:@selector(delaySetClearColor:) withObject:windowView afterDelay:0.5f];
         }
     } @catch (NSException* exception) {
         NSLog(@"AceSurfaceView NumberFormatException, setSurfaceSize failed");
@@ -168,11 +163,23 @@
     return SUCCESS;
 }
 
-- (void)delaySetClearColor:(UIView *)view
+- (NSString*)setAttachNativeWindow:(NSDictionary*)params
 {
-    if (view) {
-        view.backgroundColor = UIColor.clearColor;
+    if (!self.surfeceDelegate) {
+        NSLog(@"AceSurfaceView IAceSurface is null");
+        return FAIL;
     }
+    if (![self.surfeceDelegate respondsToSelector:@selector(attachNaitveSurface:)]) {
+        NSLog(@"AceSurfaceView IAceSurface attachNaitveSurface null");
+        return FAIL;
+    }
+    uintptr_t nativeWindow = [self.surfeceDelegate attachNaitveSurface:self.layer];
+    if (nativeWindow == 0) {
+        NSLog(@"AceSurfaceView Surface nativeWindow: null");
+        return FAIL;
+    }
+    NSDictionary * param = @{@"nativeWindow": [NSString stringWithFormat:@"%ld",(long)nativeWindow]};
+    return [self convertMapToString:param];
 }
 
 - (UIView *)findWindowViewInView:(UIView *)view {
@@ -200,11 +207,6 @@
     return [NSString stringWithFormat:@"%@%lld%@%@%@%@", SURFACE_FLAG, self.incId, METHOD, PARAM_EQUALS, method, PARAM_BEGIN];
 }
 
-- (AVPlayerLayer*)getSurface
-{
-    return self.playerLayer;
-}
-
 - (long)getResId
 {
     return self.incId;
@@ -225,6 +227,18 @@
     }
 }
 
+- (NSString *)convertMapToString:(NSDictionary *)data
+{
+    NSArray *pairs = [data.allKeys sortedArrayUsingSelector:@selector(compare:)];
+    NSMutableString *string = [[NSMutableString alloc] init];
+    for (NSString *key in pairs) {
+        id value = data[key];
+        [string appendFormat:@"%@=%@;", key, value];
+    }
+    [string deleteCharactersInRange:NSMakeRange(string.length - 1, 1)];
+    return string;
+}
+
 - (void)releaseObject
 {
     @try {
@@ -232,7 +246,7 @@
         if (_viewAdded) {
             _viewAdded = false;
         }
-        if (self.playerLayer) {
+        if (self.layer) {
             [AceSurfaceHolder removeLayerWithId:self.incId inceId:self.instanceId];
         }
         

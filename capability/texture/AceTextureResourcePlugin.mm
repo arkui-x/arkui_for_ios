@@ -95,7 +95,7 @@
             if (texture) {
                 [texture releaseObject];
                 texture = nil;
-            }else {
+            } else {
                 NSLog(@"AceSurfacePlugin releaseObject fail aceSurface is null");
             }
         }];

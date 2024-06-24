@@ -66,6 +66,11 @@ AlphaType PixelMapIOS::AlphaTypeConverter(Media::AlphaType alphaType)
     }
 }
 
+RefPtr<PixelMap> PixelMap::CopyPixelMap(const RefPtr<PixelMap>& pixelMap)
+{
+    return nullptr;
+}
+
 int32_t PixelMapIOS::GetWidth() const
 {
     CHECK_NULL_RETURN(pixmap_, 0);
@@ -147,6 +152,16 @@ std::shared_ptr<Media::PixelMap> PixelMapIOS::GetPixelMapSharedPtr()
     return pixmap_;
 }
 
+RefPtr<PixelMap> PixelMapIOS::GetCropPixelMap(const Rect& srcRect)
+{
+    return nullptr;
+}
+
+bool PixelMapIOS::EncodeTlv(std::vector<uint8_t>& buff)
+{
+    return false;
+}
+
 RefPtr<PixelMap> PixelMap::CreatePixelMap(void* rawPtr)
 {
     std::shared_ptr<Media::PixelMap>* pixmapPtr = reinterpret_cast<std::shared_ptr<Media::PixelMap>*>(rawPtr);
@@ -165,6 +180,12 @@ RefPtr<PixelMap> PixelMap::Create(std::unique_ptr<Media::PixelMap>&& pixmap)
 RefPtr<PixelMap> PixelMap::GetFromDrawable(void* ptr)
 {
     return nullptr;
+}
+
+bool PixelMap::GetPxielMapListFromAnimatedDrawable(void* ptr, std::vector<RefPtr<PixelMap>>& pixelMaps,
+    int32_t& duration, int32_t& iterations)
+{
+    return false;
 }
 
 RefPtr<PixelMap> PixelMap::CreatePixelMapFromDataAbility(void* ptr)

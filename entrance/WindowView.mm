@@ -27,7 +27,10 @@
 #include "UINavigationController+StatusBar.h"
 #include "core/event/key_event.h"
 #import "AceWebResourcePlugin.h"
+#import "AcePlatformViewPlugin.h"
 #import "AceWeb.h"
+#import "StageContainerView.h"
+
 #define ACE_ENABLE_GL
 @interface WindowView()
 
@@ -43,6 +46,8 @@
     BOOL _needCreateSurfaceNode;
     std::map<int64_t, int32_t> _deviceMap;
     int32_t _deviceId;
+    BOOL _firstTouchFlag;
+    std::vector<CGRect> hotAreas_;
 }
 
 +(Class)layerClass{
@@ -61,6 +66,9 @@
         self.multipleTouchEnabled = YES;
         _needNotifySurfaceChangedWithWidth = NO;
         _needCreateSurfaceNode = NO;
+        _focusable = YES;
+        _isFocused = NO;
+        _firstTouchFlag = NO;
         [self setupNotificationCenterObservers];
         self.backgroundColor = [UIColor clearColor];
         _deviceMap = std::map<int64_t, int32_t>{};
@@ -87,7 +95,68 @@
     }
     [self notifySurfaceChangedWithWidth:width height:height density:scale];
 }
+- (void)setFullScreen:(BOOL)fullScreen {
+    _fullScreen = fullScreen;
+    if (fullScreen) {
+        self.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+    } else {
+        self.autoresizingMask = UIViewAutoresizingNone;
+    }
+}
+- (BOOL)requestFocus {
+    if (self.focusable) {
+        [((StageContainerView*)self.superview) setActiveWindow:self];
+        return YES;
+    }
+    return NO;
+}
 
+- (void)setTouchHotAreas:(CGRect[])rect size:(NSInteger)size{
+    hotAreas_.clear();
+    for (int i = 0; i < size; ++i) {
+        hotAreas_.push_back(*(rect + i));
+    }
+}
+
+- (BOOL)showOnView:(UIView*)rootView {
+    if (rootView && [rootView isKindOfClass:[StageContainerView class]]) {
+        if (self.fullScreen) {
+            self.frame = rootView.bounds;
+        }
+        [((StageContainerView*)rootView) showWindow:self];
+        return YES;
+    }
+    return NO;
+}
+
+- (BOOL)hide {
+    if (self.superview && [self.superview isKindOfClass:[StageContainerView class]]) {
+        [((StageContainerView*)self.superview) hiddenWindow:self];
+        return YES;
+    }
+    return NO;
+}
+
+//invoked twice when hit,so need a flag to ensure only one touch outside callback
+- (BOOL)pointInside:(CGPoint)point withEvent:(UIEvent *)event{
+    _firstTouchFlag = !_firstTouchFlag;
+    BOOL inside = NO;
+    BOOL inHotArea = NO;
+    if (hotAreas_.empty()) {
+        inHotArea = YES;
+    }
+    for (std::vector<CGRect>::iterator it = hotAreas_.begin(); it != hotAreas_.end(); ++it) {
+        if (!CGRectIsEmpty(*it) && CGRectContainsPoint(*it, point)) {
+            inHotArea = YES;
+        }
+    }
+    inside = [self.layer containsPoint:point] && inHotArea;
+
+    if (!inside && _firstTouchFlag){
+        [self touchOutside];
+    }
+    return inside;
+}
 - (UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event
 {
     UIView *view = [super hitTest:point withEvent:event];
@@ -100,8 +169,16 @@
             isPointWebView = true;
         }
     }];
-
-    return isPointWebView?nil:view;
+    __block bool isPointPlatformView = false;
+    [AcePlatformViewPlugin.getObjectMap enumerateKeysAndObjectsUsingBlock:^(
+        NSString * _Nonnull key, AcePlatformView * _Nonnull aceplatformview, BOOL * _Nonnull stop) {
+        UIView *uiview = [aceplatformview getPlatformView];
+        CGPoint platformPoint = [self convertPoint:point toView:uiview];
+        if ([uiview pointInside:platformPoint withEvent:event]) {
+            isPointPlatformView = true;
+        }
+    }];
+    return (isPointWebView || isPointPlatformView)?nil:view;
 }
 
 - (void)setWindowDelegate:(std::shared_ptr<OHOS::Rosen::Window>)window {
@@ -137,24 +214,37 @@
 }
 
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event {
-    [self dispatchTouches:touches];
+    [self dispatchTouches:touches withEvent: event];
 }
 
 - (void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event {
-    [self dispatchTouches:touches];
+    [self dispatchTouches:touches withEvent: event];
 }
 
 - (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event {
-    [self dispatchTouches:touches];
+    [self dispatchTouches:touches withEvent: event];
 }
 
 - (void)touchesCancelled:(NSSet *)touches withEvent:(UIEvent *)event {
-    [self dispatchTouches:touches];
+    [self dispatchTouches:touches withEvent: event];
 }
 
 - (float)updateBrightness {
     if (_windowDelegate.lock() != nullptr) {
         [UIScreen mainScreen].brightness = _windowDelegate.lock()->GetBrightness();
+    }
+}
+
+- (void)touchOutside {
+    if (_windowDelegate.lock() != nullptr) {
+        _windowDelegate.lock()->NotifyTouchOutside();
+    }
+}
+
+- (void)setIsFocused:(BOOL)isFocused {
+    if (self.focusable && _isFocused != isFocused) {
+        _isFocused = isFocused;
+        [self notifyFocusChanged:isFocused];
     }
 }
 #pragma mark - Touch event handling
@@ -200,9 +290,13 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
     int32_t deviceId;
     auto iter = _deviceMap.find(device);
     if (iter == _deviceMap.end()) {
-        _deviceMap[device] = _deviceId;
-        deviceId = _deviceId;
-        _deviceId++;
+        if (phase == UIPressPhaseBegan) {
+            _deviceMap[device] = _deviceId;
+            deviceId = _deviceId;
+            _deviceId++;
+        } else {
+            return -1;
+        }
     } else {
         deviceId = _deviceMap[device];
         if (phase == UITouchPhaseEnded || phase == UITouchPhaseCancelled) {
@@ -215,12 +309,13 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
     return deviceId;
 }
 
-- (void)dispatchTouches:(NSSet *)touches {
+- (void)dispatchTouches:(NSSet *)touches withEvent:(UIEvent *) event {
+    NSSet<UITouch *> *allTouches = [event allTouches];
     const CGFloat scale = [UIScreen mainScreen].scale;
-    std::unique_ptr<flutter::PointerDataPacket> packet = std::make_unique<flutter::PointerDataPacket>(touches.count);
+    std::unique_ptr<flutter::PointerDataPacket> packet = std::make_unique<flutter::PointerDataPacket>(allTouches.count);
 
     size_t pointer_index = 0;
-    for (UITouch *touch in touches) {
+    for (UITouch *touch in allTouches) {
         CGPoint windowCoordinates = [touch locationInView:self];
         
         flutter::PointerData pointer_data;
@@ -228,7 +323,7 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
 
         int64_t sysTimeStamp = OHOS::Ace::GetSysTimestamp();
         pointer_data.time_stamp = sysTimeStamp;
-        
+        pointer_data.size = allTouches.count;
         pointer_data.change = PointerDataChangeFromUITouchPhase(touch.phase);
         
         pointer_data.kind = DeviceKindFromTouchType(touch);
@@ -358,25 +453,6 @@ static int32_t GetModifierKeys(UIKeyModifierFlags modifierFlags) {
 
 - (void)setupNotificationCenterObservers {
     NSNotificationCenter* center = [NSNotificationCenter defaultCenter];
-    [center addObserver:self
-               selector:@selector(applicationBecameActive:)
-                   name:UIApplicationDidBecomeActiveNotification
-                 object:nil];
-    
-    [center addObserver:self
-               selector:@selector(applicationWillResignActive:)
-                   name:UIApplicationWillResignActiveNotification
-                 object:nil];
-    
-    [center addObserver:self
-               selector:@selector(applicationDidEnterBackground:)
-                   name:UIApplicationDidEnterBackgroundNotification
-                 object:nil];
-    
-    [center addObserver:self
-               selector:@selector(applicationWillEnterForeground:)
-                   name:UIApplicationWillEnterForegroundNotification
-                 object:nil];
 
     [center addObserver:self
                selector:@selector(keyboardWillChangeFrame:)
@@ -387,26 +463,9 @@ static int32_t GetModifierKeys(UIKeyModifierFlags modifierFlags) {
                selector:@selector(keyboardWillBeHidden:)
                    name:UIKeyboardWillHideNotification
                  object:nil];
-
-        [center addObserver:self
-               selector:@selector(handleWillTerminate:)
-                   name:UIApplicationWillTerminateNotification
-                 object:nil];
 }
 
-#pragma mark - Application lifecycle notifications
-
-- (void)applicationBecameActive:(NSNotification *)notification {
-    if ([self.notifyDelegate respondsToSelector:@selector(notifyApplicationBecameActive)]) {
-        [self.notifyDelegate notifyApplicationBecameActive];
-    }
-}
-
-- (void)applicationWillResignActive:(NSNotification *)notification {
-    if ([self.notifyDelegate respondsToSelector:@selector(notifyApplicationWillResignActive)]) {
-        [self.notifyDelegate notifyApplicationWillResignActive];
-    }
-}
+// #pragma mark - Application lifecycle notifications
 
 - (void)notifyForeground {
     if (_windowDelegate.lock() != nullptr) {
@@ -419,21 +478,14 @@ static int32_t GetModifierKeys(UIKeyModifierFlags modifierFlags) {
     }
 }
 
-- (void)notifyFocusChanged:(BOOL)focus{
+- (void)notifyActiveChanged:(BOOL)isActive {
+    if (_windowDelegate.lock() != nullptr) {
+        _windowDelegate.lock()->WindowActiveChanged(isActive);
+    }
+}
+- (void)notifyFocusChanged:(BOOL)focus {
     if (_windowDelegate.lock() != nullptr) {
         _windowDelegate.lock()->WindowFocusChanged(focus);
-    }
-}
-
-- (void)applicationDidEnterBackground:(NSNotification *)notification {
-    if ([self.notifyDelegate respondsToSelector:@selector(notifyApplicationDidEnterBackground)]) {
-        [self.notifyDelegate notifyApplicationDidEnterBackground];
-    }
-}
-
-- (void)applicationWillEnterForeground:(NSNotification *)notification {
-    if ([self.notifyDelegate respondsToSelector:@selector(notifyApplicationWillEnterForeground)]) {
-        [self.notifyDelegate notifyApplicationWillEnterForeground];
     }
 }
 
@@ -453,25 +505,21 @@ static int32_t GetModifierKeys(UIKeyModifierFlags modifierFlags) {
     }
 }
 
-- (void)handleWillTerminate:(NSNotification*)notification {
-    if ([self.notifyDelegate respondsToSelector:@selector(notifyApplicationWillTerminateNotification)]) {
-        [self.notifyDelegate notifyApplicationWillTerminateNotification];
-    }
+- (void)notifyHandleWillTerminate {
     if (_windowDelegate.lock() != nullptr) {
         _windowDelegate.lock()->NotifyWillTeminate();
     }
 }
 
 - (BOOL)processBackPressed {
-     if (_windowDelegate.lock() != nullptr) {
-      return _windowDelegate.lock()->ProcessBackPressed();
+    if (_windowDelegate.lock() != nullptr) {
+        return _windowDelegate.lock()->ProcessBackPressed();
     }
     return false;
 }
 
 - (void)dealloc {
     NSLog(@"WindowView->%@ dealloc",self);
-    self.notifyDelegate = nil;
     [[NSNotificationCenter defaultCenter] removeObserver:self];
     [super dealloc];
 }

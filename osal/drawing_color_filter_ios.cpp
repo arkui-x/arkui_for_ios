@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2024 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -13,13 +13,26 @@
  * limitations under the License.
  */
 
-#include "base/subwindow/subwindow.h"
+#include "drawing_color_filter_ios.h"
 
 namespace OHOS::Ace {
-
-RefPtr<Subwindow> Subwindow::CreateSubwindow(int32_t instanceId)
+RefPtr<DrawingColorFilter> DrawingColorFilter::CreateDrawingColorFilter(void* sptrAddr)
 {
     return nullptr;
 }
 
+RefPtr<DrawingColorFilter> DrawingColorFilter::CreateDrawingColorFilter(const std::vector<float>& matrix)
+{
+    return nullptr;
+}
+
+RefPtr<DrawingColorFilter> DrawingColorFilter::CreateDrawingColorFilterFromNative(void* sptrAddr)
+{
+    return nullptr;
+}
+
+void* DrawingColorFilterIos::GetDrawingColorFilterSptrAddr()
+{
+    return nullptr;
+}
 } // namespace OHOS::Ace

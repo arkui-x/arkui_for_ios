@@ -78,12 +78,12 @@ std::string ImageSourceIOS::GetProperty(const std::string& key)
     return value;
 }
 
-RefPtr<PixelMap> ImageSourceIOS::CreatePixelMap(const Size& size)
+RefPtr<PixelMap> ImageSourceIOS::CreatePixelMap(const Size& size, AIImageQuality imageQuality)
 {
-    return CreatePixelMap(0, size);
+    return CreatePixelMap(0, size, imageQuality);
 }
 
-RefPtr<PixelMap> ImageSourceIOS::CreatePixelMap(uint32_t index, const Size& size)
+RefPtr<PixelMap> ImageSourceIOS::CreatePixelMap(uint32_t index, const Size& size, AIImageQuality imageQuality)
 {
     Media::DecodeOptions options;
     if (size.first > 0 && size.second > 0) {
@@ -120,5 +120,15 @@ ImageSource::Size ImageSourceIOS::GetImageSize()
         return { 0, 0 };
     }
     return { info.size.width, info.size.height };
+}
+
+uint32_t ImageSourceIOS::GetFrameCount()
+{
+    return 0;
+}
+
+std::string ImageSourceIOS::GetEncodedFormat()
+{
+    return "";
 }
 } // namespace OHOS::Ace

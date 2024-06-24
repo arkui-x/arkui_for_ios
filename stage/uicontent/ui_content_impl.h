@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2023-2024 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -17,6 +17,7 @@
 #define FOUNDATION_ACE_ADAPTER_IOS_STAGE_UI_CONTENT_IMPL_H
 
 #include "adapter/ios/entrance/virtual_rs_window.h"
+#include "adapter/ios/stage/uicontent/ace_container_sg.h"
 #include "base/utils/macros.h"
 #include "core/accessibility/accessibility_node.h"
 #include "core/event/key_event.h"
@@ -44,6 +45,7 @@ public:
     std::unique_ptr<NativeEngine> nativeEngine_;
     // UI content lifecycles
     void Initialize(OHOS::Rosen::Window* window, const std::string& url, napi_value storage) override;
+    void InitializeByName(OHOS::Rosen::Window* window, const std::string& name, napi_value storage) override;
     napi_value GetUINapiContext() override;
     void Foreground() override;
     void Background() override;
@@ -85,8 +87,13 @@ public:
     bool ProcessBasicEvent(const std::vector<TouchEvent>& touchEvents) override;
 
 private:
+    void InitializeInner(
+        OHOS::Rosen::Window* window, const std::string& url, napi_value storage, bool isNamedRouter);
     void CommonInitialize(OHOS::Rosen::Window* window, const std::string& url, napi_value storage);
+    void InitializeSafeArea(const RefPtr<Platform::AceContainerSG>& container);
+    NG::SafeAreaInsets GetViewSafeAreaByType(OHOS::Rosen::AvoidAreaType type);
 
+    void InitializeSubWindow();
     void DestroyCallback() const;
 
     void InitOnceAceInfo();
@@ -100,6 +107,8 @@ private:
     std::string lastConfig_;
     int32_t instanceId_ = -1;
     OHOS::Rosen::IOccupiedAreaChangeListener *occupiedAreaChangeListener_ = nullptr;
+    OHOS::sptr<OHOS::Rosen::IAvoidAreaChangedListener> avoidAreaChangedListener_ = nullptr;
+    OHOS::Rosen::ITouchOutsideListener* touchOutsideListener_ = nullptr;
 };
 } // namespace OHOS::Ace::Platform
 #endif // FOUNDATION_ACE_ADAPTER_IOS_STAGE_UI_CONTENT_IMPL_H

@@ -85,7 +85,7 @@
         if (video) {
             if (isBackground) {
                 [video onActivityPause];
-            }else {
+            } else {
                 [video onActivityResume];
             }
         }
@@ -119,7 +119,7 @@
                 } @catch (NSException *exception) {
                     NSLog(@"AceVideoResourcePlugin releaseObject releaseObject fail");
                 }
-            }else {
+            } else {
                 NSLog(@"AceVideoResourcePlugin releaseObject fail video is null");
             }
         }];

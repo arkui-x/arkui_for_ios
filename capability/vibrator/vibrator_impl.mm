@@ -26,7 +26,7 @@ void VibratorImpl::Vibrate(int32_t duration)
     if (taskExecutor_) {
         taskExecutor_->PostTask([duration] {
             [[iOSVibratorManager shareintance] addVibrate:duration];
-        }, TaskExecutor::TaskType::PLATFORM);
+        }, TaskExecutor::TaskType::PLATFORM, "ArkUI-XVibratorImplVibrateInt");
     }
 }
 
@@ -35,7 +35,7 @@ void VibratorImpl::Vibrate(const std::string& effectId)
     if (taskExecutor_) {
         taskExecutor_->PostTask([effectId] {
            [[iOSVibratorManager shareintance] addVibrateSingle];
-        }, TaskExecutor::TaskType::PLATFORM);
+        }, TaskExecutor::TaskType::PLATFORM, "ArkUI-XVibratorImplVibrateString");
     }
 }
 

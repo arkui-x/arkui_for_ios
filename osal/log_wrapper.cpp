@@ -15,6 +15,11 @@
 
 #include "base/log/log_wrapper.h"
 
+#ifdef _GNU_SOURCE
+#include <dlfcn.h>
+#endif
+#include <mutex>
+
 #include <thread>
 
 #include "securec.h"
@@ -119,5 +124,25 @@ const std::string LogWrapper::GetIdWithReason()
            INSTANCE_ID_GEN_REASONS[static_cast<uint32_t>(idWithReason.second)];
 }
 #endif
+
+bool LogBacktrace(size_t maxFrameNums)
+{
+    static const char* (*pfnGetTrace)(size_t, size_t);
+#ifdef _GNU_SOURCE
+    if (!pfnGetTrace) {
+        pfnGetTrace = (decltype(pfnGetTrace))dlsym(RTLD_DEFAULT, "GetTrace");
+    }
+#endif
+    if (!pfnGetTrace) {
+        return false;
+    }
+
+    static std::mutex mtx;
+    std::lock_guard lock(mtx);
+    size_t skipFrameNum = 2;
+    LOGI("Backtrace: skipFrameNum=%{public}zu maxFrameNums=%{public}zu\n%{public}s",
+        skipFrameNum, maxFrameNums, pfnGetTrace(skipFrameNum, maxFrameNums));
+    return true;
+}
 
 } // namespace OHOS::Ace

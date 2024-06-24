@@ -1,4 +1,4 @@
-# Copyright (c) 2021-2022 Huawei Device Co., Ltd.
+# Copyright (c) 2021-2024 Huawei Device Co., Ltd.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -31,6 +31,7 @@ config("capability_config") {
     "$ace_root/adapter/ios/entrance/resource",
     "$ace_root/adapter/ios/capability/texture",
     "$ace_root/adapter/ios/capability/video",
+    "$ace_root/adapter/ios/capability/platformview",
     "$ace_root/adapter/ios/capability/bridge",
     "$ace_root/adapter/ios/capability/bridge/codec",
     "$ace_root/adapter/ios/capability/surface",
@@ -38,6 +39,7 @@ config("capability_config") {
     "$ace_root/adapter/ios/capability/web",
     "//foundation/graphic/graphic_2d/rosen/modules",
     "$ace_root/frameworks/core/components_ng/pattern/web/cross_platform",
+    "$ace_root/adapter/ios/capability/font",
   ]
 
   if (ace_use_new_skia) {
@@ -124,6 +126,10 @@ template("ace_capability_ios_source_set") {
       "$ace_root/adapter/ios/capability/video/AceVideo.mm",
       "$ace_root/adapter/ios/capability/video/AceVideoResourcePlugin.mm",
 
+      # platformview
+      "$ace_root/adapter/ios/capability/platformview/AcePlatformView.mm",
+      "$ace_root/adapter/ios/capability/platformview/AcePlatformViewPlugin.mm",
+
       # bridge
       "$ace_root/adapter/ios/capability/bridge/BridgeManagerHolder.mm",
       "$ace_root/adapter/ios/capability/bridge/BridgePlugin+jsMessage.mm",
@@ -153,6 +159,11 @@ template("ace_capability_ios_source_set") {
       "$ace_root/adapter/ios/capability/web/AceWebPatternBridge.cpp",
       "$ace_root/adapter/ios/capability/web/AceWebResourcePlugin.mm",
       "$ace_root/adapter/ios/capability/web/WebMessageChannel.mm",
+
+      # font
+      "$ace_root/adapter/ios/capability/font/font_platform_impl.cpp",
+      "$ace_root/adapter/ios/capability/font/font_platform_proxy_impl.cpp",
+      "$ace_root/adapter/ios/capability/font/system_font_manager.mm",
     ]
 
     deps = [ ":text_input" ]

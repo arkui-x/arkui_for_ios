@@ -37,10 +37,17 @@
 }
 
 - (NSString *)getRawFilePath:(NSString *)name filePath:(NSString *)filePath {
+    NSString *bundlePath = [[StageAssetManager assetManager] getBundlePath];
     NSString *path = nil;
-    path = [NSString stringWithFormat:@"%@/Documents/files/arkui-x/%@/resources/rawfile/%@", NSHomeDirectory(), name, filePath];
+    path = [NSString stringWithFormat:@"%@/%@/resources/rawfile/%@", bundlePath, name, filePath];
     NSFileManager *manager = [NSFileManager defaultManager];
     bool flag = [manager fileExistsAtPath:path];
+    if (flag) {
+        return path;
+    }
+    path = [NSString stringWithFormat:@"%@/Documents/files/arkui-x/%@/resources/rawfile/%@",
+            NSHomeDirectory(), name, filePath];
+    flag = [manager fileExistsAtPath:path];
     if (!flag) {
         return nil;
     }
@@ -48,15 +55,7 @@
 }
 
 - (NSString *)getRawFilePath:(NSString *)filePath {
-    NSString *bundlePath = [[StageAssetManager assetManager] getBundlePath];
-    NSString *path = nil;
-    path = [NSString stringWithFormat:@"%@/%@/resources/rawfile/%@", bundlePath, _moduleName, filePath];
-    NSFileManager *manager = [NSFileManager defaultManager];
-    bool flag = [manager fileExistsAtPath:path];
-    if (!flag) {
-        return nil;
-    }
-    return path;
+    return [self getRawFilePath:_moduleName filePath:filePath];
 }
 
 @end
