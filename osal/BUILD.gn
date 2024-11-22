@@ -1,0 +1,148 @@
+# Copyright (c) 2022-2024 Huawei Device Co., Ltd.
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import("//build/ohos.gni")
+import("//foundation/arkui/ace_engine/ace_config.gni")
+
+ability_runtime_cross_platform_path =
+    "//foundation/appframework/ability/ability_runtime/cross_platform"
+app_framework_resource_path = "//foundation/appframework/resource_management"
+app_framework_window_path = "//foundation/appframework/window_manager"
+
+# build static
+template("ace_osal_ios_source_set") {
+  forward_variables_from(invoker, "*")
+
+  ohos_source_set(target_name) {
+    defines += invoker.defines
+
+    sources = [
+      "accessibility_manager_impl.cpp",
+      "ace_checker.cpp",
+      "ace_engine_ext.cpp",
+      "ace_forward_compatibility.cpp",
+      "advance/data_detector_adapter.cpp",
+      "advance/data_detector_mgr.cpp",
+      "advance/image_analyzer_adapter_impl.cpp",
+      "advance/image_analyzer_manager.cpp",
+      "advance/image_analyzer_mgr.cpp",
+      "app_bar_helper_impl.cpp",
+      "drag_window.cpp",
+      "drawing_color_filter_ios.cpp",
+      "drawing_lattice_ios.cpp",
+      "event_report.cpp",
+      "exception_handler.cpp",
+      "fetch_manager.cpp",
+      "file_asset_provider.cpp",
+      "file_uri_helper_ios.cpp",
+      "frame_report.cpp",
+      "frame_trace_adapter_impl.cpp",
+      "image_packer_ios.cpp",
+      "image_source_ios.cpp",
+      "input_method_manager_ios.cpp",
+      "ios_trace.cpp",
+      "layout_inspector.cpp",
+      "log_wrapper.cpp",
+      "modal_ui_extension_impl.cpp",
+      "mouse_style_ios.cpp",
+      "package_event_proxy_ios.cpp",
+      "page_url_checker_ios.cpp",
+      "pixel_map_ios.cpp",
+      "resource_adapter_impl.cpp",
+      "resource_convertor.cpp",
+      "resource_path_util.mm",
+      "resource_theme_style.cpp",
+      "response_data.cpp",
+      "ressched_report.cpp",
+      "socperf_client_impl.cpp",
+      "stylus_detector_default.cpp",
+      "stylus_detector_mgr.cpp",
+      "subwindow_ios.cpp",
+      "system_bar_style_ohos.cpp",
+      "system_properties.cpp",
+      "time_event_proxy_ios.cpp",
+      "view_data_wrap_impl.cpp",
+      "want_wrap_ios.cpp",
+    ]
+
+    cflags_cc = [
+      "-DNAME_MAX=128",
+      "-Wno-inconsistent-dllimport",
+    ]
+
+    include_dirs = [
+      "$ace_root/adapter/ios/entrance",
+      "$ace_root/frameworks/core/common",
+      "$ace_root/interfaces/inner_api/ace",
+      "$app_framework_window_path/dm/include",
+      "$app_framework_window_path/interfaces/innerkits/dm",
+      "$app_framework_window_path/interfaces/innerkits/wm",
+      "$app_framework_window_path/utils/include",
+      "//third_party/zlib",
+      "//commonlibrary/c_utils/base/include",
+      "$flutter_root/engine/",
+      "//foundation/graphic/graphic_surface/interfaces/inner_api/surface",
+    ]
+
+    deps = [
+      "$ace_root/adapter/ios/entrance:ace_ios_entrance",
+      "$ace_root/frameworks/core/components/theme:build_theme_code",
+      "$app_framework_resource_path:global_resmgr",
+      "$app_framework_resource_path/interfaces/js/innerkits/core:resmgr_napi_core",
+      "$app_framework_resource_path/interfaces/js/kits:resourcemanager",
+      "$app_framework_resource_path/interfaces/native/resource:rawfile",
+      "$app_framework_window_path/dm:dm",
+    ]
+
+    configs = [
+      "$ability_runtime_cross_platform_path/interfaces/kits/native/ability:abilitykit_native_config",
+      "$ability_runtime_cross_platform_path/interfaces/kits/native/appkit:appkit_native_config",
+      "$ace_root:ace_config",
+      "$crossplatform_multimedia_root/image_framework/interfaces/innerkits:image_external_config",
+    ]
+
+    if (ace_use_new_skia) {
+      deps += [ "$ace_flutter_engine_root:flutter_for_ng" ]
+    } else {
+      deps += [
+        "$ace_flutter_engine_root:third_party_flutter_engine_$platform",
+        "$ace_flutter_engine_root/skia:ace_skia_$platform",
+      ]
+    }
+
+    if (defined(config.enable_rosen_backend) && config.enable_rosen_backend) {
+      deps += [ "$ace_graphic/rosen/modules/render_service_client:librender_service_client_static" ]
+      deps += [ "$ace_napi:ace_napi" ]
+    }
+
+    deps += [ "//foundation/multimodalinput/input/frameworks/proxy:libmmi-client-crossplatform" ]
+  }
+}
+
+foreach(item, ace_platforms) {
+  platform = item.name
+  if (platform == "ios") {
+    ace_osal_ios_source_set("ace_osal_" + item.name) {
+      defines = []
+      config = {
+      }
+
+      if (defined(item.config)) {
+        config = item.config
+      }
+      if (defined(config.defines)) {
+        defines = config.defines
+      }
+    }
+  }
+}
