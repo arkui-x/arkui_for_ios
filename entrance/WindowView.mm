@@ -384,6 +384,13 @@ static flutter::PointerData::DeviceKind DeviceKindFromTouchType(UITouch *touch) 
     }
 }
 
+- (BOOL)processBackPressed {
+     if (_windowDelegate.lock() != nullptr) {
+      return _windowDelegate.lock()->ProcessBackPressed();
+    }
+    return false;
+}
+
 - (void)dealloc {
     NSLog(@"WindowView->%@ dealloc",self);
     self.notifyDelegate = nil;
