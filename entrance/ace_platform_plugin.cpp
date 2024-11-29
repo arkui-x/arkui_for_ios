@@ -35,4 +35,9 @@ RefPtr<PlatformResRegister> AcePlatformPlugin::GetResRegister(int32_t instanceId
 {
     return g_resRegisters[instanceId];
 }
+
+void AcePlatformPlugin::ReleaseInstance(int32_t instanceId)
+{
+    g_resRegisters.erase(instanceId);
+}
 }

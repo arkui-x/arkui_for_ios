@@ -133,10 +133,11 @@ CGFloat _brightness = 0.0;
 
 - (void)dealloc {
     NSLog(@"StageVC->%@ dealloc", self);
+    [_platformPlugin platformRelease];
+    _platformPlugin = nil;
     [_windowView notifySurfaceDestroyed];
     [_windowView notifyWindowDestroyed];
     _windowView = nil;
-    _platformPlugin = nil;
     AppMain::GetInstance()->DispatchOnDestroy(_cInstanceName);
     [[BridgePluginManager shareManager] UnRegisterBridgePluginWithInstanceId:_instanceId];
 }
@@ -170,6 +171,10 @@ CGFloat _brightness = 0.0;
         return true;
     }
     return false;
+}
+
+- (BOOL)processBackPress {
+    return [_windowView processBackPressed];
 }
 
 #pragma mark - WindowViewDelegate 

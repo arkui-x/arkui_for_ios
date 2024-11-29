@@ -85,6 +85,27 @@
     resRegister->OnEvent(eventIdcString, paramcString);
 }
 
+- (void)platformRelease {
+    NSLog(@"platformRelease dealloc");
+    if (_videoResourcePlugin) {
+        [_videoResourcePlugin releaseObject];
+        _videoResourcePlugin = nil;
+    }
+    if (_aceSurfacePlugin) {
+        [_aceSurfacePlugin releaseObject];
+        _aceSurfacePlugin = nil;
+    }
+
+    if (_webResourcePlugin) {
+        [_webResourcePlugin releaseObject];
+        _webResourcePlugin = nil;
+    }
+    if (_resRegister) {
+        [_resRegister releaseObject];
+        _resRegister = nil;
+    }
+}
+
 - (void)dealloc
 {
     NSLog(@"AcePlatformPlugin dealloc");

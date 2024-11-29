@@ -31,6 +31,8 @@ public:
     static void InitResRegister(int32_t instanceId, const RefPtr<PlatformResRegister>& resRegister);
 
     static RefPtr<PlatformResRegister> GetResRegister(int32_t instanceId);
+    static void ReleaseInstance(int32_t instanceId);
+
 };
 } // namespace OHOS::Ace::Platform
 #endif // FOUNDATION_ACE_ADAPTER_IOS_ENTRANCE_ACE_PLATFORM_PLUGIN_N_H

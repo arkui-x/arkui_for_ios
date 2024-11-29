@@ -355,6 +355,15 @@ WMError Window::MoveWindowTo(int32_t x, int32_t y)
     return WMError::WM_OK;
 }
 
+bool Window::ProcessBackPressed()
+{
+    if (!uiContent_) {
+        LOGW("Window::ProcessBackPressed uiContent_ is nullptr");
+        return false;
+    }
+    return uiContent_->ProcessBackPressed();
+}
+
 bool Window::ProcessBasicEvent(const std::vector<Ace::TouchEvent>& touchEvents)
 {
     if (!uiContent_) {

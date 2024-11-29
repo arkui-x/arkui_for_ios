@@ -48,6 +48,7 @@ class Window;
 - (void)notifyWindowDestroyed;
 - (std::shared_ptr<OHOS::Rosen::Window>)getWindow;
 - (void)updateBrightness;
+- (BOOL)processBackPressed;
 
 @end
 

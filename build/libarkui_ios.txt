@@ -703,3 +703,4 @@ _kCFRunLoopDefaultMode
 _objc_autoreleasePoolPop
 _objc_autoreleasePoolPush
 _objc_msgSend
+__ZN4OHOS6Plugin15PluginUtilsNApi31DetachArrayBufferFromTypedArrayEP10napi_env__P12napi_value__

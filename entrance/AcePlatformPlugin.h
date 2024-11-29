@@ -25,6 +25,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (instancetype)initPlatformPlugin:(id)target
     instanceId:(int32_t)instanceId moduleName:(NSString *_Nonnull)moduleName;
 - (void)notifyLifecycleChanged:(BOOL)isBackground;
+- (void)platformRelease;
 @end
 
 NS_ASSUME_NONNULL_END

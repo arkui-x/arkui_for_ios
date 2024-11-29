@@ -109,6 +109,23 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
     OHOS::AbilityRuntime::Platform::StageApplicationInfoAdapter::GetInstance()->SetLocale(language, country, script);
 }
 
++ (void)setLocaleWithLanguage:(NSString *)language country:(NSString *)country script:(NSString *)script {
+    std::string languageString = "";
+    std::string countryString = "";
+    std::string scriptString = "";
+    if (language.length) {
+        languageString = [language UTF8String];
+    }
+    if (country.length) {
+        countryString = [country UTF8String];
+    }
+    if (script.length) {
+        scriptString = [script UTF8String];
+    }
+    OHOS::AbilityRuntime::Platform::StageApplicationInfoAdapter::GetInstance()->SetLocale(languageString,
+        countryString, scriptString);
+}
+
 + (void)callCurrentAbilityOnForeground {
     StageViewController *topVC = [self getApplicationTopViewController];
     NSString *instanceName = topVC.instanceName;
