@@ -210,12 +210,10 @@ void AbilityContextAdapter::TerminateSelf(const std::string& instanceName)
         int size = topVC.navigationController.viewControllers.count;
         if (size == 0) {
             NSLog(@"%s, viewControllers count zero", __func__);
-            exit(0);
         }
         if (size == 1) {
             NSLog(@"%s, exit", __func__);
             OHOS::AbilityRuntime::Platform::AppMain::GetInstance()->DispatchOnDestroy(instanceName);
-            exit(0);
         }
         if ([topVC.instanceName isEqualToString:targetName]) {
             NSLog(@"%s, pop", __func__);

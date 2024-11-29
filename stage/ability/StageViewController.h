@@ -74,6 +74,11 @@
  * @return The PluginContext.
  */
 - (id)getPluginContext;
+
+/**
+ * destroy arkui-x data in iOS 18 or later
+ */
+- (void)destroyData;
 @end
 
 #endif // FOUNDATION_ACE_ADAPTER_IOS_STAGE_ABILITY_STAGEVIEWCONTROLLER_H

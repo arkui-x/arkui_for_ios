@@ -126,6 +126,13 @@ CGFloat _brightness = 0.0;
     [_windowView notifyFocusChanged:YES];
 }
 
+- (void)viewWillAppear:(BOOL)animated {
+    [super viewWillAppear:animated];
+    if (_bridgePluginManager) {
+        [_bridgePluginManager updateCurrentInstanceId:_instanceId];
+    }
+}
+
 - (void)viewDidDisappear:(BOOL)animated {
     [super viewDidDisappear:animated];
     [UIScreen mainScreen].brightness = _brightness;
@@ -136,6 +143,21 @@ CGFloat _brightness = 0.0;
         [_platformPlugin notifyLifecycleChanged:true];
     }
     [_windowView notifyFocusChanged:NO];
+
+    if ([UIDevice currentDevice].systemVersion.floatValue >= 18.0 && ([self isBeingDismissed] || [self isMovingFromParentViewController])) {
+        NSLog(@"iOS 18 StageVC->%@ dealloc", self);
+        [_platformPlugin platformRelease];
+        _platformPlugin = nil;
+        [_windowView notifySurfaceDestroyed];
+        [_windowView notifyWindowDestroyed];
+        _windowView = nil;
+        [BridgePluginManager innerUnbridgePluginManager:_instanceId];
+        _bridgePluginManager = nil;
+        [self deallocArkUIXPlugin];
+        AppMain::GetInstance()->DispatchOnDestroy(_cInstanceName);
+        [self removeFromParentViewController];
+        [[NSNotificationCenter defaultCenter] removeObserver:self];
+    }
 }
 
 - (void)didReceiveMemoryWarning {
@@ -157,6 +179,23 @@ CGFloat _brightness = 0.0;
     _bridgePluginManager = nil;
     [self deallocArkUIXPlugin];
     AppMain::GetInstance()->DispatchOnDestroy(_cInstanceName);
+}
+
+- (void)destroyData {
+    if ([UIDevice currentDevice].systemVersion.floatValue >= 18.0) {
+        NSLog(@"iOS 18 StageVC->%@ dealloc destroyData", self);
+        [_platformPlugin platformRelease];
+        _platformPlugin = nil;
+        [_windowView notifySurfaceDestroyed];
+        [_windowView notifyWindowDestroyed];
+        _windowView = nil;
+        [BridgePluginManager innerUnbridgePluginManager:_instanceId];
+        _bridgePluginManager = nil;
+        [self deallocArkUIXPlugin];
+        AppMain::GetInstance()->DispatchOnDestroy(_cInstanceName);
+        [self removeFromParentViewController];
+        [[NSNotificationCenter defaultCenter] removeObserver:self];
+    }
 }
 
 - (void)traitCollectionDidChange:(UITraitCollection *)previousTraitCollection {

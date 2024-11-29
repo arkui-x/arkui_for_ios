@@ -14,6 +14,7 @@
  */
 
 #import <UIKit/UITraitCollection.h>
+#import <UIKit/UIKit.h>
 #import "StageConfigurationManager.h"
 
 #include <string>
@@ -35,7 +36,7 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
 @interface StageConfigurationManager () <UITraitEnvironment>
 
 @property (nonatomic, strong) NSMutableDictionary *configuration;
-
+@property (nonatomic, assign) UIInterfaceOrientation lastInterfaceOrientation;
 @end
 
 @implementation StageConfigurationManager
@@ -57,6 +58,8 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
 - (void)registConfiguration {
     NSLog(@"initConfiguration called");
     UIDeviceOrientation orientation = [UIDevice currentDevice].orientation;
+    self.lastInterfaceOrientation = (UIInterfaceOrientation)[UIApplication sharedApplication].statusBarOrientation;
+    NSLog(@"registConfiguration called, self.lastInterfaceOrientation: %d", self.lastInterfaceOrientation);
     [self setDirection:orientation];
     UIUserInterfaceIdiom deviceType = [UIDevice currentDevice].userInterfaceIdiom;
     [self setDeviceType:deviceType];
@@ -160,9 +163,83 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
     }
 }
 
-- (void)onDeviceOrientationChange:(NSNotification *)notification {
+- (BOOL)checkInterfaceOrientationMask {
     UIDeviceOrientation orientation = [UIDevice currentDevice].orientation;
-    [self directionUpdate:orientation];
+    UIInterfaceOrientation interfaceOrientation = [self interfaceOrientationFromDeviceOrientation:orientation];
+    if (interfaceOrientation == UIInterfaceOrientationUnknown) {
+        return false;
+    }
+    id ad = [UIApplication sharedApplication].delegate;
+    if ([ad respondsToSelector:@selector(application:supportedInterfaceOrientationsForWindow:)]) {
+        UIInterfaceOrientationMask mask = [ad application:[UIApplication sharedApplication] supportedInterfaceOrientationsForWindow:nil];
+        NSLog(@"supportedInterfaceOrientationsForWindow mask: %d", mask);
+        return (mask & (1 << interfaceOrientation)) != 0;
+    } else {
+        NSArray *supportedOrientations = [[NSBundle mainBundle] objectForInfoDictionaryKey:@"UISupportedInterfaceOrientations"];
+        return [self isInterfaceOrientation:interfaceOrientation supportedInArray:supportedOrientations];
+    }
+    return true;
+}
+
+- (BOOL)isInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation supportedInArray:(NSArray *)supportedOrientationsArray {
+    NSString *interfaceOrientationString;
+    switch (interfaceOrientation) {
+        case UIInterfaceOrientationPortrait:
+            interfaceOrientationString = @"UIInterfaceOrientationPortrait";
+            break;
+        case UIInterfaceOrientationPortraitUpsideDown:
+            interfaceOrientationString = @"UIInterfaceOrientationPortraitUpsideDown";
+            break;
+        case UIInterfaceOrientationLandscapeLeft:
+            interfaceOrientationString = @"UIInterfaceOrientationLandscapeLeft";
+            break;
+        case UIInterfaceOrientationLandscapeRight:
+            interfaceOrientationString = @"UIInterfaceOrientationLandscapeRight";
+            break;
+        default:
+            return NO;
+    }
+    return [supportedOrientationsArray containsObject:interfaceOrientationString];
+}
+
+- (UIInterfaceOrientation)interfaceOrientationFromDeviceOrientation:(UIDeviceOrientation)deviceOrientation {
+    switch (deviceOrientation) {
+        case UIDeviceOrientationPortrait:
+            return UIInterfaceOrientationPortrait;
+        case UIDeviceOrientationPortraitUpsideDown:
+            return UIInterfaceOrientationPortraitUpsideDown;
+        case UIDeviceOrientationLandscapeLeft:
+            return UIInterfaceOrientationLandscapeLeft;
+        case UIDeviceOrientationLandscapeRight:
+            return UIInterfaceOrientationLandscapeRight;
+        case UIDeviceOrientationFaceUp:
+        case UIDeviceOrientationFaceDown:
+        {
+            UIInterfaceOrientation currentInterfaceOrientation = (UIInterfaceOrientation)[UIApplication sharedApplication].statusBarOrientation;
+            NSLog(@"interfaceOrientationFromDeviceOrientation statusBarOrientation: %d", currentInterfaceOrientation);
+            if (currentInterfaceOrientation == UIInterfaceOrientationPortrait || currentInterfaceOrientation == UIInterfaceOrientationLandscapeLeft ||
+                currentInterfaceOrientation == UIInterfaceOrientationLandscapeRight) {
+                return currentInterfaceOrientation;
+            }
+        }
+        default:
+            return UIInterfaceOrientationUnknown;
+    }
+}
+
+- (void)onDeviceOrientationChange:(NSNotification *)notification {
+    if ([self checkInterfaceOrientationMask]) {
+        UIDeviceOrientation orientation = [UIDevice currentDevice].orientation;
+        UIInterfaceOrientation tempOrientation = (UIInterfaceOrientation)[UIApplication sharedApplication].statusBarOrientation;
+        if (self.lastInterfaceOrientation != tempOrientation) {
+            NSLog(@"onDeviceOrientationChange, call directionUpdate, lastInterfaceOrientation: %d, curInterfaceOrientation: %d",
+                self.lastInterfaceOrientation, tempOrientation);
+            self.lastInterfaceOrientation = tempOrientation;
+            [self directionUpdate:orientation];
+            return;
+        }
+    }
+    NSLog(@"onDeviceOrientationChange, not call directionUpdate.");
 }
 
 - (std::string)getJsonString:(id)object {

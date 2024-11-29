@@ -71,6 +71,7 @@ static std::unique_ptr<OHOS::Ace::Platform::BufferMapping> NSDataToBufferMapping
         self.pluginInstanceId = instanceId;
         self.bridgeMap = [[NSMutableDictionary alloc] init];
         self.bridgeQueueMap = [[NSMutableDictionary alloc] init];
+        [self updateCurrentInstanceId:instanceId];
     }
     return self;
 }
@@ -761,6 +762,10 @@ static char kBridgeQueueMapKey;
         return;
     }
     [handler dispatchTaskInfo:taskInfo];
+}
+
+- (void)updateCurrentInstanceId:(int)instanceId {
+    OHOS::Ace::Platform::BridgeManager::SetCurrentInstanceId(instanceId);
 }
 
 @end
