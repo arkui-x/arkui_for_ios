@@ -118,22 +118,13 @@ int32_t InteractionImpl::StopDrag(DragDropRet result)
     LOGI("InteractionImpl::StopDrag");
     Msdp::DeviceStatus::DragDropResult dragDropResult { TranslateDragResult(result.result), result.hasCustomAnimation,
         result.mainWindow, TranslateDragBehavior(result.dragBehavior) };
-    auto containerId = Container::CurrentId();
-    auto callback = [this, containerId] {
-        auto container = Platform::AceContainerSG::GetContainer(containerId);
-        CHECK_NULL_VOID(container);
-        auto taskExecutor = container->GetTaskExecutor();
-        CHECK_NULL_VOID(taskExecutor);
-        ContainerScope scope(containerId);
-        auto task = [weak = AceType::WeakClaim(this)] {
-            auto interaction = weak.Upgrade();
-            auto window = interaction->surfaceNodeListener_->dragWindow_;
-            window->UnregisterSurfaceNodeListener(interaction->surfaceNodeListener_);
-            window->Destroy();
-            interaction->surfaceNodeListener_->dragWindow_ = nullptr;
-            windowCreated_ = false;
-        };
-        taskExecutor->PostTask(task, TaskExecutor::TaskType::UI, "ArkUI-XInteractionImplStopDrag");
+    auto callback = [weak = AceType::WeakClaim(this)] {
+        auto interaction = weak.Upgrade();
+        auto window = interaction->surfaceNodeListener_->dragWindow_;
+        window->UnregisterSurfaceNodeListener(interaction->surfaceNodeListener_);
+        window->Destroy();
+        interaction->surfaceNodeListener_->dragWindow_ = nullptr;
+        windowCreated_ = false;
     };
     OHOS::Ace::DragNotifyMsg msg { 0, 0, InteractionManager::GetInstance()->GetDragTargetPid(),
             TranslateDragResult(dragDropResult.result), TranslateDragBehavior(dragDropResult.dragBehavior) };

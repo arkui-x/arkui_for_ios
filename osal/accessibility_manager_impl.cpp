@@ -338,7 +338,7 @@ void AccessibilityManagerImpl::DumpTree(int32_t depth, int64_t nodeID, bool isDu
 }
 
 static void GetChildFromNode(const RefPtr<NG::UINode>& uiNode, std::vector<int32_t>& children, int32_t pageId,
-    OHOS::Ace::Platform::ComponentInfo& parentComponent)
+     OHOS::Ace::Platform::ComponentInfo& parentComponent)
 {
     if (AceType::InstanceOf<NG::FrameNode>(uiNode)) {
         if (uiNode->GetTag() == "stage") {
@@ -386,7 +386,7 @@ static OHOS::Ace::Platform::ComponentInfo SetComponentInfo(const RefPtr<NG::Fram
 }
 
 void GetComponents(OHOS::Ace::Platform::ComponentInfo& parentComponent, const RefPtr<NG::FrameNode>& parent,
-    NodeId nodeID, int32_t pageId)
+     NodeId nodeID, int32_t pageId)
 {
     auto node = GetInspectorById(parent, nodeID);
     if (!node) {

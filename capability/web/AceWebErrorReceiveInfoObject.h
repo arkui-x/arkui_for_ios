@@ -20,8 +20,8 @@
 
 class AceWebErrorReceiveInfoObject {
 public:
-    AceWebErrorReceiveInfoObject(const std::string& url, const std::string& info, long code)
-        : requestUrl_(url), errorInfo_(info), errorCode_(code) {}
+    AceWebErrorReceiveInfoObject(const std::string& url,const std::string& info, long code):
+                requestUrl_(url), errorInfo_(info), errorCode_(code) {}
     std::string GetRequestUrl();
     std::string GetErrorInfo();
     long GetErrorCode();

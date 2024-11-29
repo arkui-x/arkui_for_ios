@@ -13,16 +13,13 @@
  * limitations under the License.
  */
 
-#include "ace_pointer_data.h"
+#include "base/input_manager/input_manager.h"
 
-namespace OHOS::Ace::Platform {
+namespace OHOS::Ace {
 
-static constexpr int ACE_POINTER_DATA_FIELD_COUNT = 17;
-
-static_assert(sizeof(AcePointerData) == sizeof(int64_t) * ACE_POINTER_DATA_FIELD_COUNT,
-              "AcePointerData has the wrong size");
-
-void AcePointerData::Clear() {
-  memset(this, 0, sizeof(AcePointerData));
+bool InputManager::GetSystemHotkeys(std::vector<HotKey>& hotkeys)
+{
+    return true;
 }
-} // namespace OHOS::Ace::Platform
+
+} // namespace OHOS::Ace

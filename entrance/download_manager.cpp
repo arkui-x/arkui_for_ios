@@ -26,6 +26,7 @@ namespace OHOS::Ace {
 std::unique_ptr<DownloadManager> DownloadManager::instance_ = nullptr;
 std::mutex DownloadManager::mutex_;
 class DownloadManagerImpl final : public DownloadManager {
+
 public:
     bool Download(const std::string& url, std::vector<uint8_t>& dataOut) override
     {
@@ -44,6 +45,18 @@ public:
     }
 
     bool DownloadSync(
+        DownloadCallback&& downloadCallback, const std::string& url, int32_t instanceId, int32_t nodeId) override
+    {
+        return false;
+    }
+
+    bool DownloadAsyncWithPreload(
+        DownloadCallback&& downloadCallback, const std::string& url, int32_t instanceId, int32_t nodeId) override
+    {
+        return false;
+    }
+
+    bool DownloadSyncWithPreload(
         DownloadCallback&& downloadCallback, const std::string& url, int32_t instanceId, int32_t nodeId) override
     {
         return false;

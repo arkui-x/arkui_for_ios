@@ -19,6 +19,7 @@
 #include <cstring>
 #include <vector>
 namespace OHOS::Ace::Platform {
+
 struct alignas(8) AcePointerData {
 
 enum class PointerAction : int64_t {
@@ -60,6 +61,6 @@ enum class ToolType : int64_t {
     bool actionPoint { true };
 
     void Clear();
-}; // namespace OHOS::Ace::Platform
+};// namespace OHOS::Ace::Platform
 }
 #endif // FOUNDATION_ADAPTER_IOS_ENTRANCE_ACE_POINTER_DATA_H

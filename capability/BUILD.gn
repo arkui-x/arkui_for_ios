@@ -100,6 +100,7 @@ template("ace_capability_ios_source_set") {
       # clipboard
       "$ace_root/adapter/ios/capability/clipboard/clipboard_impl.mm",
       "$ace_root/adapter/ios/capability/clipboard/clipboard_proxy_impl.cpp",
+      "$ace_root/adapter/ios/capability/clipboard/multiType_record_impl.cpp",
 
       # environment
       "$ace_root/adapter/ios/capability/environment/environment_impl.mm",
@@ -129,6 +130,8 @@ template("ace_capability_ios_source_set") {
       # platformview
       "$ace_root/adapter/ios/capability/platformview/AcePlatformView.mm",
       "$ace_root/adapter/ios/capability/platformview/AcePlatformViewPlugin.mm",
+      "$ace_root/adapter/ios/capability/platformview/render/RenderProgram.mm",
+      "$ace_root/adapter/ios/capability/platformview/render/RenderView.mm",
 
       # bridge
       "$ace_root/adapter/ios/capability/bridge/BridgeManagerHolder.mm",

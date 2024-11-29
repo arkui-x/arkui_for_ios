@@ -158,6 +158,12 @@
     OHOS::Ace::Platform::AcePlatformPlugin::RegisterSurface(instanceId, textureId, texturePixelBuffer);
 }
 
+- (void)registerContextPtrWithInstanceId:(int32_t)instanceId textureId:(int64_t)textureId
+    contextPtr:(void*)contextPtr
+{
+    OHOS::Ace::Platform::AcePlatformPlugin::RegisterSurface(instanceId, textureId, contextPtr);
+}
+
 - (void)unregisterBufferWithInstanceId:(int32_t)instanceId textureId:(int64_t)textureId
 {
     OHOS::Ace::Platform::AcePlatformPlugin::UnregisterSurface(instanceId, textureId);

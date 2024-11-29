@@ -68,7 +68,7 @@
 - (void)postMessageEvent:(NSString*)message
 {
     for (NSString* port in self.etsPorts) {
-        NSString* source = [NSString stringWithFormat:@"(function() {%@.%@.postMessage(\"%@\");})();",
+        NSString* source = [NSString stringWithFormat:@"(function() {%@.%@.postMessage('%@');})();",
                                      WEBVIEW_MESSAGE_CHANNELS_VARIABLE_NAME, port, message];
         [self evaluateJavaScript:source];
     }

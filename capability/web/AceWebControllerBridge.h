@@ -13,13 +13,13 @@
  * limitations under the License.
  */
 #include <list>
-struct BackForwardItem {
+struct BackForwardItem{
     std::string URL;
     std::string title;
     std::string initialURL;
 };
 
-struct BackForwardResult {
+struct BackForwardResult{
     int currentIndex;
     std::list<BackForwardItem> backForwardItemList;
 };
@@ -43,8 +43,7 @@ std::string getCustomUserAgentOC(int id);
 void loadDataOC(int id, const std::string& data, const std::string& mimeType, const std::string& encoding,
     const std::string& baseUrl, const std::string& historyUrl);
 
-void EvaluateJavaScriptOC(int id, const std::string& script, int32_t asyncCallbackInfoId,
-    void (*callbackOC)(const std::string& ocResult, int32_t asyncCallbackInfoId));
+void EvaluateJavaScriptOC(int id, const std::string& script, int32_t asyncCallbackInfoId, void (*callbackOC)(const std::string& ocResult, int32_t asyncCallbackInfoId));
 
 void backwardOC(int id);
 

@@ -12,17 +12,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#ifndef RENDER_VIEW_H
+#define RENDER_VIEW_H
 
-#include "ace_pointer_data.h"
+#import <UIKit/UIKit.h>
 
-namespace OHOS::Ace::Platform {
+#import <OpenGLES/EAGL.h>
+#import <OpenGLES/ES2/gl.h>
+#import <OpenGLES/ES2/glext.h>
 
-static constexpr int ACE_POINTER_DATA_FIELD_COUNT = 17;
+@interface RenderView : UIView
+- (void)init;
+- (void)setEAGLContext:(EAGLContext*)context;
+- (void)setTextureName:(int32_t)textureName;
+- (void)startRender:(UIView *)view;
+- (void)exchangeBind;
 
-static_assert(sizeof(AcePointerData) == sizeof(int64_t) * ACE_POINTER_DATA_FIELD_COUNT,
-              "AcePointerData has the wrong size");
+- (void)setupImageData:(UIImage *)image;
+@end
 
-void AcePointerData::Clear() {
-  memset(this, 0, sizeof(AcePointerData));
-}
-} // namespace OHOS::Ace::Platform
+#endif // RENDER_VIEW_H

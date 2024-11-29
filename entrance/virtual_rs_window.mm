@@ -1038,11 +1038,19 @@ void Window::WindowActiveChanged(bool isActive)
             LOGI("Window: notify uiContent Focus");
             uiContent_->Focus();
         } else {
+            Ace::DragState dragState;
+            Ace::InteractionInterface::GetInstance()->GetDragState(dragState);
+            if (dragState == Ace::DragState::START) {
+                OHOS::Ace::DragDropRet dropResult { OHOS::Ace::DragRet::DRAG_CANCEL, false, GetWindowId(),
+                        OHOS::Ace::DragBehavior::UNKNOWN };
+                Ace::InteractionInterface::GetInstance()->StopDrag(dropResult);
+            }
             LOGI("Window: notify uiContent UnFocus");
             uiContent_->UnFocus();
         }
     }
 }
+
 void Window::WindowFocusChanged(bool hasWindowFocus)
 {
     isFocused_ = hasWindowFocus;

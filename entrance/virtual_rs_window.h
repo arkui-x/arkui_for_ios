@@ -146,6 +146,7 @@ public:
     WMError Hide();
     WMError MoveWindowTo(int32_t x, int32_t y);
     WMError ResizeWindowTo(int32_t width, int32_t height);
+
    
     bool CreateVSyncReceiver(std::shared_ptr<AppExecFwk::EventHandler> handler);
     void RequestNextVsync(std::function<void(int64_t, void*)> callback);
@@ -154,6 +155,15 @@ public:
     virtual void RequestVsync(const std::shared_ptr<VsyncCallback>& vsyncCallback);
 
     virtual void SetUiDvsyncSwitch(bool dvsyncSwitch) {}
+
+    virtual void NotifyExtensionTimeout(int32_t errorCode)  {}
+
+    virtual uint32_t GetStatusBarHeight() const
+    {
+        return 0;
+    }
+
+    virtual void FlushLayoutSize(int32_t width, int32_t height) {}
 
     void CreateSurfaceNode(void* layer);
     void NotifySurfaceChanged(int32_t width, int32_t height, float density);
@@ -164,8 +174,8 @@ public:
     bool ProcessBackPressed();
     bool ProcessPointerEvent(const std::vector<uint8_t>& data);
     bool ProcessPointerEventTargetHitTest(const std::vector<uint8_t>& data, const std::string& target);
-    bool ProcessKeyEvent(int32_t keyCode, int32_t keyAction,
-        int32_t repeatTime, int64_t timeStamp = 0, int64_t timeStampStart = 0, int32_t metaKey = 0);
+    bool ProcessKeyEvent(
+        int32_t keyCode, int32_t keyAction, int32_t repeatTime, int64_t timeStamp = 0, int64_t timeStampStart = 0, int32_t metaKey = 0);
 
     WMError SetUIContent(const std::string& contentInfo,
         NativeEngine* engine, napi_value storage, bool isdistributed,

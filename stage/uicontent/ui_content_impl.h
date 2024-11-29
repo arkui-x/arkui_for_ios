@@ -60,8 +60,7 @@ public:
     bool ProcessPointerEvent(const std::shared_ptr<OHOS::MMI::PointerEvent>& pointerEvent) override;
     bool ProcessPointerEventWithCallback(
         const std::shared_ptr<OHOS::MMI::PointerEvent>& pointerEvent, const std::function<void()>& callback) override;
-    bool ProcessPointerEventTargetHitTest(
-        const std::shared_ptr<OHOS::MMI::PointerEvent>& pointerEvent, const std::string& target) override;
+    bool ProcessPointerEventTargetHitTest(const std::shared_ptr<OHOS::MMI::PointerEvent>& pointerEvent, const std::string& target) override;
     bool ProcessMouseEvent(const std::vector<uint8_t>& data) override { return true; };
     bool ProcessKeyEvent(int32_t keyCode, int32_t keyAction, int32_t repeatTime, int64_t timeStamp = 0,
         int64_t timeStampStart = 0, int32_t metaKey = 0, int32_t sourceDevice = 0, int32_t deviceId = 0,

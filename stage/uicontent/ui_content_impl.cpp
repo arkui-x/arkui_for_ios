@@ -217,17 +217,15 @@ void UIContentImpl::InitializeByName(OHOS::Rosen::Window* window, const std::str
     InitializeInner(window, name, storage, true);
 }
 
-void UIContentImpl::InitializeInner(OHOS::Rosen::Window* window, const std::string& url,
-    napi_value storage, bool isNamedRouter)
+void UIContentImpl::InitializeInner(OHOS::Rosen::Window* window, const std::string& url, napi_value storage, bool isNamedRouter)
 {
     if (window) {
         CommonInitialize(window, url, storage);
     }
     LOGI("InitializeInner startUrl = %{public}s", startUrl_.c_str());
 
-    Platform::AceContainerSG::RunPage(instanceId_,
-        Platform::AceContainerSG::GetContainer(instanceId_)->GeneratePageId(),
-        startUrl_, "", isNamedRouter);
+    Platform::AceContainerSG::RunPage(
+        instanceId_, Platform::AceContainerSG::GetContainer(instanceId_)->GeneratePageId(), startUrl_, "", isNamedRouter);
     LOGI("InitializeInner RunPage UIContentImpl done.");
 }
 
@@ -682,8 +680,7 @@ bool UIContentImpl::ProcessPointerEventWithCallback(
     return aceView->DispatchTouchEvent(pointerEvent, nullptr, callback);
 }
 
-bool UIContentImpl::ProcessPointerEventTargetHitTest(
-    const std::shared_ptr<OHOS::MMI::PointerEvent>& pointerEvent, const std::string& target)
+bool UIContentImpl::ProcessPointerEventTargetHitTest(const std::shared_ptr<OHOS::MMI::PointerEvent>& pointerEvent, const std::string& target)
 {
     auto container = AceEngine::Get().GetContainer(instanceId_);
     CHECK_NULL_RETURN(container, false);

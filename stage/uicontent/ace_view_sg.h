@@ -102,8 +102,7 @@ public:
 
     bool DispatchTouchEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent,
         const RefPtr<OHOS::Ace::NG::FrameNode>& node = nullptr, const std::function<void()>& callback = nullptr);
-    bool DispatchTouchEventTargetHitTest(
-        const std::shared_ptr<OHOS::MMI::PointerEvent>& pointerEvent, const std::string& target);
+    bool DispatchTouchEventTargetHitTest(const std::shared_ptr<OHOS::MMI::PointerEvent>& pointerEvent, const std::string& target);
     bool DispatchKeyEvent(const KeyEventInfo& eventInfo);
 
     void DispatchEventToPerf(const TouchEvent& pointerEvent);
@@ -115,10 +114,8 @@ public:
 
     void ProcessTouchEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent,
         const RefPtr<OHOS::Ace::NG::FrameNode>& node = nullptr, const std::function<void()>& callback = nullptr);
-    void ProcessDragEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent,
-        const RefPtr<OHOS::Ace::NG::FrameNode>& node);
-    void ProcessDragEvent(
-        int32_t x, int32_t y, const DragEventAction& action, const RefPtr<OHOS::Ace::NG::FrameNode>& node);
+    void ProcessDragEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent, const RefPtr<OHOS::Ace::NG::FrameNode>& node);
+    void ProcessDragEvent(int32_t x, int32_t y, const DragEventAction& action, const RefPtr<OHOS::Ace::NG::FrameNode>& node);
 
     void SetPlatformResRegister(const RefPtr<PlatformResRegister>& resRegister)
     {

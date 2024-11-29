@@ -13,16 +13,23 @@
  * limitations under the License.
  */
 
-#include "ace_pointer_data.h"
+#ifndef RENDER_PROGRAM_H
+#define RENDER_PROGRAM_H
 
-namespace OHOS::Ace::Platform {
+#import <Foundation/Foundation.h>
+#import <OpenGLES/ES2/gl.h>
+#import <OpenGLES/EAGL.h>
 
-static constexpr int ACE_POINTER_DATA_FIELD_COUNT = 17;
-
-static_assert(sizeof(AcePointerData) == sizeof(int64_t) * ACE_POINTER_DATA_FIELD_COUNT,
-              "AcePointerData has the wrong size");
-
-void AcePointerData::Clear() {
-  memset(this, 0, sizeof(AcePointerData));
+@interface RenderProgram : NSObject
+{
+    GLuint  filterProgram;
 }
-} // namespace OHOS::Ace::Platform
+
+- (instancetype)initWithVertexShaderType:(NSString*)vString fragShader:(NSString*)fString;
+- (GLint)attribLocationForName:(NSString*)atrname;
+- (GLint)uniformLocationForName:(NSString*)uname;
+- (void)use;
+- (void)destroy;
+@end
+
+#endif // RENDER_PROGRAM_H

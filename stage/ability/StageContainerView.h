@@ -31,8 +31,8 @@
 NS_ASSUME_NONNULL_BEGIN
 
 @interface StageContainerView : UIView
-@property(nonatomic, strong)WindowView* activeWindow;
-@property(nonatomic, strong)WindowView* mainWindow;
+@property(nonatomic,strong)WindowView* activeWindow;
+@property(nonatomic,strong)WindowView* mainWindow;
 @property (nonatomic, weak) id<WindowViewDelegate> notifyDelegate;
 - (void)showWindow:(WindowView*)window;
 - (BOOL)requestFocus:(WindowView*)window;

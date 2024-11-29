@@ -26,7 +26,7 @@
  *
  * @since 11
  */
-@interface PluginContext : NSObject
+@interface PluginContext : NSObject 
 
  /**
  * Constructor of PluginContext.
@@ -45,7 +45,7 @@
 
 /**
  * get absolute path of rawfile.
- *
+ * 
  * @param name name of hsp.
  * @param filePath relative path of rawfile.
  * @return absolute path of rawfile.
@@ -55,7 +55,7 @@
 
 /**
  * get absolute path of rawfile.
- *
+ * 
  * @param filePath relative path of rawfile.
  * @return absolute path of rawfile.
  * @since 11

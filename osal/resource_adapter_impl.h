@@ -25,7 +25,7 @@
 
 namespace OHOS::Ace {
 
-class ResourceAdapterImpl : public ResourceAdapter {
+class ResourceAdapterImpl : public ResourceAdapter { 
     DECLARE_ACE_TYPE(ResourceAdapterImpl, ResourceAdapter);
 
 public:

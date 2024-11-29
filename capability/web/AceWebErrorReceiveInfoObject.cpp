@@ -15,17 +15,14 @@
 
 #include "AceWebErrorReceiveInfoObject.h"
 
-std::string AceWebErrorReceiveInfoObject::GetRequestUrl()
-{
+std::string AceWebErrorReceiveInfoObject::GetRequestUrl() {
     return this->requestUrl_;
 }
 
-std::string AceWebErrorReceiveInfoObject::GetErrorInfo()
-{
-    return this->errorInfo_;
+std::string AceWebErrorReceiveInfoObject::GetErrorInfo() {
+     return this->errorInfo_;
 }
 
-long AceWebErrorReceiveInfoObject::GetErrorCode()
-{
+long AceWebErrorReceiveInfoObject::GetErrorCode() {
     return this->errorCode_;
 }

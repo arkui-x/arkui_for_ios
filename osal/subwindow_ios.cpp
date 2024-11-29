@@ -34,7 +34,14 @@ int32_t SubwindowIos::id_ = 0;
 RefPtr<Subwindow> Subwindow::CreateSubwindow(int32_t instanceId)
 {
     TAG_LOGI(AceLogTag::ACE_SUB_WINDOW, "Create Subwindow, parent container id is %{public}d", instanceId);
-    return AceType::MakeRefPtr<SubwindowIos>(instanceId);
+    auto subWindow = AceType::MakeRefPtr<SubwindowIos>(instanceId);
+    CHECK_NULL_RETURN(subWindow, nullptr);
+    auto ret = subWindow->InitContainer();
+    if (!ret) {
+        TAG_LOGW(AceLogTag::ACE_SUB_WINDOW, "InitContainer failed, container id %{public}d", instanceId);
+        return nullptr;
+    }
+    return subWindow;
 }
 
 SubwindowIos::SubwindowIos(int32_t instanceId) : windowId_(id_), parentContainerId_(instanceId)
@@ -43,17 +50,17 @@ SubwindowIos::SubwindowIos(int32_t instanceId) : windowId_(id_), parentContainer
     id_++;
 }
 
-void SubwindowIos::InitContainer()
+bool SubwindowIos::InitContainer()
 {
     TAG_LOGD(AceLogTag::ACE_SUB_WINDOW, "Init container enter.");
     auto parentContainer = Platform::AceContainerSG::GetContainer(parentContainerId_);
-    CHECK_NULL_VOID(parentContainer);
+    CHECK_NULL_RETURN(parentContainer, false);
     InitSubwindow(parentContainer);
-    CHECK_NULL_VOID(window_);
+    CHECK_NULL_RETURN(window_, false);
 
     std::string url = "";
     auto subSurface = window_->GetSurfaceNode();
-    CHECK_NULL_VOID(subSurface);
+    CHECK_NULL_RETURN(subSurface, false);
     subSurface->SetShadowElevation(0.0f);
     window_->SetUIContent(
         url, reinterpret_cast<NativeEngine*>(parentContainer->GetSharedRuntime()), nullptr, false, nullptr, false);
@@ -63,8 +70,7 @@ void SubwindowIos::InitContainer()
     SubwindowManager::GetInstance()->AddParentContainerId(childContainerId_, parentContainerId_);
 
     if (!InitSubContainer(parentContainer)) {
-        SetIsRosenWindowCreate(false);
-        return;
+        return false;
     }
 
     // create ace_view
@@ -72,29 +78,29 @@ void SubwindowIos::InitContainer()
     Platform::AceViewSG::SurfaceCreated(aceView, window_.get());
 
     sptr<Rosen::Display> defaultDisplay = Rosen::DisplayManager::GetInstance().GetDefaultDisplaySync();
-    CHECK_NULL_VOID(defaultDisplay);
+    CHECK_NULL_RETURN(defaultDisplay, false);
     sptr<Rosen::DisplayInfo> defaultDisplayInfo = defaultDisplay->GetDisplayInfo();
-    CHECK_NULL_VOID(defaultDisplayInfo);
+    CHECK_NULL_RETURN(defaultDisplayInfo, false);
     int32_t width = defaultDisplayInfo->GetWidth();
     int32_t height = defaultDisplayInfo->GetHeight();
     auto parentPipeline = parentContainer->GetPipelineContext();
-    CHECK_NULL_VOID(parentPipeline);
+    CHECK_NULL_RETURN(parentPipeline, false);
     auto density = parentPipeline->GetDensity();
     TAG_LOGI(AceLogTag::ACE_SUB_WINDOW,
         "UIContent Initialize: width: %{public}d, height: %{public}d, density: %{public}lf.", width, height, density);
 
     // set view
     ViewportConfig config;
-    SetIsRosenWindowCreate(true);
     Platform::AceContainerSG::SetView(aceView, density, width, height, window_.get());
     Platform::AceViewSG::SurfaceChanged(aceView, width, height, config.Orientation());
 
     auto subPipelineContextNG = AceType::DynamicCast<NG::PipelineContext>(
         Platform::AceContainerSG::GetContainer(childContainerId_)->GetPipelineContext());
-    CHECK_NULL_VOID(subPipelineContextNG);
+    CHECK_NULL_RETURN(subPipelineContextNG, false);
     subPipelineContextNG->SetParentPipeline(parentContainer->GetPipelineContext());
     subPipelineContextNG->SetupSubRootElement();
     subPipelineContextNG->SetMinPlatformVersion(parentPipeline->GetMinPlatformVersion());
+    return true;
 }
 
 void SubwindowIos::InitSubwindow(const RefPtr<Platform::AceContainerSG>& parentContainer)
@@ -416,7 +422,8 @@ void SubwindowIos::ShowMenuNG(const RefPtr<NG::FrameNode> customNode, const NG::
 {
     CHECK_NULL_VOID(customNode);
     CHECK_NULL_VOID(targetNode);
-    ShowMenuNG(customNode, targetNode->GetId(), offset);
+    ShowMenuNG(customNode,targetNode->GetId(),offset);
+    
 }
 
 void SubwindowIos::ShowMenuNG(std::function<void()>&& buildFunc, std::function<void()>&& previewBuildFunc,
@@ -521,7 +528,8 @@ void SubwindowIos::ClearMenuNG(int32_t targetId, bool inWindow, bool showAnimati
     HideFilter();
 }
 
-void SubwindowIos::UpdateHideMenuOffsetNG(const NG::OffsetF& offset, float menuScale, bool isRedragStart)
+void SubwindowIos::UpdateHideMenuOffsetNG(
+    const NG::OffsetF& offset, float menuScale, bool isRedragStart, int32_t menuWrapperId)
 {
     ContainerScope scope(childContainerId_);
     auto pipelineContext = NG::PipelineContext::GetCurrentContext();
@@ -624,7 +632,7 @@ void SubwindowIos::CloseCustomDialogNG(int32_t dialogId)
     context->FlushPipelineImmediately();
 }
 
-void SubwindowIos::ShowToast(const NG::ToastInfo& toastInfo)
+void SubwindowIos::ShowToast(const NG::ToastInfo& toastInfo, std::function<void(int32_t)>&& callback)
 {
     TAG_LOGD(AceLogTag::ACE_SUB_WINDOW, "Show toast enter, containerId : %{public}d", childContainerId_);
     CHECK_NULL_VOID(window_);
@@ -647,7 +655,7 @@ void SubwindowIos::ShowToast(const NG::ToastInfo& toastInfo)
         ResizeWindow();
         window_->SetTouchable(false);
     }
-    delegate->ShowToast(toastInfo);
+    delegate->ShowToast(toastInfo, std::move(callback));
 }
 
 void SubwindowIos::ClearToast()
@@ -667,6 +675,11 @@ void SubwindowIos::ClearToast()
     overlayManager->ClearToast();
     context->FlushPipelineImmediately();
     HideWindow();
+}
+
+void SubwindowIos::SetRect(const NG::RectF& rect)
+{
+    windowRect_ = rect;
 }
 
 NG::RectF SubwindowIos::GetRect()
@@ -690,15 +703,6 @@ Rect SubwindowIos::GetUIExtensionHostWindowRect() const
 {
     Rect rect;
     return rect;
-}
-
-bool SubwindowIos::CheckHostWindowStatus() const
-{
-    auto parentContainer = Platform::AceContainerSG::GetContainer(parentContainerId_);
-    CHECK_NULL_RETURN(parentContainer, false);
-    auto parentWindow = parentContainer->GetUIWindow(parentContainerId_);
-    CHECK_NULL_RETURN(parentWindow, false);
-    return true;
 }
 
 const RefPtr<NG::OverlayManager> SubwindowIos::GetOverlayManager()

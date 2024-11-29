@@ -8,23 +8,23 @@
 #import <Foundation/Foundation.h>
 
 typedef NS_ENUM(NSInteger, iOSTextInputAction) {
-    iOSTextInputActionUnspecified,
-    iOSTextInputActionDone,
-    iOSTextInputActionGo,
-    iOSTextInputActionSend,
-    iOSTextInputActionSearch,
-    iOSTextInputActionNext,
-    iOSTextInputActionContinue,
-    iOSTextInputActionJoin,
-    iOSTextInputActionRoute,
-    iOSTextInputActionEmergencyCall,
-    iOSTextInputActionNewline,
+  iOSTextInputActionUnspecified,
+  iOSTextInputActionDone,
+  iOSTextInputActionGo,
+  iOSTextInputActionSend,
+  iOSTextInputActionSearch,
+  iOSTextInputActionNext,
+  iOSTextInputActionContinue,
+  iOSTextInputActionJoin,
+  iOSTextInputActionRoute,
+  iOSTextInputActionEmergencyCall,
+  iOSTextInputActionNewline,
 };
 
 typedef NS_ENUM(NSInteger, iOSFloatingCursorDragState) {
-    iOSFloatingCursorDragStateStart,
-    iOSFloatingCursorDragStateUpdate,
-    iOSFloatingCursorDragStateEnd,
+  iOSFloatingCursorDragStateStart,
+  iOSFloatingCursorDragStateUpdate,
+  iOSFloatingCursorDragStateEnd,
 };
 
 typedef void (^updateEditingClientBlock)(int client, NSDictionary *state);

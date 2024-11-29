@@ -506,7 +506,7 @@ typedef enum : NSUInteger {
             NSLog(@"AceVideo: src param is null");
             return FAIL;
         }
-        if (![self setDataSource:src]) {
+        if(![self setDataSource:src]) {
             return FAIL;
         }
 
@@ -587,7 +587,7 @@ typedef enum : NSUInteger {
         NSLog(@"AceVideo: src param is null");
         return NO;
     }
-    if (![self setDataSource:src]) {
+    if(![self setDataSource:src]) {
         return NO;
     }
 

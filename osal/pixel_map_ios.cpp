@@ -124,6 +124,16 @@ int32_t PixelMapIOS::GetByteCount() const
     return pixmap_->GetByteCount();
 }
 
+AllocatorType PixelMapIOS::GetAllocatorType() const
+{
+    return AllocatorType::DEFAULT;
+}
+
+bool PixelMapIOS::IsHdr() const
+{
+    return false;
+}
+
 void* PixelMapIOS::GetPixelManager() const
 {
     Media::InitializationOptions opts;

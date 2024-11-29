@@ -149,7 +149,7 @@ CGFloat _brightness = 0.0;
     }
     [(StageContainerView*)self.view  notifyBackground];
     [(StageContainerView*)self.view  notifyActiveChanged:NO];
-
+    
     if ([UIDevice currentDevice].systemVersion.floatValue >= 18.0 && ([self isBeingDismissed] || [self isMovingFromParentViewController])) {
         NSLog(@"iOS 18 StageVC->%@ dealloc", self);
         [_platformPlugin platformRelease];
@@ -174,19 +174,6 @@ CGFloat _brightness = 0.0;
     }
 }
 
-- (void)dealloc {
-    NSLog(@"StageVC->%@ dealloc", self);
-    [_windowView notifySurfaceDestroyed];
-    [_windowView notifyWindowDestroyed];
-    _windowView = nil;
-    [_platformPlugin platformRelease];
-    _platformPlugin = nil;
-    [BridgePluginManager innerUnbridgePluginManager:_instanceId];
-    _bridgePluginManager = nil;
-    [self deallocArkUIXPlugin];
-    AppMain::GetInstance()->DispatchOnDestroy(_cInstanceName);
-}
-
 - (void)destroyData {
     if ([UIDevice currentDevice].systemVersion.floatValue >= 18.0) {
         NSLog(@"iOS 18 StageVC->%@ dealloc destroyData", self);
@@ -202,6 +189,19 @@ CGFloat _brightness = 0.0;
         [self removeFromParentViewController];
         [[NSNotificationCenter defaultCenter] removeObserver:self];
     }
+}
+
+- (void)dealloc {
+    NSLog(@"StageVC->%@ dealloc", self);
+    [_windowView notifySurfaceDestroyed];
+    [_windowView notifyWindowDestroyed];
+    _windowView = nil;
+    [_platformPlugin platformRelease];
+    _platformPlugin = nil;
+    [BridgePluginManager innerUnbridgePluginManager:_instanceId];
+    _bridgePluginManager = nil;
+    [self deallocArkUIXPlugin];
+    AppMain::GetInstance()->DispatchOnDestroy(_cInstanceName);
 }
 
 - (void)traitCollectionDidChange:(UITraitCollection *)previousTraitCollection {

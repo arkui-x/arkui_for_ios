@@ -77,15 +77,15 @@
 - (id)getPluginContext;
 
 /**
+ * destroy arkui-x data in iOS 18 or later
+ */
+- (void)destroyData;
+
+/**
  * Register the factory of platform view.
  * @return void
  */
 - (void)registerPlatformViewFactory:(NSObject<PlatformViewFactory> *)platformViewFactory;
-
-/**
- * destroy arkui-x data in iOS 18 or later
- */
-- (void)destroyData;
 @end
 
 #endif // FOUNDATION_ACE_ADAPTER_IOS_STAGE_ABILITY_STAGEVIEWCONTROLLER_H

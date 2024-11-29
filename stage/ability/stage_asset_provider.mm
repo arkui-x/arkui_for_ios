@@ -166,7 +166,7 @@ void StageAssetProvider::GetResIndexPath(const std::string& moduleName,
     }
 }
 
-std::vector<uint8_t> StageAssetProvider::GetModuleAbilityBuffer(
+std::vector<uint8_t> StageAssetProvider::GetModuleAbilityBuffer (
     const std::string& moduleName, const std::string& abilityName, std::string& modulePath, bool esmodule)
 {
     printf("%s, moduleName : %s, abilityName : %s", __func__, moduleName.c_str(), abilityName.c_str());

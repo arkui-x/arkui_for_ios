@@ -169,7 +169,7 @@ bool AceViewSG::DispatchBasicEvent(const std::vector<TouchEvent>& touchEvents)
 }
 
 bool AceViewSG::DispatchTouchEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent,
-    const RefPtr<OHOS::Ace::NG::FrameNode>& node, const std::function<void()>& callback)
+        const RefPtr<OHOS::Ace::NG::FrameNode>& node, const std::function<void()>& callback)
 {
     if (!pointerEvent) {
         LOGE("DispatchTouchEvent pointerEvent is null return.");
@@ -210,7 +210,7 @@ bool AceViewSG::DispatchKeyEvent(const KeyEventInfo& eventInfo)
         eventInfo.msg);
     if (keyEvents.size() == 0) {
         return false;
-    }
+    } 
     // distribute special event firstly
     // because platform receives a raw event, the special event processing is ignored
     if (keyEvents.size() > 1) {
@@ -321,8 +321,7 @@ void AceViewSG::ProcessTouchEvent(const std::shared_ptr<MMI::PointerEvent>& poin
     }
 }
 
-void AceViewSG::ProcessDragEvent(
-    const std::shared_ptr<MMI::PointerEvent>& pointerEvent, const RefPtr<OHOS::Ace::NG::FrameNode>& node)
+void AceViewSG::ProcessDragEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent, const RefPtr<OHOS::Ace::NG::FrameNode>& node)
 {
     DragEventAction action;
     PointerEvent event;
@@ -363,15 +362,14 @@ void AceViewSG::ProcessDragEvent(
     }
 }
 
-void AceViewSG::ProcessDragEvent(
-    int32_t x, int32_t y, const DragEventAction& action, const RefPtr<OHOS::Ace::NG::FrameNode>& node)
+void AceViewSG::ProcessDragEvent(int32_t x, int32_t y, const DragEventAction& action, const RefPtr<OHOS::Ace::NG::FrameNode>& node)
 {
     CHECK_NULL_VOID(dragEventCallback_);
     dragEventCallback_(PointerEvent(x, y), action, node);
 }
 
-void AceViewSG::SurfaceChanged(
-    AceViewSG* view, int32_t width, int32_t height, int32_t orientation, WindowSizeChangeReason type)
+void AceViewSG::SurfaceChanged(AceViewSG* view, int32_t width, int32_t height, int32_t orientation,
+    WindowSizeChangeReason type)
 {
     CHECK_NULL_VOID(view);
     view->NotifySurfaceChanged(width, height, type);
@@ -404,8 +402,7 @@ void AceViewSG::NotifySurfacePositionChanged(int32_t posX, int32_t posY)
     posY_ = posY;
 }
 
-bool AceViewSG::DispatchTouchEventTargetHitTest(
-    const std::shared_ptr<OHOS::MMI::PointerEvent>& pointerEvent, const std::string& targetName)
+bool AceViewSG::DispatchTouchEventTargetHitTest(const std::shared_ptr<OHOS::MMI::PointerEvent>& pointerEvent, const std::string& targetName)
 {
     std::vector<TouchEvent> touchEvents;
     pointerEvent->SetPointerAction(OHOS::MMI::PointerEvent::POINTER_ACTION_DOWN);

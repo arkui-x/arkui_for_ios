@@ -15,107 +15,86 @@
 
 #include "AceWebObject.h"
 
-float AceWebOnScrollObject::GetX()
-{
+float AceWebOnScrollObject::GetX() {
     return this->x_;
 }
 
-float AceWebOnScrollObject::GetY()
-{
-    return this->y_;
+float AceWebOnScrollObject::GetY() {
+     return this->y_;
 }
 
-float AceWebOnScaleChangeObject::GetOldScale()
-{
+float AceWebOnScaleChangeObject::GetOldScale() {
     return this->oldScale_;
 }
 
-float AceWebOnScaleChangeObject::GetNewScale()
-{
+float AceWebOnScaleChangeObject::GetNewScale() {
     return this->newScale_;
 }
 
-std::string AceWebOnConsoleObject::GetMessage()
-{
+std::string AceWebOnConsoleObject::GetMessage() {
     return this->message_;
 }
 
-int AceWebOnConsoleObject::GetMessageLevel()
-{
+int AceWebOnConsoleObject::GetMessageLevel() {
     return this->messageLevel_;
 }
 
-std::string AceWebHttpErrorReceiveObject::GetRequestUrl()
-{
+std::string AceWebHttpErrorReceiveObject::GetRequestUrl() {
     return this->requestUrl_;
 }
 
-std::string AceWebHttpErrorReceiveObject::GetMimeType()
-{
+std::string AceWebHttpErrorReceiveObject::GetMimeType() {
     return this->mimeType_;
 }
 
-std::string AceWebHttpErrorReceiveObject::GetEncoding()
-{
-    return this->contentEncoding_;
+std::string AceWebHttpErrorReceiveObject::GetEncoding() {
+     return this->contentEncoding_;
 }
 
-int AceWebHttpErrorReceiveObject::GetStatusCode()
-{
+int AceWebHttpErrorReceiveObject::GetStatusCode() {
     return this->statusCode_;
 }
 
-std::string AceWebDialogObject::GetUrl()
-{
+std::string AceWebDialogObject::GetUrl() {
     return this->url_;
 }
 
-std::string AceWebDialogObject::GetMessage()
-{
+std::string AceWebDialogObject::GetMessage() {
     return this->message_;
 }
 
-std::string AceWebDialogObject::GetValue()
-{
+std::string AceWebDialogObject::GetValue() {
     return this->value_;
 }
 
-std::string AceWebPermissionRequestObject::GetOrigin()
-{
+std::string AceWebPermissionRequestObject::GetOrigin() {
     return this->origin_;
 }
 
-int AceWebPermissionRequestObject::GetResourcesId()
-{
-    return this->type_;
+int AceWebPermissionRequestObject::GetResourcesId() {
+     return this->type_;
 }
 
-std::string AceWebOnHttpAuthRequestObject::GetHost()
-{
+std::string AceWebOnHttpAuthRequestObject::GetHost() {
     return this->host_;
 }
 
-std::string AceWebOnHttpAuthRequestObject::GetRealm()
-{
-    return this->realm_;
+std::string AceWebOnHttpAuthRequestObject::GetRealm() {
+     return this->realm_;
 }
 
-std::string AceWebDownloadResponseObject::GetUrl()
-{
+std::string AceWebDownloadResponseObject::GetUrl() {
     return this->url_;
 }
 
-std::string AceWebDownloadResponseObject::GetMimetype()
-{
-    return this->mimetype_;
+std::string AceWebDownloadResponseObject::GetMimetype() {
+     return this->mimetype_;
 }
 
-long AceWebDownloadResponseObject::GetContentLength()
-{
-    return this->contentLength_;
+long AceWebDownloadResponseObject::GetContentLength() {
+     return this->contentLength_;
 }
 
-std::string AceWebDownloadResponseObject::GetUserAgent()
-{
+std::string AceWebDownloadResponseObject::GetUserAgent() {
     return this->userAgent_;
 }

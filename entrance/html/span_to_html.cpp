@@ -13,16 +13,15 @@
  * limitations under the License.
  */
 
-#include "ace_pointer_data.h"
+#include "core/components_ng/pattern/text/span/span_string.h"
+#include "core/text/html_utils.h"
 
-namespace OHOS::Ace::Platform {
+namespace OHOS::Ace {
 
-static constexpr int ACE_POINTER_DATA_FIELD_COUNT = 17;
-
-static_assert(sizeof(AcePointerData) == sizeof(int64_t) * ACE_POINTER_DATA_FIELD_COUNT,
-              "AcePointerData has the wrong size");
-
-void AcePointerData::Clear() {
-  memset(this, 0, sizeof(AcePointerData));
+// Currently not completed
+std::string HtmlUtils::ToHtml(const SpanString* str)
+{
+    return "";
 }
-} // namespace OHOS::Ace::Platform
+
+} // namespace OHOS::Ace

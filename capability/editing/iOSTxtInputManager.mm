@@ -210,10 +210,8 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
         }
         [oldSelectedRange release];
         
-        if (update) {
+        if (update)
             [self updateEditingState];
-        }
-            
     }
 }
 
@@ -351,9 +349,8 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
     NSRange selectedRange = _selectedTextRange.range;
     NSRange markedTextRange = ((iOSTextRange*)self.markedTextRange).range;
     
-    if (markedText == nil) {
+    if (markedText == nil)
         markedText = @"";
-    }
     
     if (markedTextRange.length > 0) {
         // Replace text in the marked range with the new text.
@@ -438,12 +435,10 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
 - (NSComparisonResult)comparePosition:(UITextPosition*)position toPosition:(UITextPosition*)other {
     NSUInteger positionIndex = ((iOSTextPosition*)position).index;
     NSUInteger otherIndex = ((iOSTextPosition*)other).index;
-    if (positionIndex < otherIndex) {
+    if (positionIndex < otherIndex)
         return NSOrderedAscending;
-    }
-    if (positionIndex > otherIndex) {
+    if (positionIndex > otherIndex)
         return NSOrderedDescending;
-    }
     return NSOrderedSame;
 }
 

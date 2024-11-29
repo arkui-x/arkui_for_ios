@@ -140,7 +140,7 @@ public:
     RefPtr<AceView> GetAceView() const
     {
         RefPtr<AceView> ref_aceView_;
-        if (aceView_ != nullptr) {
+        if(aceView_ != nullptr){
             ref_aceView_ = aceView_;
         }
         return ref_aceView_;
@@ -323,8 +323,8 @@ public:
 
     void SetCurPointerEvent(const std::shared_ptr<MMI::PointerEvent>& currentEvent);
 
-    bool GetCurPointerEventInfo(int32_t& pointerId, int32_t& globalX, int32_t& globalY, int32_t& sourceType,
-        int32_t& sourceTool, StopDragCallback&& stopDragCallback) override;
+    bool GetCurPointerEventInfo( int32_t& pointerId, int32_t& globalX, int32_t& globalY, int32_t& sourceType,
+        int32_t& sourceTool, int32_t& displayId, StopDragCallback&& stopDragCallback) override;
 private:
     virtual bool MaybeRelease() override;
     void InitializeFrontend();

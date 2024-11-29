@@ -39,9 +39,9 @@ public:
         const std::string& bridgeName, const std::string& methodName, const std::string& resultValue);
     static void JSSendMessage(int32_t instanceId, const std::string& bridgeName, const std::string& data);
     static void JSSendMessageResponse(int32_t instanceId, const std::string& bridgeName, const std::string& data);
-    static void PlatformCallMethod(int32_t instanceId,
+    static void PlatformCallMethod(int32_t instanceId, 
         const std::string& bridgeName, const std::string& methodName, const std::string& parameter);
-    static void PlatformSendMethodResult(int32_t instanceId,
+    static void PlatformSendMethodResult(int32_t instanceId, 
         const std::string& bridgeName, const std::string& methodName, const std::string& result);
     static void PlatformSendMessage(int32_t instanceId, const std::string& bridgeName, const std::string& data);
     static void PlatformSendMessageResponse(

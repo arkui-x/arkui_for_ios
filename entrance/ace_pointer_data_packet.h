@@ -35,5 +35,5 @@ public:
  private:
     std::vector<uint8_t> data_;
 };
-} // namespace OHOS::Ace::Platform
+}// namespace OHOS::Ace::Platform
 #endif // FOUNDATION_ADAPTER_IOS_ENTRANCE_ACE_POINTER_DATA_PACKET_H

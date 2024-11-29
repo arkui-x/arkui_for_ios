@@ -256,7 +256,7 @@ void AceContainerSG::InitializeCallback()
         AceEngine::Get().BuriedBomb(instanceId, bombId);
         AceEngine::Get().DefusingBomb(instanceId);
         auto touchTask = [weak, event, markProcess, node]() {
-            auto context = weak.Upgrade();
+             auto context = weak.Upgrade();
             CHECK_NULL_VOID(context);
             if (node) {
                 context->OnTouchEvent(event, node);
@@ -272,8 +272,7 @@ void AceContainerSG::InitializeCallback()
             touchTask();
             return;
         }
-        context->GetTaskExecutor()->PostTask(touchTask, TaskExecutor::TaskType::UI,
-            "ArkUI-XAceContainerSGTouchEventCallback");
+        context->GetTaskExecutor()->PostTask(touchTask, TaskExecutor::TaskType::UI, "ArkUI-XAceContainerSGTouchEventCallback");
     };
     aceView_->RegisterTouchEventCallback(touchEventCallback);
 
@@ -433,8 +432,8 @@ void AceContainerSG::InitializeCallback()
     };
     aceView_->RegisterPreDrawCallback(preDrawCallback);
 
-    auto&& dragEventCallback = [weak, instanceId](const PointerEvent& pointerEvent,
-        const DragEventAction& action, const RefPtr<OHOS::Ace::NG::FrameNode>& node) {
+    auto&& dragEventCallback = [weak, instanceId](
+                                    const PointerEvent& pointerEvent, const DragEventAction& action, const RefPtr<OHOS::Ace::NG::FrameNode>& node) {
         auto context = weak.Upgrade();
         CHECK_NULL_VOID(context);
         ContainerScope scope(instanceId);
@@ -442,7 +441,7 @@ void AceContainerSG::InitializeCallback()
             [weak, pointerEvent, action]() {
                 auto context = weak.Upgrade();
                 CHECK_NULL_VOID(context);
-                context->OnDragEvent(pointerEvent, action);
+                context->OnDragEvent(pointerEvent, action); 
             },
             TaskExecutor::TaskType::UI, "ArkUI-XAceContainerSGDragEventCallback");
     };
@@ -705,7 +704,6 @@ void AceContainerSG::InitThemeManager()
         auto themeManager = AceType::MakeRefPtr<ThemeManagerImpl>();
         pipelineContext->SetThemeManager(themeManager);
         themeManager->InitResource(resourceInfo);
-        themeManager->LoadSystemTheme(resourceInfo.GetThemeId());
         themeManager->SetColorScheme(colorScheme);
         themeManager->LoadCustomTheme(assetManager);
         themeManager->LoadResourceThemes();
@@ -1057,7 +1055,7 @@ bool AceContainerSG::RunPage(
     CHECK_NULL_RETURN(front, false);
     LOGI("RunPage content=[%{private}s]", content.c_str());
     if (isNamedRouter) {
-        front->RunPageByNamedRouter(content);
+        front->RunPageByNamedRouter(content, params);
     } else {
         front->RunPage(content, params);
     }
@@ -1147,8 +1145,8 @@ void AceContainerSG::SetCurPointerEvent(const std::shared_ptr<MMI::PointerEvent>
     }
 }
 
-bool AceContainerSG::GetCurPointerEventInfo(int32_t& pointerId, int32_t& globalX, int32_t& globalY,
-        int32_t& sourceType, int32_t& sourceTool, StopDragCallback&& stopDragCallback)
+bool AceContainerSG::GetCurPointerEventInfo( int32_t& pointerId, int32_t& globalX, int32_t& globalY,
+        int32_t& sourceType, int32_t& sourceTool, int32_t& displayId, StopDragCallback&& stopDragCallback)
 {
     std::lock_guard<std::mutex> lock(pointerEventMutex_);
     CHECK_NULL_RETURN(currentPointerEvent_, false);
