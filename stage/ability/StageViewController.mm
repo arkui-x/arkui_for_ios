@@ -131,6 +131,13 @@ CGFloat _brightness = 0.0;
     [(StageContainerView*)self.view  notifyActiveChanged:YES];
 }
 
+- (void)viewWillAppear:(BOOL)animated {
+    [super viewWillAppear:animated];
+    if (_bridgePluginManager) {
+        [_bridgePluginManager updateCurrentInstanceId:_instanceId];
+    }
+}
+
 - (void)viewDidDisappear:(BOOL)animated {
     [super viewDidDisappear:animated];
     [UIScreen mainScreen].brightness = _brightness;
@@ -154,11 +161,11 @@ CGFloat _brightness = 0.0;
 
 - (void)dealloc {
     NSLog(@"StageVC->%@ dealloc", self);
-    [_platformPlugin platformRelease];
-    _platformPlugin = nil;
     [_windowView notifySurfaceDestroyed];
     [_windowView notifyWindowDestroyed];
     _windowView = nil;
+    [_platformPlugin platformRelease];
+    _platformPlugin = nil;
     [BridgePluginManager innerUnbridgePluginManager:_instanceId];
     _bridgePluginManager = nil;
     [self deallocArkUIXPlugin];
@@ -219,9 +226,11 @@ CGFloat _brightness = 0.0;
 
 - (BOOL)isTopController {
     StageViewController *controller = [StageApplication getApplicationTopViewController];
-    NSString *topInstanceName = controller.instanceName;
-    if ([self.instanceName isEqualToString:topInstanceName]) {
-        return true;
+    if ([controller respondsToSelector:@selector(instanceName)]) {
+        NSString *topInstanceName = controller.instanceName;
+        if ([self.instanceName isEqualToString:topInstanceName]) {
+            return true;
+        }
     }
     return false;
 }

@@ -440,9 +440,6 @@ void UIContentImpl::InitializeSafeArea(const RefPtr<Platform::AceContainerSG>& c
     if (pipeline && pipeline->GetMinPlatformVersion() >= PLATFORM_VERSION_TEN) {
         avoidAreaChangedListener_ = new AvoidAreaChangedListener(instanceId_);
         window_->RegisterAvoidAreaChangeListener(avoidAreaChangedListener_);
-        pipeline->UpdateSystemSafeArea(GetViewSafeAreaByType(Rosen::AvoidAreaType::TYPE_SYSTEM));
-        pipeline->UpdateCutoutSafeArea(GetViewSafeAreaByType(Rosen::AvoidAreaType::TYPE_CUTOUT));
-        pipeline->UpdateNavSafeArea(GetViewSafeAreaByType(Rosen::AvoidAreaType::TYPE_NAVIGATION_INDICATOR));
     }
 }
 

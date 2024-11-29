@@ -145,6 +145,10 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
 
 + (void)callCurrentAbilityOnForeground {
     StageViewController *topVC = [self getApplicationTopViewController];
+    if (![topVC isKindOfClass:[StageViewController class]]) {
+        NSLog(@"callCurrentAbilityOnForeground is Not StageVC");
+        return;
+    }
     NSString *instanceName = topVC.instanceName;
     if (instanceName.length) {
         std::string cppInstanceName = [instanceName UTF8String];
@@ -155,6 +159,10 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
 
 + (void)callCurrentAbilityOnBackground {
     StageViewController *topVC = [self getApplicationTopViewController];
+    if (![topVC isKindOfClass:[StageViewController class]]) {
+        NSLog(@"callCurrentAbilityOnBackground is Not StageVC");
+        return;
+    }
     NSString *instanceName = topVC.instanceName;
     if (instanceName.length) {
         std::string cppInstanceName = [instanceName UTF8String];
@@ -171,6 +179,10 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
     NSString *singleName = [NSString stringWithFormat:@"%@:%@:%@", bundleName, moduleName, abilityName];
     NSLog(@"%s, singleName is %@", __func__, singleName);
     StageViewController *topVC = [self getApplicationTopViewController];
+    if (![topVC isKindOfClass:[StageViewController class]]) {
+        NSLog(@"handleSingleton is Not StageVC");
+        return NO;
+    }
     if ([topVC.instanceName containsString:singleName]) {
         std::string instanceName = [topVC.instanceName UTF8String];
         AppMain::GetInstance()->DispatchOnNewWant(instanceName);
@@ -179,14 +191,17 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
 
     NSMutableArray *controllerArr = [[NSMutableArray alloc] initWithArray:topVC.navigationController.viewControllers];
     for (int i = 0; i < controllerArr.count; i++) {
-        StageViewController *tempVC = controllerArr[i];
-        if ([tempVC.instanceName containsString:singleName]) {
-            [controllerArr removeObjectAtIndex:i];
-            [controllerArr addObject:tempVC];
-            [topVC.navigationController setViewControllers:controllerArr.copy];
-            std::string instanceName = [tempVC.instanceName UTF8String];
-            AppMain::GetInstance()->DispatchOnNewWant(instanceName);
-            return YES;
+        UIViewController *viewController = controllerArr[i];
+        if ([viewController isKindOfClass:[StageViewController class]]) {
+            StageViewController *tempVC = (StageViewController *)viewController;
+            if ([tempVC.instanceName containsString:singleName]) {
+                [controllerArr removeObjectAtIndex:i];
+                [controllerArr addObject:tempVC];
+                [topVC.navigationController setViewControllers:controllerArr.copy];
+                std::string instanceName = [tempVC.instanceName UTF8String];
+                AppMain::GetInstance()->DispatchOnNewWant(instanceName);
+                return YES;
+            }
         }
     }
     return NO;
@@ -194,15 +209,22 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
 
 + (void)releaseViewControllers {
     StageViewController *topVC = [StageApplication getApplicationTopViewController];
+    if (![topVC isKindOfClass:[StageViewController class]]) {
+        NSLog(@"releaseViewControllers is Not StageVC");
+        return;
+    }
     NSMutableArray *controllerArr = [[NSMutableArray alloc] initWithArray:topVC.navigationController.viewControllers];
     int size = controllerArr.count;
     NSString *instanceName = topVC.instanceName;
     if (instanceName.length) {
         NSLog(@"%s, instanceName : %@", __FUNCTION__, instanceName);
         for (int i = size - 1; i >= 0; i--) {
-            StageViewController *tempVC = controllerArr[i];
-            std::string cppInstanceName = [tempVC.instanceName UTF8String];
-            AppMain::GetInstance()->DispatchOnDestroy(cppInstanceName);
+            UIViewController *viewController = controllerArr[i];
+            if ([viewController isKindOfClass:[StageViewController class]]) {
+                StageViewController *tempVC = (StageViewController *)viewController;
+                std::string cppInstanceName = [tempVC.instanceName UTF8String];
+                AppMain::GetInstance()->DispatchOnDestroy(cppInstanceName);
+            }
         }
     }
 }

@@ -217,7 +217,7 @@ void AbilityContextAdapter::TerminateSelf(const std::string& instanceName)
             OHOS::AbilityRuntime::Platform::AppMain::GetInstance()->DispatchOnDestroy(instanceName);
             exit(0);
         }
-        if ([topVC.instanceName isEqualToString:targetName]) {
+        if ([topVC respondsToSelector:@selector(instanceName)]&&[topVC.instanceName isEqualToString:targetName]) {
             NSLog(@"%s, pop", __func__);
             [topVC.navigationController popViewControllerAnimated:YES];
             return;
@@ -226,7 +226,7 @@ void AbilityContextAdapter::TerminateSelf(const std::string& instanceName)
             [[NSMutableArray alloc] initWithArray:topVC.navigationController.viewControllers];
         for (int i = 0; i < controllerArr.count; i++) {
             StageViewController *tempVC = controllerArr[i];
-            if ([tempVC.instanceName containsString:targetName]) {
+            if ([tempVC respondsToSelector:@selector(instanceName)]&&[tempVC.instanceName containsString:targetName]) {
                 [controllerArr removeObjectAtIndex:i];
                 [topVC.navigationController setViewControllers:controllerArr.copy];
                 return;

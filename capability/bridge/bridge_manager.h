@@ -65,6 +65,8 @@ public:
         const std::string& bridgeName, const std::string& methodName, std::unique_ptr<BufferMapping> parameter);
     static void PlatformSendMessageBinary(int32_t instanceId,
         const std::string& bridgeName, std::unique_ptr<BufferMapping> data);
+    static void SetCurrentInstanceId(int32_t instanceId);
+    static int32_t GetCurrentInstanceId();
 
 private:
     static std::map<int32_t, std::map<std::string, std::shared_ptr<BridgeReceiver>>> bridgeList_;

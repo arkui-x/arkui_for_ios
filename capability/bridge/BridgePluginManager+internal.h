@@ -90,6 +90,8 @@ NS_ASSUME_NONNULL_BEGIN
                     errorCode:(int)errorCode
                     errorMessage:(NSString*)errorMessage
                     result:(id)result;
+
+- (void)updateCurrentInstanceId:(int)instanceId;
 @end
 
 NS_ASSUME_NONNULL_END

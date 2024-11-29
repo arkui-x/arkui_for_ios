@@ -768,6 +768,7 @@ void Window::CreateSurfaceNode(void* layer)
         LOGI("Window Notify uiContent_ Surface Created");
         uiContent_->NotifySurfaceCreated();
     }
+    delayNotifySurfaceCreated_ = true;
 }
 
 void Window::NotifySurfaceChanged(int32_t width, int32_t height, float density)
@@ -796,6 +797,7 @@ void Window::NotifySurfaceChanged(int32_t width, int32_t height, float density)
         config.SetOrientation(surfaceWidth_ <= surfaceHeight_ ? 0 : 1);
         uiContent_->UpdateViewportConfig(config, WindowSizeChangeReason::RESIZE);
     }
+    delayNotifySurfaceChanged_ = true;
 }
 void Window::NotifyTouchOutside()
 {
@@ -852,17 +854,20 @@ void Window::DelayNotifyUIContentIfNeeded()
         LOGE("Window Delay Notify uiContent_ is nullptr!");
         return;
     }
+    if (delayNotifySurfaceCreated_) {
+        LOGD("Window Delay Notify uiContent_ Surface Created");
+        uiContent_->NotifySurfaceCreated();
+    }
 
-    LOGI("Window Delay Notify uiContent_ Surface Created");
-    uiContent_->NotifySurfaceCreated();
-
-    LOGI("Window Delay Notify uiContent_ Surface Changed wh:[%{public}d, %{public}d]",
-        surfaceWidth_, surfaceHeight_);
-    Ace::ViewportConfig config;
-    config.SetDensity(density_);
-    config.SetSize(surfaceWidth_, surfaceHeight_);
-    config.SetOrientation(surfaceWidth_ <= surfaceHeight_ ? 0 : 1);
-    uiContent_->UpdateViewportConfig(config, WindowSizeChangeReason::RESIZE);
+    if (delayNotifySurfaceChanged_) {
+        LOGD("Window Delay Notify uiContent_ Surface Changed wh:[%{public}d, %{public}d]", surfaceWidth_,
+            surfaceHeight_);
+        Ace::ViewportConfig config;
+        config.SetDensity(density_);
+        config.SetSize(surfaceWidth_, surfaceHeight_);
+        config.SetOrientation(surfaceWidth_ <= surfaceHeight_ ? 0 : 1);
+        uiContent_->UpdateViewportConfig(config, WindowSizeChangeReason::RESIZE);
+    }
 
     if (delayNotifySurfaceDestroyed_) {
         LOGI("Window Delay Notify uiContent_ Surface Destroyed");
