@@ -285,7 +285,7 @@ void AceContainerSG::InitializeCallback()
         auto bombId = GetMilliseconds();
         AceEngine::Get().BuriedBomb(instanceId, bombId);
         AceEngine::Get().DefusingBomb(instanceId);
-        context->GetTaskExecutor()->PostSyncTask([context, event, &result]() { result = context->OnKeyEvent(event); },
+        context->GetTaskExecutor()->PostSyncTask([context, event, &result]() { result = context->OnNonPointerEvent(event); },
             TaskExecutor::TaskType::UI, "ArkUI-XAceContainerSGKeyEventCallback");
         return result;
     };
@@ -433,7 +433,7 @@ void AceContainerSG::InitializeCallback()
     aceView_->RegisterPreDrawCallback(preDrawCallback);
 
     auto&& dragEventCallback = [weak, instanceId](
-                                    const PointerEvent& pointerEvent, const DragEventAction& action, const RefPtr<OHOS::Ace::NG::FrameNode>& node) {
+                                    const DragPointerEvent& pointerEvent, const DragEventAction& action, const RefPtr<OHOS::Ace::NG::FrameNode>& node) {
         auto context = weak.Upgrade();
         CHECK_NULL_VOID(context);
         ContainerScope scope(instanceId);

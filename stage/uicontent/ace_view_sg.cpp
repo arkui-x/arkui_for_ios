@@ -324,7 +324,7 @@ void AceViewSG::ProcessTouchEvent(const std::shared_ptr<MMI::PointerEvent>& poin
 void AceViewSG::ProcessDragEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent, const RefPtr<OHOS::Ace::NG::FrameNode>& node)
 {
     DragEventAction action;
-    PointerEvent event;
+    DragPointerEvent event;
     ConvertPointerEvent(pointerEvent, event);
     CHECK_NULL_VOID(dragEventCallback_);
     int32_t orgAction = pointerEvent->GetPointerAction();
@@ -365,7 +365,7 @@ void AceViewSG::ProcessDragEvent(const std::shared_ptr<MMI::PointerEvent>& point
 void AceViewSG::ProcessDragEvent(int32_t x, int32_t y, const DragEventAction& action, const RefPtr<OHOS::Ace::NG::FrameNode>& node)
 {
     CHECK_NULL_VOID(dragEventCallback_);
-    dragEventCallback_(PointerEvent(x, y), action, node);
+    dragEventCallback_(DragPointerEvent(x, y), action, node);
 }
 
 void AceViewSG::SurfaceChanged(AceViewSG* view, int32_t width, int32_t height, int32_t orientation,
