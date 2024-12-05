@@ -78,12 +78,14 @@ std::string ImageSourceIOS::GetProperty(const std::string& key)
     return value;
 }
 
-RefPtr<PixelMap> ImageSourceIOS::CreatePixelMap(const Size& size, AIImageQuality imageQuality, bool isHdrDecoderNeed)
+RefPtr<PixelMap> ImageSourceIOS::CreatePixelMap(
+    const Size& size, AIImageQuality imageQuality, bool isHdrDecoderNeed, PixelFormat photoDecodeFormat)
 {
     return CreatePixelMap(0, size, imageQuality);
 }
 
-RefPtr<PixelMap> ImageSourceIOS::CreatePixelMap(uint32_t index, const Size& size, AIImageQuality imageQuality, bool isHdrDecoderNeed)
+RefPtr<PixelMap> ImageSourceIOS::CreatePixelMap(
+    uint32_t index, const Size& size, AIImageQuality imageQuality, bool isHdrDecoderNeed, PixelFormat photoDecodeFormat)
 {
     Media::DecodeOptions options;
     if (size.first > 0 && size.second > 0) {
