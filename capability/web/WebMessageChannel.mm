@@ -68,8 +68,10 @@
 - (void)postMessageEvent:(NSString*)message
 {
     for (NSString* port in self.etsPorts) {
+        NSString *escapedMessage = [[message stringByReplacingOccurrencesOfString:@"\"" withString:@"\\\""]
+                                                stringByReplacingOccurrencesOfString:@"'" withString:@"\\'"];
         NSString* source = [NSString stringWithFormat:@"(function() {%@.%@.postMessage('%@');})();",
-                                     WEBVIEW_MESSAGE_CHANNELS_VARIABLE_NAME, port, message];
+                                     WEBVIEW_MESSAGE_CHANNELS_VARIABLE_NAME, port, escapedMessage];
         [self evaluateJavaScript:source];
     }
 }
