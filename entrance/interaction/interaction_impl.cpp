@@ -256,8 +256,8 @@ void SurfaceNodeListener::OnSurfaceNodeChanged(int32_t width, int32_t height, fl
     }
     InteractionManager::GetInstance()->SetDragWindow(dragWindow_);
     Msdp::DeviceStatus::DragData msdpDragData { {}, dragData.buffer, dragData.udKey, dragData.extraInfo,
-        dragData.filterInfo, dragData.sourceType, dragData.dragNum, dragData.pointerId, dragData.displayX,
-        dragData.displayY, dragData.displayId, dragData.mainWindow, dragData.hasCanceledAnimation,
+        dragData.filterInfo, dragData.sourceType, dragData.dragNum, dragData.pointerId, dragData.toolType,
+        dragData.displayX, dragData.displayY, dragData.displayId, dragData.mainWindow, dragData.hasCanceledAnimation,
         dragData.hasCoordinateCorrected, dragData.summarys };
     for (auto& shadowInfo : dragData.shadowInfos) {
         if (shadowInfo.pixelMap) {
