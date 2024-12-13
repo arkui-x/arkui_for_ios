@@ -669,6 +669,12 @@ void AceContainerSG::UpdateConfiguration(
             resConfig.SetOrientation(DeviceOrientation::LANDSCAPE);
         }
         configurationChange.directionUpdate = true;
+
+        CHECK_NULL_VOID(pipelineContext_);
+        auto dragDropManager = static_cast<NG::PipelineContext*>(pipelineContext_.GetRawPtr())->GetDragDropManager();
+        if (dragDropManager && dragDropManager->IsItemDragging()) {
+            dragDropManager->CancelItemDrag();
+        }
     }
     if (!densityDpi.empty()) {
         double density = std::stoi(densityDpi);
