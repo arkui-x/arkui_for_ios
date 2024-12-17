@@ -31,6 +31,7 @@
 #import "AceWeb.h"
 #import "StageContainerView.h"
 #define HIT_TEST_TARGET_WEB  @"Web"
+#define HIT_TEST_TARGET_PLATFORMVIEW @"PlatformView"
 
 #define ACE_ENABLE_GL
 @interface WindowView()
@@ -158,10 +159,17 @@
     }
     return inside;
 }
+
 - (UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event
 {
     UIView *view = [super hitTest:point withEvent:event];
-    __block bool isPointPlatformView = false;
+    BOOL isTouchArkWeb = [self isPointInsideWeb:point withEvent:event];
+    BOOL isTouchPlatfomrview = [self isPointInsidePlatformview: point withEvent:event];
+    return (isTouchArkWeb || isTouchPlatfomrview)? nil : view;
+}
+
+- (BOOL)isPointInsidePlatformview:(CGPoint)point withEvent:(UIEvent *)event {
+     __block bool isPointPlatformView = false;
     [AcePlatformViewPlugin.getObjectMap enumerateKeysAndObjectsUsingBlock:^(
         NSString * _Nonnull key, AcePlatformView * _Nonnull aceplatformview, BOOL * _Nonnull stop) {
         UIView *uiview = [aceplatformview getPlatformView];
@@ -171,8 +179,11 @@
         }
     }];
 
-    BOOL isTouchArkWeb = [self isPointInsideWeb:point withEvent:event];
-    return (isTouchArkWeb || isPointPlatformView)? nil : view;
+    bool isTouchPlatfomrview = false;
+    if (isPointPlatformView) {
+        isTouchPlatfomrview = [self touchHitTestTarget:point targetName:HIT_TEST_TARGET_PLATFORMVIEW];
+    }
+    return isTouchPlatfomrview;
 }
 
 - (BOOL)isPointInsideWeb:(CGPoint)point withEvent:(UIEvent *)event {
