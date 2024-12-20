@@ -938,7 +938,7 @@ typedef void (^PostMessageResultMethod)(NSString* ocResult);
       didReceiveScriptMessage:(WKScriptMessage*)message
 {
     int messageLevel = 2;
-    NSString* messageBody = message.body ? (NSString*)message.body : @"";
+    NSString* messageBody = message.body ? [NSString stringWithFormat:@"%@", message.body] : @"";
     if ([message.name hasPrefix:CONSOLEDEBUG]) {
         messageLevel = 1;
     } else if ([message.name hasPrefix:CONSOLEERROR]) {
