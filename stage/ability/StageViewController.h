@@ -26,6 +26,8 @@
 @property (nonatomic, assign) BOOL homeIndicatorHidden;
 @property (nonatomic, strong) NSString *params;
 
+- (void)startAbilityForResult:(NSDictionary *)dicParams isReturnValue:(BOOL)isReturnValue;
+
 - (instancetype)init NS_UNAVAILABLE;
 - (instancetype)initWithCoder:(NSCoder *)coder NS_UNAVAILABLE;
 - (instancetype)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil NS_UNAVAILABLE;
