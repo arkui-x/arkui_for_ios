@@ -34,7 +34,17 @@ void scrollByOC(int id, float deltaX, float deltaY);
 
 void zoomOC(int id, float factor);
 
+void zoomInOC(int id);
+
+void zoomOutOC(int id);
+
+bool isZoomAccessOC(int id);
+
 void stopOC(int id);
+
+std::string getOriginalUrlOC(int id);
+
+void pageUpOC(int id, bool value);
 
 void setCustomUserAgentOC(int id, const std::string& userAgent);
 
@@ -87,3 +97,10 @@ bool getHttpAuthCredentialsOC(const std::string& host, const std::string& realm,
 bool existHttpAuthCredentialsOC();
 
 bool deleteHttpAuthCredentialsOC();
+
+void setWebDebuggingAccessOC(bool webDebuggingAccess);
+
+void pageDownOC(int id, bool value);
+
+void postUrlOC(int id, const std::string& url, const std::vector<uint8_t>& postData);
+

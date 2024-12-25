@@ -69,11 +69,55 @@ void zoomOC(int id, float factor){
     }
 }
 
+void zoomInOC(int id) {
+    AceWeb *web = [AceWebResourcePlugin.getObjectMap objectForKey:[NSString stringWithFormat:@"%d", id]];
+    if (!web) {
+        NSLog(@"Error:AceWebControllerBridge web is NULL");
+        return;
+    }
+    [web zoomIn];
+}
+
+void zoomOutOC(int id) {
+    AceWeb *web = [AceWebResourcePlugin.getObjectMap objectForKey:[NSString stringWithFormat:@"%d", id]];
+    if (!web) {
+        NSLog(@"Error:AceWebControllerBridge web is NULL");
+        return;
+    }
+    [web zoomOut];
+}
+
+bool isZoomAccessOC(int id){
+    AceWeb *web = [AceWebResourcePlugin.getObjectMap objectForKey:[NSString stringWithFormat:@"%d", id]];
+    if(web != nil) {
+        return [web isZoomAccess];
+    }
+    return false;
+}
+
 void stopOC(int id){
     AceWeb *web = [AceWebResourcePlugin.getObjectMap objectForKey:[NSString stringWithFormat:@"%d", id]];
     if(web != nil){
         [web stop];
     }
+}
+
+std::string getOriginalUrlOC(int id) {
+    AceWeb* web = [AceWebResourcePlugin.getObjectMap objectForKey:[NSString stringWithFormat:@"%d", id]];
+    if(web == nil) {
+        return "";
+    }
+    return [[web getOriginalUrl] UTF8String];
+}
+
+void pageUpOC(int id, bool value)
+{
+    AceWeb* web = [AceWebResourcePlugin.getObjectMap objectForKey:[NSString stringWithFormat:@"%d", id]];
+    if (!web) {
+        NSLog(@"Error:AceWebControllerBridge web is NULL");
+        return;
+    }
+    [web pageUp:value];
 }
 
 void setCustomUserAgentOC(int id, const std::string& userAgent){
@@ -331,4 +375,30 @@ bool existHttpAuthCredentialsOC()
 bool deleteHttpAuthCredentialsOC()
 {
     return [AceWeb deleteHttpAuthCredentials];
+}
+
+void setWebDebuggingAccessOC(bool webDebuggingAccess){
+    [AceWeb setWebDebuggingAccess:webDebuggingAccess];
+}
+
+void pageDownOC(int id, bool value)
+{
+    AceWeb* web = [AceWebResourcePlugin.getObjectMap objectForKey:[NSString stringWithFormat:@"%d", id]];
+    if (!web) {
+        NSLog(@"Error:AceWebControllerBridge web is NULL");
+        return;
+    }
+    [web pageDown:value];
+}
+
+void postUrlOC(int id, const std::string& url, const std::vector<uint8_t>& postData)
+{
+    AceWeb *web = [AceWebResourcePlugin.getObjectMap objectForKey:[NSString stringWithFormat:@"%d", id]];
+    if (!web) {
+        NSLog(@"Error:AceWebControllerBridge web is NULL");
+        return;
+    }
+    NSData *data = [NSData dataWithBytes:postData.data() length:postData.size()];
+    NSString *nsUrl = [NSString stringWithCString:url.c_str()];
+    [web postUrl:nsUrl postData:data];
 }

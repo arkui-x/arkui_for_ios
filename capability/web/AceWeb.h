@@ -57,6 +57,11 @@
 - (void)scrollBy:(CGFloat)deltaX deltaY:(CGFloat)deltaY;
 - (void)zoom:(CGFloat)factor;
 - (void)stop;
+- (void)zoomIn;
+- (void)zoomOut;
+- (NSString*)getOriginalUrl;
+- (void)pageUp:(bool)value;
+- (bool)isZoomAccess;
 - (void)setCustomUserAgent:(NSString*)userAgent;
 - (NSString*)getCustomUserAgent;
 -(NSDictionary<NSString *, IAceOnCallSyncResourceMethod> *)getSyncCallMethod;
@@ -64,4 +69,8 @@
 -(int64_t)getWebId;
 -(WKWebView*)getWeb;
 -(NSString*)updateWebLayout:(NSDictionary*) paramMap;
++ (void)setWebDebuggingAccess:(bool)webDebuggingAccess;
+- (void)pageDown:(bool)value;
+- (void)postUrl:(NSString*)url postData:(NSData *)postData;
++ (BOOL)getWebDebuggingAccess;
 @end
