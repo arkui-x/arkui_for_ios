@@ -521,7 +521,8 @@ void SubwindowIos::ClearMenuNG(int32_t targetId, bool inWindow, bool showAnimati
     HideFilter();
 }
 
-void SubwindowIos::UpdateHideMenuOffsetNG(const NG::OffsetF& offset, float menuScale, bool isRedragStart)
+void SubwindowIos::UpdateHideMenuOffsetNG(
+    const NG::OffsetF& offset, float menuScale, bool isRedragStart, int32_t menuWrapperId)
 {
     ContainerScope scope(childContainerId_);
     auto pipelineContext = NG::PipelineContext::GetCurrentContext();

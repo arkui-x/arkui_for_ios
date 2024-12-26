@@ -64,6 +64,7 @@ template("ace_ios_standard_source_set") {
       "download_manager.cpp",
       "foldable_window_ios.cpp",
       "html/html_to_span.cpp",
+      "html/span_to_html.cpp",
       "interaction/interaction_impl.cpp",
       "mmi_event_convertor.mm",
       "timepicker/timepicker_haptic_factory.cpp",
@@ -71,7 +72,7 @@ template("ace_ios_standard_source_set") {
       "touch_event_convertor.cpp",
       "udmf/udmf_impl.cpp",
       "utils.cpp",
-      "vibrator/vibrator_impl.cpp",
+      "vibrator/vibrator_utils.cpp",
       "virtual_rs_window.mm",
       "xcollie/xcollieInterface_impl.cpp",
     ]
