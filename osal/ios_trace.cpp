@@ -28,9 +28,9 @@ namespace OHOS::Ace {
 
 class TraceIdImpl : public TraceId {};
 
-TraceId* TraceId::CreateTraceId()
+std::shared_ptr<TraceId> TraceId::CreateTraceId()
 {
-    return new TraceIdImpl();
+    return std::make_shared<TraceIdImpl>();
 }
 
 std::string GetTraceTimeStamp()
