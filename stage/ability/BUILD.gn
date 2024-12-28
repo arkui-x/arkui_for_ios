@@ -89,6 +89,10 @@ template("stage_ios_standard_source_set") {
       "CoreFoundation.framework",
       "Foundation.framework",
       "UIKit.framework",
+      "PhotosUI.framework",
+      "UniformTypeIdentifiers.framework",
+      "Photos.framework",
+      "MobileCoreServices.framework",
     ]
 
     subsystem_name = "arkui"

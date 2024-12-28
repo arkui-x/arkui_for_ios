@@ -34,11 +34,17 @@ dispatch_async(dispatch_get_main_queue(), block);\
 #define URL_QUERY_ABILITY_KEY @"abilityName"
 #define URL_QUERY_PARAMS_KEY @"params"
 #define ABILITY_NAME @"Ability"
+#define BUNDLENAME_FILEPICKER @"com.ohos.filepicker"
+#define BUNDLENAME_PHOTOPICKER @"com.ohos.photos"
+#define PICKER_REQUESTCODE_ERROR_OK @0
 
 namespace OHOS::AbilityRuntime::Platform {
 namespace {
 NSString * GetOCstring(const std::string& c_string)
 {
+    if (c_string.empty()) {
+        return @"";
+    }
     return [NSString stringWithCString:c_string.c_str() encoding:NSUTF8StringEncoding];
 }
 }
@@ -107,37 +113,54 @@ size_t AbilityContextAdapter::StringSplit(const std::string &str, const std::str
 
 int32_t AbilityContextAdapter::StartAbility(const std::string& instanceName, const AAFwk::Want& want)
 {
-    NSString *bundleName = GetOCstring(want.GetBundleName());
-    NSString *moduleName = GetOCstring(want.GetModuleName());
-    NSString *abilityName = GetOCstring(want.GetAbilityName());
-    NSString *jsonString = GetOCstring(want.ToJson());
+    NSString* bundleName = GetOCstring(want.GetBundleName());
+    NSString* moduleName = GetOCstring(want.GetModuleName());
+    NSString* abilityName = GetOCstring(want.GetAbilityName());
+    NSString* jsonString = GetOCstring(want.ToJson());
+    NSString* type = GetOCstring(want.GetType());
+    NSString* instanceNameStr = [NSString stringWithCString:instanceName.c_str() encoding:NSUTF8StringEncoding];
 
-    if (!bundleName.length || !moduleName.length || !abilityName.length) {
-        NSLog(@"startAbility failed, bundleName : %@, moduleName : %@, abilityName : %@",
-            bundleName, moduleName, abilityName);
-        return AAFwk::RESOLVE_ABILITY_ERR;
-    }
-
-    NSString *urlString = [NSString stringWithFormat:@"%@://%@", bundleName, moduleName];
-
-    NSURLComponents *components = [NSURLComponents componentsWithString:urlString];
-    NSMutableArray<NSURLQueryItem *> *queryItems = [[NSMutableArray alloc] init];
-    NSURLQueryItem *abilityNameItem = [NSURLQueryItem queryItemWithName:URL_QUERY_ABILITY_KEY value:abilityName];
-    [queryItems addObject:abilityNameItem];
-    if (jsonString.length) {
-        NSURLQueryItem *paramsItem = [NSURLQueryItem queryItemWithName:URL_QUERY_PARAMS_KEY value:jsonString];
-        [queryItems addObject:paramsItem];
-    }
-    components.queryItems = queryItems;
-    NSURL *appUrl = components.URL;
-
-    if ([[UIApplication sharedApplication] canOpenURL:appUrl]) {
+    NSDictionary* dicParams = [NSDictionary dictionaryWithDictionary:
+                @{@"bundleName" : bundleName,
+                @"instanceName" : instanceNameStr,
+                @"requestCode" : PICKER_REQUESTCODE_ERROR_OK,
+                @"type" : type,
+                @"wantJsonStr" : jsonString}];
+    if ([bundleName isEqualToString:BUNDLENAME_FILEPICKER] || [bundleName isEqualToString:BUNDLENAME_PHOTOPICKER]) {
         dispatch_main_async_safe(^{
-            [[UIApplication sharedApplication] openURL:appUrl options: @{} completionHandler: ^(BOOL success) {}];
+                StageViewController *stage = [StageApplication getApplicationTopViewController];
+                if (stage != nil) {
+                    [stage startAbilityForResult:dicParams isReturnValue:NO];
+                }
         });
     } else {
-        NSLog(@"startAbility failed, can't open app");
-        return AAFwk::RESOLVE_ABILITY_ERR;
+        if (bundleName.length == 0 || moduleName.length == 0 || abilityName.length == 0) {
+            NSLog(@"startAbility failed, bundleName : %@, moduleName : %@, abilityName : %@",
+                bundleName, moduleName, abilityName);
+            return AAFwk::RESOLVE_ABILITY_ERR;
+        }
+
+        NSString *urlString = [NSString stringWithFormat:@"%@://%@", bundleName, moduleName];
+
+        NSURLComponents *components = [NSURLComponents componentsWithString:urlString];
+        NSMutableArray<NSURLQueryItem *> *queryItems = [[NSMutableArray alloc] init];
+        NSURLQueryItem *abilityNameItem = [NSURLQueryItem queryItemWithName:URL_QUERY_ABILITY_KEY value:abilityName];
+        [queryItems addObject:abilityNameItem];
+        if (jsonString.length) {
+            NSURLQueryItem *paramsItem = [NSURLQueryItem queryItemWithName:URL_QUERY_PARAMS_KEY value:jsonString];
+            [queryItems addObject:paramsItem];
+        }
+        components.queryItems = queryItems;
+        NSURL *appUrl = components.URL;
+
+        if ([[UIApplication sharedApplication] canOpenURL:appUrl]) {
+            dispatch_main_async_safe(^{
+                [[UIApplication sharedApplication] openURL:appUrl options: @{} completionHandler: ^(BOOL success) {}];
+            });
+        } else {
+            NSLog(@"startAbility failed, can't open app");
+            return AAFwk::RESOLVE_ABILITY_ERR;
+        }
     }
     return ERR_OK;
 }
@@ -237,6 +260,24 @@ void AbilityContextAdapter::TerminateSelf(const std::string& instanceName)
 int32_t AbilityContextAdapter::StartAbilityForResult(
     const std::string& instanceName, const AAFwk::Want& want, int32_t requestCode)
 {
+    NSString* bundleName = GetOCstring(want.GetBundleName());
+    NSString* jsonString = GetOCstring(want.ToJson());
+    NSString* type = GetOCstring(want.GetType());
+
+    NSString* instanceNameStr = [NSString stringWithCString:instanceName.c_str() encoding:NSUTF8StringEncoding];
+    NSString* requestCodeStr = [NSString stringWithFormat:@"%ld", (long)requestCode];
+    NSDictionary* dicParams = [NSDictionary dictionaryWithDictionary:
+        @{@"bundleName" : bundleName,
+        @"instanceName" : instanceNameStr,
+        @"requestCode" : requestCodeStr,
+        @"type": type,
+        @"wantJsonStr" : jsonString}];
+
+    StageViewController *stage = [StageApplication getApplicationTopViewController];
+    if (stage == nil) {
+        return ERR_NO_INIT;
+    }
+    [stage startAbilityForResult:dicParams isReturnValue:YES];
     return ERR_OK;
 }
 
