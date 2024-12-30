@@ -96,10 +96,12 @@ template("ace_osal_ios_source_set") {
       "//commonlibrary/c_utils/base/include",
       "$flutter_root/engine/",
       "//foundation/graphic/graphic_surface/interfaces/inner_api/surface",
+      "$ace_root/adapter/ios/entrance/logIntercept",
     ]
 
     deps = [
       "$ace_root/adapter/ios/entrance:ace_ios_entrance",
+      "$ace_root/adapter/ios/entrance/logIntercept:logIntercept",
       "$ace_root/frameworks/core/components/theme:build_theme_code",
       "$app_framework_resource_path:global_resmgr",
       "$app_framework_resource_path/interfaces/js/innerkits/core:resmgr_napi_core",

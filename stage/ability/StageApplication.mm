@@ -17,7 +17,7 @@
 #import "StageAssetManager.h"
 #import "StageConfigurationManager.h"
 
-
+#import "Logger.h"
 #include <string>
 #include "app_main.h"
 #include "stage_application_info_adapter.h"
@@ -249,6 +249,20 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
         }
     }
     return topViewController;
+}
+
++ (void)setLogInterface:(id)log
+{
+    if (log == nil) {
+        NSLog(@"log is null");
+        return;
+    }
+    [[Logger sharedInstance] NativeSetLogger:log];
+}
+
++ (void)setLogLevel:(int)logLevel
+{
+    [[Logger sharedInstance] NativeSetLogLevel:logLevel];
 }
 
 - (NSString *)getTopAbility {

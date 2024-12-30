@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2022-2024 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -29,6 +29,7 @@
 #endif
 
 #import <os/log.h>
+#include "LogInterfaceBridge.h"
 
 namespace OHOS::Ace {
 namespace {
@@ -96,12 +97,21 @@ constexpr os_log_type_t LOG_TYPE[] = { OS_LOG_TYPE_DEBUG, OS_LOG_TYPE_INFO, OS_L
     
 void LogWrapper::PrintLog(LogDomain domain, LogLevel level, AceLogTag tag, const char* fmt, va_list args)
 {
+    if (LogWrapper::GetLogLevel() > level) {
+        return;
+    }
     std::string newFmt(fmt);
     StripFormatString("{public}", newFmt);
     StripFormatString("{private}", newFmt);
 
     char buf[MAX_BUFFER_SIZE];
     if (vsnprintf_s(buf, sizeof(buf), sizeof(buf) - 1, newFmt.c_str(), args) < 0 && errno == EINVAL) {
+        return;
+    }
+
+    if (HasDelegateMethod() && level >= LogLevel::ERROR) {
+        std::string logInfo(buf);
+        PassLogMessageOC(LOG_TAGS[static_cast<uint32_t>(domain)], static_cast<int>(level), logInfo);
         return;
     }
 
