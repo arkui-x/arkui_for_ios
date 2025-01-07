@@ -30,6 +30,15 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+#ifndef dispatch_main_async_safe
+#define dispatch_main_async_safe(block) \
+if (dispatch_queue_get_label(DISPATCH_CURRENT_QUEUE_LABEL) == dispatch_queue_get_label(dispatch_get_main_queue())) { \
+    block(); \
+} else { \
+    dispatch_async(dispatch_get_main_queue(), block); \
+}
+#endif
+
 @interface AcePlatformView : NSObject
 @property (nonatomic) CVPixelBufferRef textureOutput;
 - (instancetype)initWithEvents:(IAceOnResourceEvent)callback
@@ -40,7 +49,6 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)releaseObject;
 - (void)setPlatformView:(NSObject<IPlatformView>*)platformView;
 - (UIView*)getPlatformView;
-- (void*)getPixelBuffer;
 - (void)onActivityResume;
 - (void)onActivityPause;
 

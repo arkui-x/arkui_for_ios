@@ -13,17 +13,21 @@
  * limitations under the License.
  */
 
-#import "AcePlatformView.h"
-#include <sys/_types/_int32_t.h>
 #include <objc/NSObjCRuntime.h>
-#import <AVFoundation/AVFoundation.h>
-#import <UIKit/UIKit.h>
-#import <GLKit/GLKit.h>
-#include <vector>
-#import "AceTextureHolder.h"
+#include <sys/_types/_int32_t.h>
 #include "StageViewController.h"
+#include <vector>
+
+#import "AcePlatformView.h"
+#import "AceTextureHolder.h"
+#import <AVFoundation/AVFoundation.h>
+#import "render/RenderView.h"
 #import "StageApplication.h"
 #import "WindowView.h"
+
+#import <UIKit/UIKit.h>
+#import <GLKit/GLKit.h>
+#import <CoreImage/CoreImage.h>
 
 #define PLATFORMVIEW_FLAG      @"platformview@"
 #define PARAM_AND       @"#HWJS-&-#"
@@ -54,6 +58,7 @@ const static size_t QueueSize = 3;
 @property(nonatomic, assign) int64_t textureResourceId;
 @property(nonatomic, copy) IAceOnResourceEvent onEvent;
 @property (nonatomic, strong) AceTexture *renderTexture;
+@property (nonatomic, copy) IAceTextureAttachEventCallback attachCallbackHandler;
 
 @property(nonatomic, assign) CGFloat frameWidth;
 @property(nonatomic, assign) CGFloat frameHeight;
@@ -61,18 +66,18 @@ const static size_t QueueSize = 3;
 @property(nonatomic, assign) CGFloat frameLeft;
 @property(nonatomic, assign) CGFloat screenScale;
 
-@property (nonatomic) CVPixelBufferRef textureBufferRef1;
-@property (nonatomic) CVPixelBufferRef textureBufferRef2;
-@property (nonatomic) CVPixelBufferRef textureBufferRef3;
-@property (nonatomic, assign) BOOL bufferReady;
-@property (nonatomic, assign) NSInteger index;
 @end
 
 @implementation AcePlatformView
 {
-    std::vector<CVPixelBufferRef*> bufferArray_;
-    NSLock *lock_;
+    RenderView *_renderView;
+    AVPlayer *_player;
+    AVPlayerLayer *_playerLayer;
+    void *_eglContextPtr;
+    bool _initView;
+    bool _isVideo;
 }
+
 - (instancetype)initWithEvents:(IAceOnResourceEvent)callback
     id:(int64_t)id abilityInstanceId:(int32_t)abilityInstanceId
     viewdelegate:(NSObject<AcePlatformViewDelegate>*)viewdelegate
@@ -89,8 +94,9 @@ const static size_t QueueSize = 3;
         self.frameHeight = 0.00f;
         self.frameTop = 0.00f;
         self.frameLeft = 0.00f;
-        lock_ = [[NSLock alloc]init];
-
+        _initView = false;
+        _isVideo = false;
+        _renderView  = [[RenderView alloc] initWithFrame:CGRectZero];
         self.callSyncMethodMap = [[NSMutableDictionary alloc] init];
         [self initEventCallback];
     }
@@ -126,16 +132,84 @@ const static size_t QueueSize = 3;
         }
     };
     [self.callSyncMethodMap setObject:[updatelayout_callback copy] forKey:updatelayout_method_hash];
+
+    // exchangeBind callback
+    NSString *exchange_bind_method_hash = [self method_hashFormat:@"exchangeBind"];
+    IAceOnCallSyncResourceMethod exchange_bind_callback = ^NSString *(NSDictionary * param){
+        __strong __typeof(weakSelf)strongSelf = weakSelf;
+        if (strongSelf) {
+            return [strongSelf exchangeBind:param];
+        } else {
+            NSLog(@"AcePlatformView: exchangeBind fail");
+            return FAIL;
+        }
+    };
+    [self.callSyncMethodMap setObject:[exchange_bind_callback copy] forKey:exchange_bind_method_hash];
+
+    // platformViewType callback
+    NSString *platform_view_type_hash = [self method_hashFormat:@"platformViewType"];
+    IAceOnCallSyncResourceMethod platform_view_type_callback = ^NSString *(NSDictionary * param){
+        __strong __typeof(weakSelf)strongSelf = weakSelf;
+        if (strongSelf) {
+            return [strongSelf platformViewType:param];
+        } else {
+            NSLog(@"AcePlatformView: platformViewType fail");
+            return FAIL;
+        }
+    };
+    [self.callSyncMethodMap setObject:[platform_view_type_callback copy] forKey:platform_view_type_hash];
 }
 
 - (void)setPlatformView:(NSObject<IPlatformView>*)platformView
 {
     self.curPlatformView = platformView;
+    NSObject<IPlatformView>* embeddedView = self.curPlatformView;
+    if (!embeddedView) {
+        NSLog(@"AcePlatformView: setPlatformView failed: platformView is null");
+        return ;
+    }
+    UIView* pv = [embeddedView view];
+    [pv.layer.sublayers enumerateObjectsUsingBlock:^(__kindof CALayer * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+        if ([obj isKindOfClass:[AVPlayerLayer class]]) {
+            AVPlayerLayer *pLayer = ((AVPlayerLayer *)obj);
+            _isVideo = true;
+            _playerLayer = pLayer;
+            _player = pLayer.player;
+        } else {
+            *stop = YES;
+        }
+    }];
 }
 
 - (NSDictionary<NSString *, IAceOnCallSyncResourceMethod> *)getSyncCallMethod
 {
     return self.callSyncMethodMap;
+}
+
+- (NSString *)exchangeBind:(NSDictionary *)params
+{
+    if (_renderView != nullptr) {
+        [_renderView exchangeBind];
+    }
+    return SUCCESS;
+}
+
+- (NSString *)platformViewType:(NSDictionary *)params
+{
+    NSDictionary * param = @{@"type": [NSString stringWithFormat:@"%d", _isVideo]};
+    return [self convertMapToString:param];
+}
+
+- (NSString *)convertMapToString:(NSDictionary *)data
+{
+    NSArray *pairs = [data.allKeys sortedArrayUsingSelector:@selector(compare:)];
+    NSMutableString *string = [[NSMutableString alloc] init];
+    for (NSString *key in pairs) {
+        id value = data[key];
+        [string appendFormat:@"%@=%@;", key, value];
+    }
+    [string deleteCharactersInRange:NSMakeRange(string.length - 1, 1)];
+    return string;
 }
 
 - (NSString *)registerPlatformView:(NSDictionary *)params
@@ -146,10 +220,10 @@ const static size_t QueueSize = 3;
     }
     [self initPlatformView];
     self.textureResourceId = [params[KEY_TEXTUREID] longLongValue];
-    // register PixelBuffer to rosen 
-    [self.delegate registerBufferWithInstanceId:self.instanceId textureId: self.textureResourceId
-        texturePixelBuffer:(void*)[self getPixelBuffer]];
-
+    if (!_isVideo) {
+        [self.delegate registerContextPtrWithInstanceId:self.instanceId textureId: self.textureResourceId
+            contextPtr: (void*)&_eglContextPtr];
+    }
     NSObject<IPlatformView>* embeddedView = self.curPlatformView;
     if (!embeddedView) {
         NSLog(@"AcePlatformView: registerPlatformView failed: platformView is null");
@@ -157,16 +231,43 @@ const static size_t QueueSize = 3;
     }
 
     UIView* platformView = [embeddedView view];
-    
-    [self initWithEmbeddedView:platformView];
-    
     if (!self.renderTexture) {
         AceTexture *newTexture = (AceTexture*)[AceTextureHolder getTextureWithId:self.textureResourceId
             inceId:self.instanceId];
         self.renderTexture = newTexture;
     }
-    [self platformViewReady];
+
+    if (_isVideo && _player) {
+        [_player.currentItem addOutput:self.renderTexture.videoOutput];
+        [self initWithEmbeddedView:platformView];
+        [self initRenderTexture];
+    } else {
+        __weak __typeof(&*self) weakSelf = self;
+        self.attachCallbackHandler = ^(int32_t textureName){
+            if (weakSelf) {
+                [weakSelf textureAttach];
+            }
+        };
+        [self.renderTexture addAttachEventCallback:self.attachCallbackHandler];
+        [self initRenderTexture];
+    }
+
     return SUCCESS;
+}
+
+- (void)textureAttach
+{
+    dispatch_main_async_safe(^{
+        NSObject<IPlatformView>* embeddedView = self.curPlatformView;
+        if (!embeddedView) {
+            NSLog(@"AcePlatformView: registerPlatformView failed: platformView is null");
+            return;
+        }
+        UIView* platformView = [embeddedView view];
+        [self initWithEmbeddedView:platformView];
+        [self platformViewReady];
+        _initView = true;
+    });
 }
 
 - (void)platformViewReady
@@ -203,7 +304,6 @@ const static size_t QueueSize = 3;
             self.frameHeight = height;
             self.frameTop = top;
             self.frameLeft = left;
-            [self initPixelBuffer];
         }
 
         CGRect tempFrame = platformView.frame;
@@ -212,8 +312,12 @@ const static size_t QueueSize = 3;
         tempFrame.origin.y = self.frameTop / self.screenScale;
         tempFrame.size.height = self.frameHeight / self.screenScale;
         tempFrame.size.width = self.frameWidth / self.screenScale;
-
-        platformView.frame = tempFrame;
+        if (!_isVideo && _renderView) {
+            _renderView.frame = tempFrame;
+            platformView.frame = _renderView.bounds;
+        } else {
+            platformView.frame = tempFrame;
+        }
     } @catch (NSException *exception) {
         NSLog(@"AcePlatformView: IOException, updatelayout failed");
         return FAIL;
@@ -230,143 +334,49 @@ const static size_t QueueSize = 3;
     return NO;
 }
 
-- (void)initPixelBuffer
-{
-    [lock_ lock];
-    NSDictionary *options = @{(NSString*)kCVPixelBufferCGImageCompatibilityKey : @YES,
-                              (NSString*)kCVPixelBufferCGBitmapContextCompatibilityKey : @YES,
-                              (NSString*)kCVPixelBufferIOSurfacePropertiesKey: [NSDictionary dictionary]};
-    if (self->_textureBufferRef1) {
-        CFRelease(self->_textureBufferRef1);
-        self->_textureBufferRef1 = nullptr;
-    }
-    CVReturn status = CVPixelBufferCreate(kCFAllocatorDefault,
-                                          self.frameWidth,
-                                          self.frameHeight,
-                                          kCVPixelFormatType_32BGRA,
-                                          (__bridge CFDictionaryRef) options,
-                                          &self->_textureBufferRef1);
-    if (status != kCVReturnSuccess || self.textureBufferRef1 == nil) {
-        self.bufferReady = NO;
-        self.textureOutput = nullptr;
-        NSLog(@"AcePlatformView: initPixelBuffer failed");
-        return;
-    }
-    if (self->_textureBufferRef2) {
-        CFRelease(self->_textureBufferRef2);
-        self->_textureBufferRef2 = nullptr;
-    }
-    status = CVPixelBufferCreate(kCFAllocatorDefault,
-                                self.frameWidth,
-                                self.frameHeight,
-                                kCVPixelFormatType_32BGRA,
-                                (__bridge CFDictionaryRef) options,
-                                &self->_textureBufferRef2);
-    if (status != kCVReturnSuccess || self.textureBufferRef2 == nil) {
-        self.bufferReady = NO;
-        self.textureOutput = nullptr;
-        NSLog(@"AcePlatformView: initPixelBuffer failed");
-        return;
-    }
-    if (self->_textureBufferRef3) {
-        CFRelease(self->_textureBufferRef3);
-        self->_textureBufferRef3 = nullptr;
-    }
-    status = CVPixelBufferCreate(kCFAllocatorDefault,
-                                self.frameWidth,
-                                self.frameHeight,
-                                kCVPixelFormatType_32BGRA,
-                                (__bridge CFDictionaryRef) options,
-                                &self->_textureBufferRef3);
-    if (status != kCVReturnSuccess || self.textureBufferRef3 == nil) {
-        self.bufferReady = NO;
-        self.textureOutput = nullptr;
-        NSLog(@"AcePlatformView: initPixelBuffer failed");
-        return;
-    }
-    if (self.bufferReady != true) {
-        bufferArray_.emplace_back(&self->_textureBufferRef1);
-        bufferArray_.emplace_back(&self->_textureBufferRef2);
-        bufferArray_.emplace_back(&self->_textureBufferRef3);
-        self.bufferReady = true;
-    }
-  self.textureOutput = nullptr;
-  [lock_ unlock];
-}
-
-- (CVPixelBufferRef _Nullable)copyPixelBuffer
-{
-    if (!self.bufferReady) {
-        return nullptr;
-    }
-    NSObject<IPlatformView>* embeddedView = self.curPlatformView;
-    if (!embeddedView) {
-        NSLog(@"AcePlatformView: register failed: platformView is null");
-        return nil;
-    }
-
-    UIView* platformView = [embeddedView view];
-    [lock_ lock];
-    CVPixelBufferRef outputRef = *bufferArray_[self.index];
-    if (!outputRef) {
-        NSLog(@"AcePlatformView: textureOutput is null.");
-        [lock_ unlock];
-        return nullptr;
-    }
-    self.index  = (self.index + 1) % QueueSize;
-    CFRetain(outputRef);
-    CVPixelBufferLockBaseAddress(outputRef, 0);
-    void *pxdata = CVPixelBufferGetBaseAddress(outputRef);
-    
-    if(pxdata != nil){
-        CGColorSpaceRef rgbColorSpace = CGColorSpaceCreateDeviceRGB();
-        NSUInteger bytesPerRow = CVPixelBufferGetBytesPerRow(outputRef);
-        CGContextRef context = CGBitmapContextCreate(pxdata, self.frameWidth, self.frameHeight, 8, 
-                            bytesPerRow, rgbColorSpace, kCGBitmapByteOrder32Little | kCGImageAlphaPremultipliedFirst);
-
-        if(context){
-            CGContextConcatCTM(context, CGAffineTransformMakeRotation(0));
-            CGAffineTransform flipVertical = CGAffineTransformMake( 1, 0, 0, -1, 0, self.frameHeight);
-            CGContextConcatCTM(context, flipVertical);
-            CGContextScaleCTM(context, [UIScreen mainScreen].scale, [UIScreen mainScreen].scale);
-            UIGraphicsPushContext(context); 
-            [platformView.layer renderInContext:context];
-            UIGraphicsPopContext();
-
-            CGColorSpaceRelease(rgbColorSpace);
-            CGContextRelease(context);
-        }
-    }
-    CVPixelBufferUnlockBaseAddress(outputRef, 0);
-    CFRelease(outputRef);
-    self.textureOutput = outputRef;
-    [lock_ unlock];
-    return self.textureOutput;
-}
-
 - (CADisplayLink *)displayLink
 {
     if (!_displayLink) {
         _displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(displayLinkDidrefresh)];
-        // auto preferredFPS = _displayLink.preferredFramesPerSecond;
         auto mainMaxFrameRate = [UIScreen mainScreen].maximumFramesPerSecond;
-        double maxFrameRate = fmin(mainMaxFrameRate / 2, 30);
-        double minFrameRate = fmin(mainMaxFrameRate / 2, 10);
+        double maxFrameRate = fmin(mainMaxFrameRate, 60);
+        double minFrameRate = fmin(mainMaxFrameRate / 2, maxFrameRate);
         if(@available(iOS 15.0,*)){
-            _displayLink.preferredFrameRateRange = CAFrameRateRangeMake(minFrameRate,maxFrameRate,maxFrameRate);
+            _displayLink.preferredFrameRateRange = CAFrameRateRangeMake(minFrameRate, maxFrameRate, maxFrameRate);
         } else{
-            _displayLink.preferredFramesPerSecond = 30;
+            _displayLink.preferredFramesPerSecond = 60;
         }
-        
     }
     return _displayLink;
 }
 
 - (void)displayLinkDidrefresh
 {
-    [self copyPixelBuffer];
-    if (self.displayLink) {
-        [self refreshPixelBuffer];
+    if (_isVideo) {
+        if (self.displayLink) {
+            [self refreshPixelBuffer];
+        }
+        return;
+    }
+
+    NSObject<IPlatformView>* embeddedView = self.curPlatformView;
+    if (!embeddedView) {
+        NSLog(@"AcePlatformView: register failed: platformView is null");
+        return;
+    }
+    UIView* platformView = [embeddedView view];
+    if (_initView && _renderView != nullptr) {
+        [_renderView startRender:platformView];
+        if (self.displayLink) {
+            [self refreshPixelBuffer];
+        }
+    }
+}
+
+- (void)initRenderTexture
+{
+    if (self.renderTexture) {
+        [self.renderTexture refreshPixelBuffer];
     }
 }
 
@@ -375,11 +385,6 @@ const static size_t QueueSize = 3;
     if (self.renderTexture) {
         [self.renderTexture refreshPixelBuffer];
     }
-}
-
-- (void*)getPixelBuffer
-{
-    return &self->_textureOutput;
 }
 
 - (NSString *)method_hashFormat:(NSString *)method
@@ -399,12 +404,9 @@ const static size_t QueueSize = 3;
 
 - (void)releaseObject
 {
-    NSLog(@"AcePlatformView releaseObject");
-    if (self.textureOutput) {
-        self.textureOutput = nil;
-    }
     if (self.displayLink) {
         [self.displayLink invalidate];
+        self.displayLink = nil;
     }
 
     self.onEvent = nil;
@@ -418,18 +420,34 @@ const static size_t QueueSize = 3;
         self.callSyncMethodMap = nil;
     }
 
+    self.attachCallbackHandler = nil;
     NSObject<IPlatformView>* embeddedView = self.curPlatformView;
     if (!embeddedView) {
         NSLog(@"AcePlatformView: releaseObject failed: platformView is null");
         return;
     }
+
     [[embeddedView view] removeFromSuperview];
     [embeddedView onDispose];
+
+    [_renderView removeFromSuperview];
+    _renderView = nil;
+
+    if (self.renderTexture) {
+        self.renderTexture = nil;
+    }
+
+    if (_player != nil) {
+        _player = nil;
+    }
+
+    if (_playerLayer != nil) {
+        _playerLayer = nil;
+    }
 }
 
 - (void)dealloc
 {
-    NSLog(@"AcePlatformView->%@ dealloc", self);
 }
 
 - (void)onActivityResume
@@ -458,11 +476,25 @@ const static size_t QueueSize = 3;
 }
 
 - (void)initWithEmbeddedView:(UIView*)embeddedView {
-    StageViewController* controller = [StageApplication getApplicationTopViewController];
-    embeddedView.autoresizingMask = (UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight);
-    [controller.view addSubview: embeddedView];
-    WindowView *windowView = (WindowView *) [self findWindowViewInView: controller.view];
-    [controller.view bringSubviewToFront:windowView];
+    if (_isVideo) {
+        StageViewController* controller = [StageApplication getApplicationTopViewController];
+        embeddedView.autoresizingMask = (UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight);
+
+        WindowView *windowView = (WindowView *) [self findWindowViewInView: controller.view];
+        [controller.view insertSubview:embeddedView belowSubview:windowView];
+        return;
+    }
+    if (_renderView) {
+        [_renderView setEAGLContext: (__bridge EAGLContext*)_eglContextPtr];
+        [_renderView init];
+        [_renderView addSubview: embeddedView];
+
+        StageViewController* controller = [StageApplication getApplicationTopViewController];
+        embeddedView.autoresizingMask = (UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight);
+
+        WindowView *windowView = (WindowView *) [self findWindowViewInView: controller.view];
+        [controller.view insertSubview:_renderView belowSubview:windowView];
+    }
 }
 
 @end

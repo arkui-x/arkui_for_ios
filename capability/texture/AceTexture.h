@@ -22,6 +22,8 @@
 #import "IAceOnCallResourceMethod.h"
 #import "IAceOnResourceEvent.h"
 
+typedef void (^IAceTextureAttachEventCallback)(int32_t textureName);
+
 NS_ASSUME_NONNULL_BEGIN
 
 @interface AceTexture : NSObject
@@ -31,6 +33,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (NSDictionary<NSString*, IAceOnCallSyncResourceMethod>*)getCallMethod;
 - (void)refreshPixelBuffer;
 - (void)releaseObject;
+- (void)addAttachEventCallback:(IAceTextureAttachEventCallback)callback;
+
 @end
 
 NS_ASSUME_NONNULL_END

@@ -31,8 +31,10 @@
 
 @interface AceTexture()
 @property(nonatomic, assign) int64_t textureId;
+@property(nonatomic, assign) int32_t textureName;
 @property(nonatomic, assign) int32_t instanceId;
 @property(nonatomic, copy) IAceOnResourceEvent onEvent;
+@property(nonatomic, copy) IAceTextureAttachEventCallback attachEventCallback;
 @property (nonatomic, strong) NSMutableDictionary<NSString*, IAceOnCallSyncResourceMethod>* callMethodMap;
 @end
 
@@ -44,6 +46,8 @@
         self.onEvent = callback;
         self.textureId = textureId;
         self.instanceId = abilityInstanceId;
+        self.textureName = -1;
+        self.callMethodMap = [NSMutableDictionary dictionary];
 
         __weak AceTexture* weakSelf = self;
         IAceOnCallSyncResourceMethod callSetTextureSize = ^NSString*(NSDictionary* param) {
@@ -55,6 +59,17 @@
             }
         };
         [self.callMethodMap setObject:[callSetTextureSize copy] forKey:[self method_hashFormat:@"setTextureBounds"]];
+
+        IAceOnCallSyncResourceMethod callAttachToGLContext = ^NSString*(NSDictionary* param) {
+            if (weakSelf) {
+                return [weakSelf attachToGLContext:param];
+            } else {
+                 NSLog(@"AceSurfaceView: attachToGLContext fail");
+                 return FAIL;
+            }
+        };
+        NSString *methodString = [self method_hashFormat:@"attachToGLContext"];
+        [self.callMethodMap setObject:[callAttachToGLContext copy] forKey:methodString];
     }
     return self;
 }
@@ -67,6 +82,24 @@
 - (void)refreshPixelBuffer
 {
     [self markTextureAvailable];
+}
+
+- (void)addAttachEventCallback:(IAceTextureAttachEventCallback)callback
+{
+    self.attachEventCallback = callback;
+}
+
+- (NSString*)attachToGLContext:(NSDictionary*)params
+{
+    if (!params) {
+        NSLog(@"AceTexture: attachToGLContext failed: params is null");
+        return FAIL;
+    }
+    self.textureName = [params[@"textureId"] longLongValue];
+    if (self.attachEventCallback) {
+        self.attachEventCallback(self.textureName);
+    }
+    return SUCCESS;
 }
 
 - (void)releaseObject
