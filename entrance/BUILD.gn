@@ -67,7 +67,7 @@ template("ace_ios_standard_source_set") {
       "html/span_to_html.cpp",
       "interaction/interaction_impl.cpp",
       "mmi_event_convertor.mm",
-      "timepicker/timepicker_haptic_factory.cpp",
+      "picker/picker_haptic_factory.cpp",
       "touch_event.cpp",
       "touch_event_convertor.cpp",
       "udmf/udmf_impl.cpp",
