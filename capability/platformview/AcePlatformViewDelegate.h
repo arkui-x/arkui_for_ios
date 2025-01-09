@@ -23,6 +23,8 @@
     texturePixelBuffer:(void*)texturePixelBuffer;
 - (void)unregisterBufferWithInstanceId:(int32_t)instanceId textureId:(int64_t)textureId;
 
+- (void)registerContextPtrWithInstanceId:(int32_t)instanceId textureId:(int64_t)textureId
+    contextPtr:(void*)contextPtr;
 @end
 
 #endif // FOUNDATION_ADAPTER_CAPABILITY_PLATFORMVIEW_ACEPLATFORMVIEWDELEGATE_H

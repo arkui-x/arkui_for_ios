@@ -130,6 +130,8 @@ template("ace_capability_ios_source_set") {
       # platformview
       "$ace_root/adapter/ios/capability/platformview/AcePlatformView.mm",
       "$ace_root/adapter/ios/capability/platformview/AcePlatformViewPlugin.mm",
+      "$ace_root/adapter/ios/capability/platformview/render/RenderProgram.mm",
+      "$ace_root/adapter/ios/capability/platformview/render/RenderView.mm",
 
       # bridge
       "$ace_root/adapter/ios/capability/bridge/BridgeManagerHolder.mm",
