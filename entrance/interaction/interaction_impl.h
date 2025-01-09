@@ -80,8 +80,6 @@ public:
 
     int32_t UpdatePointAction(const std::shared_ptr<MMI::PointerEvent>& pointerEvent);
 
-    std::shared_ptr<OHOS::Rosen::Window> GetDragWindow();
-
     int32_t GetPointerId()
     {
         if (!surfaceNodeListener_) {
@@ -91,6 +89,8 @@ public:
     }
 private:
     OHOS::sptr<SurfaceNodeListener> surfaceNodeListener_;
+    void RegisterDragWindow();
+    std::shared_ptr<OHOS::Rosen::Window> GetDragWindow();
 };
 
 } // namespace OHOS::Ace
