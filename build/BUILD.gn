@@ -39,6 +39,7 @@ ohos_combine_darwin_framework("libarkui_ios") {
     "$ace_root/adapter/ios/stage/ability/StageApplication.h",
     "$ace_root/adapter/ios/entrance/plugin_lifecycle/IArkUIXPlugin.h",
     "$ace_root/adapter/ios/entrance/plugin_lifecycle/PluginContext.h",
+    "$ace_root/adapter/ios/entrance/logIntercept/ILogger.h",
   ]
 
   subsystem_name = "arkui"

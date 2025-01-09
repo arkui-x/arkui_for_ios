@@ -39,6 +39,7 @@ template("stage_ios_standard_source_set") {
       "$ace_root",
       "//foundation/arkui/ace_engine/adapter/ios/entrance/plugin_lifecycle",
       "$ace_root/adapter/ios/capability/platformview",
+      "//foundation/arkui/ace_engine/adapter/ios/entrance/logIntercept",
     ]
 
     if (target_cpu == "arm64") {
@@ -73,6 +74,7 @@ template("stage_ios_standard_source_set") {
     deps = [
       "//foundation/appframework/ability/ability_runtime/cross_platform/interfaces/kits/native/appkit:cross_platform_appkit_native",
       "//foundation/arkui/ace_engine/adapter/ios/entrance:ace_ios_entrance",
+      "//foundation/arkui/ace_engine/adapter/ios/entrance/logIntercept:logIntercept",
       "//foundation/arkui/ace_engine/adapter/ios/entrance/plugin_lifecycle:plugin_lifecycle",
     ]
 
