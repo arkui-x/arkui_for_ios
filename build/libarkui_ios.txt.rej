@@ -1,0 +1,15 @@
+diff a/build/libarkui_ios.txt b/build/libarkui_ios.txt	(rejected hunks)
+@@ -993,4 +993,11 @@ __ZNK4OHOS3Ace8Recorder13EventRecorder23IsComponentRecordEnableEv
+ __ZTTN4OHOS3Ace2NG21AccessibilityPropertyE
+ __ZTVN4OHOS3Ace2NG21AccessibilityPropertyE
+ __ZTTN4OHOS3Ace2NG8EventHubE
+-__ZTVN4OHOS3Ace2NG8EventHubE
+\ No newline at end of file
++__ZTVN4OHOS3Ace2NG8EventHubE
++__ZN12SkColorSpace7MakeRGBERK22skcms_TransferFunctionRK15skcms_Matrix3x3
++__ZN4OHOS5Media8PixelMap6CreateERS1_RKNS0_21InitializationOptionsE
++__ZNK12SkColorSpace10transferFnEPf
++__ZNK12SkColorSpace8toXYZD50EP15skcms_Matrix3x3
++__ZN4OHOS5Media8PixelMap6CreateERKNS0_21InitializationOptionsE
++__Z19napi_wrap_with_sizeP10napi_env__P12napi_value__PvPFvS0_S3_S3_ES3_PP10napi_ref__m
++__ZN4OHOS5Media12PixelMapNapi11GetPixelMapEv
