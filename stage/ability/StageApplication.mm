@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2023-2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -35,6 +35,7 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
     NSLog(@"%s", __FUNCTION__);
     [self setPidAndUid];
     [self setLocale];
+    [self setupNotificationCenterObservers];
     [[StageAssetManager assetManager] launchAbility];
     [[StageConfigurationManager configurationManager] registConfiguration];
     [self startAbilityDelegator];
@@ -83,6 +84,28 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
     } @finally {
         NSLog(@"%s, failed . arguments is %@", __FUNCTION__, arguments);
     }
+}
+
++ (void)setupNotificationCenterObservers {
+    NSNotificationCenter* center = [NSNotificationCenter defaultCenter];
+
+    [center addObserver:self
+               selector:@selector(DispatchApplicationOnBackground:)
+                   name:UIApplicationDidEnterBackgroundNotification
+                 object:nil];
+
+    [center addObserver:self
+               selector:@selector(DispatchApplicationOnForeground:)
+                   name:UIApplicationWillEnterForegroundNotification
+                 object:nil];
+}
+
++ (void)DispatchApplicationOnForeground:(NSNotification *)notification {
+    AppMain::GetInstance()->NotifyApplicationForeground();
+}
+
++ (void)DispatchApplicationOnBackground:(NSNotification *)notification {
+    AppMain::GetInstance()->NotifyApplicationBackground();
 }
 
 + (void)setPidAndUid {
