@@ -93,8 +93,8 @@ typedef enum {
 
 - (CGRect)getVisibleScreenRect
 {
-    CGRect visibleScreenRect = CGRectMake(0, [self getStatusBarAndNavigationBarHeight], self.bounds.size.width,
-        self.bounds.size.height - [self getStatusBarAndNavigationBarHeight]);
+    CGRect visibleScreenRect =
+        CGRectMake(0, [self getStatusBarAndNavigationBarHeight], self.bounds.size.width, self.bounds.size.height);
     return visibleScreenRect;
 }
 
@@ -106,10 +106,10 @@ typedef enum {
     if (object == nil) {
         return ACCESSIBILITY_SCROLL_UNKNOWN;
     }
-    if (CGRectGetMaxY(object.accessibilityFrame) < CGRectGetMinY(self.frame)) {
+    if (CGRectGetMidY(object.accessibilityFrame) < CGRectGetMinY(visibleScreenRect)) {
         return ACCESSIBILITY_SCROLL_UP;
     }
-    if (CGRectGetMinY(object.accessibilityFrame) > CGRectGetMaxY(self.frame)) {
+    if (CGRectGetMidY(object.accessibilityFrame) > CGRectGetMaxY(visibleScreenRect)) {
         return ACCESSIBILITY_SCROLL_DOWN;
     }
     return ACCESSIBILITY_SCROLL_DEFAULT;
@@ -172,7 +172,7 @@ typedef enum {
     if ([node.componentType isEqualToString:COMPONENTTYPE_ROOT]) {
         return NO;
     }
-    if (!node.enabled || !node.visible || !node.nodeLable) {
+    if (!node.enabled || !node.visible) {
         return NO;
     }
     NSString* strElementId = [NSString stringWithFormat:@"%lld", node.parentId];
@@ -185,7 +185,7 @@ typedef enum {
     if (node.nodeWidth <= 0 || node.nodeHeight <= 0) {
         return NO;
     }
-    if (node.isClickable || node.isLongClickable || node.nodeLable.length > 0) {
+    if (node.isClickable || node.isLongClickable || node.nodeLable.length > 0 || node.descriptionInfo.length > 0) {
         return YES;
     }
     return NO;
@@ -276,7 +276,7 @@ typedef enum {
         if (object != nil && [self IsViewOffscreenTopOrBottom:object.elementId] == ACCESSIBILITY_SCROLL_DEFAULT &&
             object.isAccessibility) {
             if (defaultObject == nil ||
-                CGRectGetMinY(object.accessibilityFrame) < CGRectGetMinY(defaultObject.accessibilityFrame)) {
+                CGRectGetMidY(object.accessibilityFrame) < CGRectGetMinY(defaultObject.accessibilityFrame)) {
                 defaultObject = object;
             }
         }

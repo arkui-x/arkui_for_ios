@@ -1123,7 +1123,7 @@ void ConvertExtensionAccessibilityId(AccessibilityElementInfo& info, const RefPt
         info.RemoveChild(child);
         info.AddChild(extensionNode->WrapExtensionAbilityId(uiExtensionOffset, child));
     }
-    if (V2::ROOT_ETS_TAG == info.GetComponentType()) {
+    if (info.GetComponentType() == V2::ROOT_ETS_TAG) {
         for (auto& child : info.GetChildIds()) {
             parentInfo.AddChild(child);
         }
@@ -2042,6 +2042,10 @@ void AccessibilityManagerImpl::UpdateAccessibilityElementInfo(
     SetAccessibilityFocusAction(nodeInfo, "ace");
     if (nodeInfo.IsEnabled()) {
         UpdateSupportAction(node, nodeInfo);
+        nodeInfo.SetCheckable(accessibilityProperty->IsCheckable());
+        nodeInfo.SetScrollable(accessibilityProperty->IsScrollable());
+        nodeInfo.SetEditable(accessibilityProperty->IsEditable());
+        nodeInfo.SetDeletable(accessibilityProperty->IsDeletable());
         accessibilityProperty->ResetSupportAction();
         auto supportAceActions = accessibilityProperty->GetSupportAction();
         for (auto it = supportAceActions.begin(); it != supportAceActions.end(); ++it) {

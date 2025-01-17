@@ -96,7 +96,6 @@ AccessibilityNodeInfo* SetAccessibilityNodeInfo(
         [childIdArray addObject:[NSString stringWithFormat:@"%lld", childId]];
     }
     const CGFloat scale = [UIScreen mainScreen].scale;
-    int32_t actionType = GetAccessibilityElementActionTypes(info);
 
     aiModel.nodeLable = text;
     aiModel.componentType = componentType;
@@ -109,7 +108,7 @@ AccessibilityNodeInfo* SetAccessibilityNodeInfo(
     aiModel.pageId = info.GetPageId();
     aiModel.childIds = childIdArray;
     aiModel.elementId = info.GetAccessibilityId();
-    aiModel.actionType = actionType;
+    aiModel.actionType = GetAccessibilityElementActionTypes(info);
     return aiModel;
 }
 
