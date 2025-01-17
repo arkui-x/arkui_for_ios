@@ -66,7 +66,7 @@
 #define NTC_RICHTEXT_LOADDATA             @"loadData"
 
 typedef void (^PostMessageResultMethod)(NSString* ocResult);
-@interface AceWeb()<WKScriptMessageHandler, WKUIDelegate, WKNavigationDelegate, UIScrollViewDelegate>
+@interface AceWeb()<WKScriptMessageHandler, WKUIDelegate, WKNavigationDelegate, UIScrollViewDelegate, WKHTTPCookieStoreObserver>
 /**webView*/
 @property (nonatomic, assign) WKWebView *webView;
 @property (nonatomic, assign) int64_t incId;
@@ -87,6 +87,7 @@ typedef void (^PostMessageResultMethod)(NSString* ocResult);
 @property (nonatomic, strong) PostMessageResultMethod messageCallBack;
 
 @property (nonatomic, strong) NSMutableDictionary<NSString *, IAceOnCallSyncResourceMethod> *callSyncMethodMap;
+@property (nonatomic, assign) bool allowIncognitoMode;
 @end
 
 @implementation AceWeb
@@ -95,10 +96,21 @@ typedef void (^PostMessageResultMethod)(NSString* ocResult);
              onEvent:(IAceOnResourceEvent)callback
    abilityInstanceId:(int32_t)abilityInstanceId;
 {
+    return [self init:incId incognitoMode:false target:target onEvent:callback
+    abilityInstanceId:abilityInstanceId];
+}
+
+- (instancetype)init:(int64_t)incId
+              incognitoMode:(bool)incognitoMode
+              target:(UIViewController*)target
+             onEvent:(IAceOnResourceEvent)callback
+   abilityInstanceId:(int32_t)abilityInstanceId
+{
     self.onEvent = callback;
     self.incId = incId;
     self.target = target;
     self.javascriptAccessSwitch = YES;
+    self.allowIncognitoMode = incognitoMode;
     self.allowZoom = true;
     self.oldScale = 100.0f;
     self.httpErrorCode = 400;
@@ -124,12 +136,34 @@ typedef void (^PostMessageResultMethod)(NSString* ocResult);
 
     config.preferences = preference;
     config.userContentController = userContentController;
+    [self incognitoModeWithConfig:config];
     self.webView = [[WKWebView alloc] initWithFrame:CGRectZero configuration:config];
     self.webView.UIDelegate = self;
     self.webView.navigationDelegate = self;
     self.webView.scrollView.delegate = self;
     [self.webView addObserver:self forKeyPath:ESTIMATEDPROGRESS options:NSKeyValueObservingOptionNew context:nil];
     [self.webView addObserver:self forKeyPath:TITLE options:NSKeyValueObservingOptionNew context:nil];
+}
+
+- (void)incognitoModeWithConfig:(WKWebViewConfiguration*) config
+{
+    if (self.allowIncognitoMode) {
+        WKWebsiteDataStore *defaultDataStore = [WKWebsiteDataStore defaultDataStore];
+        NSArray *dataTypes = @[WKWebsiteDataTypeCookies];
+        [defaultDataStore removeDataOfTypes:[NSSet setWithArray:dataTypes] modifiedSince:[NSDate dateWithTimeIntervalSince1970:0] completionHandler:^{
+        }];
+        config.processPool = [[WKProcessPool alloc] init];
+        WKWebsiteDataStore *nonPersistentDataStore = [WKWebsiteDataStore nonPersistentDataStore];
+        [config setWebsiteDataStore:nonPersistentDataStore];
+    } else {
+        WKWebsiteDataStore *defaultDataStore = [WKWebsiteDataStore defaultDataStore];
+        config.websiteDataStore = defaultDataStore;
+    }
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
+    if (@available(iOS 11.0, *)) {
+        [config.websiteDataStore.httpCookieStore addObserver:self];
+    }
+#endif
 }
 
 -(WKWebView*)getWeb {
@@ -1189,6 +1223,19 @@ typedef void (^PostMessageResultMethod)(NSString* ocResult);
                                                                              std::string([error.description UTF8String]), error.code);
         AceWebObject([[self event_hashFormat:@"onErrorReceive"] UTF8String], [@"onErrorReceive" UTF8String], obj);
     }
+}
+
+- (void)cookiesDidChangeInCookieStore:(WKHTTPCookieStore *)cookieStore
+{
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 110000
+    if (@available(iOS 11.0, *)) {
+        [cookieStore getAllCookies:^(NSArray* cookies) {
+            for (NSHTTPCookie *cookie in cookies) {
+                [[NSHTTPCookieStorage sharedHTTPCookieStorage] setCookie:cookie];
+            }
+        }];
+    }
+#endif
 }
 
 @end
