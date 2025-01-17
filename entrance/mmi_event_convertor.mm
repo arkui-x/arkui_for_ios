@@ -237,6 +237,26 @@ static int32_t SourceTypeFromToolType(AcePointerData::ToolType tool_type) {
     return OHOS::MMI::PointerEvent::TOOL_TYPE_FINGER;
 }
 
+void SetPointerItemPressed(AcePointerData::PointerAction pointerAction, MMI::PointerEvent::PointerItem& pointerItem)
+{
+    switch (pointerAction) {
+        case AcePointerData::PointerAction::kCanceled:
+        case AcePointerData::PointerAction::kUped:
+            pointerItem.SetPressed(false);
+            break;
+        case AcePointerData::PointerAction::kAdded:
+        case AcePointerData::PointerAction::kRemoved:
+        case AcePointerData::PointerAction::kHovered:
+        case AcePointerData::PointerAction::kDowned:
+        case AcePointerData::PointerAction::kMoved:
+            pointerItem.SetPressed(true);
+            break;
+        default:
+            pointerItem.SetPressed(false);
+            break;
+    }
+}
+
 void ConvertTouchEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent, std::vector<TouchEvent>& events)
 {
     auto ids = pointerEvent->GetPointerIds();
@@ -386,6 +406,7 @@ void ConvertMmiPointerEvent(
         pointerItem.SetPressure(current->pressure);
         pointerItem.SetTiltY(current->tilt);
         pointerItem.SetToolType(static_cast<int32_t>(SourceTypeFromToolType(current->tool_type)));
+        SetPointerItemPressed(actionType, pointerItem);
         actionPointMap[current->pointer_id] = current->actionPoint;
         current++;
         items.emplace_back(pointerItem);

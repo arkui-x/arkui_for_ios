@@ -47,7 +47,9 @@
     BOOL _needNotifySurfaceChangedWithWidth;
     BOOL _needCreateSurfaceNode;
     std::map<int64_t, int32_t> _deviceMap;
+    std::map<int64_t, int32_t> _pointerMap;
     int32_t _deviceId;
+    int32_t _pointerId;
     BOOL _firstTouchFlag;
     std::vector<CGRect> hotAreas_;
 }
@@ -74,7 +76,9 @@
         [self setupNotificationCenterObservers];
         self.backgroundColor = [UIColor clearColor];
         _deviceMap = std::map<int64_t, int32_t>{};
+        _pointerMap = std::map<int64_t, int32_t>{};
         _deviceId = 0;
+        _pointerId = 0;
     }
     return self;
 }
@@ -361,6 +365,32 @@ static OHOS::Ace::Platform::AcePointerData::ToolType DeviceKindFromTouchType(UIT
     return deviceId;
 }
 
+- (int32_t)getTouchPointer:(UITouch *)touch {
+    UITouchPhase phase = touch.phase;
+    int64_t pointer = reinterpret_cast<int64_t>(touch);
+
+    int32_t pointerId;
+    auto iter = _pointerMap.find(pointer);
+    if (iter == _pointerMap.end()) {
+        if (phase == UIPressPhaseBegan) {
+            _pointerMap[pointer] = _pointerId;
+            pointerId = _pointerId;
+            _pointerId++;
+        } else {
+            return -1;
+        }
+    } else {
+        pointerId = _pointerMap[pointer];
+        if (phase == UITouchPhaseEnded || phase == UITouchPhaseCancelled) {
+            _pointerMap.erase(iter);
+        }
+        if (_pointerMap.size() == 0) {
+            _pointerId = 0;
+        }
+    }
+    return pointerId;
+}
+
 - (void)dispatchTouches:(NSSet *)touches withEvent:(UIEvent *)event phase:(UITouchPhase)phase {
     NSSet<UITouch *> *allTouches = [event allTouches];
     const CGFloat scale = [UIScreen mainScreen].scale;
@@ -376,7 +406,7 @@ static OHOS::Ace::Platform::AcePointerData::ToolType DeviceKindFromTouchType(UIT
 
         OHOS::Ace::Platform::AcePointerData pointer_data;
         pointer_data.Clear();
-        pointer_data.pointer_id = (uint64_t)touch.hash;
+        pointer_data.pointer_id = [self getTouchPointer:touch];
         pointer_data.device_id = [self getTouchDevice:touch];
 
         pointer_data.time_stamp = OHOS::Ace::GetMicroTickCount();
