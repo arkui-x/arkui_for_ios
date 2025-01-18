@@ -18,6 +18,8 @@
 
 #define URL_SRC @"src"
 #define PAGE_URL @"pageUrl"
+#define INCOGNITO_MOD @"incognitoMode"
+#define INCOGNITO_FLAG @"1"
 
 @interface AceWebResourcePlugin()
 @property (nonatomic, weak) UIViewController *target;
@@ -53,7 +55,13 @@ static NSMutableDictionary<NSString*, AceWeb*> *objectMap;
 - (int64_t)create:(NSDictionary <NSString *, NSString *> *)param{
     int64_t incId = [self getAtomicId];
     IAceOnResourceEvent callback = [self getEventCallback];
-    AceWeb *aceWeb = [[AceWeb alloc] init:incId target:(UIViewController*)self.target onEvent:callback abilityInstanceId:self.instanceId];
+    bool incognitoMode =[[param valueForKey:INCOGNITO_MOD] isEqualToString:INCOGNITO_FLAG] ? true : false;
+    AceWeb *aceWeb;
+    if (incognitoMode) {
+      aceWeb = [[AceWeb alloc] init:incId incognitoMode:incognitoMode target:(UIViewController*)self.target onEvent:callback abilityInstanceId:self.instanceId];
+    } else {
+      aceWeb = [[AceWeb alloc] init:incId target:(UIViewController*)self.target onEvent:callback abilityInstanceId:self.instanceId];
+    }
     [aceWeb loadUrl:[param valueForKey:URL_SRC] header:[NSMutableDictionary dictionary]];
     NSUInteger insertIndex = [self.target.view.subviews count] - 1;
     [self.target.view insertSubview:aceWeb.getWeb atIndex:insertIndex];

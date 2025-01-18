@@ -80,17 +80,31 @@ int32_t InteractionImpl::StartDrag(
 {
 #if defined(ENABLE_DRAG_FRAMEWORK)
     callback_ = callback;
-    auto containerId = Container::CurrentId();
-    auto container = Platform::AceContainerSG::GetContainer(containerId);
-    std::string packagePath = container->GetPackagePathStr();
-    std::string filePath = packagePath + "/systemres" + "/resources";
-    InteractionManager::GetInstance()->SetSVGFilePath(filePath);
     std::shared_ptr<OHOS::Rosen::Window> window = GetDragWindow();
+    CHECK_NULL_RETURN(window, -1);
     surfaceNodeListener_ = new SurfaceNodeListener(window, dragData);
+    CHECK_NULL_RETURN(surfaceNodeListener_, -1);
     window->RegisterSurfaceNodeListener(surfaceNodeListener_);
     window->ShowWindow();
+    RegisterDragWindow();
+    return 0;
 #endif
     return -1;
+}
+
+void InteractionImpl::RegisterDragWindow()
+{
+    auto callback = [surfaceNodeListener = surfaceNodeListener_] {
+        CHECK_NULL_VOID(surfaceNodeListener);
+        CHECK_NULL_VOID(surfaceNodeListener->dragWindow_);
+        auto window = surfaceNodeListener->dragWindow_;
+        CHECK_NULL_VOID(window);
+        window->UnregisterSurfaceNodeListener(surfaceNodeListener);
+        window->Destroy();
+        surfaceNodeListener->dragWindow_ = nullptr;
+        windowCreated_ = false;
+    };
+    InteractionManager::GetInstance()->RegisterDragWindow(callback);
 }
 
 int32_t InteractionImpl::UpdateDragStyle(OHOS::Ace::DragCursorStyleCore style, const int32_t eventId)
@@ -118,22 +132,12 @@ int32_t InteractionImpl::StopDrag(DragDropRet result)
     LOGI("InteractionImpl::StopDrag");
     Msdp::DeviceStatus::DragDropResult dragDropResult { TranslateDragResult(result.result), result.hasCustomAnimation,
         result.mainWindow, TranslateDragBehavior(result.dragBehavior) };
-    auto callback = [weak = AceType::WeakClaim(this)] {
-        auto interaction = weak.Upgrade();
-        auto window = interaction->surfaceNodeListener_->dragWindow_;
-        window->UnregisterSurfaceNodeListener(interaction->surfaceNodeListener_);
-        window->Destroy();
-        interaction->surfaceNodeListener_->dragWindow_ = nullptr;
-        windowCreated_ = false;
-    };
     OHOS::Ace::DragNotifyMsg msg { 0, 0, InteractionManager::GetInstance()->GetDragTargetPid(),
             TranslateDragResult(dragDropResult.result), TranslateDragBehavior(dragDropResult.dragBehavior) };
     if (callback_) {
         callback_(msg);
     }
-    InteractionManager::GetInstance()->RegisterDragWindow(callback);
-    int32_t ret = InteractionManager::GetInstance()->StopDrag(dragDropResult);
-    return ret;
+    return InteractionManager::GetInstance()->StopDrag(dragDropResult);
 #endif
     return -1;
 }
@@ -243,7 +247,11 @@ std::shared_ptr<OHOS::Rosen::Window> InteractionImpl::GetDragWindow()
 {
     auto containerId = Container::CurrentId();
     auto container = Platform::AceContainerSG::GetContainer(containerId);
+    std::string packagePath = container->GetPackagePathStr();
+    std::string filePath = packagePath + "/systemres" + "/resources";
+    InteractionManager::GetInstance()->SetSVGFilePath(filePath);
     sptr<Rosen::Window> window = container->GetUIWindow(containerId);
+    CHECK_NULL_RETURN(window, nullptr);
     auto dragWindow = Rosen::Window::CreateDragWindow(window->GetContext());
     return dragWindow;
 }
