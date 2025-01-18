@@ -52,6 +52,7 @@ template("ace_ios_standard_source_set") {
       "AceTextureHolder.mm",
       "DownloadManager.mm",
       "UINavigationController+StatusBar.mm",
+      "WantParams.mm",
       "WindowView.mm",
       "ace_application_info_impl.cpp",
       "ace_bridge.mm",
