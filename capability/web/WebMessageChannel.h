@@ -23,6 +23,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)initJsPortInstance;
 - (void)postMessage:(NSString*)name portName:(NSString*)portName uri:(NSString*)uri;
 - (void)postMessageEvent:(NSString*)message;
+- (void)postMessageEventExt:(id)message;
 - (void)closePort;
 @end
 

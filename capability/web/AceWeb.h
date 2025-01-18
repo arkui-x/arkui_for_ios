@@ -23,11 +23,6 @@
              target:(UIViewController*)target
      onEvent:(IAceOnResourceEvent)callback
      abilityInstanceId:(int32_t)abilityInstanceId;
--(instancetype)init:(int64_t)incId
-        incognitoMode:(BOOL)incognitoMode
-        target:(UIViewController*)target
-     onEvent:(IAceOnResourceEvent)callback
-     abilityInstanceId:(int32_t)abilityInstanceId;
 -(void)loadUrl:(NSString*)url header:(NSDictionary*)httpHeaders;
 - (void)loadData:(NSString*)data
         mimeType:(NSString*)mimeType
@@ -35,7 +30,7 @@
          baseUrl:(NSString*)baseUrl
       historyUrl:(NSString*)historyUrl;
 - (NSString*)getUrl;
-- (void)EvaluateJavaScript:(NSString*)script callback:(void (^)(NSString* ocResult))callback;
+- (void)evaluateJavaScript:(NSString*)script callback:(void (^)(id _Nullable obj, NSError* _Nullable error))callback;
 - (bool)accessBackward;
 - (bool)accessForward;
 - (void)backward;
@@ -48,7 +43,9 @@
 - (void)createWebMessagePorts:(NSArray*)portsName;
 - (void)postWebMessage:(NSString*)message port:(NSString*)port targetUrl:(NSString*)targetUrl;
 - (void)postMessageEvent:(NSString*)message;
+- (void)postMessageEventExt:(id)message;
 - (void)onMessageEvent:(void (^)(NSString* ocResult))callback;
+- (void)onMessageEventExt:(void (^)(id _Nullable ocResult))callback;
 - (void)closePort;
 + (bool)saveHttpAuthCredentials:(NSString*)host
                           realm:(NSString*)realm
@@ -64,9 +61,20 @@
 - (void)stop;
 - (void)setCustomUserAgent:(NSString*)userAgent;
 - (NSString*)getCustomUserAgent;
--(NSDictionary<NSString *, IAceOnCallSyncResourceMethod> *)getSyncCallMethod;
--(void)releaseObject;
--(int64_t)getWebId;
--(WKWebView*)getWeb;
--(NSString*)updateWebLayout:(NSDictionary*) paramMap;
+- (NSDictionary<NSString *, IAceOnCallSyncResourceMethod> *)getSyncCallMethod;
+- (void)releaseObject;
+- (int64_t)getWebId;
+- (WKWebView*)getWeb;
+- (NSString*)updateWebLayout:(NSDictionary*) paramMap;
+- (void)startDownload:(NSString*)url;
+- (void)onDownloadBeforeStart:(void (^)(NSString* guid, NSString *method, NSString *mimeType, NSString *url))callback;
+- (void)onDownloadUpdated:(void (^)(NSString* guid, int64_t totalBytes,
+                                int64_t receivedBytes, NSString *suggestedFileName))callback;
+- (void)onDownloadFailed:(void (^)(NSString* guid, int64_t code))callback;
+- (void)onDownloadFinish:(void (^)(NSString* guid, NSString* path))callback;
+- (bool)webDownloadItemStart:(NSString*)guid ocPath:(NSString*)ocPath;
+- (bool)webDownloadItemCancel:(NSString*)guid;
+- (bool)webDownloadItemPause:(NSString*)guid;
+- (bool)webDownloadItemResume:(NSString*)guid;
+
 @end
