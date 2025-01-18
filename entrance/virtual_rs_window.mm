@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2024 Huawei Device Co., Ltd.
+ * Copyright (c) 2023-2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -39,6 +39,7 @@
 #include "core/pipeline/pipeline_base.h"
 #include "interaction/interaction_impl.h"
 #include "mmi_event_convertor.h"
+#include "AccessibilityWindowView.h"
 
 namespace OHOS::Rosen {
 #define BOTTOM_SAFE_AREA_HEIGHT_VP 28.0
@@ -315,7 +316,7 @@ std::shared_ptr<Window> Window::CreateSubWindow(
     }
 
     auto window = std::shared_ptr<Window>(new Window(context, windowId), DummyWindowRelease);
-    WindowView* windowView = [[WindowView alloc]init];
+    AccessibilityWindowView* windowView = [[AccessibilityWindowView alloc]init];
     LOGI("Window::Createsubwindow with %{public}p", windowView);
     window->SetWindowView(windowView);
     [windowView setWindowDelegate:window]; 
@@ -550,6 +551,16 @@ std::shared_ptr<Window> Window::FindWindow(const std::string& name)
         return nullptr;
     }
     return iter->second.second;
+}
+
+std::shared_ptr<Window> Window::FindWindow(const int windowId)
+{
+    for (auto iter = windowMap_.begin(); iter != windowMap_.end(); iter++) {
+        if (iter->second.first == windowId) {
+            return iter->second.second;
+        }
+    }
+    return nullptr;
 }
 
 std::shared_ptr<Window> Window::GetTopWindow(const std::shared_ptr<OHOS::AbilityRuntime::Platform::Context>& context)
