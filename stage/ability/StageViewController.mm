@@ -18,7 +18,7 @@
 #import <MobileCoreServices/MobileCoreServices.h>
 #import <PhotosUI/PhotosUI.h>
 #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
-
+#import "AccessibilityWindowView.h"
 #import "AcePlatformPlugin.h"
 #import "ArkUIXPluginRegistry.h"
 #import "BridgePluginManager+internal.h"
@@ -81,9 +81,9 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
     UIImagePickerControllerDelegate, UINavigationControllerDelegate, PHPickerViewControllerDelegate> {
     int32_t _instanceId;
     std::string _cInstanceName;
-    WindowView* _windowView;
-    AcePlatformPlugin* _platformPlugin;
-    BridgePluginManager* _bridgePluginManager;
+    AccessibilityWindowView *_windowView;
+    AcePlatformPlugin *_platformPlugin;
+    BridgePluginManager *_bridgePluginManager;
     BOOL _needOnForeground;
     NSMutableArray* _pluginList;
     ArkUIXPluginRegistry* _arkUIXPluginRegistry;
@@ -137,7 +137,7 @@ CGFloat _brightness = 0.0;
 }
 
 - (void)initWindowView {
-    _windowView = [[WindowView alloc] init];
+    _windowView = [[AccessibilityWindowView alloc] init];
     _windowView.frame = self.view.bounds;
     _windowView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     WindowViwAdapter::GetInstance()->AddWindowView(_cInstanceName, (__bridge void*)_windowView);

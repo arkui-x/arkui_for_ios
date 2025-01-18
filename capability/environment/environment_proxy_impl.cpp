@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2022-2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -18,6 +18,21 @@
 #include "adapter/ios/capability/environment/environment_impl.h"
 
 namespace OHOS::Ace::Platform {
+
+EnvironmentProxyImpl* EnvironmentProxyImpl::inst_ = nullptr;
+
+std::mutex EnvironmentProxyImpl::mutex_;
+
+EnvironmentProxyImpl* EnvironmentProxyImpl::GetInstance()
+{
+    if (inst_ == nullptr) {
+        std::lock_guard<std::mutex> lock(mutex_);
+        if (inst_ == nullptr) {
+            inst_ = new EnvironmentProxyImpl();
+        }
+    }
+    return (inst_);
+}
 
 RefPtr<Environment> EnvironmentProxyImpl::GetEnvironment(const RefPtr<TaskExecutor>& taskExecutor) const
 {
