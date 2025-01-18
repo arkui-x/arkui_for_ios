@@ -34,7 +34,7 @@ public:
     AceWebDownloadImpl();
     ~AceWebDownloadImpl() = default;
 
-    void SetGuid(std::string guid);
+    void SetGuid(const std::string& guid);
     std::string GetGuid();
 
     void SetCurrentSpeed(double speed);
@@ -49,22 +49,22 @@ public:
     void SetState(WebDownloadState state);
     WebDownloadState GetState();
 
-    void SetMethod(std::string method);
+    void SetMethod(const std::string& method);
     std::string GetMethod();
 
-    void SetMimeType(std::string mimeType);
+    void SetMimeType(const std::string& mimeType);
     std::string GetMimeType();
 
-    void SetUrl(std::string url);
+    void SetUrl(const std::string& url);
     std::string GetUrl();
 
-    void SetSuggestedFileName(std::string suggestedFileName);
+    void SetSuggestedFileName(const std::string& suggestedFileName);
     std::string GetSuggestedFileName();
 
     void SetReceivedBytes(int64_t receivedBytes);
     int64_t GetReceivedBytes();
 
-    void SetFullPath(std::string fullPath);
+    void SetFullPath(const std::string& fullPath);
     std::string GetFullPath();
 
     void SetLastErrorCode(int32_t lastErrorCode);

@@ -55,7 +55,7 @@ public:
     void SetBoolean(bool b);
     bool GetBoolean();
     
-    void SetString(std::string str);
+    void SetString(const std::string& str);
     std::string GetString();
 
     void SetDouble(double dou);
@@ -64,23 +64,23 @@ public:
     void SetInt(int num);
     int GetInt();
 
-    void SetStringArray(std::vector<std::string> value);
+    void SetStringArray(const std::vector<std::string>& value);
     std::vector<std::string> GetStringArray();
     
-    void SetBooleanArray(std::vector<bool> value);
+    void SetBooleanArray(const std::vector<bool>& value);
     std::vector<bool> GetBooleanArray();
 
-    void SetDoubleArray(std::vector<double> value);
+    void SetDoubleArray(const std::vector<double>& value);
     std::vector<double> GetDoubleArray();
 
-    void SetInt64Array(std::vector<int64_t> value);
+    void SetInt64Array(const std::vector<int64_t>& value);
     std::vector<int64_t> GetInt64Array();
 
-    void SetArrayBuffer(std::vector<uint8_t>& value);
+    void SetArrayBuffer(const std::vector<uint8_t>& value);
     std::vector<uint8_t> GetArrayBuffer();
     
 
-    void SetError(std::string name, std::string message);
+    void SetError(const std::string& name, const std::string& message);
     std::pair<std::string, std::string> GetError();
 private:
     AceWebMessageType type_ = AceWebMessageType::NONE;

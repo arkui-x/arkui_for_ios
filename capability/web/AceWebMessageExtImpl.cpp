@@ -13,21 +13,19 @@
  * limitations under the License.
  */
 #include "AceWebMessageExtImpl.h"
-
 AceWebMessageExtImpl::AceWebMessageExtImpl()
+    : type_(AceWebMessageType::NONE),
+      str_(""),
+      string_arr_({}),
+      double_arr_({}),
+      int64_arr_({}),
+      bool_arr_({}),
+      err_name_(""),
+      err_msg_("")
 {
-    this->type_ = AceWebMessageType::NONE;
     this->data_.n = 0;
     this->data_.b = false;
     this->data_.f = 0.0f;
-    this->str_ = "";
-    this->string_arr_ = {};
-    this->double_arr_ = {};
-    this->int64_arr_ = {};
-    this->bool_arr_ = {};
-    this->err_name_ = "";
-    this->err_msg_ = "";
-
 }
 
 void AceWebMessageExtImpl::SetType(AceWebMessageType type)
@@ -51,7 +49,7 @@ bool AceWebMessageExtImpl::GetBoolean()
     return this->data_.b;
 }
 
-void AceWebMessageExtImpl::SetString(std::string str)
+void AceWebMessageExtImpl::SetString(const std::string& str)
 {
     SetType(AceWebMessageType::STRING);
     this->str_ = str;
@@ -84,7 +82,7 @@ int AceWebMessageExtImpl::GetInt()
     return this->data_.n;
 }
 
-void AceWebMessageExtImpl::SetStringArray(std::vector<std::string> value)
+void AceWebMessageExtImpl::SetStringArray(const std::vector<std::string>& value)
 {
     SetType(AceWebMessageType::STRINGARRAY);
     this->string_arr_ = value;
@@ -95,7 +93,7 @@ std::vector<std::string> AceWebMessageExtImpl::GetStringArray()
     return this->string_arr_;
 }
 
-void AceWebMessageExtImpl::SetDoubleArray(std::vector<double> value)
+void AceWebMessageExtImpl::SetDoubleArray(const std::vector<double>& value)
 {
     SetType(AceWebMessageType::DOUBLEARRAY);
     this->double_arr_ = value;
@@ -106,7 +104,7 @@ std::vector<double> AceWebMessageExtImpl::GetDoubleArray()
     return this->double_arr_;
 }
 
-void AceWebMessageExtImpl::SetInt64Array(std::vector<int64_t> value)
+void AceWebMessageExtImpl::SetInt64Array(const std::vector<int64_t>& value)
 {
     SetType(AceWebMessageType::INT64ARRAY);
     this->int64_arr_ = value;
@@ -117,7 +115,7 @@ std::vector<int64_t> AceWebMessageExtImpl::GetInt64Array()
     return this->int64_arr_;
 }
 
-void AceWebMessageExtImpl::SetBooleanArray(std::vector<bool> value)
+void AceWebMessageExtImpl::SetBooleanArray(const std::vector<bool>& value)
 {
     SetType(AceWebMessageType::BOOLEANARRAY);
     this->bool_arr_ = value;
@@ -128,7 +126,7 @@ std::vector<bool> AceWebMessageExtImpl::GetBooleanArray()
     return this->bool_arr_;
 }
 
-void AceWebMessageExtImpl::SetArrayBuffer(std::vector<uint8_t>& value)
+void AceWebMessageExtImpl::SetArrayBuffer(const std::vector<uint8_t>& value)
 {
     SetType(AceWebMessageType::BINARY);
     this->binary_data_.reserve(value.size());
@@ -140,7 +138,7 @@ std::vector<uint8_t> AceWebMessageExtImpl::GetArrayBuffer()
     return this->binary_data_;
 }
 
-void AceWebMessageExtImpl::SetError(std::string name, std::string message)
+void AceWebMessageExtImpl::SetError(const std::string& name, const std::string& message)
 {
     SetType(AceWebMessageType::ERROR);
     this->err_name_ = name;

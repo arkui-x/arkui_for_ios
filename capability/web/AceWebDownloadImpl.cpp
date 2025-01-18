@@ -16,22 +16,22 @@
 #include "AceWebDownloadImpl.h"
 
 AceWebDownloadImpl::AceWebDownloadImpl()
+    : guid_(""),
+      currentSpeed_(0),
+      percentComplete_(0),
+      totalBytes_(0),
+      state_(WebDownloadState::PENDING),
+      method_(""),
+      mimeType_(""),
+      url_(""),
+      suggestedFileName_(""),
+      receivedBytes_(0),
+      fullPath_(""),
+      lastErrorCode_(0)
 {
-    this->guid_ = "";
-    this->currentSpeed_ = 0;
-    this->percentComplete_ = 0;
-    this->totalBytes_ = 0;
-    this->state_ = WebDownloadState::PENDING;
-    this->method_ = "";
-    this->mimeType_ = "";
-    this->url_ = "";
-    this->suggestedFileName_ = "";
-    this->receivedBytes_ = 0;
-    this->fullPath_ = "";
-    this->lastErrorCode_ = 0;
 }
 
-void AceWebDownloadImpl::SetGuid(std::string guid)
+void AceWebDownloadImpl::SetGuid(const std::string& guid)
 {
     guid_ = guid;
 }
@@ -81,7 +81,7 @@ WebDownloadState AceWebDownloadImpl::GetState()
     return state_;
 }
 
-void AceWebDownloadImpl::SetMethod(std::string method)
+void AceWebDownloadImpl::SetMethod(const std::string& method)
 {
     method_ = method;
 }
@@ -91,7 +91,7 @@ std::string AceWebDownloadImpl::GetMethod()
     return method_;
 }
 
-void AceWebDownloadImpl::SetMimeType(std::string mimeType)
+void AceWebDownloadImpl::SetMimeType(const std::string& mimeType)
 {
     mimeType_ = mimeType;
 }
@@ -101,7 +101,7 @@ std::string AceWebDownloadImpl::GetMimeType()
     return mimeType_;
 }
 
-void AceWebDownloadImpl::SetUrl(std::string url)
+void AceWebDownloadImpl::SetUrl(const std::string& url)
 {
     url_ = url;
 }
@@ -111,7 +111,7 @@ std::string AceWebDownloadImpl::GetUrl()
     return url_;
 }
 
-void AceWebDownloadImpl::SetSuggestedFileName(std::string suggestedFileName)
+void AceWebDownloadImpl::SetSuggestedFileName(const std::string& suggestedFileName)
 {
     suggestedFileName_ = suggestedFileName;
 }
@@ -131,7 +131,7 @@ int64_t AceWebDownloadImpl::GetReceivedBytes()
     return receivedBytes_;
 }
 
-void AceWebDownloadImpl::SetFullPath(std::string fullPath)
+void AceWebDownloadImpl::SetFullPath(const std::string& fullPath)
 {
     fullPath_ = fullPath;
 }
