@@ -13,6 +13,9 @@
  * limitations under the License.
  */
 #include <list>
+#include "AceWebMessageExtImpl.h"
+#include "AceWebDownloadImpl.h"
+
 struct BackForwardItem{
     std::string URL;
     std::string title;
@@ -43,7 +46,10 @@ std::string getCustomUserAgentOC(int id);
 void loadDataOC(int id, const std::string& data, const std::string& mimeType, const std::string& encoding,
     const std::string& baseUrl, const std::string& historyUrl);
 
-void EvaluateJavaScriptOC(int id, const std::string& script, int32_t asyncCallbackInfoId, void (*callbackOC)(const std::string& ocResult, int32_t asyncCallbackInfoId));
+void evaluateJavaScriptOC(int webId, const std::string& script, int32_t asyncCallbackInfoId, void (*callbackOC)(const std::string& ocResult, int32_t asyncCallbackInfoId));
+
+void evaluateJavaScriptExtOC(int webId, const std::string& script, int32_t asyncCallbackInfoId, 
+    void (*callbackOC)(const std::string& type, const std::string& ocResult, int32_t asyncCallbackInfoId));
 
 void backwardOC(int id);
 
@@ -73,8 +79,14 @@ void postWebMessageOC(int id, std::string& message, std::vector<std::string>& po
 
 bool postMessageEventOC(int id, const std::string& message);
 
+bool postMessageEventExtOC(int id, const std::shared_ptr<AceWebMessageExtImpl> webMessageExtImpl);
+
 void onMessageEventOC(int id, const std::string& portHandle,
     void (*callbackOC)(int32_t webId, const std::string& portHandle, const std::string& result));
+
+void onMessageEventExtOC(int webId, const std::string& portHandle,
+    void (*callbackOC)(int32_t webId, const std::string& portHandle, 
+    const std::shared_ptr<AceWebMessageExtImpl> webMessageExtImpl));
 
 void closePortOC(int id);
 
@@ -87,3 +99,25 @@ bool getHttpAuthCredentialsOC(const std::string& host, const std::string& realm,
 bool existHttpAuthCredentialsOC();
 
 bool deleteHttpAuthCredentialsOC();
+
+void startDownloadOC(int webId, const std::string& url);
+
+void onDownloadBeforeStartOC(int32_t webId,
+    void (*callbackOC)(int32_t webId, const std::shared_ptr<AceWebDownloadImpl> webDownloadImpl));
+
+void onDownloadUpdatedOC(int32_t webId,
+    void (*callbackOC)(int32_t webId, const std::shared_ptr<AceWebDownloadImpl> webDownloadImpl));
+
+void onDownloadFailedOC(int32_t webId,
+    void (*callbackOC)(int32_t webId, const std::shared_ptr<AceWebDownloadImpl> webDownloadImpl));
+
+void onDownloadFinishOC(int32_t webId,
+    void (*callbackOC)(int32_t webId, const std::shared_ptr<AceWebDownloadImpl> webDownloadImpl));
+
+void webDownloadItemStartOC(int webId, const std::string& guid, const std::string& path);
+
+void webDownloadItemCancelOC(int webId, const std::string& guid);
+
+void webDownloadItemPauseOC(int webId, const std::string& guid);
+
+void webDownloadItemResumeOC(int webId, const std::string& guid);

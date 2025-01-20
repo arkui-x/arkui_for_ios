@@ -76,6 +76,48 @@
     }
 }
 
+- (void)postMessageEventExt:(id) message
+{
+    for (NSString* port in self.etsPorts) {
+        NSString* source = @"";
+        if ([message isKindOfClass:[NSData class]]) {
+            NSString *base64String = [message base64EncodedStringWithOptions:0];
+        source = [NSString stringWithFormat:@"(function() { \
+            var binaryString = window.atob('%@'); \
+            var len = binaryString.length; \
+            var bytes = new Uint8Array(len); \
+            for (var i = 0; i < len; i++) { \
+                bytes[i] = binaryString.charCodeAt(i); \
+            } \
+            %@.%@.postMessage(bytes.buffer); \
+        })();", base64String, WEBVIEW_MESSAGE_CHANNELS_VARIABLE_NAME, port];
+        } else if ([message isKindOfClass:[NSArray class]]) {
+            source = [NSString stringWithFormat:@"(function() {%@.%@.postMessage(%@);})();",
+                    WEBVIEW_MESSAGE_CHANNELS_VARIABLE_NAME, port, message];
+            NSData *jsonData = [NSJSONSerialization dataWithJSONObject:message options:0 error:nil];
+            NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+            source = [NSString stringWithFormat:@"(function() {%@.%@.postMessage(%@);})();",
+                    WEBVIEW_MESSAGE_CHANNELS_VARIABLE_NAME, port, jsonString];
+        } else if ([message isKindOfClass:[NSNumber class]]) {
+            if(strcmp([message objCType], @encode(char)) == 0) {
+                bool boolValue = [message boolValue];
+                NSString *result = boolValue ? @"true" : @"false";
+                source = [NSString stringWithFormat:@"(function() {%@.%@.postMessage(%@);})();",
+                        WEBVIEW_MESSAGE_CHANNELS_VARIABLE_NAME, port, result];
+            } else {
+                source = [NSString stringWithFormat:@"(function() {%@.%@.postMessage(%@);})();",
+                        WEBVIEW_MESSAGE_CHANNELS_VARIABLE_NAME, port, message];
+            }
+        } else {
+            NSString *escapedMessage = [[message stringByReplacingOccurrencesOfString:@"\"" withString:@"\\\""]
+                        stringByReplacingOccurrencesOfString:@"'" withString:@"\\'"];
+            source = [NSString stringWithFormat:@"(function() {%@.%@.postMessage('%@');})();",
+                        WEBVIEW_MESSAGE_CHANNELS_VARIABLE_NAME, port, escapedMessage];
+        }
+        [self evaluateJavaScript:source];
+    }
+}
+
 - (void)closePort
 {
     for (NSString* port in self.allPorts) {
