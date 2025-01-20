@@ -21,9 +21,11 @@
 @interface WantParams : NSObject
 
 @property (nonatomic, strong) NSMutableArray *arrWantParams;
+@property (nonatomic, strong) NSMutableDictionary* dicWantParams;
 
 -(void)addValue:(NSString *)key value:(id)value;
 -(NSString *)toWantParamsString;
+- (NSMutableDictionary*)getValue;
 
 @end
 
