@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2024 Huawei Device Co., Ltd.
+ * Copyright (c) 2023-2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -139,6 +139,7 @@ public:
     virtual ~Window() override;
     static std::vector<std::shared_ptr<Window>> GetSubWindow(uint32_t parentId);
     static std::shared_ptr<Window> FindWindow(const std::string& name);
+    static std::shared_ptr<Window> FindWindow(const int windowId);
     static std::shared_ptr<Window> GetTopWindow(
         const std::shared_ptr<OHOS::AbilityRuntime::Platform::Context>& context = nullptr);
 
@@ -189,6 +190,11 @@ public:
     {
         return backgroundColor_;
     }
+    WindowView* GetWindowView() const
+    {
+        return windowView_;
+    }
+
     WMError SetBrightness(float brightness);
     float GetBrightness() const;
     WMError SetKeepScreenOn(bool keepScreenOn);

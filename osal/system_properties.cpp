@@ -53,8 +53,11 @@ bool SystemProperties::unZipHap_ = true;
 bool SystemProperties::rosenBackendEnabled_ = true;
 bool SystemProperties::svgTraceEnable_ = false;
 bool SystemProperties::downloadByNetworkEnabled_ = false;
+bool SystemProperties::recycleImageEnabled_ = false;
 bool SystemProperties::isHookModeEnabled_ = false;
 bool SystemProperties::syncDebugTraceEnable_ = false;
+bool SystemProperties::measureDebugTraceEnable_ = false;
+bool SystemProperties::safeAreaDebugTraceEnable_ = false;
 bool SystemProperties::pixelRoundEnable_ = true;
 bool SystemProperties::textTraceEnable_ = false;
 bool SystemProperties::syntaxTraceEnable_ = false;
@@ -73,6 +76,7 @@ bool SystemProperties::navigationBlurEnabled_ = true;
 bool SystemProperties::gridCacheEnabled_ = false;
 bool SystemProperties::sideBarContainerBlurEnable_ = false;
 std::atomic<bool> SystemProperties::acePerformanceMonitorEnable_(false);
+std::atomic<bool> SystemProperties::focusCanBeActive_(true);
 bool SystemProperties::aceCommercialLogEnable_ = false;
 bool SystemProperties::imageFileCacheConvertAstc_ = false;
 int32_t SystemProperties::imageFileCacheConvertAstcThreshold_ = 2;
@@ -84,6 +88,8 @@ float SystemProperties::dragStartPanDisThreshold_ = 10.0f;
 uint32_t SystemProperties::canvasDebugMode_ = 0;
 
 std::pair<float, float> SystemProperties::brightUpPercent_ = {};
+
+bool SystemProperties::taskPriorityAdjustmentEnable_ = false;
 
 bool SystemProperties::IsOpIncEnable()
 {

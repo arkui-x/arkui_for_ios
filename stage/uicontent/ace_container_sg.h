@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2024 Huawei Device Co., Ltd.
+ * Copyright (c) 2023-2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -208,7 +208,7 @@ public:
         }
     }
 
-    ResourceConfiguration GetResourceConfiguration() const
+    ResourceConfiguration GetResourceConfiguration() const override
     {
         return resourceInfo_.GetResourceConfiguration();
     }
@@ -233,7 +233,8 @@ public:
         aceView_->SetFirstUpDating(time);
     }
 
-    void AttachView(std::unique_ptr<Window> window, AceView* view, double density, int32_t width, int32_t height);
+    void AttachView(std::unique_ptr<Window> window, AceView* view, double density, int32_t width, int32_t height,
+        uint32_t windowId);
 
     // For stage mode
     static void DestroyContainer(int32_t instanceId, const std::function<void()>& destroyCallback = nullptr);
@@ -323,13 +324,13 @@ public:
 
     void SetCurPointerEvent(const std::shared_ptr<MMI::PointerEvent>& currentEvent);
 
-    bool GetCurPointerEventInfo( int32_t& pointerId, int32_t& globalX, int32_t& globalY, int32_t& sourceType,
-        int32_t& sourceTool, int32_t& displayId, StopDragCallback&& stopDragCallback) override;
+    bool GetCurPointerEventInfo( DragPointerEvent& dragPointerEvent, StopDragCallback&& stopDragCallback) override;
 private:
     virtual bool MaybeRelease() override;
     void InitializeFrontend();
     void InitializeCallback();
-    void InitPiplineContext(std::unique_ptr<Window> window, double density, int32_t width, int32_t height);
+    void InitPiplineContext(
+        std::unique_ptr<Window> window, double density, int32_t width, int32_t height, uint32_t windowId);
     void InitializeEventHandler();
     void InitializeFinishEventHandler(int32_t instanceId);
     void InitializeStatusBarEventHandler(int32_t instanceId);

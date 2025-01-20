@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2024 Huawei Device Co., Ltd.
+ * Copyright (c) 2023-2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -13,42 +13,93 @@
  * limitations under the License.
  */
 
+#import "StageViewController.h"
+
+#import <MobileCoreServices/MobileCoreServices.h>
+#import <PhotosUI/PhotosUI.h>
+#import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
+#import "AccessibilityWindowView.h"
 #import "AcePlatformPlugin.h"
 #import "ArkUIXPluginRegistry.h"
-#import "BridgePluginManager.h"
 #import "BridgePluginManager+internal.h"
+#import "BridgePluginManager.h"
 #import "InstanceIdGenerator.h"
 #import "PluginContext.h"
 #import "StageApplication.h"
 #import "StageAssetManager.h"
 #import "StageConfigurationManager.h"
-#import "StageViewController.h"
 #import "StageContainerView.h"
-
 #import "WindowView.h"
-
 #include "app_main.h"
 #include "window_view_adapter.h"
+
+#define PHOTO_PICKER_TYPE_IMAGE @"image/*"
+#define PHOTO_PICKER_TYPE_VIDEO @"video/*"
+#define PHOTO_PICKER_BASE_PATH @"file://%@"
+#define BUNDLENAME_FILEPICKER @"com.ohos.filepicker"
+#define BUNDLENAME_PHOTOPICKER @"com.ohos.photos"
+#define TYPE_STRING @10
+#define RESULTCODE_OK 0
+#define RESULTCODE_ERROR 1
+
+#define PUBLIC_CONTENT @"public.content"
+#define PUBLIC_TEXT @"public.text"
+#define PUBLIC_SOURCE_CODE @"public.source-code"
+#define PUBLIC_IMAGE @"public.image"
+#define PUBLIC_AUDIOVISUAL_CONTENT @"public.audiovisual-content"
+#define COM_ADOBE_PDF @"com.adobe.pdf"
+#define COM_APPLE_KEYNOTE_KEY @"com.apple.keynote.key"
+#define COM_COMPUSERVE_GIF @"com.compuserve.gif"
+#define COM_MICROSOFT_WORD_DOC @"com.microsoft.word.doc"
+#define COM_MICROSOFT_EXCEL_XLS @"com.microsoft.excel.xls"
+#define COM_MICROSOFT_POWERPOINT_PPT @"com.microsoft.powerpoint.ppt"
+#define PUBLIC_FOLDER @"public.folder"
+
+#define IMAGE_GIF @"image/gif"
+#define APPLICATION_PDF @"application/pdf"
+#define APPLICATION_MSWORD @"application/msword"
+#define APPLICATION_VND_DOCUMENT @"application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+#define APPLICATION_VND_MSEXCEL @"application/vnd.ms-excel"
+#define APPLICATION_VND_SHEET @"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+#define APPLICATION_VND_MSPOWERPOINT @"application/vnd.ms-powerpoint"
+#define APPLICATION_VND_PRESENTATION @"application/vnd.openxmlformats-officedocument.presentationml.presentation"
+#define TEXT_PLAIN @"text/plain"
+#define TEXT_HTML @"text/html"
+#define TEXT_CSS @"text/css"
+#define TEXT_JAVASCRIPT @"text/javascript"
+#define TEXT_XML @"text/xml"
+#define APPLICATION_XML @"application/xml"
+#define APPLICATION_JAVASCRIPT @"application/javascript"
+#define ORG_OPENXMLFORMATS_WORDPROCESSINGML_DOCUMENT @"org.openxmlformats.wordprocessingml.document"
+#define ORG_OPENXMLFORMATS_SPREADSHEETML_SHEET @"org.openxmlformats.spreadsheetml.sheet"
+#define ORG_OPENXMLFORMATS_PRESENTATIONML_PRESENTATION @"org.openxmlformats.presentationml.presentation"
 
 using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
 using WindowViwAdapter = OHOS::AbilityRuntime::Platform::WindowViewAdapter;
 int32_t CURRENT_STAGE_INSTANCE_Id = 0;
-@interface StageViewController () <UITraitEnvironment, WindowViewDelegate> {
+@interface StageViewController () <UITraitEnvironment, WindowViewDelegate, UIDocumentPickerDelegate,
+    UIImagePickerControllerDelegate, UINavigationControllerDelegate, PHPickerViewControllerDelegate> {
     int32_t _instanceId;
     std::string _cInstanceName;
-    WindowView *_windowView;
+    AccessibilityWindowView *_windowView;
     AcePlatformPlugin *_platformPlugin;
     BridgePluginManager *_bridgePluginManager;
     BOOL _needOnForeground;
-    NSMutableArray *_pluginList;
-    ArkUIXPluginRegistry *_arkUIXPluginRegistry;
-    PluginContext *_pluginContext;
+    NSMutableArray* _pluginList;
+    ArkUIXPluginRegistry* _arkUIXPluginRegistry;
+    PluginContext* _pluginContext;
 }
 
-@property (nonatomic, strong, readwrite) NSString *instanceName;
-@property (nonatomic, copy) NSString *bundleName;
-@property (nonatomic, copy) NSString *moduleName;
-@property (nonatomic, copy) NSString *abilityName;
+@property(nonatomic, strong, readwrite) NSString* instanceName;
+@property(nonatomic, copy) NSString* bundleName;
+@property(nonatomic, copy) NSString* moduleName;
+@property(nonatomic, copy) NSString* abilityName;
+@property(nonatomic, copy) NSString* adapterInstanceName;
+@property(nonatomic, assign) NSInteger requestCode;
+@property(nonatomic, copy) NSString* adapterBundleName;
+@property(nonatomic, copy) NSString* type;
+@property(nonatomic, assign) BOOL allowsMultipleSelection;
+@property(nonatomic, assign) BOOL isReturnValue;
 @end
 
 @implementation StageViewController
@@ -86,7 +137,7 @@ CGFloat _brightness = 0.0;
 }
 
 - (void)initWindowView {
-    _windowView = [[WindowView alloc] init];
+    _windowView = [[AccessibilityWindowView alloc] init];
     _windowView.frame = self.view.bounds;
     _windowView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     WindowViwAdapter::GetInstance()->AddWindowView(_cInstanceName, (__bridge void*)_windowView);
@@ -205,6 +256,9 @@ CGFloat _brightness = 0.0;
 }
 
 - (void)traitCollectionDidChange:(UITraitCollection *)previousTraitCollection {
+    if ([UIApplication sharedApplication].applicationState == UIApplicationStateBackground) {
+        return;
+    }
     if (@available(iOS 13.0, *)) {
         if ([self.traitCollection hasDifferentColorAppearanceComparedToTraitCollection:previousTraitCollection]) {
             [[StageConfigurationManager configurationManager] colorModeUpdate:self.traitCollection.userInterfaceStyle];
@@ -330,4 +384,362 @@ CGFloat _brightness = 0.0;
     }
 }
 
+- (int32_t)startAbilityForResult:(NSDictionary*)dicParams isReturnValue:(BOOL)isReturnValue
+{
+    self.adapterBundleName = dicParams[@"bundleName"];
+    self.type = dicParams[@"type"];
+    self.isReturnValue = isReturnValue;
+    self.allowsMultipleSelection = NO;
+    NSString* params = dicParams[@"wantJsonStr"];
+    if (params != nil && params.length > 0) {
+        NSData* jsonData = [params dataUsingEncoding:NSUTF8StringEncoding];
+        NSError* error = nil;
+        NSDictionary* jsonObject = [NSJSONSerialization JSONObjectWithData:jsonData options:0 error:&error];
+        if (error) {
+            return OHOS::ERR_INVALID_VALUE;
+        }
+        NSArray* paramsArray = jsonObject[@"params"];
+        for (NSDictionary* paramDict in paramsArray) {
+            NSString* key = paramDict[@"key"];
+            NSString* value = paramDict[@"value"];
+            if ([key isEqualToString:@"uri"] && [value isEqualToString:@"multipleselect"]) {
+                self.allowsMultipleSelection = YES;
+                break;
+            } else {
+                self.allowsMultipleSelection = NO;
+            }
+        }
+    }
+    NSString* bundleName = dicParams[@"bundleName"];
+    NSString* instanceName = dicParams[@"instanceName"];
+    NSInteger requestCode = [dicParams[@"requestCode"] integerValue];
+    if ([bundleName isEqualToString:BUNDLENAME_FILEPICKER]) {
+        [self selectDocumentWithInstanceName:instanceName requestCode:requestCode];
+    } else if ([bundleName isEqualToString:BUNDLENAME_PHOTOPICKER]) {
+        [self selectPhotoWithInstanceName:instanceName requestCode:requestCode];
+    } else {
+        return OHOS::ERR_INVALID_VALUE;
+    }
+    return OHOS::ERR_OK;
+}
+
+- (void)selectDocumentWithInstanceName:(NSString*)instanceName requestCode:(NSInteger)requestCode
+{
+    self.adapterInstanceName = instanceName;
+    self.requestCode = requestCode;
+    NSArray* documentTypes = [self transformFormat:self.type];
+    UIDocumentPickerViewController* picker =
+        [[UIDocumentPickerViewController alloc] initWithDocumentTypes:documentTypes inMode:UIDocumentPickerModeOpen];
+    picker.delegate = self;
+    picker.modalPresentationStyle = UIModalPresentationFullScreen;
+    if (self.allowsMultipleSelection) {
+        picker.allowsMultipleSelection = YES;
+    } else {
+        picker.allowsMultipleSelection = NO;
+    }
+    [self presentViewController:picker animated:YES completion:nil];
+}
+
+- (NSMutableArray*)transformFormat:(NSString*)type
+{
+    NSDictionary* typeMapping = @{
+        IMAGE_GIF : @[ COM_COMPUSERVE_GIF ],
+        APPLICATION_PDF : @[ COM_ADOBE_PDF ],
+        APPLICATION_MSWORD : @[ COM_MICROSOFT_WORD_DOC, ORG_OPENXMLFORMATS_WORDPROCESSINGML_DOCUMENT ],
+        APPLICATION_VND_DOCUMENT : @[ COM_MICROSOFT_WORD_DOC, ORG_OPENXMLFORMATS_WORDPROCESSINGML_DOCUMENT ],
+        APPLICATION_VND_MSEXCEL : @[ COM_MICROSOFT_EXCEL_XLS, ORG_OPENXMLFORMATS_SPREADSHEETML_SHEET ],
+        APPLICATION_VND_SHEET : @[ COM_MICROSOFT_EXCEL_XLS, ORG_OPENXMLFORMATS_SPREADSHEETML_SHEET ],
+        APPLICATION_VND_MSPOWERPOINT :
+            @[ COM_MICROSOFT_POWERPOINT_PPT, ORG_OPENXMLFORMATS_PRESENTATIONML_PRESENTATION ],
+        APPLICATION_VND_PRESENTATION :
+            @[ COM_MICROSOFT_POWERPOINT_PPT, ORG_OPENXMLFORMATS_PRESENTATIONML_PRESENTATION ],
+        TEXT_PLAIN : @[ PUBLIC_TEXT ],
+        TEXT_HTML : @[ PUBLIC_TEXT ],
+        TEXT_CSS : @[ PUBLIC_TEXT ],
+        TEXT_JAVASCRIPT : @[ PUBLIC_TEXT ],
+        TEXT_XML : @[ PUBLIC_TEXT ],
+        APPLICATION_XML : @[ PUBLIC_TEXT ],
+        APPLICATION_JAVASCRIPT : @[ PUBLIC_TEXT ]
+    };
+    if ([self isBlankString:type]) {
+        NSMutableSet* uniqueValues = [NSMutableSet set];
+        for (NSArray* array in typeMapping.allValues) {
+            [uniqueValues addObjectsFromArray:array];
+        }
+        return (NSMutableArray*)[uniqueValues allObjects];
+    }
+    NSMutableArray* arrFormat = [NSMutableArray array];
+    NSArray* mappedTypes = typeMapping[type];
+    if (mappedTypes) {
+        [arrFormat addObjectsFromArray:mappedTypes];
+    } else if ([type hasPrefix:@"image/"]) {
+        [arrFormat addObject:PUBLIC_IMAGE];
+    } else {
+        [arrFormat addObject:PUBLIC_CONTENT];
+    }
+    return arrFormat;
+}
+
+- (BOOL)isBlankString:(NSString*)string
+{
+    if (string == nil || string == NULL) {
+        return YES;
+    }
+    if ([string isKindOfClass:[NSNull class]]) {
+        return YES;
+    }
+    if ([[string stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]] length] == 0) {
+        return YES;
+    }
+    return NO;
+}
+
+- (void)documentPicker:(UIDocumentPickerViewController*)controller didPickDocumentsAtURLs:(NSArray<NSURL*>*)urls
+{
+    if (self.isReturnValue) {
+        [self selectDocumentPickerData:urls];
+    }
+}
+
+- (void)selectDocumentPickerData:(NSArray<NSURL*>*)urls
+{
+    NSMutableArray* uris = [NSMutableArray array];
+    for (NSURL* url in urls) {
+        BOOL fileUrlAuthozied = [url startAccessingSecurityScopedResource];
+        if (!fileUrlAuthozied) {
+            [self selectDataParseToJsonString:uris errorCode:RESULTCODE_ERROR];
+            break;
+        }
+        NSFileCoordinator* fileCoordinator = [[NSFileCoordinator alloc] init];
+        NSError* error = nil;
+        [fileCoordinator coordinateReadingItemAtURL:url
+                                            options:0
+                                              error:&error
+                                         byAccessor:^(NSURL* newURL) {
+                                           [uris addObject:newURL.absoluteString];
+                                           if (uris.count == urls.count) {
+                                               [self selectDataParseToJsonString:uris errorCode:RESULTCODE_OK];
+                                           }
+                                         }];
+
+        [url stopAccessingSecurityScopedResource];
+        if (error) {
+            [self selectDataParseToJsonString:uris errorCode:RESULTCODE_ERROR];
+            break;
+        }
+    }
+}
+
+- (void)selectDataParseToJsonString:(NSArray<NSString*>*)uris errorCode:(int)errorCode
+{
+    std::string instanceName = [self.adapterInstanceName UTF8String];
+    NSMutableArray* dictArray = [[NSMutableArray alloc] init];
+    NSMutableDictionary* dictionary = [NSMutableDictionary dictionary];
+    if ([self.adapterBundleName isEqualToString:BUNDLENAME_FILEPICKER]) {
+        [dictionary setObject:@"ability.params.stream" forKey:@"key"];
+    } else if ([self.adapterBundleName isEqualToString:BUNDLENAME_PHOTOPICKER]) {
+        [dictionary setObject:@"select-item-list" forKey:@"key"];
+    }
+    [dictionary setObject:TYPE_STRING forKey:@"type"];
+
+    NSError* error = nil;
+    NSData* jsonData = [NSJSONSerialization dataWithJSONObject:uris options:NSJSONWritingPrettyPrinted error:&error];
+    if (!error) {
+        NSString* jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+        [dictionary setObject:jsonString forKey:@"value"];
+    }
+    [dictArray addObject:dictionary];
+    NSDictionary* resultDic = @{ @"params" : dictArray };
+
+    NSError* resultError = nil;
+    NSData* resultJsonData = [NSJSONSerialization dataWithJSONObject:resultDic
+                                                             options:NSJSONWritingPrettyPrinted
+                                                               error:&resultError];
+    if (resultError != nil) {
+        AppMain::GetInstance()->DispatchOnAbilityResult(instanceName, self.requestCode, errorCode, "");
+        return;
+    }
+    NSString* resultJsonStr = [[NSString alloc] initWithData:resultJsonData encoding:NSUTF8StringEncoding];
+    std::string resultJsonStrPath = [resultJsonStr UTF8String];
+    AppMain::GetInstance()->DispatchOnAbilityResult(instanceName, self.requestCode, errorCode, resultJsonStrPath);
+}
+
+#pragma mark - UIImagePickerController
+- (void)presentPhotoPickerVC
+{
+    if (@available(iOS 14, *)) {
+        PHPickerConfiguration* config = [[PHPickerConfiguration alloc] init];
+        if (self.allowsMultipleSelection) {
+            config.selectionLimit = 0;
+        } else {
+            config.selectionLimit = 1;
+        }
+        NSString* type = self.type;
+        if ([type isEqualToString:PHOTO_PICKER_TYPE_IMAGE]) {
+            config.filter = [PHPickerFilter imagesFilter];
+        } else if ([type isEqualToString:PHOTO_PICKER_TYPE_VIDEO]) {
+            config.filter = [PHPickerFilter videosFilter];
+        } else {
+            config.filter = [PHPickerFilter
+                anyFilterMatchingSubfilters:@[ PHPickerFilter.imagesFilter, PHPickerFilter.videosFilter ]];
+        }
+        PHPickerViewController* phPickerVC = [[PHPickerViewController alloc] initWithConfiguration:config];
+        phPickerVC.modalPresentationStyle = UIModalPresentationFullScreen;
+        phPickerVC.delegate = self;
+        [self presentViewController:phPickerVC animated:YES completion:nil];
+    } else {
+        UIImagePickerController* imagePickerVC = [[UIImagePickerController alloc] init];
+        imagePickerVC.delegate = self;
+        NSString* type = self.type;
+        if ([type isEqualToString:PHOTO_PICKER_TYPE_IMAGE]) {
+            imagePickerVC.mediaTypes = @[ (NSString*)kUTTypeImage ];
+        } else if ([type isEqualToString:PHOTO_PICKER_TYPE_VIDEO]) {
+            imagePickerVC.mediaTypes = @[ (NSString*)kUTTypeMovie ];
+        } else {
+            imagePickerVC.mediaTypes = @[ (NSString*)kUTTypeImage, (NSString*)kUTTypeMovie ];
+        }
+        imagePickerVC.modalPresentationStyle = UIModalPresentationFullScreen;
+        [self presentViewController:imagePickerVC animated:YES completion:nil];
+    }
+}
+
+- (void)selectPhotoWithInstanceName:(NSString*)instanceName requestCode:(NSInteger)requestCode
+{
+    self.adapterInstanceName = instanceName;
+    self.requestCode = requestCode;
+    BOOL isAuthorize = [self checkPhotoPermission];
+    if (isAuthorize) {
+        [self presentPhotoPickerVC];
+    } else {
+        [self requestAlbumAuthorization];
+    }
+}
+
+- (void)imagePickerController:(UIImagePickerController*)picker
+    didFinishPickingMediaWithInfo:(NSDictionary<UIImagePickerControllerInfoKey, id>*)info
+{
+    [picker dismissViewControllerAnimated:YES completion:nil];
+    if (self.isReturnValue) {
+        [self selectImagePickerData:info];
+    }
+}
+
+- (void)imagePickerControllerDidCancel:(UIImagePickerController*)picker
+{
+    [picker dismissViewControllerAnimated:YES completion:nil];
+}
+
+- (void)selectImagePickerData:(NSDictionary<UIImagePickerControllerInfoKey, id>*)info
+{
+    NSString* type = (NSString*)[info objectForKey:UIImagePickerControllerMediaType];
+    NSURL* mediaUrl = [info objectForKey:[self getImagePickerType:type]];
+    if (mediaUrl == nil) {
+        [self selectDataParseToJsonString:@[ @"" ] errorCode:RESULTCODE_ERROR];
+        return;
+    }
+    NSString* pickerUrlString = [[NSString alloc] initWithFormat:PHOTO_PICKER_BASE_PATH, [mediaUrl path]];
+    [self selectDataParseToJsonString:@[ pickerUrlString ] errorCode:RESULTCODE_OK];
+}
+
+- (NSString*)getImagePickerType:(NSString*)type
+{
+    if ([type isEqualToString:(NSString*)kUTTypeImage]) {
+        return UIImagePickerControllerImageURL;
+    } else if ([type isEqualToString:(NSString*)kUTTypeMovie]) {
+        return UIImagePickerControllerMediaURL;
+    } else {
+        return @"";
+    }
+}
+
+#pragma mark - PHPickerViewControllerDelegate
+- (void)picker:(PHPickerViewController*)picker
+    didFinishPicking:(nonnull NSArray<PHPickerResult*>*)results API_AVAILABLE(ios(14))
+{
+    [picker dismissViewControllerAnimated:YES completion:nil];
+    if (self.isReturnValue) {
+        [self selectPhPickerData:results];
+    }
+}
+
+- (void)selectPhPickerData:(nonnull NSArray<PHPickerResult*>*)results
+{
+    NSMutableArray* uriArray = [[NSMutableArray alloc] init];
+    __block int errorCode = RESULTCODE_OK;
+    for (int i = 0; i < results.count; i++) {
+        PHPickerResult* result = results[i];
+        NSString* strType = @"";
+        if ([result.itemProvider hasItemConformingToTypeIdentifier:UTTypeImage.identifier]) {
+            strType = UTTypeImage.identifier;
+        } else if ([result.itemProvider hasItemConformingToTypeIdentifier:UTTypeMovie.identifier]) {
+            strType = UTTypeMovie.identifier;
+        }
+
+        [result.itemProvider
+            loadFileRepresentationForTypeIdentifier:strType
+                                  completionHandler:^(NSURL* _Nullable url, NSError* _Nullable error) {
+                                    int resultCode = [self saveResultData:uriArray url:url error:error];
+                                    if (resultCode == RESULTCODE_ERROR) {
+                                        errorCode = RESULTCODE_ERROR;
+                                    }
+                                    if (uriArray.count >= results.count) {
+                                        [self selectDataParseToJsonString:uriArray errorCode:errorCode];
+                                    }
+                                  }];
+    }
+}
+
+- (int)saveResultData:(NSMutableArray*)uriArray url:(NSURL*)url error:(NSError*)error
+{
+    if (error || url == nil) {
+        [uriArray addObject:@""];
+        return RESULTCODE_ERROR;
+    }
+    NSString* cachePath = [NSString stringWithFormat:@"%@%@", NSTemporaryDirectory(), [url lastPathComponent]];
+    NSFileManager* fileManager = [NSFileManager defaultManager];
+    if ([fileManager fileExistsAtPath:cachePath]) {
+        [fileManager removeItemAtPath:cachePath error:nil];
+    }
+    NSData* data = [NSData dataWithContentsOfFile:[url path]];
+    BOOL success = [data writeToFile:cachePath atomically:YES];
+    if (success) {
+        cachePath = [NSString stringWithFormat:PHOTO_PICKER_BASE_PATH, cachePath];
+        [uriArray addObject:cachePath];
+        return RESULTCODE_OK;
+    }
+    [uriArray addObject:@""];
+    return RESULTCODE_ERROR;
+}
+
+- (void)requestAlbumAuthorization
+{
+    [PHPhotoLibrary requestAuthorization:^(PHAuthorizationStatus status) {
+      if (status == PHAuthorizationStatusAuthorized) {
+          [self presentPhotoPickerInMainQueue];
+          return;
+      }
+      if (@available(iOS 14, *) && status == PHAuthorizationStatusLimited) {
+          [self presentPhotoPickerInMainQueue];
+      }
+    }];
+}
+
+- (void)presentPhotoPickerInMainQueue
+{
+    dispatch_async(dispatch_get_main_queue(), ^{
+      [self presentPhotoPickerVC];
+    });
+}
+
+- (BOOL)checkPhotoPermission
+{
+    PHAuthorizationStatus status = [PHPhotoLibrary authorizationStatus];
+    if (status == PHAuthorizationStatusAuthorized) {
+        return YES;
+    }
+    if (@available(iOS 14, *) && status == PHAuthorizationStatusLimited) {
+        return YES;
+    }
+    return NO;
+}
 @end

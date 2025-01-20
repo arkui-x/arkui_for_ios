@@ -1,4 +1,4 @@
-# Copyright (c) 2023 Huawei Device Co., Ltd.
+# Copyright (c) 2023-2025 Huawei Device Co., Ltd.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -33,12 +33,14 @@ template("stage_ios_standard_source_set") {
       "//foundation/arkui/ace_engine/adapter/ios/entrance",
       "//foundation/appframework/ability/ability_runtime/cross_platform/interfaces/kits/native/appkit",
       "//foundation/arkui/ace_engine/adapter/ios/capability/bridge",
+      "//foundation/arkui/ace_engine/adapter/ios/entrance/accessibility",
       "//third_party/",
       "//third_party/flutter/engine",
       "$ace_root/frameworks",
       "$ace_root",
       "//foundation/arkui/ace_engine/adapter/ios/entrance/plugin_lifecycle",
       "$ace_root/adapter/ios/capability/platformview",
+      "//foundation/arkui/ace_engine/adapter/ios/entrance/logIntercept",
     ]
 
     if (target_cpu == "arm64") {
@@ -73,6 +75,7 @@ template("stage_ios_standard_source_set") {
     deps = [
       "//foundation/appframework/ability/ability_runtime/cross_platform/interfaces/kits/native/appkit:cross_platform_appkit_native",
       "//foundation/arkui/ace_engine/adapter/ios/entrance:ace_ios_entrance",
+      "//foundation/arkui/ace_engine/adapter/ios/entrance/logIntercept:logIntercept",
       "//foundation/arkui/ace_engine/adapter/ios/entrance/plugin_lifecycle:plugin_lifecycle",
     ]
 
@@ -89,6 +92,10 @@ template("stage_ios_standard_source_set") {
       "CoreFoundation.framework",
       "Foundation.framework",
       "UIKit.framework",
+      "PhotosUI.framework",
+      "UniformTypeIdentifiers.framework",
+      "Photos.framework",
+      "MobileCoreServices.framework",
     ]
 
     subsystem_name = "arkui"

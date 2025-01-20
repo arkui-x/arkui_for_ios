@@ -87,12 +87,13 @@ void zoomOutOC(int id) {
     [web zoomOut];
 }
 
-bool isZoomAccessOC(int id){
+bool isZoomAccessOC(int id) {
     AceWeb *web = [AceWebResourcePlugin.getObjectMap objectForKey:[NSString stringWithFormat:@"%d", id]];
-    if(web != nil) {
-        return [web isZoomAccess];
+    if (!web) {
+        NSLog(@"Error:AceWebControllerBridge web is NULL");
+        return false;
     }
-    return false;
+    return [web isZoomAccess];
 }
 
 void stopOC(int id){
@@ -104,7 +105,8 @@ void stopOC(int id){
 
 std::string getOriginalUrlOC(int id) {
     AceWeb* web = [AceWebResourcePlugin.getObjectMap objectForKey:[NSString stringWithFormat:@"%d", id]];
-    if(web == nil) {
+    if (!web) {
+        NSLog(@"Error:AceWebControllerBridge web is NULL");
         return "";
     }
     return [[web getOriginalUrl] UTF8String];

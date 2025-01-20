@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2024 Huawei Device Co., Ltd.
+ * Copyright (c) 2023-2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -208,7 +208,8 @@ void AceContainerSG::InitializeFrontend()
     LOGI("InitializeFrontend finished.");
 }
 
-void AceContainerSG::InitPiplineContext(std::unique_ptr<Window> window, double density, int32_t width, int32_t height)
+void AceContainerSG::InitPiplineContext(
+    std::unique_ptr<Window> window, double density, int32_t width, int32_t height, uint32_t windowId)
 {
     LOGI("init piplinecontext start.");
     ACE_DCHECK(aceView_ && window && taskExecutor_ && assetManager_ && resRegister_ && frontend_);
@@ -222,6 +223,7 @@ void AceContainerSG::InitPiplineContext(std::unique_ptr<Window> window, double d
     pipelineContext_->SetTextFieldManager(AceType::MakeRefPtr<NG::TextFieldManagerNG>());
     pipelineContext_->SetIsRightToLeft(AceApplicationInfo::GetInstance().IsRightToLeft());
     pipelineContext_->SetMessageBridge(messageBridge_);
+    pipelineContext_->SetWindowId(windowId);
     pipelineContext_->SetWindowModal(windowModal_);
     pipelineContext_->SetDrawDelegate(aceView_->GetDrawDelegate());
     pipelineContext_->SetFontScale(resourceInfo_.GetResourceConfiguration().GetFontRatio());
@@ -560,15 +562,16 @@ void AceContainerSG::SetView(
     auto* aceView = static_cast<AceViewSG*>(view);
     CHECK_NULL_VOID(aceView);
     auto eventHandler = std::make_shared<OHOS::AppExecFwk::EventHandler>(OHOS::AppExecFwk::EventRunner::Current());
+    CHECK_NULL_VOID(rsWindow);
     rsWindow->CreateVSyncReceiver(eventHandler);
     auto window = std::make_unique<NG::RosenWindow>(rsWindow, container->GetTaskExecutor(), view->GetInstanceId());
     AceContainerSG::SetUIWindow(view->GetInstanceId(), rsWindow);
-    container->AttachView(std::move(window), view, density, width, height);
+    container->AttachView(std::move(window), view, density, width, height, rsWindow->GetWindowId());
 #endif
 }
 
 void AceContainerSG::AttachView(
-    std::unique_ptr<Window> window, AceView* view, double density, int32_t width, int32_t height)
+    std::unique_ptr<Window> window, AceView* view, double density, int32_t width, int32_t height, uint32_t windowId)
 {
     aceView_ = view;
     auto instanceId = aceView_->GetInstanceId();
@@ -609,7 +612,7 @@ void AceContainerSG::AttachView(
     aceViewSG->SetPlatformResRegister(resResgister);
     resRegister_ = aceView_->GetPlatformResRegister();
 
-    InitPiplineContext(std::move(window), density, width, height);
+    InitPiplineContext(std::move(window), density, width, height, windowId);
     if (resRegister_) {
         resRegister_->SetPipelineContext(pipelineContext_);
     }
@@ -1151,20 +1154,19 @@ void AceContainerSG::SetCurPointerEvent(const std::shared_ptr<MMI::PointerEvent>
     }
 }
 
-bool AceContainerSG::GetCurPointerEventInfo( int32_t& pointerId, int32_t& globalX, int32_t& globalY,
-        int32_t& sourceType, int32_t& sourceTool, int32_t& displayId, StopDragCallback&& stopDragCallback)
+bool AceContainerSG::GetCurPointerEventInfo( DragPointerEvent& dragPointerEvent, StopDragCallback&& stopDragCallback)
 {
     std::lock_guard<std::mutex> lock(pointerEventMutex_);
     CHECK_NULL_RETURN(currentPointerEvent_, false);
     MMI::PointerEvent::PointerItem pointerItem;
-    if (!currentPointerEvent_->GetPointerItem(pointerId, pointerItem) || !pointerItem.IsPressed()) {
+    if (!currentPointerEvent_->GetPointerItem(dragPointerEvent.pointerId, pointerItem) || !pointerItem.IsPressed()) {
         return false;
     }
-    sourceType = currentPointerEvent_->GetSourceType();
-    globalX = pointerItem.GetDisplayX();
-    globalY = pointerItem.GetDisplayY();
-    sourceTool = pointerItem.GetToolType();
-    RegisterStopDragCallback(pointerId, std::move(stopDragCallback));
+    dragPointerEvent.sourceType = currentPointerEvent_->GetSourceType();
+    dragPointerEvent.displayX = pointerItem.GetDisplayX();
+    dragPointerEvent.displayY = pointerItem.GetDisplayY();
+    dragPointerEvent.sourceTool = static_cast<SourceTool>(pointerItem.GetToolType());
+    RegisterStopDragCallback(dragPointerEvent.pointerId, std::move(stopDragCallback));
     return true;
 }
 

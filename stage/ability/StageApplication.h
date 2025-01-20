@@ -41,6 +41,10 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (NSString *)getTopAbility;
 
++ (void)setLogInterface:(id)log;
+
++ (void)setLogLevel:(int)logLevel;
+
 - (void)doAbilityForeground:(NSString *)fullname;
 
 - (void)doAbilityBackground:(NSString *)fullname;
