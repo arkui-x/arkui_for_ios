@@ -23,6 +23,11 @@
              target:(UIViewController*)target
      onEvent:(IAceOnResourceEvent)callback
      abilityInstanceId:(int32_t)abilityInstanceId;
+-(instancetype)init:(int64_t)incId
+        incognitoMode:(BOOL)incognitoMode
+        target:(UIViewController*)target
+     onEvent:(IAceOnResourceEvent)callback
+     abilityInstanceId:(int32_t)abilityInstanceId;
 -(void)loadUrl:(NSString*)url header:(NSDictionary*)httpHeaders;
 - (void)loadData:(NSString*)data
         mimeType:(NSString*)mimeType
