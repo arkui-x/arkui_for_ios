@@ -19,12 +19,12 @@
 
 typedef enum {
     VALUE_TYPE_DEFAULT = 0,
-    VALUE_TYPE_BOOL,
-    VALUE_TYPE_INT,
-    VALUE_TYPE_DOUBLE,
-    VALUE_TYPE_STRING,
-    VALUE_TYPE_WANT_PARAMS,
-    VALUE_TYPE_ARRAY,
+    VALUE_TYPE_BOOL = 1,
+    VALUE_TYPE_INT = 5,
+    VALUE_TYPE_DOUBLE = 9,
+    VALUE_TYPE_STRING = 10,
+    VALUE_TYPE_WANT_PARAMS = 101,
+    VALUE_TYPE_ARRAY = 102,
 } VALUE_TYPE;
 
 - (NSMutableArray*)arrWantParams
@@ -35,31 +35,61 @@ typedef enum {
     return _arrWantParams;
 }
 
+- (NSMutableDictionary*)dicWantParams
+{
+    if (!_dicWantParams) {
+        _dicWantParams = [NSMutableDictionary dictionary];
+    }
+    return _dicWantParams;
+}
+
 - (void)addValue:(NSString*)key value:(id)value
 {
-    if (!key || !value) {
+    if (key == nil || value == nil) {
         return;
     }
+    [self.dicWantParams setObject:value forKey:key];
     int valueType = VALUE_TYPE_DEFAULT;
     if ([value isKindOfClass:[NSNumber class]]) {
-        value = [NSDecimalNumber decimalNumberWithDecimal:[value decimalValue]];
         valueType = [self getType:value];
+        if (valueType == VALUE_TYPE_DOUBLE) {
+            value = [NSDecimalNumber decimalNumberWithDecimal:[value decimalValue]];
+        } else if (valueType == VALUE_TYPE_BOOL) {
+            switch ([value intValue]) {
+                case 1:
+                    value = @"true";
+                    break;
+                default:
+                    value = @"false";
+                    break;
+            }
+        }
     } else if ([value isKindOfClass:[NSString class]]) {
         valueType = VALUE_TYPE_STRING;
     } else if ([value isKindOfClass:[WantParams class]]) {
         WantParams* wantParams = (WantParams*)value;
-        value = [wantParams toWantParamsString];
         valueType = VALUE_TYPE_WANT_PARAMS;
+        NSDictionary* dic = @{ @"key" : key, @"type" : @(valueType), @"value" : wantParams.arrWantParams };
+        [self.arrWantParams addObject:dic];
+        return;
     } else if ([value isKindOfClass:[NSArray class]] || [value isKindOfClass:[NSMutableArray class]]) {
         valueType = VALUE_TYPE_ARRAY;
+        NSDictionary* dic = @{ @"key" : key, @"type" : @(valueType), @"value" : value };
+        [self.arrWantParams addObject:dic];
+        return;
+    } else {
+        NSLog(@"WantParams type error");
+        return;
     }
-    NSDictionary* dic = @{ @"key" : key, @"value" : value, @"type" : @(valueType) };
+    NSString* strValue = [NSString stringWithFormat:@"%@", value];
+    strValue = [self formatString:strValue];
+    NSDictionary* dic = @{ @"key" : key, @"type" : @(valueType), @"value" : strValue };
     [self.arrWantParams addObject:dic];
 }
 
 - (int)getType:(id)value
 {
-    if (strcmp([value objCType], @encode(char)) == 0) {
+    if (strcmp([value objCType], @encode(char)) == 0 || strcmp([value objCType], @encode(BOOL)) == 0) {
         return VALUE_TYPE_BOOL;
     } else if (strcmp([value objCType], @encode(int)) == 0) {
         return VALUE_TYPE_INT;
@@ -72,19 +102,33 @@ typedef enum {
 - (NSString*)toWantParamsString
 {
     NSString* strParams = @"";
-    NSDictionary* dicParams = @{ @"params" : @ { @"params" : self.arrWantParams } };
+    NSDictionary* dicParams = @{ @"params" : self.arrWantParams };
     if ([NSJSONSerialization isValidJSONObject:dicParams]) {
-        NSData* jsonData = 
-            [NSJSONSerialization dataWithJSONObject:dicParams options:NSJSONWritingPrettyPrinted error:nil];
+        NSData* jsonData = [NSJSONSerialization dataWithJSONObject:dicParams
+                                                           options:NSJSONWritingPrettyPrinted
+                                                             error:nil];
         if (jsonData) {
             strParams = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-            strParams = [strParams stringByReplacingOccurrencesOfString:@" " withString:@""];
-            strParams = [strParams stringByReplacingOccurrencesOfString:@"\n" withString:@""];
-            strParams = [strParams stringByReplacingOccurrencesOfString:@"\r" withString:@""];
-            strParams = [strParams stringByReplacingOccurrencesOfString:@"\t" withString:@""];
+            strParams = [self formatString:strParams];
         }
     }
     return strParams;
 }
 
+- (NSString*)formatString:(NSString*)strParams
+{
+    if (strParams == nil) {
+        return @"";
+    }
+    strParams = [strParams stringByReplacingOccurrencesOfString:@" " withString:@""];
+    strParams = [strParams stringByReplacingOccurrencesOfString:@"\n" withString:@""];
+    strParams = [strParams stringByReplacingOccurrencesOfString:@"\r" withString:@""];
+    strParams = [strParams stringByReplacingOccurrencesOfString:@"\t" withString:@""];
+    return strParams;
+}
+
+- (NSMutableDictionary*)getValue
+{
+    return self.dicWantParams;
+}
 @end

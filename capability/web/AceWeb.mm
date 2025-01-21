@@ -70,7 +70,14 @@
 
 #define WEBVIEW_PAGE_HALF                 2
 typedef void (^PostMessageResultMethod)(NSString* ocResult);
-@interface AceWeb()<WKScriptMessageHandler, WKUIDelegate, WKNavigationDelegate, UIScrollViewDelegate, WKHTTPCookieStoreObserver>
+typedef void (^PostMessageResultMethodExt)(id ocResult);
+typedef void (^OnDownloadBeforeStart)(NSString* guid, NSString* method, NSString* mimeType, NSString* url);
+typedef void (^onDownloadUpdated)(NSString* guid, int64_t totalBytes,
+                                int64_t receivedBytes, NSString* suggestedFileName);
+typedef void (^onDownloadFailed)(NSString* guid, int64_t code);
+typedef void (^onDownloadFinish)(NSString* guid, NSString* path);
+@interface AceWeb()<WKScriptMessageHandler, WKUIDelegate, WKNavigationDelegate, 
+                    UIScrollViewDelegate, NSURLSessionDownloadDelegate, WKHTTPCookieStoreObserver>
 /**webView*/
 @property (nonatomic, assign) WKWebView *webView;
 @property (nonatomic, assign) int64_t incId;
@@ -87,10 +94,18 @@ typedef void (^PostMessageResultMethod)(NSString* ocResult);
 @property (nonatomic, assign) bool isLoadRichText;
 @property (nonatomic, assign) BOOL javascriptAccessSwitch;
 @property (nonatomic, copy) IAceOnResourceEvent onEvent;
+@property (nonatomic, strong) NSURLSession* session;
 @property (nonatomic, strong) WebMessageChannel* webMessageChannel;
 @property (nonatomic, strong) PostMessageResultMethod messageCallBack;
-
-@property (nonatomic, strong) NSMutableDictionary<NSString *, IAceOnCallSyncResourceMethod> *callSyncMethodMap;
+@property (nonatomic, strong) PostMessageResultMethodExt messageCallBackExt;
+@property (nonatomic, strong) OnDownloadBeforeStart onDownloadBeforeStartCallBack;
+@property (nonatomic, strong) onDownloadUpdated onDownloadUpdatedCallBack;
+@property (nonatomic, strong) onDownloadFailed onDownloadFailedCallBack;
+@property (nonatomic, strong) onDownloadFinish onDownloadFinishCallBack;
+@property (nonatomic, strong) NSMutableDictionary<NSString*, NSNumber*>* sendInfoCounts;
+@property (nonatomic, strong) NSMutableDictionary<NSString*, NSString*>* filePaths;
+@property (nonatomic, strong) NSMutableDictionary<NSString*, NSURLSessionDownloadTask*>* downloadTasks;
+@property (nonatomic, strong) NSMutableDictionary<NSString*, IAceOnCallSyncResourceMethod>* callSyncMethodMap;
 @property (nonatomic, assign) bool allowIncognitoMode;
 @end
 
@@ -246,14 +261,13 @@ static BOOL _webDebuggingAccessInit = NO;
     }
 }
 
-- (void)EvaluateJavaScript:(NSString*)script callback:(void (^)(NSString* ocResult))callback
+- (void)evaluateJavaScript:(NSString*)script callback:(void (^)(id _Nullable obj, NSError* _Nullable error))callback
 {
     NSLog(@"AceWeb: ExecuteJavaScript called");
     [self.webView evaluateJavaScript:script
-                   completionHandler:^(id _Nullable obj, NSError* _Nullable error) {
-                     NSString* result = [NSString stringWithFormat:@"%@", obj];
-                     callback(result);
-                   }];
+                completionHandler:^(id _Nullable obj, NSError* _Nullable error) {
+                    callback(obj, error);
+                }];
 }
 
 - (NSString*)getUrl
@@ -350,9 +364,20 @@ static BOOL _webDebuggingAccessInit = NO;
     [self.webMessageChannel postMessageEvent:message];
 }
 
+- (void)postMessageEventExt:(id)message {
+    if (self.webMessageChannel) {
+        [self.webMessageChannel postMessageEventExt:message];
+    }
+}
+
 - (void)onMessageEvent:(void (^)(NSString* ocResult))callback
 {
     self.messageCallBack = callback;
+}
+
+- (void)onMessageEventExt:(void (^)(id _Nullable ocResult))callback
+{
+    self.messageCallBackExt = callback;
 }
 
 - (void)closePort
@@ -593,6 +618,9 @@ static BOOL _webDebuggingAccessInit = NO;
 
 - (void)initConfigure {
     self.callSyncMethodMap = [[NSMutableDictionary alloc] init];
+    self.downloadTasks = [[NSMutableDictionary alloc] init];
+    self.filePaths = [[NSMutableDictionary alloc] init];
+    self.sendInfoCounts = [[NSMutableDictionary alloc] init];
     self.screenScale = [UIScreen mainScreen].scale;
     InjectAceWebResourceObject();
 }
@@ -608,6 +636,87 @@ static BOOL _webDebuggingAccessInit = NO;
 
 -(int64_t)getWebId {
     return self.incId;
+}
+
+-(void)startDownload:(NSString*)url
+{
+    NSURLSessionConfiguration* config = [NSURLSessionConfiguration defaultSessionConfiguration];
+    if (!self.session) {
+        self.session = [NSURLSession sessionWithConfiguration:config delegate:self delegateQueue:nil];
+    }
+    NSURLSessionDownloadTask *downloadTask = [self.session downloadTaskWithURL:[NSURL URLWithString:url]];
+    NSString* guid = [NSString stringWithFormat:@"%lld_%lu", self.incId, downloadTask.taskIdentifier];
+    NSString* method = downloadTask.originalRequest.HTTPMethod ? downloadTask.originalRequest.HTTPMethod : @"";
+    NSString* mimeType = downloadTask.response.MIMEType ? downloadTask.response.MIMEType : @"";
+    [self.downloadTasks setObject:downloadTask forKey:guid];
+    if (self.onDownloadBeforeStartCallBack) {
+        self.onDownloadBeforeStartCallBack(guid, method, mimeType, url);
+    }
+}
+
+-(void)onDownloadBeforeStart:(void (^)(NSString* guid, NSString *method,
+                                    NSString *mimeType, NSString *url))callback
+{
+    self.onDownloadBeforeStartCallBack = callback;
+}
+
+- (void)onDownloadUpdated:(void (^)(NSString* guid, int64_t totalBytes,
+                                int64_t receivedBytes, NSString *suggestedFileName))callback
+{
+    self.onDownloadUpdatedCallBack = callback;
+}
+
+- (void)onDownloadFailed:(void (^)(NSString* guid, int64_t code))callback
+{
+    self.onDownloadFailedCallBack = callback;
+}
+
+- (void)onDownloadFinish:(void (^)(NSString* guid, NSString* path))callback
+{
+    self.onDownloadFinishCallBack = callback;
+}
+
+-(bool)webDownloadItemStart:(NSString*)guid ocPath:(NSString*) ocPath
+{
+    NSURLSessionDownloadTask* downloadTask = [self.downloadTasks objectForKey:guid];
+    if (downloadTask) {
+        [self.filePaths setObject:ocPath forKey:guid];
+        [self.sendInfoCounts setObject:@(0) forKey:guid];
+        [downloadTask resume];
+        return true;
+    }
+    return false;
+}
+
+- (bool)webDownloadItemCancel:(NSString*)guid
+{
+    NSURLSessionDownloadTask* downloadTask = [self.downloadTasks objectForKey:guid];
+    if (downloadTask) {
+        [self.downloadTasks removeObjectForKey:guid];
+        [downloadTask cancel];
+        return true;
+    }
+    return false;
+}
+
+- (bool)webDownloadItemPause:(NSString*)guid
+{
+    NSURLSessionDownloadTask* downloadTask = [self.downloadTasks objectForKey:guid];
+    if (downloadTask) {
+        [downloadTask suspend];
+        return true;
+    }
+    return false;
+}
+
+- (bool)webDownloadItemResume:(NSString*)guid
+{
+    NSURLSessionDownloadTask* downloadTask = [self.downloadTasks objectForKey:guid];
+    if (downloadTask) {
+        [downloadTask resume];
+        return true;
+    }
+    return false;
 }
 
 - (void)initEventCallback
@@ -1079,6 +1188,9 @@ static BOOL _webDebuggingAccessInit = NO;
         if (self.messageCallBack != nil) {
             self.messageCallBack(messageBody);
         }
+        if (self.messageCallBackExt != nil) {
+            self.messageCallBackExt(message.body);
+        }
         return;
     }
     AceWebOnConsoleObject* obj = new AceWebOnConsoleObject(std::string([messageBody UTF8String]), messageLevel);
@@ -1332,4 +1444,70 @@ static BOOL _webDebuggingAccessInit = NO;
 #endif
 }
 
+- (void)URLSession:(NSURLSession *)session downloadTask:(NSURLSessionDownloadTask *)downloadTask 
+                                           didWriteData:(int64_t)bytesWritten 
+                                      totalBytesWritten:(int64_t)totalBytesWritten 
+                              totalBytesExpectedToWrite:(int64_t)totalBytesExpectedToWrite {
+    static NSDate* lastUpdateTime;
+    static dispatch_once_t onceToken;
+    NSString* guid = [NSString stringWithFormat:@"%lld_%lu", self.incId, downloadTask.taskIdentifier];
+    dispatch_once(&onceToken, ^{
+        lastUpdateTime = [NSDate dateWithTimeIntervalSince1970:0];
+    });
+    NSDate* now = [NSDate date];
+    NSString* minGuid = guid;
+    NSNumber* minCount = nil;
+    for (NSString* guidKey in self.sendInfoCounts) {
+        NSNumber* count = [self.sendInfoCounts objectForKey:guidKey] ?: @(0);
+        if (minCount == nil || [count intValue] < [minCount intValue]) {
+            minGuid = guidKey;
+        }
+    }
+    if ([now timeIntervalSinceDate:lastUpdateTime] > 0.5 && [guid isEqualToString:minGuid]) { 
+        NSString* suggestedFilename = downloadTask.response.suggestedFilename;
+        if (self.onDownloadUpdatedCallBack) {
+            NSNumber* count = [self.sendInfoCounts objectForKey:guid] ?: @(0);
+            [self.sendInfoCounts setObject:@([count intValue] + 1) forKey:guid];
+            self.onDownloadUpdatedCallBack(guid, totalBytesExpectedToWrite, totalBytesWritten, suggestedFilename);
+        }
+        lastUpdateTime = now;
+    }
+}
+
+- (void)URLSession:(NSURLSession *)session downloadTask:(NSURLSessionDownloadTask *)downloadTask 
+    didFinishDownloadingToURL:(NSURL *)location {
+    NSString* guid = [NSString stringWithFormat:@"%lld_%lu", self.incId, downloadTask.taskIdentifier];
+    NSString* suggestedFilename = downloadTask.response.suggestedFilename;
+    NSString* documentsPath = [NSSearchPathForDirectoriesInDomains(
+        NSDocumentDirectory, NSUserDomainMask, YES) firstObject];
+    NSString* path = [documentsPath stringByAppendingPathComponent:[self.filePaths objectForKey:guid]];
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    if (![fileManager fileExistsAtPath:path]) {
+        [fileManager createDirectoryAtPath:path withIntermediateDirectories:YES attributes:nil error:nil];
+    }
+    NSString* destinationPath = [path stringByAppendingPathComponent:suggestedFilename];
+    NSURL* destinationURL = [NSURL fileURLWithPath:destinationPath];
+    NSError* fileError = nil;
+    [[NSFileManager defaultManager] moveItemAtURL:location toURL:destinationURL error:&fileError];
+    if (fileError) {
+        NSLog(@"Error moving file to sandbox: %@", fileError.localizedDescription);
+        self.onDownloadFailedCallBack(guid, fileError.code);
+    } else {
+        self.onDownloadFinishCallBack(guid, path);
+    }
+    [self.downloadTasks removeObjectForKey:guid];
+    [self.filePaths removeObjectForKey:guid];
+    [self.sendInfoCounts removeObjectForKey:guid];
+}
+
+- (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task 
+    didCompleteWithError:(nullable NSError *)error {
+    if (error) {
+         NSString* guid = [NSString stringWithFormat:@"%lld_%lu", self.incId, task.taskIdentifier];
+        [self.downloadTasks removeObjectForKey:guid];
+        [self.filePaths removeObjectForKey:guid];
+        [self.sendInfoCounts removeObjectForKey:guid];
+        self.onDownloadFailedCallBack(guid, error.code);
+    }
+}
 @end
