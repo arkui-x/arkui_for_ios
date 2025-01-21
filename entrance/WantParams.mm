@@ -30,7 +30,7 @@ typedef enum {
 - (NSMutableArray*)arrWantParams
 {
     if (!_arrWantParams) {
-        _arrWantParams = [NSMutableArray array];
+        _arrWantParams = [[NSMutableArray alloc]init];
     }
     return _arrWantParams;
 }
@@ -38,7 +38,7 @@ typedef enum {
 - (NSMutableDictionary*)dicWantParams
 {
     if (!_dicWantParams) {
-        _dicWantParams = [NSMutableDictionary dictionary];
+        _dicWantParams = [[NSMutableDictionary alloc]init];
     }
     return _dicWantParams;
 }
@@ -54,15 +54,6 @@ typedef enum {
         valueType = [self getType:value];
         if (valueType == VALUE_TYPE_DOUBLE) {
             value = [NSDecimalNumber decimalNumberWithDecimal:[value decimalValue]];
-        } else if (valueType == VALUE_TYPE_BOOL) {
-            switch ([value intValue]) {
-                case 1:
-                    value = @"true";
-                    break;
-                default:
-                    value = @"false";
-                    break;
-            }
         }
     } else if ([value isKindOfClass:[NSString class]]) {
         valueType = VALUE_TYPE_STRING;
@@ -81,9 +72,7 @@ typedef enum {
         NSLog(@"WantParams type error");
         return;
     }
-    NSString* strValue = [NSString stringWithFormat:@"%@", value];
-    strValue = [self formatString:strValue];
-    NSDictionary* dic = @{ @"key" : key, @"type" : @(valueType), @"value" : strValue };
+    NSDictionary* dic = @{ @"key" : key, @"type" : @(valueType), @"value" : value };
     [self.arrWantParams addObject:dic];
 }
 
