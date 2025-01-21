@@ -20,6 +20,9 @@
 #include "AceWebCallbackObjectWrapper.h"
 #import "AceWebControllerBridge.h"
 #import "WebMessageChannel.h"
+#import <UIKit/UIKit.h>
+#import <AVFoundation/AVFoundation.h>
+#import <AVKit/AVKit.h>
 
 #define WEBVIEW_WIDTH  @"width"
 #define WEBVIEW_HEIGHT  @"height"
@@ -32,9 +35,9 @@
 #define FAIL            @"fail"
 #define KEY_SOURCE      @"src"
 #define KEY_VALUE       @"value"
+#define DELAY_TIME      0.3
 #define ZOOMIN_SCALE_VALUE   1.2
 #define ZOOMOUT_SCALE_VALUE  0.8
-
 
 #define WEB_FLAG        @"web@"
 #define PARAM_AND       @"#HWJS-&-#"
@@ -67,7 +70,9 @@
 #define NTC_ONSCALECHANGE                 @"onScaleChange"
 #define NTC_ONCONSOLEMESSAGE              @"onConsoleMessage"
 #define NTC_RICHTEXT_LOADDATA             @"loadData"
-
+#define NTC_ONFULLSCREENENTER             @"onFullScreenEnter"
+#define NTC_ONFULLSCREENEXIT              @"onFullScreenExit"
+#define NTC_ONREFRESHACCESSED_HISTORYEVENT     @"onRefreshAccessedHistory"
 #define WEBVIEW_PAGE_HALF                 2
 typedef void (^PostMessageResultMethod)(NSString* ocResult);
 typedef void (^PostMessageResultMethodExt)(id ocResult);
@@ -97,6 +102,11 @@ typedef void (^onDownloadFinish)(NSString* guid, NSString* path);
 @property (nonatomic, strong) NSURLSession* session;
 @property (nonatomic, strong) WebMessageChannel* webMessageChannel;
 @property (nonatomic, strong) PostMessageResultMethod messageCallBack;
+@property (nonatomic, strong) NSString *reloadUrl;
+@property (nonatomic, strong) UIView *viewExitFullScreen;
+@property (nonatomic, strong) UIViewController *viewControllerExitFull;
+@property (nonatomic, copy) NSString *videoSrc;
+@property (nonatomic, strong) NSMutableDictionary<NSString *, IAceOnCallSyncResourceMethod> *callSyncMethodMap;
 @property (nonatomic, strong) PostMessageResultMethodExt messageCallBackExt;
 @property (nonatomic, strong) OnDownloadBeforeStart onDownloadBeforeStartCallBack;
 @property (nonatomic, strong) onDownloadUpdated onDownloadUpdatedCallBack;
@@ -105,7 +115,6 @@ typedef void (^onDownloadFinish)(NSString* guid, NSString* path);
 @property (nonatomic, strong) NSMutableDictionary<NSString*, NSNumber*>* sendInfoCounts;
 @property (nonatomic, strong) NSMutableDictionary<NSString*, NSString*>* filePaths;
 @property (nonatomic, strong) NSMutableDictionary<NSString*, NSURLSessionDownloadTask*>* downloadTasks;
-@property (nonatomic, strong) NSMutableDictionary<NSString*, IAceOnCallSyncResourceMethod>* callSyncMethodMap;
 @property (nonatomic, assign) bool allowIncognitoMode;
 @end
 
@@ -143,7 +152,8 @@ static BOOL _webDebuggingAccessInit = NO;
     return self;
 }
 
--(void)initWeb{
+-(void)initWeb
+{
     WKWebViewConfiguration* config = [[WKWebViewConfiguration alloc] init];
     WKPreferences* preference = [[WKPreferences alloc] init];
     preference.minimumFontSize = 8;
@@ -154,6 +164,13 @@ static BOOL _webDebuggingAccessInit = NO;
     [self initConsole:CONSOLEDEBUG controller:userContentController];
     [self initConsole:CONSOLEWARN controller:userContentController];
     [userContentController addScriptMessageHandler:self name:@"onWebMessagePortMessage"];
+    NSString *htmlFBody = @"var vSrc = e.target.currentSrc;window.webkit.messageHandlers.videoPlayed.postMessage(vSrc);";
+    NSString *htmlFunc = [NSString stringWithFormat:@"function(e) {if (e.target.tagName === 'VIDEO') {%@}}", htmlFBody];
+    NSString *htmlJS = [NSString stringWithFormat:@"document.addEventListener('play', %@, true);", htmlFunc];
+    
+    WKUserScript *script = [[WKUserScript alloc] initWithSource:htmlJS injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES];
+    [userContentController addUserScript:script];
+    [userContentController addScriptMessageHandler:self name:@"videoPlayed"];
     preference.javaScriptEnabled = self.javascriptAccessSwitch;
 
     config.preferences = preference;
@@ -218,12 +235,13 @@ static BOOL _webDebuggingAccessInit = NO;
     [controller addScriptMessageHandler:self name:consoleLevel];
 }
 
--(void)loadUrl:(NSString*)url{
+-(void)loadUrl:(NSString*)url
+{
     [self.webView loadRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:url]]];
 }
 
--(void)loadUrl:(NSString*)url header:(NSDictionary*) httpHeaders{
-
+-(void)loadUrl:(NSString*)url header:(NSDictionary*) httpHeaders
+{
     if(url == nil){
         NSLog(@"Error:AceWeb: url is nill");
         return;
@@ -616,7 +634,8 @@ static BOOL _webDebuggingAccessInit = NO;
     return [self.webView customUserAgent];
 }
 
-- (void)initConfigure {
+- (void)initConfigure
+{
     self.callSyncMethodMap = [[NSMutableDictionary alloc] init];
     self.downloadTasks = [[NSMutableDictionary alloc] init];
     self.filePaths = [[NSMutableDictionary alloc] init];
@@ -634,7 +653,8 @@ static BOOL _webDebuggingAccessInit = NO;
     }
 }
 
--(int64_t)getWebId {
+-(int64_t)getWebId
+{
     return self.incId;
 }
 
@@ -743,6 +763,120 @@ static BOOL _webDebuggingAccessInit = NO;
     [self setTouchMoveCallback];
     // touchUp callback
     [self setTouchUpCallback];
+
+    [self enterFullScreenOrExitFullScreenNotifi];
+}
+
+- (void)enterFullScreenOrExitFullScreenNotifi
+{
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(beginFullScreen:) name:UIWindowDidBecomeVisibleNotification object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(endFullScreen:) name:UIWindowDidBecomeHiddenNotification object:nil];
+}
+
+- (void)beginFullScreen:(NSNotification *)notify
+{
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, DELAY_TIME * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+        [self ergodicKeyWindow];
+        [self setVideoSize];
+    });
+}
+
+- (void)ergodicKeyWindow
+{
+    NSArray *arr = [[[UIApplication sharedApplication] connectedScenes] allObjects];
+    UIWindowScene *windowScene = (UIWindowScene *)arr[0];
+    UIWindow *keyWindow = windowScene.keyWindow;
+    for (UIView *transitionView in keyWindow.subviews) {
+        if ([transitionView isKindOfClass:NSClassFromString(@"UITransitionView")]) {
+            [self findFullScreen:transitionView];
+        }
+    }
+}
+
+- (void)setVideoSize
+{
+    CGFloat width = 0;
+    CGFloat height = 0;
+    NSURL *url = [NSURL URLWithString:self.videoSrc];
+    AVURLAsset *asset = [AVURLAsset assetWithURL:url];
+    NSArray *nSAarray = asset.tracks;
+    CGSize videoSize = CGSizeZero;
+    for (AVAssetTrack *track in nSAarray) {
+        if ([track.mediaType isEqualToString:AVMediaTypeVideo]) {
+            videoSize = track.naturalSize;
+            width = videoSize.width;
+            height = videoSize.height;
+        }
+    }
+    
+    AceWebFullScreenEnterObject* obj = new AceWebFullScreenEnterObject(width, height);
+    FullEnterRequestExitMethod fullEnterRequestExit_callback = ^void() {
+      @try {
+          if ([self.viewExitFullScreen respondsToSelector:NSSelectorFromString(@"fullScreenButtonWasPressed")]) {
+            [self.viewExitFullScreen performSelector:NSSelectorFromString(@"fullScreenButtonWasPressed")];
+          } else if (self.viewControllerExitFull && [self.viewControllerExitFull respondsToSelector:NSSelectorFromString(@"doneButtonTapped:")]) {
+            [self.viewControllerExitFull performSelector:NSSelectorFromString(@"doneButtonTapped:")];
+          } else {
+            NSLog(@"Error: exit button not found");
+          }
+      } @catch (NSException* exception) {
+          NSLog(@"Error: ExitScreen call failed, reason: %@", exception.reason);
+      }
+    };
+    obj->SetFullEnterRequestExitCallback(fullEnterRequestExit_callback);
+    AceWebObject([[self event_hashFormat:NTC_ONFULLSCREENENTER] UTF8String], [NTC_ONFULLSCREENENTER UTF8String], obj);
+}
+
+- (void)findFullScreen:(UIView *)view
+{
+    for (UIView *subView in view.subviews) {
+        id nextResponder = [subView nextResponder];
+        if ([nextResponder isKindOfClass:NSClassFromString(@"AVFullScreenViewController")]) {
+
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, DELAY_TIME * NSEC_PER_SEC), dispatch_get_main_queue(), ^{
+                [self findCloseBtn:subView];
+            });
+            break;
+        } else if ([subView isKindOfClass:NSClassFromString(@"UIDropShadowView")]) {
+            [self findFullScreen:subView];
+            break;
+        } else if ([nextResponder isKindOfClass:NSClassFromString(@"AVPlayerViewController")]) {
+            self.viewControllerExitFull = nextResponder;
+            break;
+        } else if ([nextResponder isKindOfClass:[UIViewController class]]) {
+            [self findFullScreen:subView];
+            break;
+        } 
+    }
+}
+
+- (void)findCloseBtn:(UIView *)view
+{
+    for (int i = 0; i < view.subviews.count; i++) {
+        UIView *viewTemp = view.subviews[i];
+
+        if ([viewTemp isKindOfClass:NSClassFromString(@"AVPlayerViewControllerContentView")]) {
+            [self findCloseBtn:viewTemp];
+            return;
+        }
+
+        if ([viewTemp isKindOfClass:NSClassFromString(@"AVMobileChromelessControlsView")]) {
+            [self findCloseBtn:viewTemp];
+            return;
+        }
+
+        if ([viewTemp isKindOfClass:NSClassFromString(@"AVMobileChromelessDisplayModeControlsView")]) {
+            NSLog(@"find success");
+            self.viewExitFullScreen = viewTemp;
+            return;
+        }
+    }
+}
+
+- (void)endFullScreen:(NSNotification *)notify
+{
+    AceWebFullScreenExitObject* obj = new AceWebFullScreenExitObject();
+    AceWebObject([[self event_hashFormat:NTC_ONFULLSCREENEXIT] UTF8String], [NTC_ONFULLSCREENEXIT UTF8String], obj);
 }
 
 - (void)setZoomAccessCallback
@@ -1016,7 +1150,8 @@ static BOOL _webDebuggingAccessInit = NO;
     return [NSString stringWithFormat:@"%@%lld%@%@%@%@", WEB_FLAG, self.incId, EVENT, PARAM_EQUALS, method, PARAM_BEGIN];
 }
 
--(NSString*)updateWebLayout:(NSDictionary*) paramMap {
+-(NSString*)updateWebLayout:(NSDictionary*)paramMap
+{
     NSString*  left =   [paramMap objectForKey:WEBVIEW_POSITION_LEFT];
     NSString*  top =   [paramMap objectForKey:WEBVIEW_POSITION_TOP];
     NSString*  width =  [paramMap objectForKey:WEBVIEW_WIDTH];
@@ -1036,7 +1171,8 @@ static BOOL _webDebuggingAccessInit = NO;
     return SUCCESS;
 }
 
-- (void)releaseObject {
+- (void)releaseObject
+{
     NSLog(@"AceWeb releaseObject");
     [self.webView removeObserver:self forKeyPath:ESTIMATEDPROGRESS];
     [self.webView removeObserver:self forKeyPath:TITLE];
@@ -1045,6 +1181,7 @@ static BOOL _webDebuggingAccessInit = NO;
     [self.webView.configuration.userContentController removeScriptMessageHandlerForName:CONSOLEERROR];
     [self.webView.configuration.userContentController removeScriptMessageHandlerForName:CONSOLEDEBUG];
     [self.webView.configuration.userContentController removeScriptMessageHandlerForName:CONSOLEWARN];
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
     if (self.callSyncMethodMap) {
         for (id key in self.callSyncMethodMap) {
             IAceOnCallSyncResourceMethod block = [self.callSyncMethodMap objectForKey:key];
@@ -1060,15 +1197,18 @@ static BOOL _webDebuggingAccessInit = NO;
     self.target = nil;
 }
 
-- (NSDictionary<NSString *, IAceOnCallSyncResourceMethod> *)getSyncCallMethod{
+- (NSDictionary<NSString *, IAceOnCallSyncResourceMethod> *)getSyncCallMethod
+{
     return self.callSyncMethodMap;
 }
 
-- (void)webView:(WKWebView *)webView didFailNavigation:(WKNavigation *)navigation withError:(NSError *)error {
+- (void)webView:(WKWebView *)webView didFailNavigation:(WKNavigation *)navigation withError:(NSError *)error
+{
     NSLog(@"didFailNavigation === ");
 }
 
-- (void)webView:(WKWebView *)webView didCommitNavigation:(WKNavigation *)navigation {
+- (void)webView:(WKWebView *)webView didCommitNavigation:(WKNavigation *)navigation
+{
     NSString *param = [NSString stringWithFormat:@"%@",webView.URL];
     if (self.isLoadRichText) {
         return;
@@ -1077,34 +1217,47 @@ static BOOL _webDebuggingAccessInit = NO;
     [self fireCallback:@"onPageVisible" params:param];
 }
 
-- (void)webView:(WKWebView *)webView didFinishNavigation:(WKNavigation *)navigation {
+- (void)webView:(WKWebView *)webView didFinishNavigation:(WKNavigation *)navigation
+{
     NSString *param = [NSString stringWithFormat:@"%@",webView.URL];
     if (self.isLoadRichText) {
         self.isLoadRichText = false;
         return;
     }
     [self fireCallback:@"onPageFinished" params:param];
+    bool isRefreshed = false;
+    NSString *currrentUrl= webView.URL.absoluteString;
+    if (self.reloadUrl && [currrentUrl isEqualToString:self.reloadUrl]) {
+        isRefreshed = true;
+        self.reloadUrl = @"";
+    }
+    NSString *url = self.webView.URL.absoluteString;
+    AceWebRefreshAccessedHistoryObject *obj = new AceWebRefreshAccessedHistoryObject(std::string([url UTF8String]), isRefreshed);
+    AceWebObject([[self event_hashFormat:NTC_ONREFRESHACCESSED_HISTORYEVENT] UTF8String], [NTC_ONREFRESHACCESSED_HISTORYEVENT UTF8String], obj);
 }
 
-- (void)webView:(WKWebView*)webView
-    decidePolicyForNavigationAction:(WKNavigationAction*)navigationAction
+- (void)webView:(WKWebView *)webView
+    decidePolicyForNavigationAction:(WKNavigationAction *)navigationAction
                     decisionHandler:(void (^)(WKNavigationActionPolicy))decisionHandler
 {
-    NSString* requestURL =
-        navigationAction.request.URL.absoluteString ? navigationAction.request.URL.absoluteString : @"";
-    AceWebErrorReceiveInfoObject* obj = new AceWebErrorReceiveInfoObject(std::string([requestURL UTF8String]), "", 0);
-    if (AceWebObjectWithBoolReturn(
-            [[self event_hashFormat:NTC_ONLOADINTERCEPT] UTF8String], [NTC_ONLOADINTERCEPT UTF8String], obj)) {
-        decisionHandler(WKNavigationActionPolicyCancel);
-        return;
+    NSString *url = navigationAction.request.URL.absoluteString;  
+    if (navigationAction.navigationType == WKNavigationTypeReload || 
+        (navigationAction.navigationType == WKNavigationTypeBackForward && 
+        url && 
+        [url isEqualToString:webView.backForwardList.currentItem.URL.absoluteString])) {
+        self.reloadUrl = url;
     }
+
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 140500
     if (@available(iOS 14.5, *)) {
         if (navigationAction.shouldPerformDownload) {
             decisionHandler(WKNavigationActionPolicyDownload);
             return;
         }
     }
+#endif
     decisionHandler(WKNavigationActionPolicyAllow);
+    return;
 }
 
 - (void)webView:(WKWebView*)webView
@@ -1191,6 +1344,10 @@ static BOOL _webDebuggingAccessInit = NO;
         if (self.messageCallBackExt != nil) {
             self.messageCallBackExt(message.body);
         }
+        return;
+    } else if ([message.name isEqualToString:@"videoPlayed"]) {
+        NSString *videoSrc = message.body;
+        self.videoSrc = videoSrc;
         return;
     }
     AceWebOnConsoleObject* obj = new AceWebOnConsoleObject(std::string([messageBody UTF8String]), messageLevel);
@@ -1413,7 +1570,8 @@ static BOOL _webDebuggingAccessInit = NO;
     }];
 }
 
-- (void)webView:(WKWebView *)webView didFailProvisionalNavigation:( WKNavigation *)navigation withError:(NSError *)error {
+- (void)webView:(WKWebView *)webView didFailProvisionalNavigation:( WKNavigation *)navigation withError:(NSError *)error
+{
     NSString *errorStr = @"";
     if(webView.URL.absoluteString) {
         errorStr = webView.URL.absoluteString;

@@ -98,3 +98,17 @@ long AceWebDownloadResponseObject::GetContentLength() {
 std::string AceWebDownloadResponseObject::GetUserAgent() {
     return this->userAgent_;
 }
+
+std::string AceWebRefreshAccessedHistoryObject::GetUrl() {
+    return this->url_;
+}
+bool AceWebRefreshAccessedHistoryObject::GetIsRefreshed() {
+    return this->isRefreshed_;
+}
+
+int AceWebFullScreenEnterObject::GetWidths() {
+    return this->widths_;
+}
+int AceWebFullScreenEnterObject::GetHeights() {
+    return this->heights_;
+}

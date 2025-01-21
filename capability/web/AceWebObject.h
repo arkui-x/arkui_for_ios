@@ -22,6 +22,9 @@
 typedef bool (^HttpAuthRequestMethod)(int action, std::string name, std::string pwd);
 typedef void (^PermissionRequestMethod)(int action, int ResourcesId);
 typedef void (^DialogResultMethod)(int action, std::string promptResult);
+typedef void (^FullEnterRequestExitMethod)();
+
+using FullEnterRequestExitCallBack = std::function<void()>;
 using AuthResultCallback = std::function<bool(const int, const std::string&, const std::string&)>;
 using PermissionResultCallback = std::function<void(const int, const int)>;
 using DialogResultCallBack = std::function<void(const int, const std::string&)>;
@@ -166,4 +169,38 @@ private:
     std::string userAgent_;
 };
 
+class AceWebRefreshAccessedHistoryObject{
+public:
+    AceWebRefreshAccessedHistoryObject(const std::string& url, const bool isRefreshed)
+        : url_(url), isRefreshed_(isRefreshed){}
+    std::string GetUrl();
+    bool GetIsRefreshed();
+private:
+    std::string url_;
+    bool isRefreshed_;
+};
+
+class AceWebFullScreenEnterObject{
+    public:
+    AceWebFullScreenEnterObject(int widths, int heights) : widths_(widths), heights_(heights){}
+    int GetWidths();
+    int GetHeights();
+    void SetFullEnterRequestExitCallback(FullEnterRequestExitMethod fullEnterRequestExitCallback)
+    {
+        fullEnterRequestExitCallback_ = fullEnterRequestExitCallback;
+    }
+
+    FullEnterRequestExitCallBack GetFullEnterRequestExitCallback()
+    {
+        return [this]() -> void {
+            fullEnterRequestExitCallback_();
+        };
+    }
+private:
+    int widths_;
+    int heights_;
+    FullEnterRequestExitMethod fullEnterRequestExitCallback_;
+};
+class AceWebFullScreenExitObject{
+};
 #endif /* AceWebObject_hpp */
