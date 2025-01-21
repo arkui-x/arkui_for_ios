@@ -32,6 +32,9 @@
 #define FAIL            @"fail"
 #define KEY_SOURCE      @"src"
 #define KEY_VALUE       @"value"
+#define ZOOMIN_SCALE_VALUE   1.2
+#define ZOOMOUT_SCALE_VALUE  0.8
+
 
 #define WEB_FLAG        @"web@"
 #define PARAM_AND       @"#HWJS-&-#"
@@ -65,6 +68,7 @@
 #define NTC_ONCONSOLEMESSAGE              @"onConsoleMessage"
 #define NTC_RICHTEXT_LOADDATA             @"loadData"
 
+#define WEBVIEW_PAGE_HALF                 2
 typedef void (^PostMessageResultMethod)(NSString* ocResult);
 typedef void (^PostMessageResultMethodExt)(id ocResult);
 typedef void (^OnDownloadBeforeStart)(NSString* guid, NSString* method, NSString* mimeType, NSString* url);
@@ -105,7 +109,10 @@ typedef void (^onDownloadFinish)(NSString* guid, NSString* path);
 @property (nonatomic, assign) bool allowIncognitoMode;
 @end
 
+static BOOL _webDebuggingAccessInit = NO;
+
 @implementation AceWeb
+
 - (instancetype)init:(int64_t)incId
               target:(UIViewController*)target
              onEvent:(IAceOnResourceEvent)callback
@@ -216,21 +223,21 @@ typedef void (^onDownloadFinish)(NSString* guid, NSString* path);
 }
 
 -(void)loadUrl:(NSString*)url header:(NSDictionary*) httpHeaders{
-    
+
     if(url == nil){
         NSLog(@"Error:AceWeb: url is nill");
         return;
     }
-    
+
     if ([url hasSuffix:@".html"] && ![url hasPrefix:@"file://"] && ![url hasPrefix:@"http"]) {
         url = [NSString stringWithFormat:@"file://%@", url];
     }
-    
+
     if (httpHeaders == nil || httpHeaders.count == 0) {
         [self.webView loadRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:url]]];
         return;
     }
-    
+
     NSURLRequest *request = [NSURLRequest requestWithURL:[[NSURL alloc] initWithString:url]];
     NSDictionary *headerFields = httpHeaders;
     NSMutableURLRequest *mutableRequest = [request mutableCopy];
@@ -507,9 +514,96 @@ typedef void (^onDownloadFinish)(NSString* guid, NSString* path);
     }
 }
 
+- (void)zoomIn {
+    UIScrollView *scrollView = self.webView.scrollView;
+    CGFloat zoomInValue = scrollView.zoomScale * ZOOMIN_SCALE_VALUE;
+    [scrollView setZoomScale:zoomInValue];
+}
+
+- (void)zoomOut {
+    UIScrollView *scrollView = self.webView.scrollView;
+    CGFloat zoomOutValue = scrollView.zoomScale * ZOOMOUT_SCALE_VALUE;
+    [scrollView setZoomScale:zoomOutValue];
+}
+
++ (BOOL)getWebDebuggingAccess {
+    return _webDebuggingAccessInit;
+}
+
++ (void)setWebDebuggingAccess:(bool)webDebuggingAccess
+{
+    _webDebuggingAccessInit = webDebuggingAccess == 1 ? YES : NO;
+}
+
+- (void)pageDown:(bool)value
+{
+    UIScrollView *scrollView = self.webView.scrollView;
+    CGFloat screenHeight = scrollView.bounds.size.height;
+    CGFloat contentHeight = scrollView.contentSize.height - screenHeight;
+    CGPoint currentOffset = scrollView.contentOffset;
+    CGPoint newOffset;
+    if(value) {
+        newOffset = CGPointMake(currentOffset.x, contentHeight);
+    } else {
+        CGFloat halfScreenHeight = screenHeight / WEBVIEW_PAGE_HALF;
+        newOffset = CGPointMake(currentOffset.x, MIN(contentHeight, currentOffset.y + halfScreenHeight));
+    }
+    [scrollView setContentOffset:newOffset animated:YES];
+}
+
+- (void)postUrl:(NSString*)url postData:(NSData *)postData {
+    if (!url) {
+        NSLog(@"Error:AceWeb: url is NULL");
+        return;
+    }
+    NSURL *nsUrl = [NSURL URLWithString:url];
+    if (!nsUrl) {
+        NSLog(@"Error:AceWeb: nsUrl is NULL");
+        return;
+    }
+    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:nsUrl];
+    if (request) {
+        [request setHTTPMethod:@"POST"];
+        [request setHTTPBody:postData];
+        [request setValue:@"application/x-www-form-urlencoded" forHTTPHeaderField:@"Content-Type"];
+        [self.webView loadRequest:request];
+    }
+}
+
 - (void)stop
 {
     [self.webView stopLoading];
+}
+
+- (bool)isZoomAccess
+{
+    return self.allowZoom;
+}
+
+- (NSString*)getOriginalUrl
+{
+    if(self.webView &&
+        self.webView.backForwardList &&
+        self.webView.backForwardList.currentItem &&
+        self.webView.backForwardList.currentItem.initialURL)
+    {
+        return self.webView.backForwardList.currentItem.initialURL.absoluteString;
+    }
+    return @"";
+}
+
+- (void)pageUp:(bool)value
+{
+    UIScrollView* scrollView = self.webView.scrollView;
+    CGFloat contentHeight = scrollView.contentOffset.y;
+    CGFloat viewHeight = scrollView.bounds.size.height / WEBVIEW_PAGE_HALF;
+    CGPoint offset;
+    if (value) {
+        offset = CGPointMake(0, 0);
+    } else {
+        offset = CGPointMake(0, MAX(0, contentHeight - viewHeight));
+    }
+    [scrollView setContentOffset:offset animated:YES];
 }
 
 - (void)setCustomUserAgent:(NSString*)userAgent

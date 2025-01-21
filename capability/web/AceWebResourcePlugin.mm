@@ -62,6 +62,11 @@ static NSMutableDictionary<NSString*, AceWeb*> *objectMap;
     } else {
       aceWeb = [[AceWeb alloc] init:incId target:(UIViewController*)self.target onEvent:callback abilityInstanceId:self.instanceId];
     }
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_16_4
+    if([[[UIDevice currentDevice] systemVersion] floatValue] >= 16.4){
+        [aceWeb getWeb].inspectable = [AceWeb getWebDebuggingAccess];
+    }
+#endif
     [aceWeb loadUrl:[param valueForKey:URL_SRC] header:[NSMutableDictionary dictionary]];
     NSUInteger insertIndex = [self.target.view.subviews count] - 1;
     [self.target.view insertSubview:aceWeb.getWeb atIndex:insertIndex];
