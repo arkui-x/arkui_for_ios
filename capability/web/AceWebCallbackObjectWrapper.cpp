@@ -252,6 +252,28 @@ void AceWebDialogObjectWrapper::Cancel(void* object, int index)
     }
 }
 
+class AceWebRefreshAccessedHistoryObjectWrapper final : public OHOS::Ace::WebRefreshAccessedHistoryObject {
+public:
+    std::string GetUrl(void* object);
+    bool GetIsRefreshed(void* object);
+};
+
+std::string AceWebRefreshAccessedHistoryObjectWrapper::GetUrl(void* object)
+{
+    AceWebRefreshAccessedHistoryObject* acePtr = reinterpret_cast<AceWebRefreshAccessedHistoryObject*>(object);
+    return acePtr ? acePtr->GetUrl() : "";
+}
+
+bool AceWebRefreshAccessedHistoryObjectWrapper::GetIsRefreshed(void* object)
+{
+    AceWebRefreshAccessedHistoryObject* acePtr = reinterpret_cast<AceWebRefreshAccessedHistoryObject*>(object);
+    return acePtr ? acePtr->GetIsRefreshed() : false;
+}
+
+class AceWebFullScreenExitObjectWrapper final : public OHOS::Ace::WebFullScreenExitObject {
+    public:
+};
+
 class AceWebPermissionRequestObjectWrapper final : public OHOS::Ace::WebPermissionRequestObject {
 public:
     std::string GetOrigin(void* object);
@@ -383,6 +405,35 @@ std::string AceWebDownloadResponseObjectWrapper::GetUserAgent(void* object)
     return acePtr ? acePtr->GetUserAgent() : "";
 }
 
+class AceWebFullScreenEnterObjectWrapper final : public OHOS::Ace::WebFullScreenEnterObject {
+public:
+    int GetWidths(void* object);
+    int GetHeights(void* object);
+    void ExitFullScreen(void* object, int index);
+};
+
+int AceWebFullScreenEnterObjectWrapper::GetWidths(void* object)
+{
+    AceWebFullScreenEnterObject* acePtr = reinterpret_cast<AceWebFullScreenEnterObject*>(object);
+    return acePtr ? acePtr->GetWidths() : 0;
+}
+
+int AceWebFullScreenEnterObjectWrapper::GetHeights(void* object)
+{
+    AceWebFullScreenEnterObject* acePtr = reinterpret_cast<AceWebFullScreenEnterObject*>(object);
+    return acePtr ? acePtr->GetHeights() : 0;
+}
+
+void AceWebFullScreenEnterObjectWrapper::ExitFullScreen(void* object, int index)
+{
+    FullEnterRequestExitCallBack callback;
+    AceWebFullScreenEnterObject* acePtr = reinterpret_cast<AceWebFullScreenEnterObject*>(object);
+    callback = acePtr ? acePtr->GetFullEnterRequestExitCallback() : callback;
+    if (callback) {
+        callback();
+    }
+}
+
 void InjectAceWebResourceObject()
 {
     auto aceWebResourceObjectWrapper = OHOS::Ace::Referenced::MakeRefPtr<AceWebResourceObjectWrapper>();
@@ -405,4 +456,10 @@ void InjectAceWebResourceObject()
     OHOS::Ace::WebObjectEventManager::GetInstance().SetHttpAuthRequestObject(aceWebHttpAuthRequestObject);
     auto aceWebDownloadResponseObject = OHOS::Ace::Referenced::MakeRefPtr<AceWebDownloadResponseObjectWrapper>();
     OHOS::Ace::WebObjectEventManager::GetInstance().SetDownloadResponseObject(aceWebDownloadResponseObject);
+    auto aceWebRefreshAccessedHistoryObject = OHOS::Ace::Referenced::MakeRefPtr<AceWebRefreshAccessedHistoryObjectWrapper>();
+    OHOS::Ace::WebObjectEventManager::GetInstance().SetRefreshAccessedHistoryObject(aceWebRefreshAccessedHistoryObject);
+    auto aceWebFullScreenEnterObject = OHOS::Ace::Referenced::MakeRefPtr<AceWebFullScreenEnterObjectWrapper>();
+    OHOS::Ace::WebObjectEventManager::GetInstance().SetFullScreenEnterObject(aceWebFullScreenEnterObject);
+    auto aceWebFullScreenExitObject = OHOS::Ace::Referenced::MakeRefPtr<AceWebFullScreenExitObjectWrapper>();
+    OHOS::Ace::WebObjectEventManager::GetInstance().SetFullScreenExitObject(aceWebFullScreenExitObject);
 }
