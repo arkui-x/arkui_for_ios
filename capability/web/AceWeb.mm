@@ -74,6 +74,15 @@
 #define NTC_ONFULLSCREENEXIT              @"onFullScreenExit"
 #define NTC_ONREFRESHACCESSED_HISTORYEVENT     @"onRefreshAccessedHistory"
 #define WEBVIEW_PAGE_HALF                 2
+@interface DownloadTaskInfo : NSObject
+@property (nonatomic, assign) bool isDownload;
+@property (nonatomic, strong) NSString* filePath;
+@property (nonatomic, strong) NSDate* lastUpdateTime;
+@property (nonatomic, strong) NSURLSessionDownloadTask* downloadTask;
+@end
+
+@implementation DownloadTaskInfo
+@end
 typedef void (^PostMessageResultMethod)(NSString* ocResult);
 typedef void (^PostMessageResultMethodExt)(id ocResult);
 typedef void (^OnDownloadBeforeStart)(NSString* guid, NSString* method, NSString* mimeType, NSString* url);
@@ -112,9 +121,7 @@ typedef void (^onDownloadFinish)(NSString* guid, NSString* path);
 @property (nonatomic, strong) onDownloadUpdated onDownloadUpdatedCallBack;
 @property (nonatomic, strong) onDownloadFailed onDownloadFailedCallBack;
 @property (nonatomic, strong) onDownloadFinish onDownloadFinishCallBack;
-@property (nonatomic, strong) NSMutableDictionary<NSString*, NSNumber*>* sendInfoCounts;
-@property (nonatomic, strong) NSMutableDictionary<NSString*, NSString*>* filePaths;
-@property (nonatomic, strong) NSMutableDictionary<NSString*, NSURLSessionDownloadTask*>* downloadTasks;
+@property (nonatomic, strong) NSMutableDictionary<NSString*, DownloadTaskInfo*>* downloadTasksDic;
 @property (nonatomic, assign) bool allowIncognitoMode;
 @end
 
@@ -637,9 +644,7 @@ static BOOL _webDebuggingAccessInit = NO;
 - (void)initConfigure
 {
     self.callSyncMethodMap = [[NSMutableDictionary alloc] init];
-    self.downloadTasks = [[NSMutableDictionary alloc] init];
-    self.filePaths = [[NSMutableDictionary alloc] init];
-    self.sendInfoCounts = [[NSMutableDictionary alloc] init];
+    self.downloadTasksDic = [[NSMutableDictionary alloc] init];
     self.screenScale = [UIScreen mainScreen].scale;
     InjectAceWebResourceObject();
 }
@@ -664,11 +669,16 @@ static BOOL _webDebuggingAccessInit = NO;
     if (!self.session) {
         self.session = [NSURLSession sessionWithConfiguration:config delegate:self delegateQueue:nil];
     }
-    NSURLSessionDownloadTask *downloadTask = [self.session downloadTaskWithURL:[NSURL URLWithString:url]];
+    NSURLSessionDownloadTask* downloadTask = [self.session downloadTaskWithURL:[NSURL URLWithString:url]];
     NSString* guid = [NSString stringWithFormat:@"%lld_%lu", self.incId, downloadTask.taskIdentifier];
     NSString* method = downloadTask.originalRequest.HTTPMethod ? downloadTask.originalRequest.HTTPMethod : @"";
     NSString* mimeType = downloadTask.response.MIMEType ? downloadTask.response.MIMEType : @"";
-    [self.downloadTasks setObject:downloadTask forKey:guid];
+    DownloadTaskInfo* downloadTaskInfo = [[DownloadTaskInfo alloc] init];
+    downloadTaskInfo.isDownload = false;
+    downloadTaskInfo.downloadTask = downloadTask;
+    downloadTaskInfo.filePath = @"";
+    downloadTaskInfo.lastUpdateTime = [NSDate date];
+    [self.downloadTasksDic setObject:downloadTaskInfo forKey:guid];
     if (self.onDownloadBeforeStartCallBack) {
         self.onDownloadBeforeStartCallBack(guid, method, mimeType, url);
     }
@@ -698,10 +708,14 @@ static BOOL _webDebuggingAccessInit = NO;
 
 -(bool)webDownloadItemStart:(NSString*)guid ocPath:(NSString*) ocPath
 {
-    NSURLSessionDownloadTask* downloadTask = [self.downloadTasks objectForKey:guid];
+    DownloadTaskInfo* downloadTaskInfo = [self.downloadTasksDic objectForKey:guid];
+    if (!downloadTaskInfo) {
+        return false;
+    }
+    NSURLSessionDownloadTask* downloadTask = downloadTaskInfo.downloadTask;
     if (downloadTask) {
-        [self.filePaths setObject:ocPath forKey:guid];
-        [self.sendInfoCounts setObject:@(0) forKey:guid];
+        downloadTaskInfo.isDownload = true;
+        downloadTaskInfo.filePath = ocPath;
         [downloadTask resume];
         return true;
     }
@@ -710,9 +724,13 @@ static BOOL _webDebuggingAccessInit = NO;
 
 - (bool)webDownloadItemCancel:(NSString*)guid
 {
-    NSURLSessionDownloadTask* downloadTask = [self.downloadTasks objectForKey:guid];
+    DownloadTaskInfo* downloadTaskInfo = [self.downloadTasksDic objectForKey:guid];
+    if (!downloadTaskInfo) {
+        return false;
+    }
+    NSURLSessionDownloadTask* downloadTask = downloadTaskInfo.downloadTask;
     if (downloadTask) {
-        [self.downloadTasks removeObjectForKey:guid];
+        [self.downloadTasksDic removeObjectForKey:guid];
         [downloadTask cancel];
         return true;
     }
@@ -721,8 +739,13 @@ static BOOL _webDebuggingAccessInit = NO;
 
 - (bool)webDownloadItemPause:(NSString*)guid
 {
-    NSURLSessionDownloadTask* downloadTask = [self.downloadTasks objectForKey:guid];
+    DownloadTaskInfo* downloadTaskInfo = [self.downloadTasksDic objectForKey:guid];
+    if (!downloadTaskInfo) {
+        return false;
+    }
+    NSURLSessionDownloadTask* downloadTask = downloadTaskInfo.downloadTask;
     if (downloadTask) {
+        downloadTaskInfo.isDownload = false;
         [downloadTask suspend];
         return true;
     }
@@ -731,8 +754,13 @@ static BOOL _webDebuggingAccessInit = NO;
 
 - (bool)webDownloadItemResume:(NSString*)guid
 {
-    NSURLSessionDownloadTask* downloadTask = [self.downloadTasks objectForKey:guid];
+    DownloadTaskInfo* downloadTaskInfo = [self.downloadTasksDic objectForKey:guid];
+    if (!downloadTaskInfo) {
+        return false;
+    }
+    NSURLSessionDownloadTask* downloadTask = downloadTaskInfo.downloadTask;
     if (downloadTask) {
+        downloadTaskInfo.isDownload = true;
         [downloadTask resume];
         return true;
     }
@@ -1606,29 +1634,32 @@ static BOOL _webDebuggingAccessInit = NO;
                                            didWriteData:(int64_t)bytesWritten 
                                       totalBytesWritten:(int64_t)totalBytesWritten 
                               totalBytesExpectedToWrite:(int64_t)totalBytesExpectedToWrite {
+    NSString* guid = [NSString stringWithFormat:@"%lld_%lu", self.incId, downloadTask.taskIdentifier];
+    DownloadTaskInfo* downloadTaskInfo = [self.downloadTasksDic objectForKey:guid];
+    if (!downloadTaskInfo || !self.onDownloadUpdatedCallBack) {
+        return;
+    }
     static NSDate* lastUpdateTime;
     static dispatch_once_t onceToken;
-    NSString* guid = [NSString stringWithFormat:@"%lld_%lu", self.incId, downloadTask.taskIdentifier];
     dispatch_once(&onceToken, ^{
         lastUpdateTime = [NSDate dateWithTimeIntervalSince1970:0];
     });
-    NSDate* now = [NSDate date];
-    NSString* minGuid = guid;
-    NSNumber* minCount = nil;
-    for (NSString* guidKey in self.sendInfoCounts) {
-        NSNumber* count = [self.sendInfoCounts objectForKey:guidKey] ?: @(0);
-        if (minCount == nil || [count intValue] < [minCount intValue]) {
-            minGuid = guidKey;
+    
+    NSString* earliestGuid = guid;
+    NSDate* earliestDate = [NSDate date];
+    for (NSString* key in self.downloadTasksDic) {
+        DownloadTaskInfo* info = [self.downloadTasksDic objectForKey:key];
+        if ([info.lastUpdateTime compare:earliestDate] == NSOrderedAscending && info.isDownload) {
+            earliestDate = info.lastUpdateTime;
+            earliestGuid = key;
         }
     }
-    if ([now timeIntervalSinceDate:lastUpdateTime] > 0.5 && [guid isEqualToString:minGuid]) { 
+    NSDate* now = [NSDate date];
+    if ([now timeIntervalSinceDate:lastUpdateTime] > 0.5 && [guid isEqualToString:earliestGuid]) {
         NSString* suggestedFilename = downloadTask.response.suggestedFilename;
-        if (self.onDownloadUpdatedCallBack) {
-            NSNumber* count = [self.sendInfoCounts objectForKey:guid] ?: @(0);
-            [self.sendInfoCounts setObject:@([count intValue] + 1) forKey:guid];
-            self.onDownloadUpdatedCallBack(guid, totalBytesExpectedToWrite, totalBytesWritten, suggestedFilename);
-        }
+        downloadTaskInfo.lastUpdateTime = now;
         lastUpdateTime = now;
+        self.onDownloadUpdatedCallBack(guid, totalBytesExpectedToWrite, totalBytesWritten, suggestedFilename);
     }
 }
 
@@ -1638,7 +1669,11 @@ static BOOL _webDebuggingAccessInit = NO;
     NSString* suggestedFilename = downloadTask.response.suggestedFilename;
     NSString* documentsPath = [NSSearchPathForDirectoriesInDomains(
         NSDocumentDirectory, NSUserDomainMask, YES) firstObject];
-    NSString* path = [documentsPath stringByAppendingPathComponent:[self.filePaths objectForKey:guid]];
+    NSString* path = documentsPath;
+    DownloadTaskInfo* downloadTaskInfo = [self.downloadTasksDic objectForKey:guid];
+    if (downloadTaskInfo) {
+        path = [documentsPath stringByAppendingPathComponent:downloadTaskInfo.filePath];
+    }
     NSFileManager *fileManager = [NSFileManager defaultManager];
     if (![fileManager fileExistsAtPath:path]) {
         [fileManager createDirectoryAtPath:path withIntermediateDirectories:YES attributes:nil error:nil];
@@ -1653,18 +1688,14 @@ static BOOL _webDebuggingAccessInit = NO;
     } else {
         self.onDownloadFinishCallBack(guid, path);
     }
-    [self.downloadTasks removeObjectForKey:guid];
-    [self.filePaths removeObjectForKey:guid];
-    [self.sendInfoCounts removeObjectForKey:guid];
+    [self.downloadTasksDic removeObjectForKey:guid];
 }
 
 - (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task 
     didCompleteWithError:(nullable NSError *)error {
     if (error) {
-         NSString* guid = [NSString stringWithFormat:@"%lld_%lu", self.incId, task.taskIdentifier];
-        [self.downloadTasks removeObjectForKey:guid];
-        [self.filePaths removeObjectForKey:guid];
-        [self.sendInfoCounts removeObjectForKey:guid];
+        NSString* guid = [NSString stringWithFormat:@"%lld_%lu", self.incId, task.taskIdentifier];
+        [self.downloadTasksDic removeObjectForKey:guid];
         self.onDownloadFailedCallBack(guid, error.code);
     }
 }
