@@ -1932,10 +1932,7 @@ void UpdateAccessibilityEventHubInfo(const RefPtr<NG::FrameNode>& node, Accessib
     CHECK_NULL_VOID(node);
     auto eventHub = node->GetEventHub<NG::EventHub>();
     if (eventHub != nullptr) {
-        auto gestureEventHub = eventHub->GetGestureEventHub();
-        if (gestureEventHub != nullptr) {
-            nodeInfo.SetHitTestBehavior(gestureEventHub->GetHitTestModeStr());
-        }
+        nodeInfo.SetHitTestBehavior(NG::GestureEventHub::GetHitTestModeStr(eventHub->GetGestureEventHub()));
     }
 }
 

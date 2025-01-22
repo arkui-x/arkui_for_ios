@@ -80,6 +80,7 @@ public:
     void RegisterDragEventCallback(DragEventCallBack&& callback) override;
     void RegisterAxisEventCallback(AxisEventCallback&& callback) override;
     void RegisterCardViewPositionCallback(CardViewPositionCallBack&& callback) override {}
+    void RegisterCrownEventCallback(CrownEventCallback&& callback) override;
     void RegisterCardViewAccessibilityParamsCallback(CardViewAccessibilityParamsCallback&& callback) override {}
     void RegisterViewPositionChangeCallback(ViewPositionChangeCallback&& callback) override;
     void RegisterTransformHintChangeCallback(TransformHintChangeCallback&& callback) override {}
@@ -142,6 +143,7 @@ private:
     TouchEventCallback touchEventCallback_;
     MouseEventCallback mouseEventCallback_;
     AxisEventCallback axisEventCallback_;
+    CrownEventCallback crownEventCallback_;
     RotationEventCallBack rotationEventCallback_;
     ViewChangeCallback viewChangeCallback_;
     ViewPositionChangeCallback viewPositionChangeCallback_;

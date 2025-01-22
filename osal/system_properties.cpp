@@ -91,6 +91,8 @@ std::pair<float, float> SystemProperties::brightUpPercent_ = {};
 
 bool SystemProperties::taskPriorityAdjustmentEnable_ = false;
 
+int32_t SystemProperties::dragDropFrameworkStatus_ = 0;
+
 bool SystemProperties::IsOpIncEnable()
 {
     return false;
@@ -330,5 +332,10 @@ bool SystemProperties::IsNeedResampleTouchPoints()
 bool SystemProperties::IsNeedSymbol()
 {
     return false;
+}
+
+int32_t SystemProperties::GetDragDropFrameworkStatus()
+{
+    return dragDropFrameworkStatus_;
 }
 } // namespace OHOS::Ace
