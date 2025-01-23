@@ -92,8 +92,6 @@
             %@.%@.postMessage(bytes.buffer); \
         })();", base64String, WEBVIEW_MESSAGE_CHANNELS_VARIABLE_NAME, port];
         } else if ([message isKindOfClass:[NSArray class]]) {
-            source = [NSString stringWithFormat:@"(function() {%@.%@.postMessage(%@);})();",
-                    WEBVIEW_MESSAGE_CHANNELS_VARIABLE_NAME, port, message];
             NSData *jsonData = [NSJSONSerialization dataWithJSONObject:message options:0 error:nil];
             NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
             source = [NSString stringWithFormat:@"(function() {%@.%@.postMessage(%@);})();",
@@ -108,6 +106,12 @@
                 source = [NSString stringWithFormat:@"(function() {%@.%@.postMessage(%@);})();",
                         WEBVIEW_MESSAGE_CHANNELS_VARIABLE_NAME, port, message];
             }
+        } else if ([message isKindOfClass:[NSError class]]) {
+            NSError *error = (NSError *)message;
+            NSString *errorName = error.domain;
+            NSString *errorMessage = error.localizedDescription;
+            source = [NSString stringWithFormat:@"(function() {%@.%@.postMessage(new Error('%@'));})();",
+                WEBVIEW_MESSAGE_CHANNELS_VARIABLE_NAME, port, errorMessage];
         } else {
             NSString *escapedMessage = [[message stringByReplacingOccurrencesOfString:@"\"" withString:@"\\\""]
                         stringByReplacingOccurrencesOfString:@"'" withString:@"\\'"];

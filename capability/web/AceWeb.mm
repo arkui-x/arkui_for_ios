@@ -744,8 +744,9 @@ static BOOL _webDebuggingAccessInit = NO;
         return false;
     }
     NSURLSessionDownloadTask* downloadTask = downloadTaskInfo.downloadTask;
-    if (downloadTask) {
+    if (downloadTask && downloadTaskInfo.isDownload) {
         downloadTaskInfo.isDownload = false;
+        downloadTaskInfo.lastUpdateTime = [NSDate date];
         [downloadTask suspend];
         return true;
     }
@@ -759,8 +760,9 @@ static BOOL _webDebuggingAccessInit = NO;
         return false;
     }
     NSURLSessionDownloadTask* downloadTask = downloadTaskInfo.downloadTask;
-    if (downloadTask) {
+    if (downloadTask && !downloadTaskInfo.isDownload) {
         downloadTaskInfo.isDownload = true;
+        downloadTaskInfo.lastUpdateTime = [NSDate date];
         [downloadTask resume];
         return true;
     }
@@ -1682,21 +1684,33 @@ static BOOL _webDebuggingAccessInit = NO;
     NSURL* destinationURL = [NSURL fileURLWithPath:destinationPath];
     NSError* fileError = nil;
     [[NSFileManager defaultManager] moveItemAtURL:location toURL:destinationURL error:&fileError];
-    if (fileError) {
-        NSLog(@"Error moving file to sandbox: %@", fileError.localizedDescription);
-        self.onDownloadFailedCallBack(guid, fileError.code);
-    } else {
-        self.onDownloadFinishCallBack(guid, path);
+    for (NSString* key in self.downloadTasksDic) {
+        DownloadTaskInfo* info = [self.downloadTasksDic objectForKey:key];
+        info.lastUpdateTime = [NSDate date];
     }
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        if (fileError) {
+            NSLog(@"Error moving file to sandbox: %@", fileError.localizedDescription);
+            self.onDownloadFailedCallBack(guid, fileError.code);
+        } else {
+            self.onDownloadFinishCallBack(guid, path);
+        }
+    });
     [self.downloadTasksDic removeObjectForKey:guid];
 }
 
 - (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task 
     didCompleteWithError:(nullable NSError *)error {
     if (error) {
+        for (NSString* key in self.downloadTasksDic) {
+            DownloadTaskInfo* info = [self.downloadTasksDic objectForKey:key];
+            info.lastUpdateTime = [NSDate date];
+        }
         NSString* guid = [NSString stringWithFormat:@"%lld_%lu", self.incId, task.taskIdentifier];
-        [self.downloadTasksDic removeObjectForKey:guid];
-        self.onDownloadFailedCallBack(guid, error.code);
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            [self.downloadTasksDic removeObjectForKey:guid];
+            self.onDownloadFailedCallBack(guid, error.code);
+        });
     }
 }
 @end

@@ -206,43 +206,59 @@ void evaluateJavaScriptExtOC(int webId, const std::string& script, int32_t async
     }
     NSString* ocScript = [NSString stringWithCString:script.c_str() encoding:NSUTF8StringEncoding];
     [web evaluateJavaScript:ocScript
-                callback:^(id _Nullable obj, NSError* _Nullable error) {
-                    NSString* ocType = @"";
-                    std::string ocResult = "";
-                    if (error == nil) {
-                        if ([obj isKindOfClass:[NSString class]]) {
-                            ocType = @"STRING";
-                            ocResult = [[NSString stringWithFormat:@"%@", obj] UTF8String];
-                        } else if ([obj isKindOfClass:[NSNumber class]]) {
-                            NSNumber* number = (NSNumber*)obj;
-                            if (strcmp([obj objCType], @encode(char)) == 0){
-                                ocType = @"BOOL";
-                                bool boolValue = [number boolValue];
-                                ocResult = boolValue ? "true" : "false";
-                            } else if (strcmp([obj objCType], @encode(int)) == 0){
-                                ocType = @"INT";
-                                ocResult = [number stringValue].UTF8String;
-                            } else {
-                                ocType = @"DOUBLE";
-                                ocResult = [number stringValue].UTF8String;
-                            }
-                        } else if ([obj isKindOfClass:[NSArray class]]) {
-                            ocType = @"ARRAY";
-                            NSArray* array = (NSArray*)obj;
-                            NSData* jsonData = [NSJSONSerialization dataWithJSONObject:array options:0 error:nil];
-                            NSString* jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-                            ocResult = [jsonString UTF8String];
-                        } else {
-                            ocType = @"STRING";
-                            ocResult = "This type not support, only string/number/boolean/array is supported";
-                        }
+        callback:^(id _Nullable obj, NSError* _Nullable error) {
+            NSString* ocType = @"";
+            std::string ocResult = "";
+            if (error == nil) {
+                if ([obj isKindOfClass:[NSString class]]) {
+                    ocType = @"STRING";
+                    ocResult = [[NSString stringWithFormat:@"%@", obj] UTF8String];
+                } else if ([obj isKindOfClass:[NSNumber class]]) {
+                    NSNumber* number = (NSNumber*)obj;
+                    if (strcmp([obj objCType], @encode(char)) == 0){
+                        ocType = @"BOOL";
+                        bool boolValue = [number boolValue];
+                        ocResult = boolValue ? "true" : "false";
+                    } else if (strcmp([obj objCType], @encode(int)) == 0){
+                        ocType = @"INT";
+                        ocResult = [number stringValue].UTF8String;
                     } else {
-                        ocType = @"STRING";
-                        NSString* errorDescription = [error localizedDescription];
-                        ocResult = [errorDescription UTF8String];
+                        ocType = @"DOUBLE";
+                        ocResult = [number stringValue].UTF8String;
                     }
-                    callbackOC([ocType UTF8String], ocResult, asyncCallbackInfoId);
-                }];
+                } else if ([obj isKindOfClass:[NSArray class]]) {
+                    ocType = @"STRINGARRAY";
+                    NSArray* array = (NSArray*)obj;
+                    if (array.count > 0) {
+                        id firstItem = array[0];
+                        if ([firstItem isKindOfClass:[NSString class]]) {
+                            ocType = @"STRINGARRAY";
+                        } else if ([firstItem isKindOfClass:[NSNumber class]]) {
+                            NSNumber* number = (NSNumber*)firstItem;
+                            if (strcmp([number objCType], @encode(char)) == 0) {
+                                ocType = @"BOOLEANARRAY";
+                            } else if (strcmp([number objCType], @encode(int)) == 0) {
+                                ocType = @"INTARRAY";
+                            } else {
+                                ocType = @"DOUBLEARRAY";
+                            }
+                        }
+                        
+                        NSData* jsonData = [NSJSONSerialization dataWithJSONObject:array options:0 error:nil];
+                        NSString* jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+                        ocResult = [jsonString UTF8String];
+                    }
+                } else {
+                    ocType = @"STRING";
+                    ocResult = "This type not support, only string/number/boolean/array is supported";
+                }
+            } else {
+                ocType = @"STRING";
+                NSString* errorDescription = [error localizedDescription];
+                ocResult = [errorDescription UTF8String];
+            }
+            callbackOC([ocType UTF8String], ocResult, asyncCallbackInfoId);
+        }];
 }
 
 std::string getUrlOC(int id)
@@ -474,9 +490,10 @@ bool postMessageEventExtOC(int id, const std::shared_ptr<AceWebMessageExtImpl> w
         }
         case AceWebMessageType::ERROR: {
             std::pair<std::string, std::string> errorInfo = webMessageExtImpl->GetError();
-            std::string resultString = errorInfo.first + errorInfo.second;
-            NSString* ocValue = [NSString stringWithCString:resultString.c_str() encoding:NSUTF8StringEncoding];
-            [web postMessageEventExt:ocValue];
+            NSString* errorName = [NSString stringWithCString:errorInfo.first.c_str() encoding:NSUTF8StringEncoding];
+            NSString* errorMessage = [NSString stringWithCString:errorInfo.second.c_str() encoding:NSUTF8StringEncoding];
+            NSError* error = [NSError errorWithDomain:errorName code:0 userInfo:@{NSLocalizedDescriptionKey: errorMessage}];
+            [web postMessageEventExt:error];
             break;
         }
         default:
@@ -556,7 +573,7 @@ void onMessageEventExtOC(int webId, const std::string& portHandle,
                     }
                 }
             }
-        } 
+        }
         callbackOC(webId, portHandle, webMessageExtImpl);
     }];
 }
