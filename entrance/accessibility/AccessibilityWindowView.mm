@@ -85,7 +85,7 @@ typedef enum {
     CGFloat statusBarHeight = statusBarManager.statusBarFrame.size.height;
     UINavigationBar* navBar = [self getViewController].navigationController.navigationBar;
     if (navBar.hidden) {
-        return statusBarHeight;
+        return 0;
     }
     CGFloat navigationBarHeight = [self getViewController].navigationController.navigationBar.frame.size.height;
     return statusBarHeight + navigationBarHeight;
@@ -185,6 +185,10 @@ typedef enum {
     if (node.nodeWidth <= 0 || node.nodeHeight <= 0) {
         return NO;
     }
+    if ([node.componentType isEqualToString:@"Text"] &&
+        (node.nodeLable.length > 0 || node.descriptionInfo.length > 0)) {
+        return YES;
+    }
     if (node.isClickable || node.isLongClickable || node.nodeLable.length > 0 || node.descriptionInfo.length > 0) {
         return YES;
     }
@@ -219,7 +223,7 @@ typedef enum {
         }
 
         element.isAccessibility = [self isAccessibilityEnabled:node allNodeInfo:dictNodeInfo];
-        if (node.nodeLable.length <= 0 && node.descriptionInfo.length <= 0) {
+        if (node.nodeLable.length <= 0 && node.descriptionInfo.length <= 0 && element.isAccessibility) {
             node.nodeLable = strLabel;
         }
         element.children = [newChildren copy];
@@ -229,7 +233,23 @@ typedef enum {
         if (element.elementId < minElementId) {
             element.isAccessibility = NO;
         }
+        if ([element.componentType isEqualToString:@"Column"] && element.parent != nil &&
+            [element.parent.componentType isEqualToString:@"Column"]) {
+            element.isAccessibility = ![self isParentElementTypePicker:element.parent];
+        }
     }
+}
+
+- (BOOL)isParentElementTypePicker:(AccessibilityElement*)element
+{
+    AccessibilityElement* parentElement = element.parent;
+    if (parentElement != nil && [parentElement.componentType isEqualToString:@"Stack"]) {
+        AccessibilityElement* baseElement = parentElement.parent;
+        if (baseElement != nil && [baseElement.componentType containsString:@"Picker"]) {
+            return YES;
+        }
+    }
+    return NO;
 }
 
 - (NSString*)getAccessibilityLevel:(AccessibilityElement*)element
@@ -400,6 +420,16 @@ typedef enum {
     if (!self.executeActionCallBack) {
         return;
     }
+    NSString* Key = [NSString stringWithFormat:@"%lld", elementId];
+    AccessibilityElement* objcElement = [self.isCreateElements objectForKey:Key];
+    if ([objcElement.componentType isEqualToString:@"Text"]) {
+        if (objcElement.parent != nil && [objcElement.parent.componentType isEqualToString:@"Column"]) {
+            AccessibilityElement* baseElement = objcElement.parent.parent;
+            if (baseElement != nil && [baseElement.componentType isEqualToString:@"PatternLock"]) {
+                return;
+            }
+        }
+    }
     _focusElementId = elementId;
     if (_clearFocusElementId != ElEMENTID_DEFAULT && _clearFocusElementId != elementId) {
         self.executeActionCallBack(
@@ -418,17 +448,15 @@ typedef enum {
 
 - (void)UpdateAccessibilityNodesWithElementId:(AccessibilityNodeInfo*)nodeInfo
 {
-    NSString* key = [NSString stringWithFormat:@"%lld", nodeInfo.elementId];
-    AccessibilityElement* element = [self.isCreateElements objectForKey:key];
-    if (element) {
-        CGRect rect = CGRectMake(nodeInfo.nodeX, nodeInfo.nodeY + [self getStatusBarAndNavigationBarHeight],
-            nodeInfo.nodeWidth, nodeInfo.nodeHeight);
-        element.accessibilityFrame = rect;
-        element.accessibilityLabel = nodeInfo.nodeLable;
-        element.accessibilityHint = nodeInfo.descriptionInfo;
-        element.componentType = nodeInfo.componentType;
-        element.isScrollable = nodeInfo.isScrollable;
-        element.actionType = nodeInfo.actionType;
+    [self CreateObject:nodeInfo];
+    NSString* Key = [NSString stringWithFormat:@"%lld", nodeInfo.elementId];
+    AccessibilityElement* element = [self.isCreateElements objectForKey:Key];
+    element.accessibilityLevel = [self getAccessibilityLevel:element];
+    NSString* parentKey = [NSString stringWithFormat:@"%lld", nodeInfo.parentId];
+    AccessibilityElement* parentElement = [self.isCreateElements objectForKey:parentKey];
+    if ([nodeInfo.componentType isEqualToString:@"Text"] &&
+        [parentElement.componentType isEqualToString:@"TextClock"]) {
+        parentElement.accessibilityLabel = nodeInfo.nodeLable;
     }
 }
 @end
