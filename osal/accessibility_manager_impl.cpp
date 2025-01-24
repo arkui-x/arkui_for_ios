@@ -1894,18 +1894,6 @@ void UpdateAccessibilityContextInfo(const RefPtr<NG::FrameNode>& node, Accessibi
     }
 }
 
-void UpdateAccessibilityEventHubInfo(const RefPtr<NG::FrameNode>& node, AccessibilityElementInfo& nodeInfo)
-{
-    CHECK_NULL_VOID(node);
-    auto eventHub = node->GetEventHub<NG::EventHub>();
-    if (eventHub != nullptr) {
-        auto gestureEventHub = eventHub->GetGestureEventHub();
-        if (gestureEventHub != nullptr) {
-            nodeInfo.SetHitTestBehavior(gestureEventHub->GetHitTestModeStr());
-        }
-    }
-}
-
 void UpdateAccessibilityStateInfo(
     AccessibilityElementInfo& nodeInfo, const RefPtr<NG::AccessibilityProperty>& accessibilityProperty)
 {
@@ -1995,7 +1983,6 @@ void AccessibilityManagerImpl::UpdateAccessibilityElementInfo(
     UpdateAccessibilityTextInfo(nodeInfo, accessibilityProperty);
     UpdateAccessibilityRangeInfo(nodeInfo, accessibilityProperty);
     UpdateAccessibilityContextInfo(node, nodeInfo);
-    UpdateAccessibilityEventHubInfo(node, nodeInfo);
     UpdateAccessibilityStateInfo(nodeInfo, accessibilityProperty);
     UpdateAccessibilityGridInfo(nodeInfo, accessibilityProperty);
     UpdateAccessibilityExtraInfo(nodeInfo, accessibilityProperty);
