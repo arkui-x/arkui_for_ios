@@ -60,9 +60,6 @@ public:
     GridInfo(int32_t rowCount, int32_t columnCount, int32_t mode);
     void SetGrid(int32_t rowCount, int32_t columnCount, int32_t mode);
     void SetGrid(GridInfo other);
-    int32_t GetRowCount() const;
-    int32_t GetColumnCount() const;
-    int32_t GetSelectionMode() const;
 
 protected:
     int32_t rowCount_ = 0;
@@ -75,14 +72,8 @@ public:
     GridItemInfo() {}
     GridItemInfo(
         int32_t rowIndex, int32_t rowSpan, int32_t columnIndex, int32_t columnSpan, bool heading, bool selected);
-    void SetGridItemInfo(GridItemInfo other);
-    void SetGridItemInfo(
-        int32_t rowIndex, int32_t rowSpan, int32_t columnIndex, int32_t columnSpan, bool heading, bool selected);
     int32_t GetColumnIndex() const;
-    int32_t GetRowIndex() const;
     int32_t GetColumnSpan() const;
-    int32_t GetRowSpan() const;
-    bool IsHeading() const;
     bool IsSelected() const;
 
 protected:
@@ -97,12 +88,10 @@ protected:
 class ExtraElementInfo {
 public:
     ExtraElementInfo() {}
-    ExtraElementInfo(const std::map<std::string, std::string> extraElementValueStr,
-        const std::map<std::string, int32_t> extraElementValueInt);
-    RetError SetExtraElementInfo(const std::string keyStr, const std::string valueStr);
-    RetError SetExtraElementInfo(const std::string keyStr, const int32_t valueInt);
-    const std::map<std::string, std::string>& GetExtraElementInfoValueStr() const;
-    const std::map<std::string, int32_t>& GetExtraElementInfoValueInt() const;
+    ExtraElementInfo(const std::map<std::string, std::string>& extraElementValueStr,
+        const std::map<std::string, int32_t>& extraElementValueInt)
+        : extraElementValueStr_(extraElementValueStr), extraElementValueInt_(extraElementValueInt)
+    {}
 
 protected:
     std::map<std::string, std::string> extraElementValueStr_ = {};
@@ -164,17 +153,11 @@ public:
     static constexpr int32_t MAX_SIZE = 50;
     static constexpr int64_t ROOT_PARENT_ID = -2100000;
     AccessibilityElementInfo();
-    void SetComponentId(const int64_t componentId);
-    int64_t GetChildId(const int32_t index) const;
-    int32_t GetChildCount() const;
     const std::vector<int64_t>& GetChildIds() const;
     void AddChild(const int64_t childId);
     bool RemoveChild(const int64_t childId);
     const std::vector<AccessibleAction>& GetActionList() const;
     void AddAction(AccessibleAction& action);
-    void DeleteAction(AccessibleAction& action);
-    bool DeleteAction(ActionType& actionType);
-    void DeleteAllActions();
     void SetTextLengthLimit(const int32_t max);
     int32_t GetTextLengthLimit() const;
     int32_t GetWindowId() const;
@@ -209,15 +192,11 @@ public:
     void SetScrollable(const bool scrollable);
     bool IsEditable() const;
     void SetEditable(const bool editable);
-    bool IsPluraLineSupported() const;
     void SetPluraLineSupported(const bool multiLine);
     bool IsPopupSupported() const;
     void SetPopupSupported(const bool supportPopup);
     bool IsDeletable() const;
     void SetDeletable(const bool deletable);
-    bool IsEssential() const;
-    void SetEssential(const bool essential);
-    bool IsGivingHint() const;
     void SetHinting(const bool hinting);
     const std::string& GetBundleName() const;
     void SetBundleName(const std::string& bundleName);
@@ -230,26 +209,16 @@ public:
     const std::string& GetDescriptionInfo() const;
     void SetDescriptionInfo(const std::string& contentDescription);
     void SetComponentResourceId(const std::string& viewIdResName);
-    const std::string& GetComponentResourceId() const;
     void SetLiveRegion(const int32_t liveRegion);
-    int32_t GetLiveRegion() const;
     void SetContentInvalid(const bool contentInvalid);
     bool GetContentInvalid() const;
     void SetError(const std::string& error);
-    const std::string& GetError() const;
-    void SetLabeled(const int64_t componentId);
-    int64_t GetLabeledAccessibilityId() const;
     void SetAccessibilityId(const int64_t componentId);
     int64_t GetAccessibilityId() const;
-    const RangeInfo& GetRange() const;
     void SetRange(RangeInfo& rangeInfo);
     void SetSelectedBegin(const int32_t start);
-    int32_t GetSelectedBegin() const;
     void SetSelectedEnd(const int32_t end);
-    int32_t GetSelectedEnd() const;
-    const GridInfo& GetGrid() const;
     void SetGrid(const GridInfo& grid);
-    const GridItemInfo& GetGridItem() const;
     void SetGridItem(const GridItemInfo& gridItem);
     int32_t GetCurrentIndex() const;
     void SetCurrentIndex(const int32_t index);
@@ -257,44 +226,26 @@ public:
     void SetBeginIndex(const int32_t index);
     int32_t GetEndIndex() const;
     void SetEndIndex(const int32_t index);
-    int32_t GetInputType() const;
     void SetInputType(const int32_t inputType);
-    bool IsValidElement() const;
-    void SetValidElement(const bool valid);
     void SetInspectorKey(const std::string& key);
-    const std::string& GetInspectorKey() const;
     void SetPagePath(const std::string& path);
     const std::string& GetPagePath() const;
     void SetPageId(const int32_t pageId);
     int32_t GetPageId() const;
-    void SetTextMovementStep(const TextMoveUnit granularity);
-    TextMoveUnit GetTextMovementStep() const;
     void SetItemCounts(const int32_t itemCounts);
-    int32_t GetItemCounts() const;
-    void SetTriggerAction(const ActionType action);
-    ActionType GetTriggerAction() const;
-    void SetContentList(const std::vector<std::string>& contentList);
-    void GetContentList(std::vector<std::string>& contentList) const;
-    void SetLatestContent(const std::string& content);
-    const std::string& GetLatestContent() const;
     void SetAccessibilityText(const std::string& accessibilityText);
     const std::string& GetAccessibilityText() const;
     void SetTextType(const std::string& textType);
     const std::string& GetTextType() const;
     void SetOffset(const float offset);
-    float GetOffset() const;
     void SetChildTreeIdAndWinId(const int32_t iChildTreeId, const int32_t iChildWindowId);
     int32_t GetChildTreeId() const;
     int32_t GetChildWindowId() const;
     void SetBelongTreeId(const int32_t iBelongTreeId);
-    int32_t GetBelongTreeId() const;
-    int32_t GetParentWindowId() const;
     void SetParentWindowId(const int32_t iParentWindowId);
     void SetExtraElement(const ExtraElementInfo& extraElementInfo);
-    const ExtraElementInfo& GetExtraElement() const;
-    bool GetAccessibilityGroup() const;
     void SetAccessibilityGroup(const bool accessibilityGroup);
-    void SetAccessibilityLevel(const std::string accessibilityLevel);
+    void SetAccessibilityLevel(const std::string& accessibilityLevel);
     const std::string& GetAccessibilityLevel() const;
     void SetZIndex(const int32_t zIndex);
     int32_t GetZIndex() const;
@@ -307,9 +258,6 @@ public:
     void SetBlur(const std::string& blur);
     const std::string& GetBlur() const;
     void SetHitTestBehavior(const std::string& hitTestBehavior);
-    const std::string& GetHitTestBehavior() const;
-    void SetNavDestinationId(const int64_t navDestinationId);
-    int64_t GetNavDestinationId() const;
 
 protected:
     int32_t pageId_ = -1;

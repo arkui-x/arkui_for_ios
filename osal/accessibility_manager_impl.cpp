@@ -394,7 +394,6 @@ bool ActAccessibilityFocus(int64_t elementId, RefPtr<NG::FrameNode>& frameNode, 
     int64_t& currentFocusNodeId, bool isNeedClear)
 {
     CHECK_NULL_RETURN(frameNode, false);
-    bool isAccessibilityVirtualNode = frameNode->IsAccessibilityVirtualNode();
     if (isNeedClear) {
         if (elementId != currentFocusNodeId) {
             return false;
@@ -422,17 +421,6 @@ bool conversionDirection(std::string dir)
 {
     stringToLower(dir);
     return dir.compare(STRING_DIR_FORWARD) == DEFAULT_ID ? true : false;
-}
-
-inline void getArgumentByKey(
-    const std::map<std::string, std::string>& actionArguments, const std::string checkKey, int32_t& argument)
-{
-    auto iter = actionArguments.find(checkKey);
-    if (iter != actionArguments.end()) {
-        std::stringstream strArguments;
-        strArguments << iter->second;
-        strArguments >> argument;
-    }
 }
 
 static std::string ConvertActionTypeToString(AceAction action)
@@ -792,7 +780,6 @@ RefPtr<NG::FrameNode> AccessibilityManagerImpl::FindNodeFromPipeline(
     CHECK_NULL_RETURN(rootNode, nullptr);
 
     NodeId nodeId = elementId;
-    // accessibility use -1 for first search to get root node
     if (elementId == DEFAULT_ElEMENTID) {
         nodeId = rootNode->GetAccessibilityId();
     }
@@ -1176,26 +1163,6 @@ void SearchExtensionElementInfoNG(const SearchParameter& searchParam, const RefP
         for (auto& info : extensionElementInfos) {
             infos.push_back(info);
         }
-    }
-}
-
-bool IsNodeInRoot(const RefPtr<NG::FrameNode>& node, const RefPtr<NG::PipelineContext>& ngPipeline)
-{
-    CHECK_NULL_RETURN(node, false);
-    CHECK_NULL_RETURN(ngPipeline, false);
-    auto rect = node->GetTransformRectRelativeToWindow();
-    auto root = ngPipeline->GetRootElement();
-    CHECK_NULL_RETURN(root, false);
-    auto rootRect = root->GetTransformRectRelativeToWindow();
-    return LessNotEqual(rect.GetX(), rootRect.GetX() + rootRect.Width());
-}
-
-void UpdateUiExtensionParentIdForFocus(const RefPtr<NG::FrameNode>& rootNode, const int64_t uiExtensionOffset,
-    Accessibility::AccessibilityElementInfo& info)
-{
-    if ((uiExtensionOffset != NG::UI_EXTENSION_OFFSET_MAX) && (info.GetComponentType() != V2::ROOT_ETS_TAG) &&
-        (info.GetParentNodeId() == rootNode->GetAccessibilityId())) {
-        info.SetParent(NG::UI_EXTENSION_ROOT_ID);
     }
 }
 
@@ -1927,15 +1894,6 @@ void UpdateAccessibilityContextInfo(const RefPtr<NG::FrameNode>& node, Accessibi
     }
 }
 
-void UpdateAccessibilityEventHubInfo(const RefPtr<NG::FrameNode>& node, AccessibilityElementInfo& nodeInfo)
-{
-    CHECK_NULL_VOID(node);
-    auto eventHub = node->GetEventHub<NG::EventHub>();
-    if (eventHub != nullptr) {
-        nodeInfo.SetHitTestBehavior(NG::GestureEventHub::GetHitTestModeStr(eventHub->GetGestureEventHub()));
-    }
-}
-
 void UpdateAccessibilityStateInfo(
     AccessibilityElementInfo& nodeInfo, const RefPtr<NG::AccessibilityProperty>& accessibilityProperty)
 {
@@ -2025,7 +1983,6 @@ void AccessibilityManagerImpl::UpdateAccessibilityElementInfo(
     UpdateAccessibilityTextInfo(nodeInfo, accessibilityProperty);
     UpdateAccessibilityRangeInfo(nodeInfo, accessibilityProperty);
     UpdateAccessibilityContextInfo(node, nodeInfo);
-    UpdateAccessibilityEventHubInfo(node, nodeInfo);
     UpdateAccessibilityStateInfo(nodeInfo, accessibilityProperty);
     UpdateAccessibilityGridInfo(nodeInfo, accessibilityProperty);
     UpdateAccessibilityExtraInfo(nodeInfo, accessibilityProperty);

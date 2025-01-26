@@ -75,12 +75,13 @@ AccessibilityNodeInfo* SetAccessibilityNodeInfo(
     CHECK_NULL_RETURN(window, aiModel);
     std::string accessibilityText = info.GetAccessibilityText();
     NSString* text = [NSString stringWithCString:accessibilityText.c_str() encoding:NSUTF8StringEncoding];
-    if (accessibilityText.empty()) {
+    text = [text stringByReplacingOccurrencesOfString:@" " withString:@""];
+    if (text.length == 0) {
         text = [NSString stringWithCString:info.GetContent().c_str() encoding:NSUTF8StringEncoding];
     }
-    text = [text stringByReplacingOccurrencesOfString:@" " withString:@""];
+    text = [text stringByReplacingOccurrencesOfString:@"." withString:@"点"];
     NSString* descriptionInfo =
-        [NSString stringWithFormat:@"%s %s", info.GetDescriptionInfo().c_str(), info.GetHint().c_str()];
+        [NSString stringWithFormat:@"%s %s", info.GetHint().c_str(), info.GetDescriptionInfo().c_str()];
     descriptionInfo = [descriptionInfo stringByReplacingOccurrencesOfString:@" " withString:@""];
     NSString* componentType = [NSString stringWithCString:info.GetComponentType().c_str()
                                                  encoding:NSUTF8StringEncoding];
