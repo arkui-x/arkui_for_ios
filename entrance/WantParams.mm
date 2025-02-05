@@ -116,8 +116,15 @@ typedef enum {
     return strParams;
 }
 
-- (NSMutableDictionary*)getValue
+- (id)getValue:(NSString*)key
 {
-    return self.dicWantParams;
+    if (key == nil || self.dicWantParams == nil) {
+        return nil;
+    }
+    NSArray *arrKey = self.dicWantParams.allKeys;
+    if (![key isKindOfClass:[NSString class]] || ![arrKey containsObject:key]) {
+        return nil;
+    }
+    return self.dicWantParams[key];
 }
 @end
