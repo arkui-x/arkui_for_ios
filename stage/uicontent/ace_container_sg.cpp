@@ -1147,20 +1147,19 @@ void AceContainerSG::SetCurPointerEvent(const std::shared_ptr<MMI::PointerEvent>
     }
 }
 
-bool AceContainerSG::GetCurPointerEventInfo(int32_t& pointerId, int32_t& globalX, int32_t& globalY,
-        int32_t& sourceType, int32_t& sourceTool, StopDragCallback&& stopDragCallback)
+bool AceContainerSG::GetCurPointerEventInfo(PointerEvent& dragPointerEvent, StopDragCallback&& stopDragCallback)
 {
     std::lock_guard<std::mutex> lock(pointerEventMutex_);
     CHECK_NULL_RETURN(currentPointerEvent_, false);
     MMI::PointerEvent::PointerItem pointerItem;
-    if (!currentPointerEvent_->GetPointerItem(pointerId, pointerItem) || !pointerItem.IsPressed()) {
+    if (!currentPointerEvent_->GetPointerItem(dragPointerEvent.pointerId, pointerItem) || !pointerItem.IsPressed()) {
         return false;
     }
-    sourceType = currentPointerEvent_->GetSourceType();
-    globalX = pointerItem.GetDisplayX();
-    globalY = pointerItem.GetDisplayY();
-    sourceTool = pointerItem.GetToolType();
-    RegisterStopDragCallback(pointerId, std::move(stopDragCallback));
+    dragPointerEvent.sourceType = currentPointerEvent_->GetSourceType();
+    dragPointerEvent.displayX = pointerItem.GetDisplayX();
+    dragPointerEvent.displayY = pointerItem.GetDisplayY();
+    dragPointerEvent.sourceTool = static_cast<SourceTool>(pointerItem.GetToolType());
+    RegisterStopDragCallback(dragPointerEvent.pointerId, std::move(stopDragCallback));
     return true;
 }
 
