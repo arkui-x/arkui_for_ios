@@ -87,9 +87,9 @@
 - (NSString*)updateWebLayout:(NSDictionary*) paramMap;
 - (void)startDownload:(NSString*)url;
 - (void)onDownloadBeforeStart:(void (^)(NSString* guid, NSString *method, NSString *mimeType, NSString *url))callback;
-- (void)onDownloadUpdated:(void (^)(NSString* guid, int64_t totalBytes,
+- (void)onDownloadUpdated:(void (^)(NSString* guid, NSString* state, int64_t totalBytes,
                                 int64_t receivedBytes, NSString *suggestedFileName))callback;
-- (void)onDownloadFailed:(void (^)(NSString* guid, int64_t code))callback;
+- (void)onDownloadFailed:(void (^)(NSString* guid, NSString* state, int64_t code))callback;
 - (void)onDownloadFinish:(void (^)(NSString* guid, NSString* path))callback;
 - (bool)webDownloadItemStart:(NSString*)guid ocPath:(NSString*)ocPath;
 - (bool)webDownloadItemCancel:(NSString*)guid;

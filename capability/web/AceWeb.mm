@@ -86,9 +86,9 @@
 typedef void (^PostMessageResultMethod)(NSString* ocResult);
 typedef void (^PostMessageResultMethodExt)(id ocResult);
 typedef void (^OnDownloadBeforeStart)(NSString* guid, NSString* method, NSString* mimeType, NSString* url);
-typedef void (^onDownloadUpdated)(NSString* guid, int64_t totalBytes,
+typedef void (^onDownloadUpdated)(NSString* guid, NSString* state, int64_t totalBytes,
                                 int64_t receivedBytes, NSString* suggestedFileName);
-typedef void (^onDownloadFailed)(NSString* guid, int64_t code);
+typedef void (^onDownloadFailed)(NSString* guid, NSString* state, int64_t code);
 typedef void (^onDownloadFinish)(NSString* guid, NSString* path);
 @interface AceWeb()<WKScriptMessageHandler, WKUIDelegate, WKNavigationDelegate, 
                     UIScrollViewDelegate, NSURLSessionDownloadDelegate, WKHTTPCookieStoreObserver>
@@ -666,6 +666,7 @@ static BOOL _webDebuggingAccessInit = NO;
 -(void)startDownload:(NSString*)url
 {
     NSURLSessionConfiguration* config = [NSURLSessionConfiguration defaultSessionConfiguration];
+    config.HTTPMaximumConnectionsPerHost = 1; 
     if (!self.session) {
         self.session = [NSURLSession sessionWithConfiguration:config delegate:self delegateQueue:nil];
     }
@@ -690,13 +691,13 @@ static BOOL _webDebuggingAccessInit = NO;
     self.onDownloadBeforeStartCallBack = callback;
 }
 
-- (void)onDownloadUpdated:(void (^)(NSString* guid, int64_t totalBytes,
+- (void)onDownloadUpdated:(void (^)(NSString* guid, NSString* state, int64_t totalBytes,
                                 int64_t receivedBytes, NSString *suggestedFileName))callback
 {
     self.onDownloadUpdatedCallBack = callback;
 }
 
-- (void)onDownloadFailed:(void (^)(NSString* guid, int64_t code))callback
+- (void)onDownloadFailed:(void (^)(NSString* guid, NSString* state, int64_t code))callback
 {
     self.onDownloadFailedCallBack = callback;
 }
@@ -732,6 +733,11 @@ static BOOL _webDebuggingAccessInit = NO;
     if (downloadTask) {
         [self.downloadTasksDic removeObjectForKey:guid];
         [downloadTask cancel];
+        self.onDownloadFailedCallBack(guid, @"CANCELED", 0);
+        for (NSString* key in self.downloadTasksDic) {
+            DownloadTaskInfo* info = [self.downloadTasksDic objectForKey:key];
+            info.lastUpdateTime = [NSDate dateWithTimeIntervalSinceNow:1];
+        }
         return true;
     }
     return false;
@@ -746,8 +752,12 @@ static BOOL _webDebuggingAccessInit = NO;
     NSURLSessionDownloadTask* downloadTask = downloadTaskInfo.downloadTask;
     if (downloadTask && downloadTaskInfo.isDownload) {
         downloadTaskInfo.isDownload = false;
-        downloadTaskInfo.lastUpdateTime = [NSDate date];
         [downloadTask suspend];
+        self.onDownloadUpdatedCallBack(guid, @"PAUSED", 0, 0, @"");
+        for (NSString* key in self.downloadTasksDic) {
+            DownloadTaskInfo* info = [self.downloadTasksDic objectForKey:key];
+            info.lastUpdateTime = [NSDate dateWithTimeIntervalSinceNow:1];
+        }
         return true;
     }
     return false;
@@ -762,7 +772,11 @@ static BOOL _webDebuggingAccessInit = NO;
     NSURLSessionDownloadTask* downloadTask = downloadTaskInfo.downloadTask;
     if (downloadTask && !downloadTaskInfo.isDownload) {
         downloadTaskInfo.isDownload = true;
-        downloadTaskInfo.lastUpdateTime = [NSDate date];
+        self.onDownloadUpdatedCallBack(guid, @"PENDING", 0, 0, @"");
+        for (NSString* key in self.downloadTasksDic) {
+            DownloadTaskInfo* info = [self.downloadTasksDic objectForKey:key];
+            info.lastUpdateTime = [NSDate dateWithTimeIntervalSinceNow:1];
+        }
         [downloadTask resume];
         return true;
     }
@@ -1661,7 +1675,7 @@ static BOOL _webDebuggingAccessInit = NO;
         NSString* suggestedFilename = downloadTask.response.suggestedFilename;
         downloadTaskInfo.lastUpdateTime = now;
         lastUpdateTime = now;
-        self.onDownloadUpdatedCallBack(guid, totalBytesExpectedToWrite, totalBytesWritten, suggestedFilename);
+        self.onDownloadUpdatedCallBack(guid, @"IN_PROGRESS", totalBytesExpectedToWrite, totalBytesWritten, suggestedFilename);
     }
 }
 
@@ -1676,7 +1690,7 @@ static BOOL _webDebuggingAccessInit = NO;
     if (downloadTaskInfo) {
         path = [documentsPath stringByAppendingPathComponent:downloadTaskInfo.filePath];
     }
-    NSFileManager *fileManager = [NSFileManager defaultManager];
+    NSFileManager* fileManager = [NSFileManager defaultManager];
     if (![fileManager fileExistsAtPath:path]) {
         [fileManager createDirectoryAtPath:path withIntermediateDirectories:YES attributes:nil error:nil];
     }
@@ -1691,7 +1705,7 @@ static BOOL _webDebuggingAccessInit = NO;
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         if (fileError) {
             NSLog(@"Error moving file to sandbox: %@", fileError.localizedDescription);
-            self.onDownloadFailedCallBack(guid, fileError.code);
+            self.onDownloadFailedCallBack(guid, @"COMPLETE", fileError.code);
         } else {
             self.onDownloadFinishCallBack(guid, path);
         }
@@ -1709,7 +1723,7 @@ static BOOL _webDebuggingAccessInit = NO;
         NSString* guid = [NSString stringWithFormat:@"%lld_%lu", self.incId, task.taskIdentifier];
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
             [self.downloadTasksDic removeObjectForKey:guid];
-            self.onDownloadFailedCallBack(guid, error.code);
+            self.onDownloadFailedCallBack(guid, @"INTERRUPTED" ,error.code);
         });
     }
 }

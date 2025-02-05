@@ -684,18 +684,24 @@ void onDownloadUpdatedOC(int32_t webId,
     if (web == nil) {
         return;
     }
-    [web onDownloadUpdated:^(NSString* guid, int64_t totalBytes, int64_t receivedBytes, NSString* suggestedFileName) {
+    [web onDownloadUpdated:^(NSString* guid, NSString* state, int64_t totalBytes, int64_t receivedBytes, NSString* suggestedFileName) {
         auto webDownloadImpl = getWebDownloadImpl([guid UTF8String]);
         if (webDownloadImpl != nullptr) {
-            double progress = (double)receivedBytes / (double)totalBytes;
-            webDownloadImpl->SetGuid([guid UTF8String]);
-            webDownloadImpl->SetTotalBytes(totalBytes);
-            webDownloadImpl->SetReceivedBytes(receivedBytes);
-            webDownloadImpl->SetLastErrorCode(0);
-            webDownloadImpl->SetPercentComplete(progress*100);
-            webDownloadImpl->SetCurrentSpeed(calculateDownloadSpeed([guid UTF8String], receivedBytes));
-            webDownloadImpl->SetState(WebDownloadState::IN_PROGRESS);
-            webDownloadImpl->SetSuggestedFileName([suggestedFileName UTF8String]);
+            if ([state isEqualToString:@"IN_PROGRESS"]) {
+                double progress = (double)receivedBytes / (double)totalBytes;
+                webDownloadImpl->SetGuid([guid UTF8String]);
+                webDownloadImpl->SetTotalBytes(totalBytes);
+                webDownloadImpl->SetReceivedBytes(receivedBytes);
+                webDownloadImpl->SetLastErrorCode(0);
+                webDownloadImpl->SetPercentComplete(progress*100);
+                webDownloadImpl->SetCurrentSpeed(calculateDownloadSpeed([guid UTF8String], receivedBytes));
+                webDownloadImpl->SetState(WebDownloadState::IN_PROGRESS);
+                webDownloadImpl->SetSuggestedFileName([suggestedFileName UTF8String]);
+            } else if ([state isEqualToString:@"PAUSED"]) {
+                webDownloadImpl->SetState(WebDownloadState::PAUSED);
+            } else if ([state isEqualToString:@"PENDING"]) {
+                webDownloadImpl->SetState(WebDownloadState::PENDING);
+            }
             callbackOC(webId, webDownloadImpl);
         }
     }];
@@ -709,12 +715,16 @@ void onDownloadFailedOC(int32_t webId,
         return;
     }
 
-    [web onDownloadFailed:^(NSString* guid, int64_t code) {
+    [web onDownloadFailed:^(NSString* guid, NSString* state, int64_t code) {
         auto webDownloadImpl = getWebDownloadImpl([guid UTF8String]);
         if (webDownloadImpl != nullptr) {
             webDownloadImpl->SetGuid([guid UTF8String]);
-            webDownloadImpl->SetPercentComplete(100);
-            webDownloadImpl->SetState(WebDownloadState::INTERRUPTED);
+            if ([state isEqualToString:@"CANCELED"]) {
+                webDownloadImpl->SetLastErrorCode(40);
+                webDownloadImpl->SetState(WebDownloadState::CANCELED);
+            } else {
+                webDownloadImpl->SetState(WebDownloadState::INTERRUPTED);
+            }
             webDownloadImplMap.erase([guid UTF8String]);
             callbackOC(webId, webDownloadImpl);
         }
@@ -733,6 +743,8 @@ void onDownloadFinishOC(int32_t webId,
         auto webDownloadImpl = getWebDownloadImpl([guid UTF8String]);
         if (webDownloadImpl != nullptr) {
             webDownloadImpl->SetGuid([guid UTF8String]);
+            webDownloadImpl->SetPercentComplete(100);
+            webDownloadImpl->SetReceivedBytes(webDownloadImpl->GetTotalBytes());
             webDownloadImpl->SetState(WebDownloadState::COMPLETE);
             webDownloadImplMap.erase([guid UTF8String]);
             callbackOC(webId, webDownloadImpl);
