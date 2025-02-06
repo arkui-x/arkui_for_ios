@@ -680,7 +680,7 @@ void AceContainerSG::UpdateConfiguration(
         }
     }
     if (!densityDpi.empty()) {
-        double density = std::stoi(densityDpi);
+        double density = std::stoi(densityDpi) / DPI_BASE;
         LOGI("resconfig density : %{public}f", density);
         configurationChange.dpiUpdate = true;
         resConfig.SetDensity(density);

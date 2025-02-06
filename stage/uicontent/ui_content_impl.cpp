@@ -518,7 +518,7 @@ void UIContentImpl::InitAceInfoFromResConfig()
         auto densityDpi = config->GetItem(OHOS::AbilityRuntime::Platform::ConfigurationInner::APPLICATION_DENSITYDPI);
         LOGI("UIContent set GetScreenDensity dpi=%{public}s", densityDpi.c_str());
         if (!densityDpi.empty()) {
-            double density = std::stoi(densityDpi);
+            double density = std::stoi(densityDpi) / DPI_BASE;
             SystemProperties::SetResolution(density);
         }
         if (direction == OHOS::AbilityRuntime::Platform::ConfigurationInner::DIRECTION_VERTICAL) {
