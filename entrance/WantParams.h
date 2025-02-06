@@ -25,7 +25,7 @@
 
 -(void)addValue:(NSString *)key value:(id)value;
 -(NSString *)toWantParamsString;
-- (NSMutableDictionary*)getValue;
+- (id)getValue:(NSString*)key;
 
 @end
 
