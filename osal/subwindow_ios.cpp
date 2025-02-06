@@ -753,4 +753,9 @@ void SubwindowIos::HideEventColumn()
     ContainerScope scope(parentContainerId_);
     manager->RemoveEventColumn();
 }
+
+bool SubwindowIos::ShowSelectOverlay(const RefPtr<NG::FrameNode>& overlayNode)
+{
+    return false;
+}
 } // namespace OHOS::Ace
