@@ -743,6 +743,7 @@ void onDownloadFinishOC(int32_t webId,
         auto webDownloadImpl = getWebDownloadImpl([guid UTF8String]);
         if (webDownloadImpl != nullptr) {
             webDownloadImpl->SetGuid([guid UTF8String]);
+            webDownloadImpl->SetFullPath([path UTF8String]);
             webDownloadImpl->SetPercentComplete(100);
             webDownloadImpl->SetReceivedBytes(webDownloadImpl->GetTotalBytes());
             webDownloadImpl->SetState(WebDownloadState::COMPLETE);

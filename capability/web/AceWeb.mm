@@ -736,7 +736,7 @@ static BOOL _webDebuggingAccessInit = NO;
         self.onDownloadFailedCallBack(guid, @"CANCELED", 0);
         for (NSString* key in self.downloadTasksDic) {
             DownloadTaskInfo* info = [self.downloadTasksDic objectForKey:key];
-            info.lastUpdateTime = [NSDate dateWithTimeIntervalSinceNow:1];
+            info.lastUpdateTime = [NSDate date];
         }
         return true;
     }
@@ -756,7 +756,7 @@ static BOOL _webDebuggingAccessInit = NO;
         self.onDownloadUpdatedCallBack(guid, @"PAUSED", 0, 0, @"");
         for (NSString* key in self.downloadTasksDic) {
             DownloadTaskInfo* info = [self.downloadTasksDic objectForKey:key];
-            info.lastUpdateTime = [NSDate dateWithTimeIntervalSinceNow:1];
+            info.lastUpdateTime = [NSDate date];
         }
         return true;
     }
@@ -775,7 +775,7 @@ static BOOL _webDebuggingAccessInit = NO;
         self.onDownloadUpdatedCallBack(guid, @"PENDING", 0, 0, @"");
         for (NSString* key in self.downloadTasksDic) {
             DownloadTaskInfo* info = [self.downloadTasksDic objectForKey:key];
-            info.lastUpdateTime = [NSDate dateWithTimeIntervalSinceNow:1];
+            info.lastUpdateTime = [NSDate date];
         }
         [downloadTask resume];
         return true;
@@ -1650,32 +1650,36 @@ static BOOL _webDebuggingAccessInit = NO;
                                            didWriteData:(int64_t)bytesWritten 
                                       totalBytesWritten:(int64_t)totalBytesWritten 
                               totalBytesExpectedToWrite:(int64_t)totalBytesExpectedToWrite {
-    NSString* guid = [NSString stringWithFormat:@"%lld_%lu", self.incId, downloadTask.taskIdentifier];
-    DownloadTaskInfo* downloadTaskInfo = [self.downloadTasksDic objectForKey:guid];
-    if (!downloadTaskInfo || !self.onDownloadUpdatedCallBack) {
-        return;
-    }
-    static NSDate* lastUpdateTime;
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        lastUpdateTime = [NSDate dateWithTimeIntervalSince1970:0];
-    });
-    
-    NSString* earliestGuid = guid;
-    NSDate* earliestDate = [NSDate date];
-    for (NSString* key in self.downloadTasksDic) {
-        DownloadTaskInfo* info = [self.downloadTasksDic objectForKey:key];
-        if ([info.lastUpdateTime compare:earliestDate] == NSOrderedAscending && info.isDownload) {
-            earliestDate = info.lastUpdateTime;
-            earliestGuid = key;
+    @synchronized (self) {
+        NSString* guid = [NSString stringWithFormat:@"%lld_%lu", self.incId, downloadTask.taskIdentifier];
+        DownloadTaskInfo* downloadTaskInfo = [self.downloadTasksDic objectForKey:guid];
+        if (!downloadTaskInfo || !self.onDownloadUpdatedCallBack) {
+            return;
         }
-    }
-    NSDate* now = [NSDate date];
-    if ([now timeIntervalSinceDate:lastUpdateTime] > 0.5 && [guid isEqualToString:earliestGuid]) {
-        NSString* suggestedFilename = downloadTask.response.suggestedFilename;
-        downloadTaskInfo.lastUpdateTime = now;
-        lastUpdateTime = now;
-        self.onDownloadUpdatedCallBack(guid, @"IN_PROGRESS", totalBytesExpectedToWrite, totalBytesWritten, suggestedFilename);
+        static NSDate* lastUpdateTime;
+        static dispatch_once_t onceToken;
+        dispatch_once(&onceToken, ^{
+            lastUpdateTime = [NSDate dateWithTimeIntervalSince1970:0];
+        });
+        
+        NSString* earliestGuid = guid;
+        NSDate* earliestDate = [NSDate date];
+        for (NSString* key in self.downloadTasksDic) {
+            DownloadTaskInfo* info = [self.downloadTasksDic objectForKey:key];
+            if ([info.lastUpdateTime compare:earliestDate] == NSOrderedAscending && info.isDownload) {
+                earliestDate = info.lastUpdateTime;
+                earliestGuid = key;
+            }
+        }
+        NSDate* now = [NSDate date];
+        if ([now timeIntervalSinceDate:lastUpdateTime] > 1 && [guid isEqualToString:earliestGuid]) {
+            NSString* suggestedFilename = downloadTask.response.suggestedFilename;
+            downloadTaskInfo.lastUpdateTime = now;
+            lastUpdateTime = now;
+            dispatch_async(dispatch_get_main_queue(), ^{
+                self.onDownloadUpdatedCallBack(guid, @"IN_PROGRESS", totalBytesExpectedToWrite, totalBytesWritten, suggestedFilename);
+            });
+        }
     }
 }
 
@@ -1695,6 +1699,9 @@ static BOOL _webDebuggingAccessInit = NO;
         [fileManager createDirectoryAtPath:path withIntermediateDirectories:YES attributes:nil error:nil];
     }
     NSString* destinationPath = [path stringByAppendingPathComponent:suggestedFilename];
+    if ([fileManager fileExistsAtPath:destinationPath]) {
+        [fileManager removeItemAtPath:destinationPath error:nil];
+    }
     NSURL* destinationURL = [NSURL fileURLWithPath:destinationPath];
     NSError* fileError = nil;
     [[NSFileManager defaultManager] moveItemAtURL:location toURL:destinationURL error:&fileError];
@@ -1702,13 +1709,8 @@ static BOOL _webDebuggingAccessInit = NO;
         DownloadTaskInfo* info = [self.downloadTasksDic objectForKey:key];
         info.lastUpdateTime = [NSDate date];
     }
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        if (fileError) {
-            NSLog(@"Error moving file to sandbox: %@", fileError.localizedDescription);
-            self.onDownloadFailedCallBack(guid, @"COMPLETE", fileError.code);
-        } else {
-            self.onDownloadFinishCallBack(guid, path);
-        }
+    dispatch_async(dispatch_get_main_queue(), ^{
+        self.onDownloadFinishCallBack(guid, path);
     });
     [self.downloadTasksDic removeObjectForKey:guid];
 }
@@ -1721,10 +1723,10 @@ static BOOL _webDebuggingAccessInit = NO;
             info.lastUpdateTime = [NSDate date];
         }
         NSString* guid = [NSString stringWithFormat:@"%lld_%lu", self.incId, task.taskIdentifier];
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            [self.downloadTasksDic removeObjectForKey:guid];
-            self.onDownloadFailedCallBack(guid, @"INTERRUPTED" ,error.code);
+        dispatch_async(dispatch_get_main_queue(), ^{
+            self.onDownloadFailedCallBack(guid, @"INTERRUPTED", error.code);
         });
+        [self.downloadTasksDic removeObjectForKey:guid];
     }
 }
 @end
