@@ -17,5 +17,5 @@
 
 namespace OHOS::Ace {
 void ExceptionHandler::HandleJsException(
-    const std::string& exceptionMsg, const JsErrorObject& errorInfo) {}
+    const std::string& exceptionMsg, const JsErrorObject& errorInfo, bool isStageModel) {}
 } // namespace OHOS::Ace
