@@ -38,6 +38,7 @@ typedef void (^ScribeStateBlock)(bool state);
 @property(nonatomic, strong) NSMutableDictionary<NSString*, AccessibilityElement*>* isCreateElements;
 @property(nonatomic) int64_t focusElementId;
 @property(nonatomic) int64_t clearFocusElementId;
+@property(nonatomic) float focusElementMidY;
 
 typedef enum {
     ACCESSIBILITY_SCROLL_DEFAULT,
@@ -57,6 +58,7 @@ typedef enum {
         self.isCreateElements = [[NSMutableDictionary alloc] init];
         _focusElementId = ElEMENTID_DEFAULT;
         _clearFocusElementId = ElEMENTID_DEFAULT;
+        _focusElementMidY = 0;
     }
     return self;
 }
@@ -162,6 +164,7 @@ typedef enum {
     element.componentType = node.componentType;
     element.isScrollable = node.isScrollable;
     element.actionType = node.actionType;
+    element.pageId = node.pageId;
     [self.isCreateElements setObject:element forKey:key];
 
     return element;
@@ -257,29 +260,57 @@ typedef enum {
     if ([element.accessibilityLevel isEqualToString:LEVEL_AUTO]) {
         return LEVEL_YES;
     } else if ([element.accessibilityLevel isEqualToString:LEVEL_NO_HIDE_DESCENDANTS]) {
-        for (AccessibilityElement* childElement in element.children) {
-            if (![element.accessibilityLevel isEqualToString:LEVEL_NO_HIDE_DESCENDANTS]) {
-                childElement.accessibilityLevel = LEVEL_NO;
-            }
-        }
+        [self setAccessibilityLevelNoForChildren:element];
     }
     return element.accessibilityLevel;
 }
 
+- (void)setAccessibilityLevelNoForChildren:(AccessibilityElement*)element
+{
+    if (element.children.count <= 0) {
+        return;
+    }
+    for (AccessibilityElement* childElement in element.children) {
+        childElement.accessibilityLevel = LEVEL_NO;
+        [self setAccessibilityLevelNoForChildren:childElement];
+    }
+}
+
+void arrayDfs(AccessibilityElement* element, NSMutableArray* result)
+{
+    NSArray* sortedChildren = [element.children sortedArrayUsingComparator:^NSComparisonResult(
+        AccessibilityElement* objcFirst, AccessibilityElement* objcSecond) {
+      if (objcFirst.pageId == -1) {
+          return NSOrderedAscending;
+      } else if (objcSecond.pageId == -1) {
+          return NSOrderedDescending;
+      }
+      return NSOrderedSame;
+    }];
+    for (AccessibilityElement* elementChild in sortedChildren) {
+        arrayDfs(elementChild, result);
+    }
+    if (element != nil) {
+        [result addObject:element];
+    }
+}
 - (void)UpdateAccessibilityNodes:(NSMutableDictionary*)dictNodeInfo eventType:(size_t)eventType
 {
+    NSMutableArray* keysToRemove = [NSMutableArray array];
     [self.isCreateElements enumerateKeysAndObjectsUsingBlock:^(id key, id obj, BOOL* stop) {
-      int elementId = [(NSString*)key intValue];
       AccessibilityElement* node = (AccessibilityElement*)obj;
       if (![node.componentType isEqualToString:COMPONENTTYPE_ROOT]) {
-          [self.isCreateElements removeObjectForKey:(NSString*)key];
+          [keysToRemove addObject:key];
       }
     }];
+    [self.isCreateElements removeObjectsForKeys:keysToRemove];
     [self setChildrenNodeInfo:dictNodeInfo];
     for (NSString* key in self.isCreateElements) {
         AccessibilityElement* object = [self.isCreateElements objectForKey:key];
         if (object != nil && [object.componentType isEqualToString:COMPONENTTYPE_ROOT]) {
-            self.accessibilityElements = @[ [object accessibilityContainer] ?: [NSNull null] ];
+            NSMutableArray* result = [[NSMutableArray alloc] init];
+            arrayDfs(object, result);
+            self.accessibilityElements = result;
             break;
         }
     }
@@ -291,19 +322,27 @@ typedef enum {
         return;
     }
     defaultObject = nil;
-    for (NSString* key in self.isCreateElements) {
-        AccessibilityElement* object = [self.isCreateElements objectForKey:key];
+    for (AccessibilityElement* object in self.isCreateElements.allValues) {
         if (object != nil && [self IsViewOffscreenTopOrBottom:object.elementId] == ACCESSIBILITY_SCROLL_DEFAULT &&
             object.isAccessibility) {
-            if (defaultObject == nil ||
-                CGRectGetMidY(object.accessibilityFrame) < CGRectGetMinY(defaultObject.accessibilityFrame)) {
-                defaultObject = object;
-            }
+            defaultObject = [self GetMidYElement:object defaultElement:defaultObject];
         }
     }
     UIAccessibilityPostNotification(UIAccessibilityScreenChangedNotification, defaultObject);
 }
-
+- (AccessibilityElement*)GetMidYElement:(AccessibilityElement*)object
+                         defaultElement:(AccessibilityElement*)defaultObject
+{
+    if (defaultObject == nil) {
+        return object;
+    }
+    float objectMidY = CGRectGetMidY(object.accessibilityFrame) - _focusElementMidY;
+    float defaultObjectMidY = CGRectGetMidY(defaultObject.accessibilityFrame) - _focusElementMidY;
+    if (fabs(objectMidY) < fabs(defaultObjectMidY)) {
+        return object;
+    }
+    return defaultObject;
+}
 - (void)ExecuteAction:(void (^)(const int64_t elementId, const int32_t action, NSDictionary* actionDic))callback
 {
     self.executeActionCallBack = callback;
@@ -431,6 +470,12 @@ typedef enum {
         }
     }
     _focusElementId = elementId;
+    _focusElementMidY = 0;
+    if (objcElement != nil && objcElement.parent != nil &&
+        [objcElement.parent.componentType isEqualToString:@"Swiper"]) {
+        _focusElementMidY = CGRectGetMidY(objcElement.accessibilityFrame);
+    }
+
     if (_clearFocusElementId != ElEMENTID_DEFAULT && _clearFocusElementId != elementId) {
         self.executeActionCallBack(
             _clearFocusElementId, OHOS::Accessibility::ActionType::ACCESSIBILITY_ACTION_CLEAR_ACCESSIBILITY_FOCUS, nil);
