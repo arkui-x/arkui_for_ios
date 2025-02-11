@@ -42,6 +42,7 @@
 @property(nonatomic, assign) bool isAccessibility;
 @property(nonatomic, assign) bool isScrollable;
 @property(nonatomic, assign) int32_t actionType;
+@property(nonatomic, assign) int32_t pageId;
 
 @end
 
