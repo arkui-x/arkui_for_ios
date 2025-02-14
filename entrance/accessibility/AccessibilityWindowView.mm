@@ -22,7 +22,7 @@
 typedef void (^executeActionMethod)(const int64_t elementId, const int32_t action, NSDictionary* actionDict);
 typedef void (^requestUpdateMethod)(const int64_t elementId);
 typedef void (^ScribeStateBlock)(bool state);
-#define MIN_ELEMENT 0
+
 #define ElEMENTID_DEFAULT -1
 #define LEVEL_AUTO @"auto"
 #define LEVEL_YES @"yes"
@@ -200,7 +200,6 @@ typedef enum {
 
 - (void)setChildrenNodeInfo:(NSMutableDictionary*)dictNodeInfo
 {
-    int64_t minElementId = MIN_ELEMENT;
     for (NSString* key in dictNodeInfo) {
         AccessibilityNodeInfo* node = [dictNodeInfo objectForKey:key];
         if ([node.componentType isEqualToString:@"Column"]) {
@@ -210,9 +209,6 @@ typedef enum {
                 node.nodeWidth = parentNode.nodeWidth;
                 node.nodeHeight = parentNode.nodeHeight;
             }
-        }
-        if ([node.componentType isEqualToString:@"NavDestination"]) {
-            minElementId = node.elementId;
         }
         AccessibilityElement* element = [self CreateObject:node];
         NSMutableArray* newChildren = [[NSMutableArray alloc] init];
@@ -229,17 +225,62 @@ typedef enum {
         if (node.nodeLable.length <= 0 && node.descriptionInfo.length <= 0 && element.isAccessibility) {
             node.nodeLable = strLabel;
         }
+        if ([node.componentType isEqualToString:@"NavigationContent"] ||
+            [node.componentType isEqualToString:@"Navigation"]) {
+            newChildren = [newChildren sortedArrayUsingComparator:^NSComparisonResult(
+                AccessibilityElement* objcFirst, AccessibilityElement* objcSecond) {
+              if (objcFirst.elementId < objcSecond.elementId) {
+                  return NSOrderedDescending;
+              } else if (objcFirst.elementId > objcSecond.elementId) {
+                  return NSOrderedAscending;
+              }
+              return NSOrderedSame;
+            }];
+        }
         element.children = [newChildren copy];
     }
     for (AccessibilityElement* element in self.isCreateElements.allValues) {
         element.accessibilityLevel = [self getAccessibilityLevel:element];
-        if (element.elementId < minElementId) {
-            element.isAccessibility = NO;
+        if ([element.componentType isEqualToString:@"Navigation"]) {
+            [self setNavigationIsAccessibility:element showElement:nil];
         }
         if ([element.componentType isEqualToString:@"Column"] && element.parent != nil &&
             [element.parent.componentType isEqualToString:@"Column"]) {
             element.isAccessibility = ![self isParentElementTypePicker:element.parent];
         }
+    }
+}
+- (void)setNavigationIsAccessibility:(AccessibilityElement*)element showElement:(AccessibilityElement*)showElement
+{
+    for (AccessibilityElement* childElement in element.children) {
+        if (showElement == nil && [childElement.componentType isEqualToString:@"NavigationContent"]) {
+            showElement = childElement;
+            [self setNavDestinationIsAccessibility:childElement showElement:nil];
+            continue;
+        }
+
+        if (showElement != nil 
+            && CGRectContainsRect(showElement.accessibilityFrame, childElement.accessibilityFrame)) {
+            NSString* strKey = [NSString stringWithFormat:@"%lld", childElement.elementId];
+            AccessibilityElement* changeElement = [self.isCreateElements objectForKey:strKey];
+            changeElement.isAccessibility = NO;
+        }
+        [self setNavigationIsAccessibility:childElement showElement:showElement];
+    }
+}
+- (void)setNavDestinationIsAccessibility:(AccessibilityElement*)element showElement:(AccessibilityElement*)showElement
+{
+    for (AccessibilityElement* childElement in element.children) {
+        if (showElement == nil && [childElement.componentType isEqualToString:@"NavDestination"]) {
+            showElement = childElement;
+            continue;
+        }
+        if (showElement != nil) {
+            NSString* strKey = [NSString stringWithFormat:@"%lld", childElement.elementId];
+            AccessibilityElement* changeElement = [self.isCreateElements objectForKey:strKey];
+            changeElement.isAccessibility = NO;
+        }
+        [self setNavDestinationIsAccessibility:childElement showElement:showElement];
     }
 }
 
@@ -276,9 +317,18 @@ typedef enum {
     }
 }
 
-void arrayDfs(AccessibilityElement* element, NSMutableArray* result)
+- (void)arrayDfs:(AccessibilityElement*)element result:(NSMutableArray*)result
 {
-    NSArray* sortedChildren = [element.children sortedArrayUsingComparator:^NSComparisonResult(
+    if (element == nil) {
+        return;
+    }
+    NSString* strKey = [NSString stringWithFormat:@"%lld", element.elementId];
+    AccessibilityElement* nowElement = self.isCreateElements[strKey];
+    if (nowElement == nil) {
+        return;
+    }
+
+    NSArray* sortedChildren = [nowElement.children sortedArrayUsingComparator:^NSComparisonResult(
         AccessibilityElement* objcFirst, AccessibilityElement* objcSecond) {
       if (objcFirst.pageId == -1) {
           return NSOrderedAscending;
@@ -288,11 +338,9 @@ void arrayDfs(AccessibilityElement* element, NSMutableArray* result)
       return NSOrderedSame;
     }];
     for (AccessibilityElement* elementChild in sortedChildren) {
-        arrayDfs(elementChild, result);
+        [self arrayDfs:elementChild result:result];
     }
-    if (element != nil) {
-        [result addObject:element];
-    }
+    [result addObject:nowElement];
 }
 - (void)UpdateAccessibilityNodes:(NSMutableDictionary*)dictNodeInfo eventType:(size_t)eventType
 {
@@ -309,7 +357,7 @@ void arrayDfs(AccessibilityElement* element, NSMutableArray* result)
         AccessibilityElement* object = [self.isCreateElements objectForKey:key];
         if (object != nil && [object.componentType isEqualToString:COMPONENTTYPE_ROOT]) {
             NSMutableArray* result = [[NSMutableArray alloc] init];
-            arrayDfs(object, result);
+            [self arrayDfs:object result:result];
             self.accessibilityElements = result;
             break;
         }
@@ -500,7 +548,7 @@ void arrayDfs(AccessibilityElement* element, NSMutableArray* result)
     NSString* parentKey = [NSString stringWithFormat:@"%lld", nodeInfo.parentId];
     AccessibilityElement* parentElement = [self.isCreateElements objectForKey:parentKey];
     if ([nodeInfo.componentType isEqualToString:@"Text"] &&
-        [parentElement.componentType isEqualToString:@"TextClock"]) {
+        [parentElement.componentType isEqualToString:@"TextClock"] && parentElement.accessibilityLabel.length == 0) {
         parentElement.accessibilityLabel = nodeInfo.nodeLable;
     }
 }
