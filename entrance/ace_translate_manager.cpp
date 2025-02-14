@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -12,11 +12,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include "core/common/ace_translate_manager.h"
 
-#include "base/log/exception_handler.h"
+#include <cstdint>
+
+#include "base/utils/macros.h"
 
 namespace OHOS::Ace {
-void ExceptionHandler::HandleJsException(
-    const std::string& exceptionMsg, const JsErrorObject& errorInfo, bool isStageModel)
-{}
+void UiTranslateManagerImpl::AddPixelMap(int32_t nodeId, RefPtr<PixelMap> pixelMap) {}
+void UiTranslateManagerImpl::GetAllPixelMap(RefPtr<NG::FrameNode> pageNode) {}
 } // namespace OHOS::Ace

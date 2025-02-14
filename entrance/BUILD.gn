@@ -61,6 +61,7 @@ template("ace_ios_standard_source_set") {
       "ace_pointer_data.cc",
       "ace_pointer_data_packet.cc",
       "ace_resource_register.cpp",
+      "ace_translate_manager.cpp",
       "capability_registry.cpp",
       "display_info.mm",
       "download_manager.cpp",

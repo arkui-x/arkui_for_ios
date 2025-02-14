@@ -758,4 +758,8 @@ bool SubwindowIos::ShowSelectOverlay(const RefPtr<NG::FrameNode>& overlayNode)
 {
     return false;
 }
+
+void SubwindowIos::ResizeWindowForMenu()
+{
+}
 } // namespace OHOS::Ace
