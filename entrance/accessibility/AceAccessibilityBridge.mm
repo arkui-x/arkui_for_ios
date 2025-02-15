@@ -80,8 +80,10 @@ AccessibilityNodeInfo* SetAccessibilityNodeInfo(
         text = [NSString stringWithCString:info.GetContent().c_str() encoding:NSUTF8StringEncoding];
     }
     text = [text stringByReplacingOccurrencesOfString:@"." withString:@"点"];
-    NSString* descriptionInfo =
-        [NSString stringWithFormat:@"%s %s", info.GetHint().c_str(), info.GetDescriptionInfo().c_str()];
+    NSString* hint = [NSString stringWithCString:info.GetHint().c_str() encoding:NSUTF8StringEncoding];
+    NSString* description = 
+        [NSString stringWithCString:info.GetDescriptionInfo().c_str() encoding:NSUTF8StringEncoding];
+    NSString* descriptionInfo = [NSString stringWithFormat:@"%@ %@", hint, description];
     descriptionInfo = [descriptionInfo stringByReplacingOccurrencesOfString:@" " withString:@""];
     NSString* componentType = [NSString stringWithCString:info.GetComponentType().c_str()
                                                  encoding:NSUTF8StringEncoding];
