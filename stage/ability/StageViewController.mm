@@ -44,35 +44,9 @@
 
 #define PUBLIC_CONTENT @"public.content"
 #define PUBLIC_TEXT @"public.text"
-#define PUBLIC_SOURCE_CODE @"public.source-code"
 #define PUBLIC_IMAGE @"public.image"
-#define PUBLIC_AUDIOVISUAL_CONTENT @"public.audiovisual-content"
-#define COM_ADOBE_PDF @"com.adobe.pdf"
-#define COM_APPLE_KEYNOTE_KEY @"com.apple.keynote.key"
-#define COM_COMPUSERVE_GIF @"com.compuserve.gif"
-#define COM_MICROSOFT_WORD_DOC @"com.microsoft.word.doc"
-#define COM_MICROSOFT_EXCEL_XLS @"com.microsoft.excel.xls"
-#define COM_MICROSOFT_POWERPOINT_PPT @"com.microsoft.powerpoint.ppt"
-#define PUBLIC_FOLDER @"public.folder"
-
-#define IMAGE_GIF @"image/gif"
-#define APPLICATION_PDF @"application/pdf"
-#define APPLICATION_MSWORD @"application/msword"
-#define APPLICATION_VND_DOCUMENT @"application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-#define APPLICATION_VND_MSEXCEL @"application/vnd.ms-excel"
-#define APPLICATION_VND_SHEET @"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-#define APPLICATION_VND_MSPOWERPOINT @"application/vnd.ms-powerpoint"
-#define APPLICATION_VND_PRESENTATION @"application/vnd.openxmlformats-officedocument.presentationml.presentation"
-#define TEXT_PLAIN @"text/plain"
-#define TEXT_HTML @"text/html"
-#define TEXT_CSS @"text/css"
-#define TEXT_JAVASCRIPT @"text/javascript"
-#define TEXT_XML @"text/xml"
-#define APPLICATION_XML @"application/xml"
-#define APPLICATION_JAVASCRIPT @"application/javascript"
-#define ORG_OPENXMLFORMATS_WORDPROCESSINGML_DOCUMENT @"org.openxmlformats.wordprocessingml.document"
-#define ORG_OPENXMLFORMATS_SPREADSHEETML_SHEET @"org.openxmlformats.spreadsheetml.sheet"
-#define ORG_OPENXMLFORMATS_PRESENTATIONML_PRESENTATION @"org.openxmlformats.presentationml.presentation"
+#define PUBLIC_VIDEO @"public.movie"
+#define PUBLIC_AUDIO @"public.audio"
 
 using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
 using WindowViwAdapter = OHOS::AbilityRuntime::Platform::WindowViewAdapter;
@@ -427,7 +401,7 @@ CGFloat _brightness = 0.0;
 {
     self.adapterInstanceName = instanceName;
     self.requestCode = requestCode;
-    NSArray* documentTypes = [self transformFormat:self.type];
+    NSArray* documentTypes = [self convertToUTIType:self.type];
     UIDocumentPickerViewController* picker =
         [[UIDocumentPickerViewController alloc] initWithDocumentTypes:documentTypes inMode:UIDocumentPickerModeOpen];
     picker.delegate = self;
@@ -440,44 +414,39 @@ CGFloat _brightness = 0.0;
     [self presentViewController:picker animated:YES completion:nil];
 }
 
-- (NSMutableArray*)transformFormat:(NSString*)type
-{
-    NSDictionary* typeMapping = @{
-        IMAGE_GIF : @[ COM_COMPUSERVE_GIF ],
-        APPLICATION_PDF : @[ COM_ADOBE_PDF ],
-        APPLICATION_MSWORD : @[ COM_MICROSOFT_WORD_DOC, ORG_OPENXMLFORMATS_WORDPROCESSINGML_DOCUMENT ],
-        APPLICATION_VND_DOCUMENT : @[ COM_MICROSOFT_WORD_DOC, ORG_OPENXMLFORMATS_WORDPROCESSINGML_DOCUMENT ],
-        APPLICATION_VND_MSEXCEL : @[ COM_MICROSOFT_EXCEL_XLS, ORG_OPENXMLFORMATS_SPREADSHEETML_SHEET ],
-        APPLICATION_VND_SHEET : @[ COM_MICROSOFT_EXCEL_XLS, ORG_OPENXMLFORMATS_SPREADSHEETML_SHEET ],
-        APPLICATION_VND_MSPOWERPOINT :
-            @[ COM_MICROSOFT_POWERPOINT_PPT, ORG_OPENXMLFORMATS_PRESENTATIONML_PRESENTATION ],
-        APPLICATION_VND_PRESENTATION :
-            @[ COM_MICROSOFT_POWERPOINT_PPT, ORG_OPENXMLFORMATS_PRESENTATIONML_PRESENTATION ],
-        TEXT_PLAIN : @[ PUBLIC_TEXT ],
-        TEXT_HTML : @[ PUBLIC_TEXT ],
-        TEXT_CSS : @[ PUBLIC_TEXT ],
-        TEXT_JAVASCRIPT : @[ PUBLIC_TEXT ],
-        TEXT_XML : @[ PUBLIC_TEXT ],
-        APPLICATION_XML : @[ PUBLIC_TEXT ],
-        APPLICATION_JAVASCRIPT : @[ PUBLIC_TEXT ]
+- (NSArray<NSString *> *)convertToUTIType:(NSString *)inputString {
+    if ([self isBlankString:inputString] || inputString.length <= 0) {
+        return @[ PUBLIC_CONTENT ];
+    }
+
+    NSString *utiFromExt = (__bridge_transfer NSString *)UTTypeCreatePreferredIdentifierForTag(
+        kUTTagClassFilenameExtension,
+        (__bridge CFStringRef)inputString,
+        NULL
+    );
+    if (![utiFromExt hasPrefix:@"dyn."] && utiFromExt) {
+        return @[utiFromExt];
+    }
+
+    NSString *utiFromMime = (__bridge_transfer NSString *)UTTypeCreatePreferredIdentifierForTag(
+        kUTTagClassMIMEType,
+        (__bridge CFStringRef)inputString,
+        NULL
+    );
+    if (![utiFromMime hasPrefix:@"dyn."] && utiFromMime) {
+        return @[utiFromMime];
+    }
+    NSDictionary *utiMapping = @{
+        @"image/*": @[PUBLIC_IMAGE],
+        @"video/*": @[PUBLIC_VIDEO],
+        @"audio/*": @[PUBLIC_AUDIO],
+        @"text/*": @[PUBLIC_TEXT],
+        @"application/*": @[PUBLIC_CONTENT]
     };
-    if ([self isBlankString:type]) {
-        NSMutableSet* uniqueValues = [NSMutableSet set];
-        for (NSArray* array in typeMapping.allValues) {
-            [uniqueValues addObjectsFromArray:array];
-        }
-        return (NSMutableArray*)[uniqueValues allObjects];
+    if ([utiMapping.allKeys containsObject:inputString]) {
+        return utiMapping[inputString];
     }
-    NSMutableArray* arrFormat = [NSMutableArray array];
-    NSArray* mappedTypes = typeMapping[type];
-    if (mappedTypes) {
-        [arrFormat addObjectsFromArray:mappedTypes];
-    } else if ([type hasPrefix:@"image/"]) {
-        [arrFormat addObject:PUBLIC_IMAGE];
-    } else {
-        [arrFormat addObject:PUBLIC_CONTENT];
-    }
-    return arrFormat;
+    return @[ PUBLIC_CONTENT ];
 }
 
 - (BOOL)isBlankString:(NSString*)string
@@ -485,7 +454,7 @@ CGFloat _brightness = 0.0;
     if (string == nil || string == NULL) {
         return YES;
     }
-    if ([string isKindOfClass:[NSNull class]]) {
+    if (![string isKindOfClass:[NSString class]]) {
         return YES;
     }
     if ([[string stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]] length] == 0) {
