@@ -34,14 +34,7 @@ int32_t SubwindowIos::id_ = 0;
 RefPtr<Subwindow> Subwindow::CreateSubwindow(int32_t instanceId)
 {
     TAG_LOGI(AceLogTag::ACE_SUB_WINDOW, "Create Subwindow, parent container id is %{public}d", instanceId);
-    auto subWindow = AceType::MakeRefPtr<SubwindowIos>(instanceId);
-    CHECK_NULL_RETURN(subWindow, nullptr);
-    auto ret = subWindow->InitContainer();
-    if (!ret) {
-        TAG_LOGW(AceLogTag::ACE_SUB_WINDOW, "InitContainer failed, container id %{public}d", instanceId);
-        return nullptr;
-    }
-    return subWindow;
+    return AceType::MakeRefPtr<SubwindowIos>(instanceId);
 }
 
 SubwindowIos::SubwindowIos(int32_t instanceId) : windowId_(id_), parentContainerId_(instanceId)
@@ -50,17 +43,17 @@ SubwindowIos::SubwindowIos(int32_t instanceId) : windowId_(id_), parentContainer
     id_++;
 }
 
-bool SubwindowIos::InitContainer()
+void SubwindowIos::InitContainer()
 {
     TAG_LOGD(AceLogTag::ACE_SUB_WINDOW, "Init container enter.");
     auto parentContainer = Platform::AceContainerSG::GetContainer(parentContainerId_);
-    CHECK_NULL_RETURN(parentContainer, false);
+    CHECK_NULL_VOID(parentContainer);
     InitSubwindow(parentContainer);
-    CHECK_NULL_RETURN(window_, false);
+    CHECK_NULL_VOID(window_);
 
     std::string url = "";
     auto subSurface = window_->GetSurfaceNode();
-    CHECK_NULL_RETURN(subSurface, false);
+    CHECK_NULL_VOID(subSurface);
     subSurface->SetShadowElevation(0.0f);
     window_->SetUIContent(
         url, reinterpret_cast<NativeEngine*>(parentContainer->GetSharedRuntime()), nullptr, false, nullptr, false);
@@ -70,7 +63,8 @@ bool SubwindowIos::InitContainer()
     SubwindowManager::GetInstance()->AddParentContainerId(childContainerId_, parentContainerId_);
 
     if (!InitSubContainer(parentContainer)) {
-        return false;
+        SetIsRosenWindowCreate(false);
+        return;
     }
 
     // create ace_view
@@ -78,29 +72,29 @@ bool SubwindowIos::InitContainer()
     Platform::AceViewSG::SurfaceCreated(aceView, window_.get());
 
     sptr<Rosen::Display> defaultDisplay = Rosen::DisplayManager::GetInstance().GetDefaultDisplaySync();
-    CHECK_NULL_RETURN(defaultDisplay, false);
+    CHECK_NULL_VOID(defaultDisplay);
     sptr<Rosen::DisplayInfo> defaultDisplayInfo = defaultDisplay->GetDisplayInfo();
-    CHECK_NULL_RETURN(defaultDisplayInfo, false);
+    CHECK_NULL_VOID(defaultDisplayInfo);
     int32_t width = defaultDisplayInfo->GetWidth();
     int32_t height = defaultDisplayInfo->GetHeight();
     auto parentPipeline = parentContainer->GetPipelineContext();
-    CHECK_NULL_RETURN(parentPipeline, false);
+    CHECK_NULL_VOID(parentPipeline);
     auto density = parentPipeline->GetDensity();
     TAG_LOGI(AceLogTag::ACE_SUB_WINDOW,
         "UIContent Initialize: width: %{public}d, height: %{public}d, density: %{public}lf.", width, height, density);
 
     // set view
     ViewportConfig config;
+    SetIsRosenWindowCreate(true);
     Platform::AceContainerSG::SetView(aceView, density, width, height, window_.get());
     Platform::AceViewSG::SurfaceChanged(aceView, width, height, config.Orientation());
 
     auto subPipelineContextNG = AceType::DynamicCast<NG::PipelineContext>(
         Platform::AceContainerSG::GetContainer(childContainerId_)->GetPipelineContext());
-    CHECK_NULL_RETURN(subPipelineContextNG, false);
+    CHECK_NULL_VOID(subPipelineContextNG);
     subPipelineContextNG->SetParentPipeline(parentContainer->GetPipelineContext());
     subPipelineContextNG->SetupSubRootElement();
     subPipelineContextNG->SetMinPlatformVersion(parentPipeline->GetMinPlatformVersion());
-    return true;
 }
 
 void SubwindowIos::InitSubwindow(const RefPtr<Platform::AceContainerSG>& parentContainer)
@@ -703,6 +697,21 @@ Rect SubwindowIos::GetUIExtensionHostWindowRect() const
 {
     Rect rect;
     return rect;
+}
+
+Rect SubwindowIos::GetFoldExpandAvailableRect() const
+{
+    Rect rect;
+    return rect;
+}
+
+bool SubwindowIos::CheckHostWindowStatus() const
+{
+    auto parentContainer = Platform::AceContainerSG::GetContainer(parentContainerId_);
+    CHECK_NULL_RETURN(parentContainer, false);
+    auto parentWindow = parentContainer->GetUIWindow(parentContainerId_);
+    CHECK_NULL_RETURN(parentWindow, false);
+    return true;
 }
 
 const RefPtr<NG::OverlayManager> SubwindowIos::GetOverlayManager()
