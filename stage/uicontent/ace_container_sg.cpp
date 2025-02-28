@@ -286,8 +286,9 @@ void AceContainerSG::InitializeCallback()
         auto bombId = GetMilliseconds();
         AceEngine::Get().BuriedBomb(instanceId, bombId);
         AceEngine::Get().DefusingBomb(instanceId);
-        context->GetTaskExecutor()->PostSyncTask([context, event, &result]() { result = context->OnKeyEvent(event); },
-            TaskExecutor::TaskType::UI, "ArkUI-XAceContainerSGKeyEventCallback");
+        context->GetTaskExecutor()->PostSyncTask(
+            [context, event, &result]() { result = context->OnNonPointerEvent(event); }, TaskExecutor::TaskType::UI,
+            "ArkUI-XAceContainerSGKeyEventCallback");
         return result;
     };
     aceView_->RegisterKeyEventCallback(keyEventCallback);
@@ -433,7 +434,7 @@ void AceContainerSG::InitializeCallback()
     };
     aceView_->RegisterPreDrawCallback(preDrawCallback);
 
-    auto&& dragEventCallback = [weak, instanceId](const PointerEvent& pointerEvent,
+    auto&& dragEventCallback = [weak, instanceId](const DragPointerEvent& pointerEvent,
         const DragEventAction& action, const RefPtr<OHOS::Ace::NG::FrameNode>& node) {
         auto context = weak.Upgrade();
         CHECK_NULL_VOID(context);
@@ -1147,7 +1148,7 @@ void AceContainerSG::SetCurPointerEvent(const std::shared_ptr<MMI::PointerEvent>
     }
 }
 
-bool AceContainerSG::GetCurPointerEventInfo(PointerEvent& dragPointerEvent, StopDragCallback&& stopDragCallback)
+bool AceContainerSG::GetCurPointerEventInfo(DragPointerEvent& dragPointerEvent, StopDragCallback&& stopDragCallback)
 {
     std::lock_guard<std::mutex> lock(pointerEventMutex_);
     CHECK_NULL_RETURN(currentPointerEvent_, false);

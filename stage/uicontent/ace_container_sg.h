@@ -323,7 +323,7 @@ public:
 
     void SetCurPointerEvent(const std::shared_ptr<MMI::PointerEvent>& currentEvent);
 
-    bool GetCurPointerEventInfo(PointerEvent& dragPointerEvent, StopDragCallback&& stopDragCallback) override;
+    bool GetCurPointerEventInfo(DragPointerEvent& dragPointerEvent, StopDragCallback&& stopDragCallback) override;
 private:
     virtual bool MaybeRelease() override;
     void InitializeFrontend();
