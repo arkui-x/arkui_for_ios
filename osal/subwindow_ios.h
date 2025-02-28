@@ -132,6 +132,8 @@ public:
         return 0;
     }
 
+    bool IsSameDisplayWithParentWindow(bool useInitializedId = false) override;
+
     void SetHotAreas(const std::vector<Rect>& rects, int32_t overlayId) override;
 
     void DeleteHotAreas(int32_t overlayId) override;
@@ -228,6 +230,21 @@ public:
 
     bool ShowSelectOverlay(const RefPtr<NG::FrameNode>& overlayNode) override;
 
+    MenuWindowState GetAttachState() override;
+
+    MenuWindowState GetDetachState() override;
+
+    void ShowBindSheetNG(bool isShow, std::function<void(const std::string&)>&& callback,
+        std::function<RefPtr<NG::UINode>()>&& buildNodeFunc, std::function<RefPtr<NG::UINode>()>&& buildtitleNodeFunc,
+        NG::SheetStyle& sheetStyle, std::function<void()>&& onAppear, std::function<void()>&& onDisappear,
+        std::function<void()>&& shouldDismiss, std::function<void(const int32_t)>&& onWillDismiss,
+        std::function<void()>&& onWillAppear, std::function<void()>&& onWillDisappear,
+        std::function<void(const float)>&& onHeightDidChange,
+        std::function<void(const float)>&& onDetentsDidChange,
+        std::function<void(const float)>&& onWidthDidChange,
+        std::function<void(const float)>&& onTypeDidChange,
+        std::function<void()>&& sheetSpringBack, const RefPtr<NG::FrameNode>& targetNode) override;
+
 private:
     void InitSubwindow(const RefPtr<Platform::AceContainerSG>& parentContainer);
     bool InitSubContainer(const RefPtr<Platform::AceContainerSG>& parentContainer) const;
@@ -257,6 +274,8 @@ private:
     std::unordered_map<int32_t, std::vector<Rosen::Rect>> hotAreasMap_;
     std::unordered_map<int32_t, std::vector<Rosen::Rect>> popupHotAreasMap_;
     NG::RectF windowRect_;
+    MenuWindowState attachState_ = MenuWindowState::DEFAULT;
+    MenuWindowState detachState_ = MenuWindowState::DEFAULT;
 };
 } // namespace OHOS::Ace
 #endif // FOUNDATION_ACE_ADAPTER_IOS_OSAL_SUBWINDOW_IOS_H
