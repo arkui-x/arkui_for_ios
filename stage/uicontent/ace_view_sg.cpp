@@ -65,6 +65,8 @@ void AceViewSG::RegisterKeyEventCallback(KeyEventCallback&& callback)
     keyEventCallback_ = std::move(callback);
 }
 
+void AceViewSG::RegisterNonPointerEventCallback(NonPointerEventCallback&& callback) {}
+
 void AceViewSG::RegisterMouseEventCallback(MouseEventCallback&& callback)
 {
     ACE_DCHECK(callback);
@@ -325,7 +327,7 @@ void AceViewSG::ProcessDragEvent(
     const std::shared_ptr<MMI::PointerEvent>& pointerEvent, const RefPtr<OHOS::Ace::NG::FrameNode>& node)
 {
     DragEventAction action;
-    PointerEvent event;
+    DragPointerEvent event;
     ConvertPointerEvent(pointerEvent, event);
     CHECK_NULL_VOID(dragEventCallback_);
     int32_t orgAction = pointerEvent->GetPointerAction();
@@ -367,7 +369,7 @@ void AceViewSG::ProcessDragEvent(
     int32_t x, int32_t y, const DragEventAction& action, const RefPtr<OHOS::Ace::NG::FrameNode>& node)
 {
     CHECK_NULL_VOID(dragEventCallback_);
-    dragEventCallback_(PointerEvent(x, y), action, node);
+    dragEventCallback_(DragPointerEvent(x, y), action, node);
 }
 
 void AceViewSG::SurfaceChanged(

@@ -750,4 +750,8 @@ void SubwindowIos::HideEventColumn()
     ContainerScope scope(parentContainerId_);
     manager->RemoveEventColumn();
 }
+
+void SubwindowIos::ResizeWindowForMenu()
+{
+}
 } // namespace OHOS::Ace
