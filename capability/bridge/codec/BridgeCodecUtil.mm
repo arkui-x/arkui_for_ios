@@ -62,7 +62,7 @@ void BridgeCodecUtilWriteUTF8(CFMutableDataRef cData, CFStringRef stringValue) {
         CFStringGetBytes(stringValue, CFRangeMake(0, length), 
                 kCFStringEncodingUTF8, 0, false, buffer.data(), buffer_length, &used_length);
 
-        BridgeCodecUtilWriteByte(cData, length);
+        BridgeCodecUtilWriteSize(cData, used_length);
         BridgeCodecUtilWriteBytes(cData, buffer.data(), used_length);
     }
 }
