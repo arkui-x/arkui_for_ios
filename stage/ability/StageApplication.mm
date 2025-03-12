@@ -366,4 +366,17 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
     }
 }
 
++ (void)preloadEtsModule:(NSString *)moduleName country:(NSString *)abilityName
+{
+    if (moduleName == nil || moduleName.length == 0) {
+        NSLog(@"moduleName is null");
+        return;
+    }
+    if (abilityName == nil || abilityName.length == 0) {
+        NSLog(@"abilityName is null");
+        return;
+    }
+    AppMain::GetInstance()->PreloadModule([moduleName UTF8String], [abilityName UTF8String]);
+}
+
 @end
