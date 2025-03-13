@@ -20,6 +20,7 @@
 #include <map>
 #include <mutex>
 #include <string>
+#include <unordered_map>
 
 #include "base/utils/macros.h"
 
@@ -54,10 +55,16 @@ public:
     std::vector<std::string> GetAllFilePath();
     std::vector<uint8_t> GetBufferByAppDataPath(const std::string& fileFullPath);
     std::vector<uint8_t> GetAotBuffer(const std::string &fileName);
+    void InitModuleVersionCode();
+    void UpdateVersionCode(const std::string& moduleName, bool needUpdate);
+    bool IsDynamicUpdateModule(const std::string& moduleName);
 private:
     std::mutex providerLock_;
     static std::shared_ptr<StageAssetProvider> instance_;
     static std::mutex mutex_;
+    std::unordered_map<std::string, int32_t> versionCodes_;
+    std::unordered_map<std::string, bool> moduleIsUpdates_;
+    static std::map<std::string, std::pair<std::string, std::string>> staticResCache;
 };
 } // namespace Platform
 } // namespace AbilityRuntime
