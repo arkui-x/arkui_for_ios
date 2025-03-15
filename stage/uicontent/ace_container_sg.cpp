@@ -652,11 +652,11 @@ void AceContainerSG::UpdateConfiguration(
     if (!colorMode.empty()) {
         configurationChange.colorModeUpdate = true;
         if (colorMode == "dark") {
-            SystemProperties::SetColorMode(ColorMode::DARK);
+            SetColorMode(ColorMode::DARK);
             SetColorScheme(ColorScheme::SCHEME_DARK);
             resConfig.SetColorMode(ColorMode::DARK);
         } else {
-            SystemProperties::SetColorMode(ColorMode::LIGHT);
+            SetColorMode(ColorMode::LIGHT);
             SetColorScheme(ColorScheme::SCHEME_LIGHT);
             resConfig.SetColorMode(ColorMode::LIGHT);
         }
