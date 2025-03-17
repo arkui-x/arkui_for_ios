@@ -31,6 +31,8 @@
 #include "core/common/container.h"
 #include "core/common/js_message_dispatcher.h"
 #include "core/common/platform_bridge.h"
+#include "core/components/theme/theme_manager.h"
+#include "core/pipeline_ng/pipeline_context.h"
 
 #include "adapter/ios/entrance/virtual_rs_window.h"
 #include "native_engine/native_engine.h"

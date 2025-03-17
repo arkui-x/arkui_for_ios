@@ -33,6 +33,7 @@
 #include "adapter/ios/entrance/virtual_rs_window.h"
 #include "adapter/ios/entrance/mmi_event_convertor.h"
 #include "core/event/touch_event.h"
+#include "core/pipeline_ng/pipeline_context.h"
 
 namespace OHOS::Ace::Platform {
 class ACE_FORCE_EXPORT AceViewSG : public AceView {
