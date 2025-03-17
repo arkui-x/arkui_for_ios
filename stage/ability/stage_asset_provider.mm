@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2023-2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -54,6 +54,26 @@ NSData * GetNSDataFromVector(const std::vector<uint8_t>& buffer)
 NSString * GetOCstring(const std::string& c_string)
 { 
     return [NSString stringWithCString:c_string.c_str() encoding:NSUTF8StringEncoding];
+}
+
+
+std::vector<uint8_t> StageAssetProvider::GetPkgJsonBuffer(const std::string& moduleName)
+{
+    std::lock_guard<std::mutex> lock(providerLock_);
+    NSString *oc_moduleName = GetOCstring(moduleName);
+    NSArray *pkgJsonFileList = [[StageAssetManager assetManager] getpkgJsonFileList];
+    for (NSString *pkgJsonPath in pkgJsonFileList) {
+        if ([pkgJsonPath containsString:[NSString stringWithFormat:@"/%@/", oc_moduleName]]) {
+            NSData *pathData = [NSData dataWithContentsOfFile:pkgJsonPath];
+            if (!pathData) {
+                NSLog(@"pathData is null");
+                break;
+            }
+            auto buffer =  GetVectorFromNSData(pathData);
+            return buffer;
+        }
+    }
+    return {};
 }
 
 std::list<std::vector<uint8_t>> StageAssetProvider::GetModuleJsonBufferList()
