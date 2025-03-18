@@ -21,11 +21,6 @@ namespace OHOS::Previewer {
     class PreviewerDisplay;
 }
 namespace OHOS::Ace {
-DisplayInfoUtils& DisplayInfoUtils::GetInstance()
-{
-    static DisplayInfoUtils instance;
-    return instance;
-}
 
 RefPtr<DisplayInfo> DisplayInfoUtils::GetDisplayInfo()
 {
@@ -34,14 +29,20 @@ RefPtr<DisplayInfo> DisplayInfoUtils::GetDisplayInfo()
 
 void DisplayInfoUtils::InitIsFoldable() {}
 
-bool DisplayInfoUtils::IsFoldable()
+bool DisplayInfoUtils::GetIsFoldable()
 {
-    hasInitIsFoldable = true;
+    hasInitIsFoldable_ = true;
     return false;
 }
 
 FoldStatus DisplayInfoUtils::GetCurrentFoldStatus()
 {
     return FoldStatus::UNKNOWN;
+}
+
+std::vector<Rect> DisplayInfoUtils::GetCurrentFoldCreaseRegion()
+{
+    hasInitFoldCreaseRegion_ = true;
+    return {};
 }
 } // namespace OHOS::Ace::DisplayInfoUtils
