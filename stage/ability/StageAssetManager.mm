@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2023-2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -18,6 +18,7 @@
 #include "app_main.h"
 
 using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
+#define PKG_CONTEXT_INFO_JSON @"pkgContextInfo.json"
 #define FILTER_FILE_MODULE_JSON @"module.json"
 #define FILTER_FILE_ABILITYSTAGE_ABC @"AbilityStage.abc"
 #define MODULE_STAGE_ABC_NAME @"modules.abc"
@@ -32,6 +33,8 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
 @property (nonatomic, strong) NSMutableArray *allModuleFilePathArray;
 
 @property (nonatomic, strong) NSMutableArray *moduleJsonFileArray;
+
+@property (nonatomic, strong) NSMutableArray *pkgJsonFileArray;
 
 @property (nonatomic, strong) NSString *bundlePath;
 
@@ -64,6 +67,10 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
                     @synchronized (self) {
                         [self.moduleJsonFileArray addObject:filePath];
                     }
+                } else if ([subFile containsString:PKG_CONTEXT_INFO_JSON]) {
+                    @synchronized (self) {
+                        [self.pkgJsonFileArray addObject:filePath];
+                    }
                 }
                 [files addObject:filePath];
             }
@@ -93,6 +100,12 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
     @synchronized (self) {
         NSLog(@"%s, \n all asset file list : %@", __func__, self.allModuleFilePathArray);
         return self.allModuleFilePathArray.copy;
+    }
+}
+
+- (NSArray *_Nullable)getpkgJsonFileList {
+    @synchronized (self) {
+        return self.pkgJsonFileArray.copy;
     }
 }
 
@@ -243,4 +256,12 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
     return _moduleJsonFileArray;
 }
 
+- (NSMutableArray *)pkgJsonFileArray {
+    if (!_pkgJsonFileArray) {
+        @synchronized (self) {
+            _pkgJsonFileArray = [[NSMutableArray alloc] init];
+        }
+    }
+    return _pkgJsonFileArray;
+}
 @end
