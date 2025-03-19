@@ -84,6 +84,7 @@ template("ace_osal_ios_source_set") {
       "time_event_proxy_ios.cpp",
       "view_data_wrap_impl.cpp",
       "want_wrap_ios.cpp",
+      "websocket_manager.cpp",
     ]
 
     cflags_cc = [
