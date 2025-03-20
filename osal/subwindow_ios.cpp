@@ -458,6 +458,8 @@ void SubwindowIos::ShowMenuNG(std::function<void()>&& buildFunc, std::function<v
     overlay->ShowMenuInSubWindow(targetNode->GetId(), offset, menuNode);
 }
 
+void SubwindowIos::SetWindowTouchable(bool touchable){}
+
 void SubwindowIos::HideMenuNG(bool showPreviewAnimation, bool startDrag)
 {
     TAG_LOGD(AceLogTag::ACE_SUB_WINDOW, "Hide menu ng enter.");
