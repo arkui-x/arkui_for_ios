@@ -70,7 +70,7 @@ void TextInputConnectionImpl::Show(bool isFocusViewChanged, int32_t instanceId){
         inputTypeName = TextInputTypeText;
     }else if(inputType == TextInputType::MULTILINE){
         inputTypeName = TextInputTypeMultiline;
-    }else if(inputType == TextInputType::NUMBER){
+    }else if(inputType == TextInputType::NUMBER || inputType == TextInputType::NUMBER_PASSWORD){
         inputTypeName = TextInputTypeNumber;
     }else if(inputType == TextInputType::DATETIME){
         inputTypeName = TextInputTypeDatetime;
