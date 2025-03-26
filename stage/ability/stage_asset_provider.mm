@@ -18,6 +18,7 @@
 
 #include "stage_asset_provider.h"
 #include "base/utils/string_utils.h"
+#include "nlohmann/json.hpp"
 
 #define DOCUMENTS_SUBDIR_FILES @"files"
 #define DOCUMENTS_SUBDIR_DATABASE @"database"
@@ -27,6 +28,7 @@ namespace AbilityRuntime {
 namespace Platform {
 std::shared_ptr<StageAssetProvider> StageAssetProvider::instance_ = nullptr;
 std::mutex StageAssetProvider::mutex_;
+std::map<std::string, std::pair<std::string, std::string>> StageAssetProvider::staticResCache = {};
 
 std::shared_ptr<StageAssetProvider> StageAssetProvider::GetInstance()
 {
@@ -115,7 +117,7 @@ std::vector<uint8_t> StageAssetProvider::GetModuleBuffer(const std::string& modu
     NSString *abilityStageAbcPath = [[StageAssetManager assetManager] getAbilityStageABCWithModuleName:oc_moduleName
                                                                                             modulePath:&oc_modulePath
                                                                                               esmodule:esmodule];
-    if (!abilityStageAbcPath.length) {
+    if (!abilityStageAbcPath.length || moduleIsUpdates_[moduleName]) {
         printf("%s, abilityStageAbcPath null", __func__);
 
         std::string fullAbilityName = esmodule ? "modules.abc" : "AbilityStage.abc";
@@ -148,7 +150,12 @@ void StageAssetProvider::GetResIndexPath(const std::string& moduleName,
         printf("%s, moduleName null", __func__);
         return;
     }
-    
+    auto it = staticResCache.find(moduleName);
+    if (it != staticResCache.end() && !moduleIsUpdates_[moduleName]) {
+        appResIndexPath = it->second.first;
+        sysResIndexPath = it->second.second;
+        return;
+    }
     NSString *oc_moduleName = GetOCstring(moduleName);
     NSString *oc_appResIndexPath = GetOCstring(appResIndexPath);
     NSString *oc_sysResIndexPath = GetOCstring(sysResIndexPath);
@@ -158,7 +165,7 @@ void StageAssetProvider::GetResIndexPath(const std::string& moduleName,
     appResIndexPath = [oc_appResIndexPath UTF8String];
     sysResIndexPath = [oc_sysResIndexPath UTF8String];
 
-    if (!oc_appResIndexPath.length) {
+    if (!oc_appResIndexPath.length || moduleIsUpdates_[moduleName]) {
         auto path = GetAppDataModuleDir() + "/" + moduleName;
         std::vector<std::string> fileFullPaths;
         GetAppDataModuleAssetList(path, fileFullPaths, false);
@@ -172,8 +179,9 @@ void StageAssetProvider::GetResIndexPath(const std::string& moduleName,
                 continue;
             }
         }
+        staticResCache[moduleName] = {appResIndexPath, sysResIndexPath};
     }
-    if (!oc_sysResIndexPath.length ) {
+    if (!oc_sysResIndexPath.length || moduleIsUpdates_[moduleName]) {
         auto path = GetAppDataModuleDir() + "/" + "systemres";
         std::vector<std::string> fileFullPaths;
         GetAppDataModuleAssetList(path, fileFullPaths, false);
@@ -183,6 +191,7 @@ void StageAssetProvider::GetResIndexPath(const std::string& moduleName,
                 continue;
             }
         }
+        staticResCache[moduleName] = {appResIndexPath, sysResIndexPath};
     }
 }
 
@@ -211,7 +220,7 @@ std::vector<uint8_t> StageAssetProvider::GetModuleAbilityBuffer (
                                                                                           abilityName:oc_abilityName
                                                                                            modulePath:&oc_modulePath 
                                                                                              esmodule:esmodule];
-    if (!moduleAbilityPath.length) {
+    if (!moduleAbilityPath.length || moduleIsUpdates_[moduleName]) {
         printf("%s, moduleAbilityPath null", __func__);
 
         std::string fullAbilityName = esmodule ? "modules.abc" : abilityName + ".abc";
@@ -345,6 +354,62 @@ std::vector<uint8_t> StageAssetProvider::GetAotBuffer(const std::string &fileNam
 {
     std::vector<uint8_t> buffer;
     return buffer;
+}
+
+void StageAssetProvider::InitModuleVersionCode()
+{
+    auto moduleList = GetModuleJsonBufferList();
+    std::string moduleName = "";
+    int32_t versionCode = 0;
+    for (auto& buffer : moduleList) {
+        buffer.push_back('\0');
+        nlohmann::json moduleJson = nlohmann::json::parse(buffer.data(), nullptr, false);
+        if (moduleJson.is_discarded()) {
+            continue;
+        }
+        if (moduleJson.contains("app") && moduleJson["app"].contains("versionCode")) {
+            versionCode = moduleJson["app"]["versionCode"].get<int>();
+        }
+        if (moduleJson.contains("module") && moduleJson["module"].contains("name")) {
+            moduleName = moduleJson["module"]["name"].get<std::string>();
+        }
+        if (!moduleName.empty() && versionCode > 0) {
+            versionCodes_.emplace(moduleName, versionCode);
+        }
+    }
+}
+
+void StageAssetProvider::UpdateVersionCode(const std::string& moduleName, bool needUpdate)
+{
+    bool isUpdate = false;
+    if (needUpdate) {
+        auto modulePath = GetAppDataModuleDir() + '/' + moduleName + "/module.json";
+        auto dynamicModuleBuffer = GetBufferByAppDataPath(modulePath);
+        dynamicModuleBuffer.push_back('\0');
+        int32_t versionCode = 0;
+        nlohmann::json moduleJson = nlohmann::json::parse(dynamicModuleBuffer.data(), nullptr, false);
+        if (!moduleJson.is_discarded() && moduleJson.contains("app") && moduleJson["app"].contains("versionCode")) {
+            versionCode = moduleJson["app"]["versionCode"].get<int>();
+        }
+        if (versionCode > 0) {
+            auto it = versionCodes_.find(moduleName);
+            if (it == versionCodes_.end() || it->second < versionCode) {
+                isUpdate = true;
+                versionCodes_[moduleName] = versionCode;
+            }
+        }
+    }
+    moduleIsUpdates_[moduleName] = isUpdate;
+}
+
+bool StageAssetProvider::IsDynamicUpdateModule(const std::string& moduleName)
+{
+    bool isDynamicUpdate = false;
+    auto it = moduleIsUpdates_.find(moduleName);
+    if (it != moduleIsUpdates_.end()) {
+        isDynamicUpdate = it->second;
+    }
+    return isDynamicUpdate;
 }
 } // namespace Platform
 } // namespace AbilityRuntime
