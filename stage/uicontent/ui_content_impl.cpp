@@ -27,6 +27,7 @@
 #include "adapter/ios/entrance/utils.h"
 #include "adapter/ios/osal/accessibility_manager_impl.h"
 #include "adapter/ios/osal/file_asset_provider.h"
+#include "adapter/ios/osal/navigation_route_ios.h"
 #include "adapter/ios/osal/page_url_checker_ios.h"
 #include "adapter/ios/stage/ability/stage_asset_provider.h"
 #include "adapter/ios/stage/uicontent/ace_view_sg.h"
@@ -406,6 +407,7 @@ void UIContentImpl::CommonInitialize(OHOS::Rosen::Window* window, const std::str
     container->SetModuleName(moduleName);
     container->SetIsModule(info->compileMode == AppExecFwk::CompileMode::ES_MODULE);
     container->SetPageUrlChecker(AceType::MakeRefPtr<PageUrlCheckerIos>());
+    container->SetNavigationRoute(AceType::MakeRefPtr<NavigationRouteIos>(context->GetBundleName()));
 
     std::vector<std::string> resourcePaths;
     std::string sysResPath { "" };
