@@ -31,7 +31,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void)directionUpdate:(UIInterfaceOrientation)direction;
 
-- (void)setColorMode:(UIInterfaceOrientation)colorMode;
+- (void)setColorMode:(UIUserInterfaceStyle)colorMode;
 
 - (void)colorModeUpdate:(UIUserInterfaceStyle)colorMode;
 
