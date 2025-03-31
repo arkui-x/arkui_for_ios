@@ -212,6 +212,13 @@ CGFloat _brightness = 0.0;
     }
 }
 
+- (void)viewWillTransitionToSize:(CGSize)size
+       withTransitionCoordinator:(id<UIViewControllerTransitionCoordinator>)coordinator {
+    [super viewWillTransitionToSize:size withTransitionCoordinator:coordinator];
+    UIInterfaceOrientation currentOrientation = [UIApplication sharedApplication].statusBarOrientation;
+    [[StageConfigurationManager configurationManager] directionUpdate:currentOrientation];
+}
+
 - (int32_t)getInstanceId {
     return _instanceId;
 }

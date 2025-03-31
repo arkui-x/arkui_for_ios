@@ -27,11 +27,11 @@ NS_ASSUME_NONNULL_BEGIN
 
 + (instancetype)configurationManager;
 
-- (void)setDirection:(UIDeviceOrientation)direction;
+- (void)setDirection:(UIInterfaceOrientation)direction;
 
-- (void)directionUpdate:(UIDeviceOrientation)direction;
+- (void)directionUpdate:(UIInterfaceOrientation)direction;
 
-- (void)setColorMode:(UIUserInterfaceStyle)colorMode;
+- (void)setColorMode:(UIInterfaceOrientation)colorMode;
 
 - (void)colorModeUpdate:(UIUserInterfaceStyle)colorMode;
 

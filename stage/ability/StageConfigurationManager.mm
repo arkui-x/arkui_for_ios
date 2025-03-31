@@ -48,18 +48,14 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
     dispatch_once(&onceToken, ^{
         NSLog(@"StageConfigurationManager share instance");
         _configurationManager = [[StageConfigurationManager alloc] init];
-        [[NSNotificationCenter defaultCenter] addObserver:_configurationManager
-                                                 selector:@selector(onDeviceOrientationChange:)
-                                                     name:UIDeviceOrientationDidChangeNotification
-                                                   object:nil];
     });
     return _configurationManager;
 }
 
 - (void)registConfiguration {
     NSLog(@"initConfiguration called");
-    UIDeviceOrientation orientation = [UIDevice currentDevice].orientation;
-    [self setDirection:orientation];
+    UIInterfaceOrientation currentOrientation = [UIApplication sharedApplication].statusBarOrientation;
+    [self setDirection:currentOrientation];
     UIUserInterfaceIdiom deviceType = [UIDevice currentDevice].userInterfaceIdiom;
     [self setDeviceType:deviceType];
     if (@available(iOS 13.0, *)) {
@@ -78,7 +74,7 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
     OHOS::Ace::Platform::CapabilityRegistry::Register();
 }
 
-- (void)directionUpdate:(UIDeviceOrientation)direction {
+- (void)directionUpdate:(UIInterfaceOrientation)direction {
     NSLog(@"directionUpdate called");
     [self setDirection:direction];
     std::string json = [self getJsonString:self.configuration];
@@ -98,31 +94,26 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
     AppMain::GetInstance()->OnConfigurationUpdate(json);
 }
 
-- (void)setDirection:(UIDeviceOrientation)direction {
+- (void)setDirection:(UIInterfaceOrientation)direction {
     NSLog(@"setDirection, %d", direction);
     switch (direction) {
-        case UIDeviceOrientationPortrait: {
+        case UIInterfaceOrientationPortrait:
             [self.configuration setObject:DIRECTION_VERTICAL forKey:APPLICATION_DIRECTION];
-        }
-        break;
-        case UIDeviceOrientationPortraitUpsideDown: {
+            break;
+        case UIInterfaceOrientationPortraitUpsideDown:
             [self.configuration setObject:DIRECTION_VERTICAL forKey:APPLICATION_DIRECTION];
-        }
-        break;
-        case UIDeviceOrientationLandscapeRight: {
+            break;
+        case UIInterfaceOrientationLandscapeRight:
             [self.configuration setObject:DIRECTION_HORIZONTAL forKey:APPLICATION_DIRECTION];
-        }
-        break;
-        case UIDeviceOrientationLandscapeLeft: {
+            break;
+        case UIInterfaceOrientationLandscapeLeft:
             [self.configuration setObject:DIRECTION_HORIZONTAL forKey:APPLICATION_DIRECTION];
-        }
-        break;
-        case UIDeviceOrientationUnknown: {
+            break;
+        case UIInterfaceOrientationUnknown:
             [self.configuration setObject:UNKNOWN forKey:APPLICATION_DIRECTION];
-        }
-        break;
+            break;
         default:
-        break;
+            break;
     }
 }
 
@@ -161,11 +152,6 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
     if (screenScale != 0) {
          [self.configuration setObject:[NSString stringWithFormat:@"%f",screenScale] forKey:APPLICATION_DENSITY];
     }
-}
-
-- (void)onDeviceOrientationChange:(NSNotification *)notification {
-    UIDeviceOrientation orientation = [UIDevice currentDevice].orientation;
-    [self directionUpdate:orientation];
 }
 
 - (std::string)getJsonString:(id)object {
