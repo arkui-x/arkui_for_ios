@@ -59,10 +59,6 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
         _configurationManager = [[StageConfigurationManager alloc] init];
         NSNotificationCenter* center = [NSNotificationCenter defaultCenter];
         [center addObserver:_configurationManager
-                   selector:@selector(onDeviceOrientationChange:)
-                       name:UIApplicationDidChangeStatusBarFrameNotification
-                     object:nil];
-        [center addObserver:_configurationManager
                    selector:@selector(onfontSizeScale:)
                        name:UIContentSizeCategoryDidChangeNotification
                      object:nil];
@@ -202,11 +198,6 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
         }
         break;
     }
-}
-
-- (void)onDeviceOrientationChange:(NSNotification *)notification {
-    UIInterfaceOrientation currentOrientation = [UIApplication sharedApplication].statusBarOrientation;
-    [self directionUpdate:currentOrientation];
 }
 
 - (void)onfontSizeScale:(NSNotification *)notification {
