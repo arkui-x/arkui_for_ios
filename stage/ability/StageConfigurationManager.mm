@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#import <UIKit/UIKit.h>
 #import <UIKit/UITraitCollection.h>
 #import "StageConfigurationManager.h"
 
