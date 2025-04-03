@@ -182,6 +182,11 @@ uint32_t PixelMapIOS::WritePixels(const WritePixelsOptions& opts)
     return 0;
 }
 
+bool PixelMapIOS::GetIsWideColorGamut() const
+{
+    return false;
+}
+
 RefPtr<PixelMap> PixelMap::CreatePixelMap(void* rawPtr)
 {
     std::shared_ptr<Media::PixelMap>* pixmapPtr = reinterpret_cast<std::shared_ptr<Media::PixelMap>*>(rawPtr);
