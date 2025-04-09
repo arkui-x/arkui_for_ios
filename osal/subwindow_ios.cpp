@@ -253,7 +253,7 @@ void SubwindowIos::HideWindow()
     OHOS::Rosen::WMError ret = window_->Hide();
     auto parentContainer = Platform::AceContainerSG::GetContainer(parentContainerId_);
     CHECK_NULL_VOID(parentContainer);
-    if (parentContainer->IsScenceBoardWindow()) {
+    if (parentContainer->IsSceneBoardWindow()) {
         window_->SetTouchable(true);
     }
 
@@ -650,7 +650,7 @@ void SubwindowIos::ShowToast(const NG::ToastInfo& toastInfo, std::function<void(
     ContainerScope scope(childContainerId_);
     auto parentContainer = Platform::AceContainerSG::GetContainer(parentContainerId_);
     CHECK_NULL_VOID(parentContainer);
-    if (parentContainer->IsScenceBoardWindow() || toastInfo.showMode == NG::ToastShowMode::TOP_MOST) {
+    if (parentContainer->IsSceneBoardWindow() || toastInfo.showMode == NG::ToastShowMode::TOP_MOST) {
         window_->SetFullScreen(true);
         ShowWindow(false);
         ResizeWindow();
