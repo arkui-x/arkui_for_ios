@@ -1291,7 +1291,14 @@ static BOOL _webDebuggingAccessInit = NO;
         [url isEqualToString:webView.backForwardList.currentItem.URL.absoluteString])) {
         self.reloadUrl = url;
     }
-
+    NSString* requestURL =
+            navigationAction.request.URL.absoluteString ? navigationAction.request.URL.absoluteString : @"";
+        AceWebErrorReceiveInfoObject* obj = new AceWebErrorReceiveInfoObject(std::string([requestURL UTF8String]), "", 0);
+        if (AceWebObjectWithBoolReturn(
+                [[self event_hashFormat:NTC_ONLOADINTERCEPT] UTF8String], [NTC_ONLOADINTERCEPT UTF8String], obj)) {
+            decisionHandler(WKNavigationActionPolicyCancel);
+            return;
+        }
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= 140500
     if (@available(iOS 14.5, *)) {
         if (navigationAction.shouldPerformDownload) {
