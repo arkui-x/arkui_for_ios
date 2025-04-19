@@ -51,7 +51,7 @@ void BridgeCodecUtilWriteUTF8(CFMutableDataRef cData, CFStringRef stringValue) {
     const char* utf8c = CFStringGetCStringPtr(stringValue, kCFStringEncodingUTF8);
     if (utf8c) {
         size_t length = strlen(utf8c);
-        BridgeCodecUtilWriteByte(cData, length);
+        BridgeCodecUtilWriteSize(cData, length);
         BridgeCodecUtilWriteBytes(cData, utf8c, length);
     } else {
         CFIndex length = CFStringGetLength(stringValue);
