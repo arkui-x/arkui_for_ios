@@ -1032,3 +1032,4 @@ __ZN4OHOS5Media12PixelMapNapi11GetPixelMapEv
 
 __ZN4OHOS7RefBase10CanPromoteEv
 _napi_unref_threadsafe_function
+_napi_fatal_error
