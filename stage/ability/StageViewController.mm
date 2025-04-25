@@ -245,6 +245,7 @@ CGFloat _brightness = 0.0;
     [super viewWillTransitionToSize:size withTransitionCoordinator:coordinator];
     UIInterfaceOrientation currentOrientation = [UIApplication sharedApplication].statusBarOrientation;
     [[StageConfigurationManager configurationManager] directionUpdate:currentOrientation];
+    [_platformPlugin notifyOrientationDidChange];
 }
 
 - (int32_t)getInstanceId {
