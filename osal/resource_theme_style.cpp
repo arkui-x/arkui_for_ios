@@ -51,7 +51,9 @@ void ResourceThemeStyle::ParseContent()
 {
     static const std::set<std::string> stringAttrs = {
         "attribute_text_font_family_regular",
-        "attribute_text_font_family_medium"
+        "attribute_text_font_family_medium",
+        "common_cancel_text",
+        "common_ok_text"
     };
     for (auto& [attrName, attrValue] : rawAttrs_) {
         if (attrName.empty() || attrValue.empty()) {
