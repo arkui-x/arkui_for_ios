@@ -12,6 +12,7 @@
 # limitations under the License.
 import("//foundation/graphic/graphic_2d/graphic_config.gni")
 defines = [
+  "CROSS_PLATFORM",
   "IOS_PLATFORM",
   "NG_BUILD",
   "PANDA_TARGET_IOS",
