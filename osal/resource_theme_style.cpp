@@ -51,7 +51,20 @@ void ResourceThemeStyle::ParseContent()
 {
     static const std::set<std::string> stringAttrs = {
         "attribute_text_font_family_regular",
-        "attribute_text_font_family_medium"
+        "attribute_text_font_family_medium",
+        "common_cancel_text",
+        "common_ok_text",
+        "stepper_back",
+        "stepper_skip",
+        "stepper_start",
+        "stepper_next",
+        "text_overlay_menu_cut_label",
+        "text_overlay_menu_copy_label",
+        "text_overlay_menu_paste_label",
+        "text_overlay_menu_select_all_label",
+        "text_overlay_menu_translate_label",
+        "text_overlay_menu_share_label",
+        "text_overlay_menu_search_label"
     };
     for (auto& [attrName, attrValue] : rawAttrs_) {
         if (attrName.empty() || attrValue.empty()) {
