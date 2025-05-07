@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2024 Huawei Device Co., Ltd.
+ * Copyright (c) 2023-2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -24,7 +24,9 @@
 
 @interface AceSurfaceView (){
     BOOL _viewAdded;
+    BOOL _isLock;
     CGRect _currentFrame;
+    UIInterfaceOrientation  _initialOrientation;
 
 }
 @property (nonatomic, assign) int64_t incId;
@@ -51,6 +53,7 @@
 #define SURFACE_WIDTH_KEY @"surfaceWidth"
 #define SURFACE_HEIGHT_KEY @"surfaceHeight"
 #define SURFACE_SET_BOUNDS @"setSurfaceBounds"
+#define IS_LOCK @"isLock"
 
 + (Class)layerClass {
     return [CALayer class];
@@ -93,6 +96,26 @@
             }
         };
         [self.callMethodMap setObject:[callAttachNativeWindow copy] forKey:[self method_hashFormat:@"attachNativeWindow"]];
+
+        IAceOnCallSyncResourceMethod callSetSurfaceRotation = ^NSString*(NSDictionary* param) {
+            if (weakSelf) {
+                return [weakSelf setSurfaceRotation:param];
+            } else {
+                 NSLog(@"AceSurfaceView: callSetSurfaceRotation fail");
+                 return FAIL;
+            }
+        };
+        [self.callMethodMap setObject:[callSetSurfaceRotation copy] forKey:[self method_hashFormat:@"setSurfaceRotation"]];
+
+        IAceOnCallSyncResourceMethod callsetSurfaceRect = ^NSString*(NSDictionary* param) {
+            if (weakSelf) {
+                return [weakSelf setSurfaceRect:param];
+            } else {
+                 NSLog(@"AceSurfaceView: callsetSurfaceRect fail");
+                 return FAIL;
+            }
+        };
+        [self.callMethodMap setObject:[callsetSurfaceRect copy] forKey:[self method_hashFormat:@"setSurfaceRect"]];
     }
     return self;
 }
@@ -182,6 +205,40 @@
     return [self convertMapToString:param];
 }
 
+- (NSString*)setSurfaceRotation:(NSDictionary*)params
+{
+    if (!params[IS_LOCK]) {
+        return FAIL;
+    }
+    _isLock = [params[IS_LOCK] boolValue];
+    _initialOrientation = [UIApplication sharedApplication].statusBarOrientation;
+    return SUCCESS;
+}
+
+- (NSString*)setSurfaceRect:(NSDictionary*)params
+{
+    if (!params[SURFACE_WIDTH_KEY] || !params[SURFACE_HEIGHT_KEY]) {
+        return FAIL;
+    }
+    @try {
+        UIScreen *screen = [UIScreen mainScreen];
+        CGFloat scale = screen.scale;
+        CGFloat x = [params[SURFACE_LEFT_KEY] floatValue];
+        CGFloat y = [params[SURFACE_TOP_KEY] floatValue];
+        CGFloat width = [params[SURFACE_WIDTH_KEY] floatValue];
+        CGFloat height = [params[SURFACE_HEIGHT_KEY] floatValue];
+        CGRect surfaceRect = CGRectMake(x / scale, y / scale, width / scale, height / scale);
+        CALayer *sublayer = [self.layer.sublayers firstObject];
+        if (sublayer) {
+            sublayer.frame = surfaceRect;
+        }
+    } @catch (NSException* exception) {
+        NSLog(@"AceSurfaceView NumberFormatException, setSurfaceSize failed");
+        return FAIL;
+    }
+    return SUCCESS;
+}
+
 - (UIView *)findWindowViewInView:(UIView *)view {
     for (UIView *subview in view.subviews) {
         if ([subview isKindOfClass:[WindowView class]]) {
@@ -189,6 +246,59 @@
         } 
     }
     return nil;
+}
+
+- (void)orientationDidChange {
+    if (_isLock == false) {
+        return;
+    }
+    UIInterfaceOrientation currentOrientation = [UIApplication sharedApplication].statusBarOrientation;
+    CATransform3D rotationTransform = CATransform3DIdentity;
+    switch (_initialOrientation) {
+        case UIInterfaceOrientationPortrait:
+            if (currentOrientation == UIInterfaceOrientationLandscapeLeft) {
+                rotationTransform = CATransform3DMakeRotation(M_PI_2, 0, 0, 1);
+            } else if (currentOrientation == UIInterfaceOrientationLandscapeRight) {
+                rotationTransform = CATransform3DMakeRotation(-M_PI_2, 0, 0, 1);
+            }
+            else if (currentOrientation == UIInterfaceOrientationPortraitUpsideDown) {
+                rotationTransform = CATransform3DMakeRotation(M_PI, 0, 0, 1);
+            }
+            break;
+        case UIInterfaceOrientationLandscapeLeft:
+            if (currentOrientation == UIInterfaceOrientationPortrait) {
+                rotationTransform = CATransform3DMakeRotation(-M_PI_2, 0, 0, 1);
+            } else if (currentOrientation == UIInterfaceOrientationLandscapeRight) {
+                rotationTransform = CATransform3DMakeRotation(M_PI, 0, 0, 1);
+            } else if (currentOrientation == UIInterfaceOrientationPortraitUpsideDown) {
+                rotationTransform = CATransform3DMakeRotation(M_PI_2, 0, 0, 1);
+            }
+            break;
+        case UIInterfaceOrientationLandscapeRight:
+            if (currentOrientation == UIInterfaceOrientationPortrait) {
+                rotationTransform = CATransform3DMakeRotation(M_PI_2, 0, 0, 1);
+            } else if (currentOrientation == UIInterfaceOrientationLandscapeLeft) {
+                rotationTransform = CATransform3DMakeRotation(M_PI, 0, 0, 1);
+            } else if (currentOrientation == UIInterfaceOrientationPortraitUpsideDown) {
+                rotationTransform = CATransform3DMakeRotation(-M_PI_2, 0, 0, 1);
+            }
+            break;
+        case UIInterfaceOrientationPortraitUpsideDown:
+            if (currentOrientation == UIInterfaceOrientationPortrait) {
+                rotationTransform = CATransform3DMakeRotation(M_PI, 0, 0, 1);
+            } else if (currentOrientation == UIInterfaceOrientationLandscapeLeft) {
+                rotationTransform = CATransform3DMakeRotation(-M_PI_2, 0, 0, 1);
+            } else if (currentOrientation == UIInterfaceOrientationLandscapeRight) {
+                rotationTransform = CATransform3DMakeRotation(M_PI_2, 0, 0, 1);
+            }
+            break;
+        default:
+            break;
+    }
+    CALayer *sublayer = [self.layer.sublayers firstObject];
+    if (sublayer) {
+        sublayer.transform = rotationTransform;
+    }
 }
 
 #pragma mark - fireCallback
