@@ -803,6 +803,9 @@ void SubwindowIos::ShowBindSheetNG(bool isShow, std::function<void(const std::st
     std::function<void(const float)>&& onWidthDidChange,
     std::function<void(const float)>&& onTypeDidChange,
     std::function<void()>&& sheetSpringBack, const RefPtr<NG::FrameNode>& targetNode)
- {
- }
+{}
+
+void SubwindowIos::ShowDialogMaskNG(const RefPtr<NG::FrameNode>& dialog) {}
+
+void SubwindowIos::CloseDialogMaskNG(const RefPtr<NG::FrameNode>& dialog) {}
 } // namespace OHOS::Ace
