@@ -276,10 +276,6 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
 
 + (void)setLogInterface:(id)log
 {
-    if (log == nil) {
-        NSLog(@"log is null");
-        return;
-    }
     [[Logger sharedInstance] NativeSetLogger:log];
 }
 

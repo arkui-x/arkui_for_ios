@@ -47,34 +47,46 @@
 
 - (void)PassLogMessage:(NSString*)strDomain level:(int)level info:(NSString*)strInfo
 {
-    if (![self.delegate respondsToSelector:@selector(d:msg:)]) {
+    if (self.delegate == nil) {
         return;
     }
-
     switch (level) {
         case LOG_DEBUG:
-            [self.delegate d:strDomain msg:strInfo];
+            if ([self.delegate respondsToSelector:@selector(d:msg:)]) {
+                [self.delegate d:strDomain msg:strInfo];
+            }
             break;
         case LOG_INFO:
-            [self.delegate i:strDomain msg:strInfo];
+            if ([self.delegate respondsToSelector:@selector(i:msg:)]) {
+                [self.delegate i:strDomain msg:strInfo];
+            }
+            break;
         case LOG_WARN:
-            [self.delegate w:strDomain msg:strInfo];
+            if ([self.delegate respondsToSelector:@selector(w:msg:)]) {
+                [self.delegate w:strDomain msg:strInfo];
+            }
             break;
         case LOG_ERROR:
-            [self.delegate e:strDomain msg:strInfo];
+            if ([self.delegate respondsToSelector:@selector(e:msg:)]) {
+                [self.delegate e:strDomain msg:strInfo];
+            }
             break;
         case LOG_FATAL:
-            [self.delegate f:strDomain msg:strInfo];
+            if ([self.delegate respondsToSelector:@selector(f:msg:)]) {
+                [self.delegate f:strDomain msg:strInfo];
+            }
             break;
         default:
-            [self.delegate i:strDomain msg:strInfo];
+            if ([self.delegate respondsToSelector:@selector(i:msg:)]) {
+                [self.delegate i:strDomain msg:strInfo];
+            }
             break;
     };
 }
 
 - (BOOL)isOsDelegateLog
 {
-    if ([self.delegate respondsToSelector:@selector(d:msg:)]) {
+    if (self.delegate != nil) {
         return YES;
     }
     return NO;
