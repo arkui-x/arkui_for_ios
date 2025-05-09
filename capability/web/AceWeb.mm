@@ -1419,24 +1419,22 @@ static BOOL _webDebuggingAccessInit = NO;
 
 - (NSString*)generateJavaScriptForResult:(id)result className:(NSString*)className methodName:(NSString*)methodName
 {
-    NSString* js = @"";
     if ([result isKindOfClass:[NSNumber class]]) {
         if (strcmp([result objCType], @encode(char)) == 0) {
-            js = [NSString stringWithFormat:@"window.%@.%@.resolve(%@);", className, methodName,
-                  [result boolValue] ? @"true" : @"false"];
+            return [NSString stringWithFormat:@"window.%@.%@.resolve(%@);", className, methodName,
+                [result boolValue] ? @"true" : @"false"];
         } else if (strcmp([result objCType], @encode(int)) == 0) {
-            js = [NSString stringWithFormat:@"window.%@.%@.resolve(%d);", className, methodName, [result intValue]];
+            return [NSString stringWithFormat:@"window.%@.%@.resolve(%d);", className, methodName, [result intValue]];
         } else if (strcmp([result objCType], @encode(double)) == 0) {
-            js = [NSString stringWithFormat:@"window.%@.%@.resolve(%f);", className, methodName, [result doubleValue]];
+            return [NSString stringWithFormat:@"window.%@.%@.resolve(%f);", className, methodName, [result doubleValue]];
         }
     } else if ([result isKindOfClass:[NSArray class]] || [result isKindOfClass:[NSDictionary class]]) {
         NSData* jsonData = [NSJSONSerialization dataWithJSONObject:result options:0 error:nil];
         NSString* jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-        js = [NSString stringWithFormat:@"window.%@.%@.resolve(%@);", className, methodName, jsonString];
+        return [NSString stringWithFormat:@"window.%@.%@.resolve(%@);", className, methodName, jsonString];
     } else {
-        js = [NSString stringWithFormat:@"window.%@.%@.resolve('%@');", className, methodName, result];
+        return [NSString stringWithFormat:@"window.%@.%@.resolve('%@');", className, methodName, result];
     }
-    return js;
 }
 
 - (void)userContentController:(WKUserContentController*)userContentController
