@@ -95,5 +95,9 @@
 - (bool)webDownloadItemCancel:(NSString*)guid;
 - (bool)webDownloadItemPause:(NSString*)guid;
 - (bool)webDownloadItemResume:(NSString*)guid;
-
+- (void)registerJavaScriptProxy:(NSString*)objName
+                 syncMethodList:(NSArray*)syncMethodList
+                asyncMethodList:(NSArray*)asyncMethodList
+                       callback:(id (^)(NSString* objName, NSString* methodName, NSArray* args))callback;
+- (void)deleteJavaScriptRegister:(NSString*)objName;
 @end

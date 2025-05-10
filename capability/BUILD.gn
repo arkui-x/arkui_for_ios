@@ -49,7 +49,10 @@ config("capability_config") {
       "//third_party/flutter/engine/flutter/shell/common",
     ]
 
-    include_dirs += [ "//third_party/skia" ]
+    include_dirs += [
+      "//foundation/arkui/ace_engine/frameworks/core/components/web/resource",
+      "//third_party/skia",
+    ]
   }
 
   cflags_objc = [

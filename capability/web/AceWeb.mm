@@ -90,6 +90,7 @@ typedef void (^onDownloadUpdated)(NSString* guid, NSString* state, int64_t total
                                 int64_t receivedBytes, NSString* suggestedFileName);
 typedef void (^onDownloadFailed)(NSString* guid, NSString* state, int64_t code);
 typedef void (^onDownloadFinish)(NSString* guid, NSString* path);
+typedef id (^onJavaScriptFunction)(NSString* objName, NSString* methodName, NSArray* args);
 @interface AceWeb()<WKScriptMessageHandler, WKUIDelegate, WKNavigationDelegate, 
                     UIScrollViewDelegate, NSURLSessionDownloadDelegate, WKHTTPCookieStoreObserver>
 /**webView*/
@@ -121,6 +122,7 @@ typedef void (^onDownloadFinish)(NSString* guid, NSString* path);
 @property (nonatomic, strong) onDownloadUpdated onDownloadUpdatedCallBack;
 @property (nonatomic, strong) onDownloadFailed onDownloadFailedCallBack;
 @property (nonatomic, strong) onDownloadFinish onDownloadFinishCallBack;
+@property (nonatomic, strong) onJavaScriptFunction onJavaScriptFunctionCallBack;
 @property (nonatomic, strong) NSMutableDictionary<NSString*, DownloadTaskInfo*>* downloadTasksDic;
 @property (nonatomic, assign) bool allowIncognitoMode;
 @end
@@ -171,6 +173,7 @@ static BOOL _webDebuggingAccessInit = NO;
     [self initConsole:CONSOLEDEBUG controller:userContentController];
     [self initConsole:CONSOLEWARN controller:userContentController];
     [userContentController addScriptMessageHandler:self name:@"onWebMessagePortMessage"];
+    [userContentController addScriptMessageHandler:self name:@"nativeHandler"];
     NSString *htmlFBody = @"var vSrc = e.target.currentSrc;window.webkit.messageHandlers.videoPlayed.postMessage(vSrc);";
     NSString *htmlFunc = [NSString stringWithFormat:@"function(e) {if (e.target.tagName === 'VIDEO') {%@}}", htmlFBody];
     NSString *htmlJS = [NSString stringWithFormat:@"document.addEventListener('play', %@, true);", htmlFunc];
@@ -783,6 +786,45 @@ static BOOL _webDebuggingAccessInit = NO;
     return false;
 }
 
+- (void)registerJavaScriptProxy:(NSString*)objName
+                 syncMethodList:(NSArray*)syncMethodList
+                asyncMethodList:(NSArray*)asyncMethodList
+                       callback:(id (^)(NSString* objName, NSString* methodName, NSArray* args))callback
+{
+    for (NSString* method in syncMethodList) {
+        NSString* js = [NSString stringWithFormat:
+            @"window.%@ = window.%@ || {};"
+            "window.%@.%@ = function(...args) {"
+            "window.webkit.messageHandlers.nativeHandler.postMessage({ class: '%@', method: '%@', params: args });"
+            "   return new Promise((resolve, reject) => {"
+            "       try {"
+            "           window.%@.%@.resolve = resolve;"
+            "       } catch (e) {"
+            "           reject(e.toString());"
+            "       }"
+            "   });"
+            "};", objName, objName, objName, method, objName, method, objName, method];
+        [self.webView evaluateJavaScript:js completionHandler:^(id result, NSError* error) {}];
+    }
+
+    for (NSString* method in asyncMethodList) {
+         NSString* js = [NSString stringWithFormat:
+            @"window.%@ = window.%@ || {};"
+            "window.%@.%@ = function(...args) {"
+            "window.webkit.messageHandlers.nativeHandler.postMessage({ class: '%@', method: '%@', params: args });"
+            "};", objName, objName, objName, method, objName, method];
+        [self.webView evaluateJavaScript:js completionHandler:^(id result, NSError* error) {}];
+    }
+    self.onJavaScriptFunctionCallBack = callback;
+}
+
+- (void)deleteJavaScriptRegister:(NSString*)objName
+{
+    NSString* js = [NSString stringWithFormat:@"delete window.%@;", objName];
+    [self.webView evaluateJavaScript:js completionHandler:^(id result, NSError* error) {}];
+    self.onJavaScriptFunctionCallBack = nil;
+}
+
 - (void)initEventCallback
 {
     // zoomAccess callback
@@ -1375,6 +1417,26 @@ static BOOL _webDebuggingAccessInit = NO;
     }
 }
 
+- (NSString*)generateJavaScriptForResult:(id)result className:(NSString*)className methodName:(NSString*)methodName
+{
+    if ([result isKindOfClass:[NSNumber class]]) {
+        if (strcmp([result objCType], @encode(char)) == 0) {
+            return [NSString stringWithFormat:@"window.%@.%@.resolve(%@);", className, methodName,
+                [result boolValue] ? @"true" : @"false"];
+        } else if (strcmp([result objCType], @encode(int)) == 0) {
+            return [NSString stringWithFormat:@"window.%@.%@.resolve(%d);", className, methodName, [result intValue]];
+        } else if (strcmp([result objCType], @encode(double)) == 0) {
+            return [NSString stringWithFormat:@"window.%@.%@.resolve(%f);", className, methodName, [result doubleValue]];
+        }
+    } else if ([result isKindOfClass:[NSArray class]] || [result isKindOfClass:[NSDictionary class]]) {
+        NSData* jsonData = [NSJSONSerialization dataWithJSONObject:result options:0 error:nil];
+        NSString* jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+        return [NSString stringWithFormat:@"window.%@.%@.resolve(%@);", className, methodName, jsonString];
+    } else {
+        return [NSString stringWithFormat:@"window.%@.%@.resolve('%@');", className, methodName, result];
+    }
+}
+
 - (void)userContentController:(WKUserContentController*)userContentController
       didReceiveScriptMessage:(WKScriptMessage*)message
 {
@@ -1399,6 +1461,17 @@ static BOOL _webDebuggingAccessInit = NO;
     } else if ([message.name isEqualToString:@"videoPlayed"]) {
         NSString *videoSrc = message.body;
         self.videoSrc = videoSrc;
+        return;
+    } else if ([message.name isEqualToString:@"nativeHandler"] && self.onJavaScriptFunctionCallBack) {
+        NSDictionary* messageBody = (NSDictionary *)message.body;
+        NSString* className = messageBody[@"class"];
+        NSString* methodName = messageBody[@"method"];
+        NSArray* params = (NSArray *)messageBody[@"params"];
+        id result = self.onJavaScriptFunctionCallBack(className, methodName, params);
+        if (result != nil && ![result isEqual:@""]) {
+            NSString* js = [self generateJavaScriptForResult:result className:className methodName:methodName];
+            [self.webView evaluateJavaScript:js completionHandler:nil];
+        }
         return;
     }
     AceWebOnConsoleObject* obj = new AceWebOnConsoleObject(std::string([messageBody UTF8String]), messageLevel);
