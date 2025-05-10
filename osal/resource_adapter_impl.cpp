@@ -20,7 +20,9 @@
 #include "adapter/ios/entrance/ace_application_info_impl.h"
 #include "adapter/ios/osal/resource_convertor.h"
 #include "adapter/ios/osal/resource_theme_style.h"
+#include "core/common/resource/resource_manager.h"
 #include "core/components/theme/theme_attributes.h"
+#include "core/components_ng/base/view_stack_processor.h"
 #include "resource_path_util.h"
 
 namespace OHOS::Ace {
@@ -692,4 +694,31 @@ void ResourceAdapterImpl::AddResourceManagerByModuleName(const std::string modul
     packagePathStr_ = appResPath;
     rawFilePaths_[moduleName] = packagePathStr_;
 }
+
+uint32_t ResourceAdapterImpl::GetSymbolByName(const char* resName) const
+{
+    uint32_t result = 0;
+    auto actualResName = GetActualResourceName(resName);
+    auto manager = GetResourceManager();
+    CHECK_NULL_RETURN(manager, -1);
+    auto state = manager->GetSymbolByName(actualResName.c_str(), result);
+    if (state != Global::Resource::SUCCESS) {
+        TAG_LOGW(AceLogTag::ACE_RESOURCE, "Get symbol by name error, name=%{public}s, errorCode=%{public}d",
+            resName, state);
+        auto host = NG::ViewStackProcessor::GetInstance()->GetMainElementNode();
+        ResourceManager::GetInstance().AddResourceLoadError(ResourceErrorInfo(host ? host->GetId(): -1,
+            resName, "Symbol", host ? host->GetTag().c_str() : "", GetCurrentTimestamp(), state));
+    }
+    return result;
+}
+
+uint32_t ResourceAdapterImpl::GetSymbolById(uint32_t resId) const
+{
+    uint32_t result = 0;
+    auto manager = GetResourceManager();
+    CHECK_NULL_RETURN(manager, -1);
+    manager->GetSymbolById(resId, result);
+    return result;
+}
+
 } // namespace OHOS::Ace
