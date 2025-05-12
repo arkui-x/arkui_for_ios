@@ -46,6 +46,8 @@ class Window;
 - (void)notifyHandleWillTerminate;
 - (void)notifyActiveChanged:(BOOL)isActive;
 - (void)notifyWindowDestroyed;
+- (void)notifySafeAreaChanged;
+- (void)notifyTraitCollectionDidChange:(BOOL)isSplitScreen;
 - (std::shared_ptr<OHOS::Rosen::Window>)getWindow;
 
 - (void)updateBrightness:(BOOL)isShow;
