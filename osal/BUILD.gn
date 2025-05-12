@@ -53,6 +53,7 @@ template("ace_osal_ios_source_set") {
       "file_uri_helper_ios.cpp",
       "frame_report.cpp",
       "frame_trace_adapter_impl.cpp",
+      "hitrace_meter.cpp",
       "image_packer_ios.cpp",
       "image_source_ios.cpp",
       "input_manager.cpp",
@@ -107,6 +108,7 @@ template("ace_osal_ios_source_set") {
       "$flutter_root/engine/",
       "//foundation/graphic/graphic_surface/interfaces/inner_api/surface",
       "$ace_root/adapter/ios/entrance/logIntercept",
+      "//base/hiviewdfx/hitrace/interfaces/native/innerkits/include/hitrace_meter",
     ]
 
     deps = [
