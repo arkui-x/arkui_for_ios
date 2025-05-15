@@ -112,3 +112,7 @@ if (enable_drag_framework) {
 if (defined(support_touch_target_test) && support_touch_target_test) {
   defines += [ "SUPPORT_TOUCH_TARGET_TEST" ]
 }
+
+if (runtime_mode == "debug") {
+  defines += [ "ACE_DEBUG_LOG" ]
+}
