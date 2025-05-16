@@ -15,6 +15,7 @@
 #include <list>
 #include "AceWebMessageExtImpl.h"
 #include "AceWebDownloadImpl.h"
+#include "web_javascript_value.h"
 
 struct BackForwardItem{
     std::string URL;
@@ -137,3 +138,10 @@ void webDownloadItemCancelOC(int webId, const std::string& guid);
 void webDownloadItemPauseOC(int webId, const std::string& guid);
 
 void webDownloadItemResumeOC(int webId, const std::string& guid);
+
+void registerJavaScriptProxyOC(int webId, const std::string& objName, 
+    const std::vector<std::string>& syncMethodList, const std::vector<std::string>& asyncMethodList,
+    std::shared_ptr<OHOS::Ace::WebJSValue> (*callbackOC)(const std::string& objName,
+    const std::string& methodName, const std::vector<std::shared_ptr<OHOS::Ace::WebJSValue>>& args));
+
+void deleteJavaScriptRegisterOC(int webId, const std::string& objName);
