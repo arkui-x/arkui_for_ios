@@ -130,6 +130,7 @@ _napi_get_undefined
 _napi_get_uv_event_loop
 _napi_get_value_string_utf8
 _napi_get_value_uint32
+_napi_load_module
 _napi_is_array
 _napi_is_exception_pending
 _napi_module_register
