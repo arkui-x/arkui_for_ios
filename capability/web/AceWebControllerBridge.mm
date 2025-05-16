@@ -21,6 +21,12 @@
 #import "AceWebControllerBridge.h"
 #import <Foundation/Foundation.h>
 
+#define MAX_DEPTH 10
+
+void DealArrayType(NSArray* arrayArg, std::shared_ptr<OHOS::Ace::WebJSValue>& argument, int currentDepth);
+void DealDictionaryType(NSDictionary* dicArg, std::shared_ptr<OHOS::Ace::WebJSValue>& argument, int currentDepth);
+NSMutableDictionary* ConvertDictionaryToNSDictionary(const std::shared_ptr<OHOS::Ace::WebJSValue>& listValue);
+NSMutableArray* ConvertListToNSArray(const std::shared_ptr<OHOS::Ace::WebJSValue>& listValue);
 std::map<std::string, std::shared_ptr<AceWebDownloadImpl>> webDownloadImplMap;
 std::map<std::string, std::chrono::steady_clock::time_point> lastReceivedTime;
 std::map<std::string, int64_t> lastReceivedBytes;
@@ -795,4 +801,304 @@ void webDownloadItemResumeOC(int webId, const std::string& guid)
     }
     NSString* ocGuid = [NSString stringWithCString:guid.c_str() encoding:NSUTF8StringEncoding];
     [web webDownloadItemResume:ocGuid];
+}
+
+void DealNumberType(NSNumber* numArg, std::shared_ptr<OHOS::Ace::WebJSValue>& argument)
+{
+    if (numArg == nil) {
+        NSLog(@"DealNumberType param is nil");
+        return;
+    }
+
+    if (argument == nullptr) {
+        NSLog(@"DealNumberType argument is nil");
+        return;
+    }
+    
+    if (strcmp([numArg objCType], @encode(char)) == 0) {
+        argument->SetType(OHOS::Ace::WebJSValue::Type::BOOLEAN);
+        argument->SetBoolean([numArg boolValue]);
+    } else if (strcmp([numArg objCType], @encode(double)) == 0) {
+        argument->SetType(OHOS::Ace::WebJSValue::Type::DOUBLE);
+        argument->SetDouble([numArg doubleValue]);
+    } else if (strcmp([numArg objCType], @encode(int)) == 0) {
+        argument->SetType(OHOS::Ace::WebJSValue::Type::INTEGER);
+        argument->SetInt([numArg intValue]);
+    }  else {
+        NSLog(@"DealNumberType undefined type");
+    }
+}
+
+void DealStringType(NSString* stringArg, std::shared_ptr<OHOS::Ace::WebJSValue>& argument)
+{
+    if (stringArg == nil) {
+        NSLog(@"DealStringType paramStrting nil");
+        return;
+    }
+
+    if (argument == nullptr) {
+        NSLog(@"DealStringType argument is nil");
+        return;
+    }
+
+    argument->SetType(OHOS::Ace::WebJSValue::Type::STRING);
+    argument->SetString([stringArg UTF8String]);
+}
+
+void DealArrayType(NSArray* arrayArg, std::shared_ptr<OHOS::Ace::WebJSValue>& argument, int currentDepth = 0)
+{
+    if (currentDepth >= MAX_DEPTH) {
+        NSLog(@"Exceeded maximum depth for array, setting value to null");
+        argument->SetType(OHOS::Ace::WebJSValue::Type::NONE);
+        return;
+    }
+
+    for (id subArg in arrayArg) {
+        std::shared_ptr<OHOS::Ace::WebJSValue> subargument =
+                    std::make_shared<OHOS::Ace::WebJSValue>(OHOS::Ace::WebJSValue::Type::NONE);
+        if (subargument == nullptr) {
+            NSLog(@"subargument is nullptr");
+            return;
+        }
+        if (subArg == nil) {
+            NSLog(@"subarray arg is nil");
+            return;
+        }
+        if ([subArg isKindOfClass:[NSArray class]]) {
+            NSArray* subArray = (NSArray*)subArg;
+            subargument->SetType(OHOS::Ace::WebJSValue::Type::LIST);
+            DealArrayType(subArray, subargument, currentDepth + 1);
+            argument->AddListValue(*subargument);
+        } else if ([subArg isKindOfClass:[NSDictionary class]]) {
+            NSDictionary* dictionaryArg = (NSDictionary*)subArg;
+            subargument->SetType(OHOS::Ace::WebJSValue::Type::DICTIONARY);
+            DealDictionaryType(dictionaryArg, subargument, currentDepth + 1);
+            argument->AddListValue(*subargument);
+        } else if ([subArg isKindOfClass:[NSNumber class]]) {
+            NSNumber* numArg = (NSNumber*)subArg;
+            DealNumberType(numArg, subargument);
+            argument->AddListValue(*subargument);
+        } else if ([subArg isKindOfClass:[NSString class]]) {
+            NSString* stringArg = (NSString*)subArg;
+            DealStringType(stringArg, subargument);
+            argument->AddListValue(*subargument);
+        } else {
+            NSLog(@"subarray arg is of unknown type: %@", subArg);
+            subargument->SetType(OHOS::Ace::WebJSValue::Type::NONE);
+            argument->AddListValue(*subargument);
+        }
+    }
+}
+
+void DealDictionaryType(NSDictionary* dicArg, std::shared_ptr<OHOS::Ace::WebJSValue>& argument, int currentDepth = 0)
+{
+    if (currentDepth >= MAX_DEPTH) {
+        NSLog(@"Exceeded maximum depth for dictionary, setting value to null");
+        argument->SetType(OHOS::Ace::WebJSValue::Type::NONE);
+        return;
+    }
+      for (id key in dicArg) {
+        std::shared_ptr<OHOS::Ace::WebJSValue> subArgument =
+                    std::make_shared<OHOS::Ace::WebJSValue>(OHOS::Ace::WebJSValue::Type::NONE);
+        if (subArgument == nullptr) {
+            NSLog(@"subArgument is nullptr");
+            return;
+        }
+        if (key == nil) {
+            NSLog(@"subdictionary arg key is nil");
+            return;
+        }
+        id value = dicArg[key];
+        if ([value isKindOfClass:[NSDictionary class]]) {
+            subArgument->SetType(OHOS::Ace::WebJSValue::Type::DICTIONARY);
+            DealDictionaryType((NSDictionary*)value, subArgument, currentDepth + 1);
+            argument->AddDictionaryValue([key UTF8String], *subArgument);
+        } else if ([value isKindOfClass:[NSArray class]]) {
+            subArgument->SetType(OHOS::Ace::WebJSValue::Type::LIST);
+            DealArrayType((NSArray*)value, subArgument, currentDepth + 1);
+            argument->AddDictionaryValue([key UTF8String], *subArgument);
+        } else if ([value isKindOfClass:[NSNumber class]]) {
+            DealNumberType((NSNumber*)value, subArgument);
+            argument->AddDictionaryValue([key UTF8String], *subArgument);
+        } else if ([value isKindOfClass:[NSString class]]) {
+            DealStringType((NSString*)value, subArgument);
+            argument->AddDictionaryValue([key UTF8String], *subArgument);
+        } else {
+            NSLog(@"subdictionary arg is of unknown type: %@", value);
+            subArgument->SetType(OHOS::Ace::WebJSValue::Type::NONE);
+            argument->AddDictionaryValue([key UTF8String], *subArgument);
+        }
+    }
+}
+
+id ConvertWebJSValueToNSObject(OHOS::Ace::WebJSValue& item)
+{
+    switch (item.GetType()) {
+    case OHOS::Ace::WebJSValue::Type::INTEGER:
+        return @(item.GetInt());
+    case OHOS::Ace::WebJSValue::Type::DOUBLE:
+        return @(item.GetDouble());
+    case OHOS::Ace::WebJSValue::Type::BOOLEAN:
+        return @(item.GetBoolean());
+    case OHOS::Ace::WebJSValue::Type::STRING:
+        return [NSString stringWithUTF8String:item.GetString().c_str()];
+    case OHOS::Ace::WebJSValue::Type::LIST: {
+        auto sharedItem = std::make_shared<OHOS::Ace::WebJSValue>(item);
+        if (sharedItem == nullptr) {
+            NSLog(@"ConvertWebJSValueToNSObject List sharedItem is nullptr");
+            return nil;
+        }
+        return ConvertListToNSArray(sharedItem);
+    }
+    case OHOS::Ace::WebJSValue::Type::DICTIONARY: {
+        auto sharedItem = std::make_shared<OHOS::Ace::WebJSValue>(item);
+        if (sharedItem == nullptr) {
+            NSLog(@"ConvertWebJSValueToNSObject DICTIONARY sharedItem is nullptr");
+            return nil;
+        }
+        return ConvertDictionaryToNSDictionary(sharedItem);
+    }
+    default:
+        NSLog(@"ConvertWebJSValueToNSObject Unsupported type in WebJSValue");
+        return nil;
+    }
+}
+
+NSMutableArray* ConvertListToNSArray(const std::shared_ptr<OHOS::Ace::WebJSValue>& listValue)
+{
+    if (listValue == nullptr) {
+        NSLog(@"listValue is nullptr");
+        return nil;
+    }
+    NSMutableArray* array = [NSMutableArray array];
+    auto list = listValue->GetListValue();
+
+    for (auto& item: list) {
+        id convertedItem = ConvertWebJSValueToNSObject(item);
+        if (convertedItem != nil) {
+            [array addObject:convertedItem];
+        } else {
+            NSLog(@"Unsupported type in nested list, adding NSNull");
+            [array addObject:[NSNull null]];
+        }
+    }
+
+    return array;
+}
+
+NSMutableDictionary* ConvertDictionaryToNSDictionary(const std::shared_ptr<OHOS::Ace::WebJSValue>& listValue)
+{
+    if (listValue == nullptr) {
+        return nil;
+    }
+    NSMutableDictionary* dictionary = [NSMutableDictionary dictionary];
+    auto dict = listValue->GetDictionaryValue();
+
+    for (auto& item: dict) {
+        if (item.first.empty()) {
+            NSLog(@"Key is empty, skipping");
+            continue;
+        }
+        NSString* key = [NSString stringWithUTF8String:item.first.c_str()];
+        id convertedValue = ConvertWebJSValueToNSObject(item.second);
+        if (convertedValue != nil) {
+            [dictionary setObject:convertedValue forKey:key];
+        } else {
+            NSLog(@"Unsupported type for key: %@, adding NSNull", key);
+            [dictionary setObject:[NSNull null] forKey:key];
+        }
+    }
+
+    return dictionary;
+}
+
+id ConvertResultToObjectiveC(const std::shared_ptr<OHOS::Ace::WebJSValue>& result)
+{
+    if (result == nullptr) {
+        NSLog(@"ConvertResultToObjectiveC result is nullptr");
+        return nil;
+    }
+
+    switch (result->GetType()) {
+        case OHOS::Ace::WebJSValue::Type::INTEGER:
+            return [NSNumber numberWithInt:result->GetInt()];
+        case OHOS::Ace::WebJSValue::Type::DOUBLE:
+            return [NSNumber numberWithDouble:result->GetDouble()];
+        case OHOS::Ace::WebJSValue::Type::BOOLEAN:
+            return [NSNumber numberWithBool:result->GetBoolean()];
+        case OHOS::Ace::WebJSValue::Type::STRING:
+            return [NSString stringWithUTF8String:result->GetString().c_str()];
+        case OHOS::Ace::WebJSValue::Type::LIST:
+            return ConvertListToNSArray(result);
+        case OHOS::Ace::WebJSValue::Type::DICTIONARY:
+            return ConvertDictionaryToNSDictionary(result);
+        default:
+            break;
+    }
+    return nil;
+}
+
+NSMutableArray* GetMethodList(const std::vector<std::string>& methodList)
+{
+    NSMutableArray* ocMethodList = [NSMutableArray array];
+    for (const auto& method : methodList) {
+        NSString* methodName = [NSString stringWithCString:method.c_str() encoding:NSUTF8StringEncoding];
+        [ocMethodList addObject:methodName];
+    }
+    return ocMethodList;
+}
+
+void registerJavaScriptProxyOC(int webId, const std::string& objName, 
+    const std::vector<std::string>& syncMethodList, const std::vector<std::string>& asyncMethodList,
+    std::shared_ptr<OHOS::Ace::WebJSValue> (*callbackOC)(const std::string& objName,
+    const std::string& methodName, const std::vector<std::shared_ptr<OHOS::Ace::WebJSValue>>& args))
+{
+    AceWeb* web = [AceWebResourcePlugin.getObjectMap objectForKey:[NSString stringWithFormat:@"%d", webId]];
+    if (web == nil) {
+        return;
+    }
+
+    NSString* ocObjName = [NSString stringWithCString:objName.c_str() encoding:NSUTF8StringEncoding];
+    NSMutableArray* ocSyncMethodList = GetMethodList(syncMethodList);
+    NSMutableArray* ocAsyncMethodList = GetMethodList(asyncMethodList);
+
+    [web registerJavaScriptProxy:ocObjName syncMethodList:ocSyncMethodList asyncMethodList:ocAsyncMethodList
+        callback:^id(NSString* objName, NSString* methodName, NSArray* args) {
+            std::vector<std::shared_ptr<OHOS::Ace::WebJSValue>> argsList;
+            for (id arg in args) {
+                std::shared_ptr<OHOS::Ace::WebJSValue> argument =
+                    std::make_shared<OHOS::Ace::WebJSValue>(OHOS::Ace::WebJSValue::Type::NONE);
+                if (argument == nullptr) {
+                    NSLog(@"argument is nullptr");
+                    break;
+                }
+                if ([arg isKindOfClass:[NSNumber class]]) {
+                    NSNumber* numberArg = (NSNumber *)arg;
+                    DealNumberType((NSNumber*)arg, argument);
+                }
+                if ([arg isKindOfClass:[NSString class]]) {
+                    DealStringType((NSString*)arg, argument);
+                } else if ([arg isKindOfClass:[NSArray class]]){
+                    argument->SetType(OHOS::Ace::WebJSValue::Type::LIST);
+                    DealArrayType((NSArray*)arg, argument);
+                } else if ([arg isKindOfClass:[NSDictionary class]]){
+                    argument->SetType(OHOS::Ace::WebJSValue::Type::DICTIONARY);
+                    DealDictionaryType((NSDictionary*)arg, argument);
+                }
+                argsList.push_back(argument);
+            }
+            
+            auto result = callbackOC([objName UTF8String], [methodName UTF8String], argsList);
+            return ConvertResultToObjectiveC(result);
+        }];
+}
+
+void deleteJavaScriptRegisterOC(int webId, const std::string& objName)
+{
+    AceWeb* web = [AceWebResourcePlugin.getObjectMap objectForKey:[NSString stringWithFormat:@"%d", webId]];
+    if (web == nil) {
+        return;
+    }
+    NSString* ocObjName = [NSString stringWithCString:objName.c_str() encoding:NSUTF8StringEncoding];
+    [web deleteJavaScriptRegister:ocObjName];
 }
