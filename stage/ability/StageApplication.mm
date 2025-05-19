@@ -29,6 +29,7 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
 + (void)configModuleWithBundleDirectory:(NSString *_Nonnull)bundleDirectory {
     NSLog(@"%s bundleDirectory : %@", __func__, bundleDirectory);
     [[StageAssetManager assetManager] moduleFilesWithbundleDirectory:bundleDirectory];
+    OHOS::AbilityRuntime::Platform::AppMain::GetInstance()->SetResourceFilePrefixPath();
 }
 
 + (void)launchApplication {

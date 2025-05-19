@@ -42,6 +42,7 @@ public:
 
     std::string GetBundleCodeDir();
     std::string GetCacheDir();
+    std::string GetResourceFilePrefixPath();
     std::string GetTempDir();
     std::string GetFilesDir();
     std::string GetDatabaseDir();

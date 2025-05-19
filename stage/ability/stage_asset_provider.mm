@@ -260,6 +260,13 @@ std::string StageAssetProvider::GetCacheDir()
     return cacheDir;
 }
 
+std::string StageAssetProvider::GetResourceFilePrefixPath()
+{
+    NSString *bundleDirectory = [[StageAssetManager assetManager] GetResourceFilePrefixPath];
+    std::string bundleCodeDir = [bundleDirectory UTF8String];
+    return bundleCodeDir;
+}
+
 std::string StageAssetProvider::GetTempDir()
 {
     NSString *tempDirectory = NSTemporaryDirectory();
