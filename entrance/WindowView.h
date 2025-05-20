@@ -25,7 +25,6 @@ class Window;
 @interface WindowView : UIView
 @property (nonatomic, assign) UIInterfaceOrientationMask OrientationMask;
 @property (nonatomic, assign) UIViewController*viewController;
-@property (nonatomic, assign) UIInterfaceOrientation orientation;
 @property (nonatomic, assign) BOOL focusable;
 @property (nonatomic, assign) BOOL isFocused;
 @property (nonatomic, assign) BOOL fullScreen;
@@ -33,7 +32,6 @@ class Window;
 
 - (UIViewController*)getViewController;
 
-- (void)setNewOrientation:(UIInterfaceOrientation)Orientation;
 - (void)setWindowDelegate:(std::shared_ptr<OHOS::Rosen::Window>)window;
 - (void)createSurfaceNode;
 - (BOOL)requestFocus;

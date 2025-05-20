@@ -47,6 +47,8 @@
 #define PUBLIC_IMAGE @"public.image"
 #define PUBLIC_VIDEO @"public.movie"
 #define PUBLIC_AUDIO @"public.audio"
+#define kOrientationMaskUpdateNotificationName "arkui_x.iosPlatform.setPreferredOrientationNotificationName"
+#define kOrientationMaskUpdateNotificationKey "arkui_x.iosPlatform.setPreferredOrientationNotificationKey"
 
 using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
 using WindowViwAdapter = OHOS::AbilityRuntime::Platform::WindowViewAdapter;
@@ -74,6 +76,7 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 @property(nonatomic, copy) NSString* type;
 @property(nonatomic, assign) BOOL allowsMultipleSelection;
 @property(nonatomic, assign) BOOL isReturnValue;
+@property(nonatomic, assign) UIInterfaceOrientationMask interfaceOrientationMask;
 @end
 
 @implementation StageViewController
@@ -97,8 +100,73 @@ CGFloat _brightness = 0.0;
         _pluginList = [[NSMutableArray alloc] init];
         [self initBridge];
         self.homeIndicatorHidden = NO;
+        self.interfaceOrientationMask = UIInterfaceOrientationMaskAll;
+        [[NSNotificationCenter defaultCenter]addObserver:self selector:@selector(orientationMaskUpdate:)
+            name:@(kOrientationMaskUpdateNotificationName) object:nil];
     }
     return self;
+}
+
+- (void)orientationMaskUpdate: (NSNotification *)notification {
+    NSDictionary *dic = notification.userInfo;
+    NSNumber *orientationMask = dic[@(kOrientationMaskUpdateNotificationKey)];
+    if (orientationMask == nil || self.interfaceOrientationMask == orientationMask.unsignedIntegerValue) {
+        return;
+    }
+    self.interfaceOrientationMask = orientationMask.unsignedIntegerValue;
+    __weak StageViewController *weakSelf = self;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if (@available(iOS 16.0, *)) {
+            [weakSelf setNeedsUpdateOfSupportedInterfaceOrientations];
+            NSArray *array = [[[UIApplication sharedApplication] connectedScenes] allObjects];
+            UIWindowScene *scene = [array firstObject];
+            UIInterfaceOrientationMask OrientationMask = weakSelf.interfaceOrientationMask;
+            UIWindowSceneGeometryPreferencesIOS *geometryPreferencesIOS = 
+                [[UIWindowSceneGeometryPreferencesIOS alloc] initWithInterfaceOrientations:OrientationMask];
+            /* start transform animation */
+            [scene requestGeometryUpdateWithPreferences:geometryPreferencesIOS 
+                errorHandler:^(NSError * _Nonnull error) {}];
+        } else {
+            [weakSelf setNewOrientation:weakSelf.interfaceOrientationMask];
+        }
+    });
+}
+
+- (void)setNewOrientation:(UIInterfaceOrientationMask)orientationMask {
+    UIInterfaceOrientation currentOrientation = UIInterfaceOrientationUnknown;
+    if (@available(iOS 13.0, *)) {
+        NSArray *array = [[[UIApplication sharedApplication] connectedScenes] allObjects];
+        UIWindowScene *scene = [array firstObject];
+        currentOrientation = scene.interfaceOrientation;
+    } else {
+        currentOrientation = [[UIApplication sharedApplication] statusBarOrientation];
+    }
+    if (orientationMask & (1 << currentOrientation)) {
+        return;
+    }
+    [UIViewController attemptRotationToDeviceOrientation];
+    UIInterfaceOrientation Orientation = UIInterfaceOrientationUnknown;
+    if (orientationMask & UIInterfaceOrientationMaskPortrait) {
+        Orientation = UIInterfaceOrientationPortrait;
+    } else if (orientationMask & UIInterfaceOrientationMaskPortraitUpsideDown) {
+        Orientation = UIInterfaceOrientationPortraitUpsideDown;
+    } else if (orientationMask & UIInterfaceOrientationMaskLandscapeRight) {
+        Orientation = UIInterfaceOrientationLandscapeRight;
+    } else if (orientationMask & UIInterfaceOrientationMaskLandscapeLeft) {
+        Orientation = UIInterfaceOrientationLandscapeLeft;
+    }
+    NSNumber *resetOrientationTarget = [NSNumber numberWithInt:UIInterfaceOrientationUnknown];
+    [[UIDevice currentDevice] setValue:resetOrientationTarget forKey:@"orientation"];
+    NSNumber *orientationTarget = [NSNumber numberWithInt:Orientation];
+    [[UIDevice currentDevice] setValue:orientationTarget forKey:@"orientation"];
+}
+
+- (UIInterfaceOrientationMask)supportedInterfaceOrientations {
+    return self.interfaceOrientationMask;
+}
+
+- (BOOL)shouldAutorotate {
+    return true;
 }
 
 - (void)initColorMode {
@@ -226,6 +294,7 @@ CGFloat _brightness = 0.0;
     [BridgePluginManager innerUnbridgePluginManager:_instanceId];
     _bridgePluginManager = nil;
     [self deallocArkUIXPlugin];
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
     AppMain::GetInstance()->DispatchOnDestroy(_cInstanceName);
 }
 
