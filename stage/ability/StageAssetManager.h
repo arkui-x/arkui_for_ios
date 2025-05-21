@@ -32,6 +32,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (NSArray *_Nullable)getAssetAllFilePathList;
 
+- (NSString *_Nullable)GetResourceFilePrefixPath;
+
 - (NSArray *_Nullable)getpkgJsonFileList;
 
 - (NSArray *_Nullable)getModuleJsonFileList;

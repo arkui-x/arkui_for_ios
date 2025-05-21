@@ -25,6 +25,7 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
 #define FILTER_FILE_MODULE_ABC @".abc"
 #define FILTER_FILE_RESOURCES_INDEX @"resources.index"
 #define FILTER_FILE_SYSTEM_RESOURCES_INDEX @"systemres"
+#define DOCUMENTS_FONTS_FILES @"fonts"
 #define DOCUMENTS_SUBDIR_FILES @"files"
 #define DOCUMENTS_SUBDIR_DATABASE @"database"
 
@@ -89,6 +90,13 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
 - (void)launchAbility {
     NSLog(@"%s", __func__);
     AppMain::GetInstance()->LaunchApplication();
+}
+
+- (NSString *_Nullable)GetResourceFilePrefixPath {
+    NSString *dirPath = [[self.bundlePath
+            stringByAppendingPathComponent:FILTER_FILE_SYSTEM_RESOURCES_INDEX]
+            stringByAppendingPathComponent:DOCUMENTS_FONTS_FILES];
+    return dirPath ;
 }
 
 - (NSString *_Nullable)getBundlePath {
