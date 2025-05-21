@@ -808,4 +808,15 @@ void SubwindowIos::ShowBindSheetNG(bool isShow, std::function<void(const std::st
 void SubwindowIos::ShowDialogMaskNG(const RefPtr<NG::FrameNode>& dialog) {}
 
 void SubwindowIos::CloseDialogMaskNG(const RefPtr<NG::FrameNode>& dialog) {}
+
+void SubwindowIos::SwitchFollowParentWindowLayout(bool freeMultiWindowEnable) {}
+
+bool SubwindowIos::NeedFollowParentWindowLayout()
+{
+    return false;
+}
+
+void SubwindowIos::AddFollowParentWindowLayoutNode(int32_t nodeId) {}
+
+void SubwindowIos::RemoveFollowParentWindowLayoutNode(int32_t nodeId) {}
 } // namespace OHOS::Ace
