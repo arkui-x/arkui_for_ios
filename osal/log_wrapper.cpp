@@ -97,7 +97,7 @@ constexpr os_log_type_t LOG_TYPE[] = { OS_LOG_TYPE_DEBUG, OS_LOG_TYPE_INFO, OS_L
     
 void LogWrapper::PrintLog(LogDomain domain, LogLevel level, AceLogTag tag, const char* fmt, va_list args)
 {
-    if (LogWrapper::GetLogLevel() > level) {
+    if (!OHOS::Ace::LogWrapper::JudgeLevel(level)) {
         return;
     }
     std::string newFmt(fmt);
