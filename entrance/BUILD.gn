@@ -64,6 +64,7 @@ template("ace_ios_standard_source_set") {
       "ace_translate_manager.cpp",
       "capability_registry.cpp",
       "display_info.mm",
+      "display_manager_agent.cpp",
       "download_manager.cpp",
       "foldable_window_ios.cpp",
       "html/html_to_span.cpp",

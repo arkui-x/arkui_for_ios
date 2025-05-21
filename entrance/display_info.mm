@@ -265,5 +265,13 @@ int32_t DisplayInfo::GetDevicePpi() const
     }
     return devicePpi;
 }
+int32_t DisplayInfo::GetXDpi()
+{
+return 0;
+}
+int32_t DisplayInfo::GetYDpi() 
+{
+    return 0;
+}
 
 } // namespace OHOS::Rosen

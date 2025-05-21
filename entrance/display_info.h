@@ -50,6 +50,8 @@ public:
     void SetDensityPixels(float densityPixels);
     void SetScaledDensity(float scaledDensity);
     void SetDensityDpi(int32_t dpi);
+    int32_t GetXDpi();
+    int32_t GetYDpi();
 
 private:
     DisplayId id_ { DISPLAY_ID_INVALID };
