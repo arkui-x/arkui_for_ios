@@ -166,6 +166,9 @@ const std::map<ColorSpace, GraphicColorGamut> COLOR_SPACE_JS_TO_GAMUT_MAP {
     { ColorSpace::COLOR_SPACE_WIDE_GAMUT, GraphicColorGamut::GRAPHIC_COLOR_GAMUT_DCI_P3 },
 };
 
+const char* const kOrientationMaskUpdateNotificationName = "arkui_x.iosPlatform.setPreferredOrientationNotificationName";
+const char* const kOrientationMaskUpdateNotificationKey = "arkui_x.iosPlatform.setPreferredOrientationNotificationKey";
+
 void DummyWindowRelease(Window* window)
 {
     window->DecStrongRef(window);
@@ -1184,41 +1187,24 @@ WMError Window::SetSystemBarProperty(WindowType type, const SystemBarProperty& p
 
 void Window::SetRequestedOrientation(Orientation orientation)
 {
-    if (orientation == Orientation::UNSPECIFIED) {
-        return;
-    } else if (orientation == Orientation::VERTICAL) {
+    if (orientation == Orientation::UNSPECIFIED || orientation == Orientation::VERTICAL) {
         windowView_.OrientationMask = UIInterfaceOrientationMaskPortrait;
-        windowView_.orientation = UIInterfaceOrientationPortrait;
     } else if (orientation == Orientation::HORIZONTAL) {
-        windowView_.OrientationMask = UIInterfaceOrientationMaskLandscapeLeft;
-        windowView_.orientation = UIInterfaceOrientationLandscapeLeft;
-    } else if (orientation == Orientation::REVERSE_HORIZONTAL) {
         windowView_.OrientationMask = UIInterfaceOrientationMaskLandscapeRight;
-        windowView_.orientation = UIInterfaceOrientationLandscapeRight;
+    } else if (orientation == Orientation::REVERSE_HORIZONTAL) {
+        windowView_.OrientationMask = UIInterfaceOrientationMaskLandscapeLeft;
     } else if (orientation == Orientation::REVERSE_VERTICAL) {
-        /* if statusbar height >20 ,not support for UIInterfaceOrientationPortraitUpsideDown*/
-        if ([[UIApplication sharedApplication] statusBarFrame].size.height > 20) {
-            return;
-        }
         windowView_.OrientationMask = UIInterfaceOrientationMaskPortraitUpsideDown;
-        windowView_.orientation = UIInterfaceOrientationPortraitUpsideDown;
+    } else if (orientation == Orientation::SENSOR) {
+        windowView_.OrientationMask = UIInterfaceOrientationMaskAll;
+    } else if (orientation == Orientation::SENSOR_VERTICAL) {
+        windowView_.OrientationMask = UIInterfaceOrientationMaskPortrait | UIInterfaceOrientationMaskPortraitUpsideDown;
+    } else if (orientation == Orientation::SENSOR_HORIZONTAL) {
+        windowView_.OrientationMask = UIInterfaceOrientationMaskLandscape;
     }
 
-    if (@available(iOS 16, *)) {
-#if defined __IPHONE_16_0
-        [windowView_.getViewController setNeedsUpdateOfSupportedInterfaceOrientations];
-        NSArray *array = [[[UIApplication sharedApplication] connectedScenes] allObjects];
-        UIWindowScene *scene = [array firstObject];
-        UIInterfaceOrientationMask OrientationMask = windowView_.OrientationMask;
-        UIWindowSceneGeometryPreferencesIOS *geometryPreferencesIOS = 
-            [[UIWindowSceneGeometryPreferencesIOS alloc] initWithInterfaceOrientations:OrientationMask];
-        /* start transform animation */
-        [scene requestGeometryUpdateWithPreferences:geometryPreferencesIOS 
-            errorHandler:^(NSError * _Nonnull error) {}];
-#endif
-    } else {
-        [windowView_ setNewOrientation:windowView_.orientation];
-    }
+    [[NSNotificationCenter defaultCenter]postNotificationName:@(kOrientationMaskUpdateNotificationName)
+        object:nil userInfo:@{@(kOrientationMaskUpdateNotificationKey):@(windowView_.OrientationMask)}];
 }
 
 SystemBarProperty Window::GetSystemBarPropertyByType(WindowType type) const
