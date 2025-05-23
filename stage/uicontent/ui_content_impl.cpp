@@ -725,14 +725,22 @@ void UIContentImpl::UpdateConfiguration(const std::shared_ptr<OHOS::AbilityRunti
     auto colorMode = config->GetItem(OHOS::AbilityRuntime::Platform::ConfigurationInner::SYSTEM_COLORMODE);
     auto direction = config->GetItem(OHOS::AbilityRuntime::Platform::ConfigurationInner::APPLICATION_DIRECTION);
     auto densityDpi = config->GetItem(OHOS::AbilityRuntime::Platform::ConfigurationInner::APPLICATION_DENSITYDPI);
-    auto configStr = colorMode + ";" + direction + ";" + densityDpi + ";";
+    auto fontFamily = config->GetItem(OHOS::AbilityRuntime::Platform::ConfigurationInner::APPLICATION_FONT);
+    auto fontScale = config->GetItem(OHOS::AbilityRuntime::Platform::ConfigurationInner::SYSTEM_FONT_SIZE_SCALE);
+    auto configStr = colorMode + ";" + direction + ";" + densityDpi + ";" + fontFamily + ";" + fontScale + ";";
     if (lastConfig_ != configStr) {
         lastConfig_ = configStr;
         taskExecutor->PostTask(
-            [weakContainer = WeakPtr<Platform::AceContainerSG>(container), colorMode, direction, densityDpi]() {
+            [weakContainer = WeakPtr<Platform::AceContainerSG>(container), colorMode, direction, densityDpi, fontFamily, fontScale]() {
                 auto container = weakContainer.Upgrade();
                 CHECK_NULL_VOID(container);
-                container->UpdateConfiguration(colorMode, direction, densityDpi);
+                Platform::ParsedConfig parsedConfig;
+                parsedConfig.colorMode = colorMode;
+                parsedConfig.direction = direction;
+                parsedConfig.densitydpi = densityDpi;
+                parsedConfig.fontFamily = fontFamily;
+                parsedConfig.fontScale = fontScale;
+                container->UpdateConfiguration(parsedConfig);
                 auto context = container->GetPipelineContext();
                 CHECK_NULL_VOID(context);
                 AccessibilityEvent event;
