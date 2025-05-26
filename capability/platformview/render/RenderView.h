@@ -25,10 +25,10 @@
 - (void)init;
 - (void)setEAGLContext:(EAGLContext*)context;
 - (void)setTextureName:(int32_t)textureName;
-- (void)startRender:(UIView *)view;
+- (bool)startRender:(UIView *)view;
 - (void)exchangeBind;
 
-- (void)setupImageData:(UIImage *)image;
+- (bool)setupImageData:(UIImage *)image;
 @end
 
 #endif // RENDER_VIEW_H
