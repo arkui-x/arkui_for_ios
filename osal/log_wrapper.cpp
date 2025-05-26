@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022-2024 Huawei Device Co., Ltd.
+ * Copyright (c) 2022-2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -109,7 +109,7 @@ void LogWrapper::PrintLog(LogDomain domain, LogLevel level, AceLogTag tag, const
         return;
     }
 
-    if (HasDelegateMethod() && level >= LogLevel::ERROR) {
+    if (HasDelegateMethod() && level >= GetCurrentLogLevel()) {
         std::string logInfo(buf);
         PassLogMessageOC(LOG_TAGS[static_cast<uint32_t>(domain)], static_cast<int>(level), logInfo);
         return;
