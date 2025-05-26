@@ -46,10 +46,12 @@
     float _density;
     BOOL _needNotifySurfaceChangedWithWidth;
     BOOL _needCreateSurfaceNode;
+    BOOL _needNotifyForground;
     std::map<int64_t, int32_t> _deviceMap;
     int32_t _deviceId;
     BOOL _firstTouchFlag;
     std::vector<CGRect> hotAreas_;
+    float _oldBrightness;
 }
 
 +(Class)layerClass{
@@ -75,6 +77,8 @@
         self.backgroundColor = [UIColor clearColor];
         _deviceMap = std::map<int64_t, int32_t>{};
         _deviceId = 0;
+        _oldBrightness = - 1;
+        _brightness = [UIScreen mainScreen].brightness;
     }
     return self;
 }
@@ -236,6 +240,10 @@
         _needNotifySurfaceChangedWithWidth = NO;
         [self notifySurfaceChangedWithWidth:_width height:_height density:_density];
     }
+    if (_needNotifyForground) {
+        _needNotifyForground = NO;
+        [self notifyForeground];
+    }
 }
 
 - (std::shared_ptr<OHOS::Rosen::Window>)getWindow {
@@ -274,10 +282,24 @@
     [self dispatchTouches:touches withEvent:event phase:UITouchPhaseCancelled];
 }
 
-- (float)updateBrightness {
-    if (_windowDelegate.lock() != nullptr) {
-        [UIScreen mainScreen].brightness = _windowDelegate.lock()->GetBrightness();
+- (void)setBrightness:(float)brightness {
+    _oldBrightness = _brightness;
+    _brightness = brightness;
+}
+
+- (float)getBrightness {
+    return _brightness;
+}
+
+- (void)updateBrightness:(BOOL)isShow {
+    if (_oldBrightness == -1) {
+        return;
     }
+    float brightness = _oldBrightness;
+    if (isShow) {
+         brightness = _brightness;
+    }
+    [UIScreen mainScreen].brightness = brightness;
 }
 
 - (void)touchOutside {
@@ -513,6 +535,8 @@ static int32_t GetModifierKeys(UIKeyModifierFlags modifierFlags) {
 - (void)notifyForeground {
     if (_windowDelegate.lock() != nullptr) {
         _windowDelegate.lock()->Foreground();
+    } else {
+        _needNotifyForground = YES;
     }
 }
 - (void)notifyBackground {
@@ -522,6 +546,7 @@ static int32_t GetModifierKeys(UIKeyModifierFlags modifierFlags) {
 }
 
 - (void)notifyActiveChanged:(BOOL)isActive {
+    [self updateBrightness:isActive];
     if (_windowDelegate.lock() != nullptr) {
         _windowDelegate.lock()->WindowActiveChanged(isActive);
     }
