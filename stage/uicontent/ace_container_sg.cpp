@@ -208,6 +208,26 @@ void AceContainerSG::InitializeFrontend()
     LOGI("InitializeFrontend finished.");
 }
 
+void AceContainerSG::SetPipelineContextFont(
+    std::string& fontScale, std::string& maxFontScale, std::string& followSystem)
+{
+    ACE_DCHECK(pipelineContext_);
+    if (!followSystem.empty()) {
+        auto isFollowSystem = (followSystem == "followSystem");
+        pipelineContext_->SetFollowSystem(isFollowSystem);
+    }
+    if (fontScale.empty()) {
+        return;
+    }
+    float fontScaleValue = StringUtils::StringToFloat(fontScale);
+    if (!maxFontScale.empty()) {
+        float maxFontScaleValue = StringUtils::StringToFloat(maxFontScale);
+        fontScaleValue = std::min(fontScaleValue, maxFontScaleValue);
+        pipelineContext_->SetMaxAppFontScale(maxFontScaleValue);
+    }
+    pipelineContext_->SetFontScale(fontScaleValue);
+}
+
 void AceContainerSG::InitPiplineContext(
     std::unique_ptr<Window> window, double density, int32_t width, int32_t height, uint32_t windowId)
 {

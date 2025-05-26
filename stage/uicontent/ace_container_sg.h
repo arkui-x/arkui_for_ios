@@ -349,6 +349,8 @@ public:
 
     void SetCurPointerEvent(const std::shared_ptr<MMI::PointerEvent>& currentEvent);
 
+    void SetPipelineContextFont(std::string& fontScale, std::string& maxFontScale, std::string& followSystem);
+
     bool GetCurPointerEventInfo( DragPointerEvent& dragPointerEvent, StopDragCallback&& stopDragCallback) override;
 
     bool GetLastMovingPointerPosition(DragPointerEvent& dragPointerEvent) override;
