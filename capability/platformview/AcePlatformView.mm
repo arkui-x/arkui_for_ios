@@ -76,6 +76,7 @@ const static size_t QueueSize = 3;
     void *_eglContextPtr;
     bool _initView;
     bool _isVideo;
+    bool _isRenderFinish;
 }
 
 - (instancetype)initWithEvents:(IAceOnResourceEvent)callback
@@ -365,9 +366,10 @@ const static size_t QueueSize = 3;
         return;
     }
     UIView* platformView = [embeddedView view];
+    _isRenderFinish = false;
     if (_initView && _renderView != nullptr) {
-        [_renderView startRender:platformView];
-        if (self.displayLink) {
+        _isRenderFinish = [_renderView startRender:platformView];
+        if (self.displayLink && _isRenderFinish) {
             [self refreshPixelBuffer];
         }
     }
