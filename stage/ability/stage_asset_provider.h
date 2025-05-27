@@ -35,6 +35,7 @@ public:
     static std::shared_ptr<StageAssetProvider> GetInstance();
     std::vector<uint8_t> GetPkgJsonBuffer(const std::string& moduleName);
     std::list<std::vector<uint8_t>> GetModuleJsonBufferList();
+    std::vector<uint8_t> GetFontConfigJsonBuffer(const std::string& moduleName);
     std::vector<uint8_t> GetModuleBuffer(const std::string& moduleName, std::string& modulePath, bool esmodule);
     std::vector<uint8_t> GetModuleAbilityBuffer(
         const std::string& moduleName, const std::string& abilityName, std::string& modulePath, bool esmodule);
@@ -61,6 +62,7 @@ public:
     void UpdateVersionCode(const std::string& moduleName, bool needUpdate);
     bool IsDynamicUpdateModule(const std::string& moduleName);
 private:
+    std::string fontConfigName_;
     std::mutex providerLock_;
     static std::shared_ptr<StageAssetProvider> instance_;
     static std::mutex mutex_;

@@ -250,6 +250,19 @@ napi_value UIContentImpl::GetUINapiContext()
     return nullptr;
 }
 
+void UpdateFontScale(RefPtr<Platform::AceContainerSG> container,
+    const std::shared_ptr<OHOS::AbilityRuntime::Platform::Configuration>& config)
+{
+    CHECK_NULL_VOID(config);
+    CHECK_NULL_VOID(container);
+    auto maxAppFontScale = config->GetItem(OHOS::AbilityRuntime::Platform::ConfigurationInner::APP_FONT_MAX_SCALE);
+    auto followSystem = config->GetItem(OHOS::AbilityRuntime::Platform::ConfigurationInner::APP_FONT_SIZE_SCALE);
+    auto fontScale = config->GetItem(OHOS::AbilityRuntime::Platform::ConfigurationInner::SYSTEM_FONT_SIZE_SCALE);
+    if (!maxAppFontScale.empty() && !followSystem.empty() && !fontScale.empty()) {
+        container->SetPipelineContextFont(fontScale, maxAppFontScale, followSystem);
+    }
+}
+
 void UIContentImpl::CommonInitialize(OHOS::Rosen::Window* window, const std::string& url, napi_value storage)
 {
     ACE_FUNCTION_TRACE();
@@ -420,6 +433,8 @@ void UIContentImpl::CommonInitialize(OHOS::Rosen::Window* window, const std::str
     }
     // set view
     Platform::AceContainerSG::SetView(aceView, density, 0, 0, window_);
+    auto config = context->GetConfiguration();
+    UpdateFontScale(container, config);
     if (window_) {
         occupiedAreaChangeListener_ = new OccupiedAreaChangeListener(instanceId_);
         window_->RegisterOccupiedAreaChangeListener(occupiedAreaChangeListener_);
@@ -527,6 +542,17 @@ void UIContentImpl::InitAceInfoFromResConfig()
     if (config) {
         auto direction = config->GetItem(OHOS::AbilityRuntime::Platform::ConfigurationInner::APPLICATION_DIRECTION);
         auto densityDpi = config->GetItem(OHOS::AbilityRuntime::Platform::ConfigurationInner::APPLICATION_DENSITYDPI);
+        auto systemFont = config->GetItem(OHOS::AbilityRuntime::Platform::ConfigurationInner::APP_FONT_SIZE_SCALE);
+        auto maxFontScale = config->GetItem(OHOS::AbilityRuntime::Platform::ConfigurationInner::APP_FONT_MAX_SCALE);
+        auto fontScale = config->GetItem(OHOS::AbilityRuntime::Platform::ConfigurationInner::SYSTEM_FONT_SIZE_SCALE);
+        if (!fontScale.empty()) {
+            float fontScaleValue = StringUtils::StringToFloat(fontScale);
+            if (!maxFontScale.empty()) {
+                float maxFontScaleValue = StringUtils::StringToFloat(maxFontScale);
+                fontScaleValue = std::min(fontScaleValue, maxFontScaleValue);
+            }
+            SystemProperties::SetFontScale(fontScaleValue);
+        }
         LOGI("UIContent set GetScreenDensity dpi=%{public}s", densityDpi.c_str());
         if (!densityDpi.empty()) {
             double density = std::stoi(densityDpi) / DPI_BASE;
@@ -720,6 +746,7 @@ void UIContentImpl::UpdateConfiguration(const std::shared_ptr<OHOS::AbilityRunti
     CHECK_NULL_VOID(config);
     auto container = Platform::AceContainerSG::GetContainer(instanceId_);
     CHECK_NULL_VOID(container);
+    UpdateFontScale(container, config);
     auto taskExecutor = container->GetTaskExecutor();
     CHECK_NULL_VOID(taskExecutor);
     auto colorMode = config->GetItem(OHOS::AbilityRuntime::Platform::ConfigurationInner::SYSTEM_COLORMODE);
@@ -727,7 +754,10 @@ void UIContentImpl::UpdateConfiguration(const std::shared_ptr<OHOS::AbilityRunti
     auto densityDpi = config->GetItem(OHOS::AbilityRuntime::Platform::ConfigurationInner::APPLICATION_DENSITYDPI);
     auto fontFamily = config->GetItem(OHOS::AbilityRuntime::Platform::ConfigurationInner::APPLICATION_FONT);
     auto fontScale = config->GetItem(OHOS::AbilityRuntime::Platform::ConfigurationInner::SYSTEM_FONT_SIZE_SCALE);
-    auto configStr = colorMode + ";" + direction + ";" + densityDpi + ";" + fontFamily + ";" + fontScale + ";";
+    auto maxAppFontScale = config->GetItem(OHOS::AbilityRuntime::Platform::ConfigurationInner::APP_FONT_MAX_SCALE);
+    auto followSystem = config->GetItem(OHOS::AbilityRuntime::Platform::ConfigurationInner::APP_FONT_SIZE_SCALE);
+    auto configStr = colorMode + ";" + direction + ";" + densityDpi + ";" + fontFamily + ";" + fontScale + ";" +
+        maxAppFontScale + ";" + followSystem + ";";
     if (lastConfig_ != configStr) {
         lastConfig_ = configStr;
         taskExecutor->PostTask(

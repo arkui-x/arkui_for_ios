@@ -78,6 +78,24 @@ std::vector<uint8_t> StageAssetProvider::GetPkgJsonBuffer(const std::string& mod
     return {};
 }
 
+std::string ExtractConfigurationFileName(const nlohmann::json& moduleJson)
+{
+    if (moduleJson.is_null() || moduleJson.is_discarded()) {
+        return "";
+    }
+    auto appValue = moduleJson["app"];
+    if (!appValue.is_object() || !appValue.contains("configuration")) {
+        return "";
+    }
+    auto configurationValue = appValue["configuration"];
+    std::string configurationStr = configurationValue.get<std::string>();
+    auto delimiterPos = configurationStr.find(':');
+    if (delimiterPos != std::string::npos) {
+        return configurationStr.substr(delimiterPos + 1) + ".json";
+    }
+    return "";
+}
+
 std::list<std::vector<uint8_t>> StageAssetProvider::GetModuleJsonBufferList()
 {
     printf("%s", __func__);
@@ -98,7 +116,38 @@ std::list<std::vector<uint8_t>> StageAssetProvider::GetModuleJsonBufferList()
         }
         bufferList.emplace_back(moduleBuffer);
     }
+    if (!bufferList.empty()) {
+        auto firstModule = bufferList.front();
+        std::string moduleContent(firstModule.begin(), firstModule.end());
+        nlohmann::json moduleJson = nlohmann::json::parse(moduleContent, nullptr, false);
+        if (moduleJson.is_discarded()) {
+            return bufferList;
+        }
+        fontConfigName_ = ExtractConfigurationFileName(moduleJson);
+    }
     return bufferList;
+}
+
+std::vector<uint8_t> StageAssetProvider::GetFontConfigJsonBuffer(const std::string& moduleName)
+{
+    std::lock_guard<std::mutex> lock(providerLock_);
+    if (fontConfigName_.empty()) {
+        return {};
+    }
+    NSString *oc_moduleName = GetOCstring(fontConfigName_);
+    NSArray *pkgJsonFileList = [[StageAssetManager assetManager] getAssetAllFilePathList];
+    for (NSString *pkgJsonPath in pkgJsonFileList) {
+        if ([pkgJsonPath containsString:[NSString stringWithFormat:@"/%@", oc_moduleName]]) {
+            NSData *pathData = [NSData dataWithContentsOfFile:pkgJsonPath];
+            if (!pathData) {
+                NSLog(@"pathData is null");
+                break;
+            }
+            auto buffer =  GetVectorFromNSData(pathData);
+            return buffer;
+        }
+    }
+    return {};
 }
 
 std::vector<uint8_t> StageAssetProvider::GetModuleBuffer(const std::string& moduleName, std::string& modulePath, bool esmodule)
