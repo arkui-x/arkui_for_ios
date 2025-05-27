@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Huawei Device Co., Ltd.
+ * Copyright (c) 2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -18,6 +18,8 @@
 
 #include <mutex>
 
+#define COLOR_NUMBER 8
+#define DATA_SIZE 4
 #define STRINGIZE(x) #x
 #define STRINGIZE2(x) STRINGIZE(x)
 #define SHADER_STRING(text) @ STRINGIZE2(text)
@@ -67,7 +69,7 @@ static GLfloat texArray[] = {
     
     GLint _renderWidth;
     GLint _renderHeight;
-
+    CGContextRef tContext;
     void *imageData;
 }
 
@@ -164,41 +166,52 @@ static GLfloat texArray[] = {
     CGFloat scale_ = [UIScreen mainScreen].scale;
 
     UIGraphicsBeginImageContextWithOptions(view.bounds.size, YES, scale_);
-    [view drawViewHierarchyInRect:view.bounds afterScreenUpdates:NO];
-    image = UIGraphicsGetImageFromCurrentImageContext();
+    BOOL isFinish = [view drawViewHierarchyInRect:view.bounds afterScreenUpdates:NO];
+    if (isFinish) {
+        image = UIGraphicsGetImageFromCurrentImageContext();
+    }
     UIGraphicsEndImageContext();
-
     return image;
 }
 
-- (void)setupImageData:(UIImage *)image {
+- (bool)createContext {
+    int spaceRow = _renderWidth * DATA_SIZE;
+    int space = spaceRow * _renderHeight;
+    if (_renderWidth <= 0 || _renderHeight <= 0 || space <= 0) {
+        return false;
+    }
+    if (imageData == NULL) {
+        imageData = malloc(space);
+        memset(imageData, 0xFF, space); 
+    }
+    CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
+    tContext = CGBitmapContextCreate(imageData, _renderWidth, _renderHeight, COLOR_NUMBER, spaceRow, colorSpace,
+        kCGImageAlphaPremultipliedLast | kCGBitmapByteOrder32Big);
+    CGColorSpaceRelease(colorSpace);
+    UIGraphicsPushContext(tContext);
+    return true;
+}
+
+- (bool)setupImageData:(UIImage *)image {
     CGImageRef cgImage = image.CGImage;
 
     if (!cgImage) {
-        return;
+        return false;
+    }
+    if (!tContext) {
+        bool isRes = [self createContext];
+        if (!isRes) {
+            return false;
+        }
     }
 
     GLsizei width = _renderWidth;
     GLsizei height = _renderHeight;
 
-    int spaceRow = width * 4;
-    int space = spaceRow * height;
-
-    if (imageData == NULL) {
-        imageData = malloc(space);
-    }
-    
-    CGContextRef tContext = CGBitmapContextCreate(imageData,
-                                                    width,
-                                                    height,
-                                                    8,
-                                                    spaceRow,
-                                                    CGImageGetColorSpace(cgImage),
-                                                    kCGImageAlphaPremultipliedLast | kCGBitmapByteOrder32Big);
-
     CGRect cgRect = CGRectMake(0, 0, width, height);
     CGContextDrawImage(tContext, cgRect, cgImage);
-    CGContextRelease(tContext);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _renderWidth, _renderHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, imageData);
+    return true;
 }
 
 #pragma mark - Public method
@@ -221,39 +234,19 @@ static GLfloat texArray[] = {
     return uiImage;
 }
 
-- (void)exchangeBind {
-    if (imageData != NULL) {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _renderWidth, _renderHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, imageData);
-    }
+- (void)exchangeBind {}
 
-    glBindFramebuffer(GL_FRAMEBUFFER, _frameBuffer);
-    glBindRenderbuffer(GL_RENDERBUFFER, _renderBuffer);
-
-    if (_program && _program != nil) {
-        [_program use];
-    } else {
-        NSLog(@"%s error: program wrong!", __func__);
-        return;
-    }
-
-    GLuint positionAttrib = [_program attribLocationForName:@"position"];
-    GLuint texCoordAttrib = [_program attribLocationForName:@"texcoord"];
-    
-    glVertexAttribPointer(positionAttrib, 3, GL_FLOAT, GL_FALSE, 0, verArray);
-    glEnableVertexAttribArray(positionAttrib);
-    
-    glVertexAttribPointer(texCoordAttrib, 2, GL_FLOAT, GL_FALSE, 0, texArray);
-    glEnableVertexAttribArray(texCoordAttrib);
-}
-
-- (void)startRender:(UIView *)view {
+- (bool)startRender:(UIView *)view {
     if (!view) {
         NSLog(@"error: view no found");
-        return;
+        return false;
     }
 
-    UIImage *image = [self createImageByView:view];    
-    [self setupImageData:image];
+    UIImage *image = [self createImageByView:view];
+    if (image == nil) {
+        return false;
+    }
+    return [self setupImageData:image];
 }
 
 #pragma mark - dealloc
@@ -272,7 +265,10 @@ static GLfloat texArray[] = {
     if (_context) {
         _context = nil;
     }
-
+    if (tContext) {
+        CGContextRelease(tContext);
+        tContext = nil;
+    }
     if (imageData != NULL) {
         free(imageData);
     }
