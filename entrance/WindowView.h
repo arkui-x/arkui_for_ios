@@ -29,6 +29,7 @@ class Window;
 @property (nonatomic, assign) BOOL isFocused;
 @property (nonatomic, assign) BOOL fullScreen;
 @property (nonatomic, assign) NSInteger zOrder;
+@property (nonatomic, assign) float brightness;
 
 - (UIViewController*)getViewController;
 
@@ -46,7 +47,8 @@ class Window;
 - (void)notifyActiveChanged:(BOOL)isActive;
 - (void)notifyWindowDestroyed;
 - (std::shared_ptr<OHOS::Rosen::Window>)getWindow;
-- (void)updateBrightness;
+
+- (void)updateBrightness:(BOOL)isShow;
 - (BOOL)processBackPressed;
 - (void)keyboardWillChangeFrame:(NSNotification*)notification;
 - (void)keyboardWillBeHidden:(NSNotification*)notification;
