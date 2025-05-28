@@ -42,7 +42,7 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
     [self startAbilityDelegator];
 }
 
-+ (void)startAbilityDelegator { 
++ (void)startAbilityDelegator {
     NSProcessInfo *processInfo = [NSProcessInfo processInfo];
     NSArray *arguments = processInfo.arguments;
     @try {
@@ -117,12 +117,20 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
 }
 
 + (void)setLocale {
-    NSString *currentLanguage = [[NSLocale preferredLanguages] objectAtIndex:0];
+    NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
+    NSString *customLanguages = [defaults objectForKey:@"ArkuiXApplePreferredLanguages"];
+    NSString *currentLanguage;
+    if (customLanguages && customLanguages.length != 0) {
+        currentLanguage = customLanguages;
+    } else {
+        currentLanguage = [[NSLocale preferredLanguages] objectAtIndex:0];
+    }
+
     NSArray *array = [currentLanguage componentsSeparatedByString:@"-"];
     std::string language = "";
     std::string country = "";
     std::string script = "";
-    
+
     if ([currentLanguage hasPrefix:@"zh-Hans"]) {
         language = "zh";
         country = "CN";
