@@ -469,7 +469,6 @@ private:
     WindowMode windowMode_;
     WindowType windowType_;
     uint32_t backgroundColor_;
-    float brightness_ = 0.0;
     WindowState state_ { WindowState::STATE_INITIAL };
 
     static void AddToWindowMap(std::shared_ptr<Window> window);
