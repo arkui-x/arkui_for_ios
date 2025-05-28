@@ -269,7 +269,6 @@ static WMError SetSpecificBar(WindowType type, const SystemBarProperty& property
 Window::Window(std::shared_ptr<AbilityRuntime::Platform::Context> context, uint32_t windowId)
     : context_(context), windowId_(windowId)
 {
-    brightness_ = [UIScreen mainScreen].brightness;
 }
 
 Window::~Window()
@@ -1142,16 +1141,19 @@ WMError Window::SetBrightness(float brightness)
         LOGE("invalid brightness value: %{public}f", brightness);
         return WMError::WM_ERROR_INVALID_PARAM;
     }
-    brightness_ = brightness;
+    windowView_.brightness = brightness;
     if (isWindowShow_) {
-        [[UIScreen mainScreen] setBrightness:brightness];
+        [windowView_ updateBrightness:true];
     }
     return WMError::WM_OK;
 }
 
 float Window::GetBrightness() const
 {
-    return brightness_;
+    if (windowView_ != nullptr) {
+        return windowView_.brightness;
+    }
+    return [UIScreen mainScreen].brightness;
 }
 
 WMError Window::SetKeepScreenOn(bool keepScreenOn)
