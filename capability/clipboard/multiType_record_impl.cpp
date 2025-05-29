@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Huawei Device Co., Ltd.
+ * Copyright (c) 2024-2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-#include "adapter/preview/entrance/clipboard/multiType_record_impl.h"
+#include "multiType_record_impl.h"
 
 namespace OHOS::Ace {
 
@@ -30,6 +30,10 @@ void MultiTypeRecordImpl::SetUri(const std::string uri)
 void MultiTypeRecordImpl::SetPixelMap(RefPtr<PixelMap> pixelMap)
 {
     pixelMap_ = pixelMap;
+}
+void MultiTypeRecordImpl::SetSpanStringBuffer(const std::vector<uint8_t>& buffer)
+{
+    spanStringBuffer_ = buffer;
 }
 const RefPtr<PixelMap> MultiTypeRecordImpl::GetPixelMap()
 {

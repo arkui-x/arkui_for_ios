@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Huawei Device Co., Ltd.
+ * Copyright (c) 2024-2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -30,6 +30,7 @@ public:
     void SetPlainText(const std::string plainText);
     void SetUri(const std::string uri);
     void SetPixelMap(RefPtr<PixelMap> pixelMap);
+    void SetSpanStringBuffer(const std::vector<uint8_t>& buffer);
     const RefPtr<PixelMap> GetPixelMap();
     const std::string GetPlainText();
     const std::string GetUri();
