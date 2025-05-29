@@ -212,10 +212,6 @@ void AceContainerSG::SetPipelineContextFont(
     std::string& fontScale, std::string& maxFontScale, std::string& followSystem)
 {
     ACE_DCHECK(pipelineContext_);
-    if (!followSystem.empty()) {
-        auto isFollowSystem = (followSystem == "followSystem");
-        pipelineContext_->SetFollowSystem(isFollowSystem);
-    }
     if (fontScale.empty()) {
         return;
     }
@@ -225,7 +221,16 @@ void AceContainerSG::SetPipelineContextFont(
         fontScaleValue = std::min(fontScaleValue, maxFontScaleValue);
         pipelineContext_->SetMaxAppFontScale(maxFontScaleValue);
     }
-    pipelineContext_->SetFontScale(fontScaleValue);
+    if (followSystem.empty()) {
+        return;
+    }
+    auto isFollowSystem = followSystem == "followSystem";
+    pipelineContext_->SetFollowSystem(isFollowSystem);
+    if (isFollowSystem) {
+        pipelineContext_->SetFontScale(fontScaleValue);
+    } else {
+        pipelineContext_->SetFontScale(1.0f);
+    }
 }
 
 void AceContainerSG::InitPiplineContext(
