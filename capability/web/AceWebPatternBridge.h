@@ -15,7 +15,11 @@
 
 #include <string>
 #include <map>
+#include "core/components/web/web_event.h"
 
 void AceWebObject(const std::string& id, const std::string& event,void* object);
 bool AceWebObjectWithBoolReturn(const std::string& id, const std::string& event, void* object);
+bool AceWebObjectWithResponseReturn(const std::string& id, const std::string& event, void* object);
+void AceWebObjectWithUnResponseReturn(const std::string& id);
+const OHOS::Ace::RefPtr<OHOS::Ace::WebResponse>& AceWebObjectGetResponse();
 
