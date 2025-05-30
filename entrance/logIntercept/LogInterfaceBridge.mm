@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Huawei Device Co., Ltd.
+ * Copyright (c) 2024-2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -13,17 +13,22 @@
  * limitations under the License.
  */
 
+#import "LogInterfaceBridge.h"
+
 #import <Foundation/Foundation.h>
 #include <iostream>
 #include <string>
 
 #import "Logger.h"
 
-#include "base/log/log_wrapper.h"
+namespace {
+    OHOS::Ace::LogLevel g_currentLogLevel = OHOS::Ace::LogLevel::ERROR;
+}
 
 void SetLevel(int level)
 {
     OHOS::Ace::LogWrapper::SetLogLevel(static_cast<OHOS::Ace::LogLevel>(level));
+    g_currentLogLevel = static_cast<OHOS::Ace::LogLevel>(level);
 }
 
 bool HasDelegateMethod()
@@ -36,4 +41,9 @@ void PassLogMessageOC(const std::string& domain, const int& level, const std::st
     NSString* strLogInfo = [NSString stringWithUTF8String:logInfo.c_str()];
     NSString* strDomain = [NSString stringWithUTF8String:domain.c_str()];
     [[Logger sharedInstance] PassLogMessage:strDomain level:level info:strLogInfo];
+}
+
+OHOS::Ace::LogLevel GetCurrentLogLevel()
+{
+    return g_currentLogLevel;
 }
