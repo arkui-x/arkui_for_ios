@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Huawei Device Co., Ltd.
+ * Copyright (c) 2024-2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -19,10 +19,13 @@
 #include <iostream>
 #include <string>
 
+#include "base/log/log_wrapper.h"
+
 void SetLevel(int level);
 
 bool HasDelegateMethod();
 
 void PassLogMessageOC(const std::string& domain, const int& level, const std::string& logInfo);
 
+OHOS::Ace::LogLevel GetCurrentLogLevel();
 #endif // FOUNDATION_ACE_ADAPTER_IOS_ENTRANCE_LOGINTERCEPT_BRIDGE_H
