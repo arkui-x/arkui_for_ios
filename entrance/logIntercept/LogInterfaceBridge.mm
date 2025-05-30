@@ -24,13 +24,13 @@
 #import "Logger.h"
 
 namespace {
-    std::atomic<OHOS::Ace::LogLevel> g_currentLogLevel{ OHOS::Ace::LogLevel::ERROR };
+    OHOS::Ace::LogLevel g_currentLogLevel = OHOS::Ace::LogLevel::ERROR;
 }
 
 void SetLevel(int level)
 {
     OHOS::Ace::LogWrapper::SetLogLevel(static_cast<OHOS::Ace::LogLevel>(level));
-    g_currentLogLevel.store(static_cast<OHOS::Ace::LogLevel>(level), std::memory_order_release);
+    g_currentLogLevel = static_cast<OHOS::Ace::LogLevel>(level);
 }
 
 bool HasDelegateMethod()
@@ -45,6 +45,7 @@ void PassLogMessageOC(const std::string& domain, const int& level, const std::st
     [[Logger sharedInstance] PassLogMessage:strDomain level:level info:strLogInfo];
 }
 
-OHOS::Ace::LogLevel GetCurrentLogLevel() {
-    return g_currentLogLevel.load(std::memory_order_acquire);
+OHOS::Ace::LogLevel GetCurrentLogLevel()
+{
+    return g_currentLogLevel;
 }
