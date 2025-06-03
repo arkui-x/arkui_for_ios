@@ -546,6 +546,11 @@ static int32_t GetModifierKeys(UIKeyModifierFlags modifierFlags) {
     }
 }
 
+- (void)notifySafeAreaChanged {
+    if (_windowDelegate.lock() != nullptr) {
+        _windowDelegate.lock()->NotifySafeAreaChanged();
+    }
+}
 - (void)setupNotificationCenterObservers {
     NSNotificationCenter* center = [NSNotificationCenter defaultCenter];
 
@@ -597,12 +602,22 @@ static int32_t GetModifierKeys(UIKeyModifierFlags modifierFlags) {
     }
 }
 
+- (void)safeAreaInsetsDidChange {
+    [super safeAreaInsetsDidChange];
+    [self notifySafeAreaChanged];
+}
+
 - (void)keyboardWillBeHidden:(NSNotification*)notification {
     if (_windowDelegate.lock() != nullptr) {
         _windowDelegate.lock()->NotifyKeyboardHeightChanged(0);
     }
 }
 
+- (void)notifyTraitCollectionDidChange:(BOOL)isSplitScreen {
+    if (_windowDelegate.lock() != nullptr) {
+        _windowDelegate.lock()->NotifyTraitCollectionDidChange(isSplitScreen);
+    }
+}
 - (void)notifyHandleWillTerminate {
     if (_windowDelegate.lock() != nullptr) {
         _windowDelegate.lock()->NotifyWillTeminate();

@@ -108,16 +108,6 @@ public:
     virtual void OnSizeChange(const Rect &rect, OccupiedAreaType type) {}
 };
 
-/**
- * @class IAvoidAreaChangedListener
- *
- * @brief IAvoidAreaChangedListener is used to observe AvoidArea change.
- */
-class IAvoidAreaChangedListener : public RefBase {
-public:
-    virtual void OnAvoidAreaChanged(const OHOS::Rosen::AvoidArea avoidArea, OHOS::Rosen::AvoidAreaType type);
-};
-
 class Window : public RefBase {
 #define CALL_LIFECYCLE_LISTENER(windowLifecycleCb, listeners) \
     do {                                                      \
@@ -169,8 +159,10 @@ public:
     virtual void FlushLayoutSize(int32_t width, int32_t height) {}
 
     void CreateSurfaceNode(void* layer);
+    void NotifySafeAreaChanged();
     void NotifySurfaceChanged(int32_t width, int32_t height, float density);
     void NotifyKeyboardHeightChanged(int32_t height);
+    void NotifyTraitCollectionDidChange(bool isSplitScreen);
     void NotifyTouchOutside();
     void NotifySurfaceDestroyed();
 
@@ -201,7 +193,10 @@ public:
     float GetBrightness() const;
     WMError SetKeepScreenOn(bool keepScreenOn);
     bool IsKeepScreenOn();
+    WMError SetWindowPrivacyMode(bool isPrivacyMode);
     WMError SetSystemBarProperty(WindowType type, const SystemBarProperty& property);
+    WMError UpdateSystemBarProperties(const std::unordered_map<WindowType, SystemBarProperty>& systemBarProperties,
+        const std::unordered_map<WindowType, SystemBarPropertyFlag>& systemBarPropertyFlags);
     void WindowFocusChanged(bool hasWindowFocus);
     void WindowActiveChanged(bool isActive);
     void Foreground();
@@ -212,11 +207,14 @@ public:
 
     WMError RegisterOccupiedAreaChangeListener(const sptr<IOccupiedAreaChangeListener> &listener);
     WMError UnregisterOccupiedAreaChangeListener(const sptr<IOccupiedAreaChangeListener> &listener);
-    WMError RegisterAvoidAreaChangeListener(const sptr<IAvoidAreaChangedListener> &listener);
     WMError RegisterTouchOutsideListener(const sptr<ITouchOutsideListener>& listener);
     WMError UnregisterTouchOutsideListener(const sptr<ITouchOutsideListener>& listener);
     WMError RegisterSurfaceNodeListener(const sptr<IWindowSurfaceNodeListener>& listener);
     WMError UnregisterSurfaceNodeListener(const sptr<IWindowSurfaceNodeListener>& listener);
+    WMError RegisterAvoidAreaChangeListener(const sptr<IAvoidAreaChangedListener>& listener);
+    WMError UnregisterAvoidAreaChangeListener(const sptr<IAvoidAreaChangedListener>& listener);
+    WMError RegisterWindowStatusChangeListener(const sptr<IWindowStatusChangeListener>& listener);
+    WMError UnregisterWindowStatusChangeListener(const sptr<IWindowStatusChangeListener>& listener);
 
     WMError SetColorSpace(ColorSpace colorSpace);
     ColorSpace GetColorSpace() const;
@@ -332,7 +330,9 @@ private:
     void SetMode(WindowMode windowMode);
     void SetParentId(uint32_t parentId);
     void ReleaseWindowView();
-
+    void UpdateAvoidArea(const std::shared_ptr<Rosen::AvoidArea>& avoidArea, AvoidAreaType type);
+    WindowStatus GetWindowStatusInner(WindowMode mode);
+    void UpdateWindowStatus();
     void DelayNotifyUIContentIfNeeded();
     bool IsWindowValid() const;
 
@@ -364,18 +364,7 @@ private:
         }
         return occupiedAreaChangeListeners;
     }
-    template <typename T>
-    inline EnableIfSame<T, IAvoidAreaChangedListener, std::vector<sptr<IAvoidAreaChangedListener>>> GetListeners()
-    {
-        std::vector<sptr<IAvoidAreaChangedListener>> avoidAreaChangedListeners;
-        {
-            std::lock_guard<std::recursive_mutex> lock(globalMutex_);
-            for (auto &listener : avoidAreaChangedListeners_[GetWindowId()]) {
-                avoidAreaChangedListeners.push_back(listener);
-            }
-        }
-        return avoidAreaChangedListeners;
-    }
+
     template<typename T>
     inline EnableIfSame<T, IWindowLifeCycle, std::vector<wptr<IWindowLifeCycle>>> GetListeners()
     {
@@ -428,6 +417,32 @@ private:
         return surfaceNodeListeners;
     }
 
+    template<typename T>
+    inline EnableIfSame<T, IAvoidAreaChangedListener, std::vector<sptr<IAvoidAreaChangedListener>>> GetListeners()
+    {
+        std::vector<sptr<IAvoidAreaChangedListener>> avoidAreaChangeListeners;
+        {
+            std::lock_guard<std::recursive_mutex> lock(globalMutex_);
+            for (auto& listener : avoidAreaChangeListeners_[GetWindowId()]) {
+                avoidAreaChangeListeners.push_back(listener);
+            }
+        }
+        return avoidAreaChangeListeners;
+    }
+
+    template<typename T>
+    inline EnableIfSame<T, IWindowStatusChangeListener, std::vector<sptr<IWindowStatusChangeListener>>> GetListeners()
+    {
+        std::vector<sptr<IWindowStatusChangeListener>> windowStatusChangeListeners;
+        {
+            std::lock_guard<std::recursive_mutex> lock(globalMutex_);
+            for (auto& listener : windowStatusChangeListeners_[GetWindowId()]) {
+                windowStatusChangeListeners.push_back(listener);
+            }
+        }
+        return windowStatusChangeListeners;
+    }
+
     inline void NotifyAfterForeground(bool needNotifyListeners = true, bool needNotifyUiContent = true)
     {
         if (needNotifyListeners) {
@@ -466,6 +481,8 @@ private:
 
     void ClearListenersById(uint32_t winId);
     void NotifySizeChange(Rect rect);
+    void NotifyWindowStatusChange(WindowStatus windowStatus);
+    void NotifyAvoidAreaChange(const std::shared_ptr<AvoidArea>& avoidArea, AvoidAreaType type);
 
 private:
     int32_t surfaceWidth_ = 0;
@@ -487,7 +504,7 @@ private:
         { WindowType::WINDOW_TYPE_NAVIGATION_BAR, SystemBarProperty() },
         { WindowType::WINDOW_TYPE_NAVIGATION_INDICATOR, SystemBarProperty() },
     };
-
+    std::unordered_map<AvoidAreaType, Rosen::AvoidArea> avoidAreaMap_;
     NotifyNativeWinDestroyFunc notifyNativefunc_;
     NotifyWillTerminateFunc notifyWillTerminatefunc_;
     static std::map<uint32_t, std::vector<sptr<IOccupiedAreaChangeListener>>> occupiedAreaChangeListeners_;
@@ -502,7 +519,10 @@ private:
     WindowMode windowMode_;
     WindowType windowType_;
     uint32_t backgroundColor_;
+    float brightness_ = 0.0;
+    float keyBoardHieght_ = 0;
     WindowState state_ { WindowState::STATE_INITIAL };
+    WindowStatus status_ { WindowStatus::WINDOW_STATUS_UNDEFINED };
 
     static void AddToWindowMap(std::shared_ptr<Window> window);
     static void DeleteFromWindowMap(std::shared_ptr<Window> window);
@@ -511,6 +531,7 @@ private:
     static void DeleteFromSubWindowMap(std::shared_ptr<Window> window);
     static void ShowSubWindowMap(const std::string& str, uint32_t parentId);
     static bool CheckWindowNameExist(const std::string& windowName);
+    void SetStatusBar(uint32_t titleColor, uint32_t backgroundColor, bool animation);
 
     static std::map<std::string, std::pair<uint32_t, std::shared_ptr<Window>>> windowMap_;
     static std::map<uint32_t, std::vector<std::shared_ptr<Window>>> subWindowMap_;
@@ -518,6 +539,8 @@ private:
     static std::map<uint32_t, std::vector<sptr<IWindowChangeListener>>> windowChangeListeners_;
     static std::map<uint32_t, std::vector<sptr<ITouchOutsideListener>>> touchOutsideListeners_;
     static std::map<uint32_t, std::vector<sptr<IWindowSurfaceNodeListener>>> surfaceNodeListeners_;
+    static std::map<uint32_t, std::vector<sptr<IWindowStatusChangeListener>>> windowStatusChangeListeners_;
+    static std::map<uint32_t, std::vector<sptr<IAvoidAreaChangedListener>>> avoidAreaChangeListeners_;
 
     ACE_DISALLOW_COPY_AND_MOVE(Window);
 
