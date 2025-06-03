@@ -423,7 +423,8 @@ typedef enum {
 
 - (void)UnSubscribeState
 {
-    [[NSNotificationCenter defaultCenter] removeObserver:self];
+    [[NSNotificationCenter defaultCenter] removeObserver:self name:UIAccessibilityVoiceOverStatusDidChangeNotification object:nil];
+    [[NSNotificationCenter defaultCenter] removeObserver:self name:UIAccessibilityVoiceOverStatusChanged object:nil];
 }
 
 - (void)setFocus:(int64_t)elementId

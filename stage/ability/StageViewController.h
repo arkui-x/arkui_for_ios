@@ -23,14 +23,18 @@
 
 @property (nonatomic, readonly) NSString *instanceName;
 @property (nonatomic, assign) BOOL statusBarHidden;
+@property (nonatomic,assign) BOOL statusBarAnimation;
+@property (nonatomic,assign) UIStatusBarStyle statusBarStyle;
 @property (nonatomic, assign) BOOL homeIndicatorHidden;
 @property (nonatomic, strong) NSString *params;
+@property (nonatomic, assign) BOOL privacyMode;
 
 - (void)startAbilityForResult:(NSDictionary *)dicParams isReturnValue:(BOOL)isReturnValue;
 
 - (instancetype)init NS_UNAVAILABLE;
 - (instancetype)initWithCoder:(NSCoder *)coder NS_UNAVAILABLE;
 - (instancetype)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil NS_UNAVAILABLE;
+- (UIView *)getWindowView;
 
 /**
  * Initializes this StageViewController with the specified instance name.

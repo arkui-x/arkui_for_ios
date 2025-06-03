@@ -29,6 +29,7 @@
 #import "StageAssetManager.h"
 #import "StageConfigurationManager.h"
 #import "StageContainerView.h"
+#import "StageSecureContainerView.h"
 #import "WindowView.h"
 #include "app_main.h"
 #include "window_view_adapter.h"
@@ -64,6 +65,7 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
     NSMutableArray* _pluginList;
     ArkUIXPluginRegistry* _arkUIXPluginRegistry;
     PluginContext* _pluginContext;
+    StageContainerView* _stageContainerView;
 }
 
 @property(nonatomic, strong, readwrite) NSString* instanceName;
@@ -181,8 +183,8 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
     _windowView.frame = self.view.bounds;
     _windowView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     WindowViwAdapter::GetInstance()->AddWindowView(_cInstanceName, (__bridge void*)_windowView);
-    [self.view addSubview: _windowView];
-    [(StageContainerView*)self.view setMainWindow:_windowView];
+    [_stageContainerView addSubview: _windowView];
+    [_stageContainerView setMainWindow:_windowView];
 }
 
 - (void)initBridge {
@@ -191,8 +193,12 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    self.view = [[StageContainerView alloc]initWithFrame:self.view.bounds];
-    ((StageContainerView*)self.view).notifyDelegate = self;
+
+    self.view = [[StageSecureContainerView alloc]initWithFrame:self.view.bounds];
+    _stageContainerView = [[StageContainerView alloc]initWithFrame:self.view.bounds];
+    [((StageSecureContainerView*)self.view)  addView: _stageContainerView];
+     _stageContainerView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+    _stageContainerView.notifyDelegate = self;
     self.view.backgroundColor = UIColor.whiteColor;
     NSLog(@"StageVC->%@ viewDidLoad call.", self);
     [self initColorMode];
@@ -216,8 +222,8 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
     if (_platformPlugin) {
         [_platformPlugin notifyLifecycleChanged:false];
     }
-    [(StageContainerView*)self.view  notifyForeground];
-    [(StageContainerView*)self.view  notifyActiveChanged:YES];
+    [_stageContainerView notifyForeground];
+    [_stageContainerView notifyActiveChanged:YES];
 }
 
 - (void)viewWillAppear:(BOOL)animated {
@@ -235,8 +241,8 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
     if (_platformPlugin) {
         [_platformPlugin notifyLifecycleChanged:true];
     }
-    [(StageContainerView*)self.view  notifyBackground];
-    [(StageContainerView*)self.view  notifyActiveChanged:NO];
+    [_stageContainerView notifyBackground];
+    [_stageContainerView notifyActiveChanged:NO];
     
     if ([UIDevice currentDevice].systemVersion.floatValue >= 18.0 && ([self isBeingDismissed] || [self isMovingFromParentViewController])) {
         NSLog(@"iOS 18 StageVC->%@ dealloc", self);
@@ -245,6 +251,7 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
         [_windowView notifySurfaceDestroyed];
         [_windowView notifyWindowDestroyed];
         _windowView = nil;
+        _stageContainerView = nil;
         [BridgePluginManager innerUnbridgePluginManager:_instanceId];
         _bridgePluginManager = nil;
         [self deallocArkUIXPlugin];
@@ -270,6 +277,7 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
         [_windowView notifySurfaceDestroyed];
         [_windowView notifyWindowDestroyed];
         _windowView = nil;
+        _stageContainerView = nil;
         [BridgePluginManager innerUnbridgePluginManager:_instanceId];
         _bridgePluginManager = nil;
         [self deallocArkUIXPlugin];
@@ -284,6 +292,7 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
     [_windowView notifySurfaceDestroyed];
     [_windowView notifyWindowDestroyed];
     _windowView = nil;
+    _stageContainerView = nil;
     [_platformPlugin platformRelease];
     _platformPlugin = nil;
     [BridgePluginManager innerUnbridgePluginManager:_instanceId];
@@ -294,6 +303,12 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 }
 
 - (void)traitCollectionDidChange:(UITraitCollection *)previousTraitCollection {
+
+    BOOL isSplitScreen = NO;
+    if ([UIScreen mainScreen].bounds.size.width != self.view.window.bounds.size.width) {
+        isSplitScreen = YES;
+    }
+    [_windowView notifyTraitCollectionDidChange:isSplitScreen];
     if ([UIApplication sharedApplication].applicationState == UIApplicationStateBackground) {
         return;
     }
@@ -396,6 +411,17 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
     return self.statusBarHidden;
 }
 
+- (UIStatusBarStyle)preferredStatusBarStyle {
+    return self.statusBarStyle;
+}
+
+- (UIStatusBarAnimation)prefersStatusBarUpdateAnimation {
+    if (self.statusBarAnimation) {
+        return UIStatusBarAnimationFade;
+    } else {
+        return UIStatusBarAnimationNone;
+    }
+}
 - (BOOL)prefersHomeIndicatorAutoHidden {
     return self.homeIndicatorHidden;
 }
@@ -782,5 +808,16 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
         return YES;
     }
     return NO;
+}
+
+- (void)setPrivacyMode:(BOOL)privacyMode {
+    if (_privacyMode != privacyMode) {
+        _privacyMode = privacyMode;
+        ((StageSecureContainerView*)self.view).secureTextEntry = privacyMode;
+    }
+}
+
+- (UIView *)getWindowView {
+    return _windowView;
 }
 @end
