@@ -15,6 +15,7 @@
 
 #import "AceWebResourcePlugin.h"
 #import "AceWeb.h"
+#import "StageViewController.h"
 
 #define URL_SRC @"src"
 #define PAGE_URL @"pageUrl"
@@ -68,8 +69,9 @@ static NSMutableDictionary<NSString*, AceWeb*> *objectMap;
     }
 #endif
     [aceWeb loadUrl:[param valueForKey:URL_SRC] header:[NSMutableDictionary dictionary]];
-    NSUInteger insertIndex = [self.target.view.subviews count] - 1;
-    [self.target.view insertSubview:aceWeb.getWeb atIndex:insertIndex];
+    StageViewController* controller = (StageViewController*)self.target;
+    UIView *windowView = [controller getWindowView];
+    [windowView.superview insertSubview:aceWeb.getWeb belowSubview:windowView];
     [self addResource:incId web:aceWeb];
     return incId;
 }

@@ -148,7 +148,6 @@ class AvoidAreaChangedListener : public OHOS::Rosen::IAvoidAreaChangedListener {
 public:
     explicit AvoidAreaChangedListener(int32_t instanceId) : instanceId_(instanceId) {}
     ~AvoidAreaChangedListener() = default;
-
     void OnAvoidAreaChanged(const OHOS::Rosen::AvoidArea avoidArea, OHOS::Rosen::AvoidAreaType type) override
     {
         LOGD("Avoid area changed, type:%{public}d, topRect: avoidArea:x:%{public}d, y:%{public}d, "
