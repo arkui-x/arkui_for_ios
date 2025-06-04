@@ -751,22 +751,25 @@ void UIContentImpl::UpdateConfiguration(const std::shared_ptr<OHOS::AbilityRunti
     auto colorMode = config->GetItem(OHOS::AbilityRuntime::Platform::ConfigurationInner::SYSTEM_COLORMODE);
     auto direction = config->GetItem(OHOS::AbilityRuntime::Platform::ConfigurationInner::APPLICATION_DIRECTION);
     auto densityDpi = config->GetItem(OHOS::AbilityRuntime::Platform::ConfigurationInner::APPLICATION_DENSITYDPI);
+    auto languageTag = config->GetItem(OHOS::AbilityRuntime::Platform::ConfigurationInner::APPLICATION_LANGUAGE);
     auto fontFamily = config->GetItem(OHOS::AbilityRuntime::Platform::ConfigurationInner::APPLICATION_FONT);
     auto fontScale = config->GetItem(OHOS::AbilityRuntime::Platform::ConfigurationInner::SYSTEM_FONT_SIZE_SCALE);
     auto maxAppFontScale = config->GetItem(OHOS::AbilityRuntime::Platform::ConfigurationInner::APP_FONT_MAX_SCALE);
     auto followSystem = config->GetItem(OHOS::AbilityRuntime::Platform::ConfigurationInner::APP_FONT_SIZE_SCALE);
-    auto configStr = colorMode + ";" + direction + ";" + densityDpi + ";" + fontFamily + ";" + fontScale + ";" +
-        maxAppFontScale + ";" + followSystem + ";";
+    auto configStr = colorMode + ";" + direction + ";" + densityDpi + ";" + languageTag + ";" + fontFamily + ";" +
+        fontScale + ";" + maxAppFontScale + ";" + followSystem + ";";
     if (lastConfig_ != configStr) {
         lastConfig_ = configStr;
         taskExecutor->PostTask(
-            [weakContainer = WeakPtr<Platform::AceContainerSG>(container), colorMode, direction, densityDpi, fontFamily, fontScale]() {
+            [weakContainer = WeakPtr<Platform::AceContainerSG>(container),
+             colorMode, direction, densityDpi, languageTag, fontFamily, fontScale]() {
                 auto container = weakContainer.Upgrade();
                 CHECK_NULL_VOID(container);
                 Platform::ParsedConfig parsedConfig;
                 parsedConfig.colorMode = colorMode;
                 parsedConfig.direction = direction;
                 parsedConfig.densitydpi = densityDpi;
+                parsedConfig.languageTag = languageTag;
                 parsedConfig.fontFamily = fontFamily;
                 parsedConfig.fontScale = fontScale;
                 container->UpdateConfiguration(parsedConfig);

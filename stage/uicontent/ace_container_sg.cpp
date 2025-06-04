@@ -59,6 +59,7 @@
 #include "frameworks/bridge/common/utils/engine_helper.h"
 #include "frameworks/bridge/js_frontend/engine/common/js_engine_loader.h"
 #include "frameworks/bridge/js_frontend/js_frontend.h"
+#include "unicode/locid.h"
 
 namespace OHOS::Ace::Platform {
 namespace {
@@ -69,6 +70,19 @@ const std::string DENSITY_KEY { "densityDpi" };
 constexpr double DPI_BASE { 160.0f };
 constexpr int THEME_ID_LIGHT = 117440515;
 constexpr int THEME_ID_DARK = 117440516;
+void ParseLocaleTag(const std::string& localeTag, std::string& language, std::string& script, std::string& region)
+{
+    if (localeTag.empty()) {
+        return;
+    }
+    UErrorCode status = U_ZERO_ERROR;
+    icu::Locale locale = icu::Locale::forLanguageTag(icu::StringPiece(localeTag), status);
+    if (status == U_ZERO_ERROR && !locale.isBogus()) {
+        language = locale.getLanguage();
+        script = locale.getScript();
+        region = locale.getCountry();
+    }
+}
 } // namespace
 AceContainerSG::AceContainerSG(int32_t instanceId, FrontendType type,
     std::weak_ptr<OHOS::AbilityRuntime::Platform::Context> runtimeContext,
@@ -468,7 +482,7 @@ void AceContainerSG::InitializeCallback()
             [weak, pointerEvent, action]() {
                 auto context = weak.Upgrade();
                 CHECK_NULL_VOID(context);
-                context->OnDragEvent(pointerEvent, action); 
+                context->OnDragEvent(pointerEvent, action);
             },
             TaskExecutor::TaskType::UI, "ArkUI-XAceContainerSGDragEventCallback");
     };
@@ -664,8 +678,10 @@ void AceContainerSG::UpdateConfiguration(Platform::ParsedConfig& parsedConfig)
         LOGW("AceContainerSG::OnConfigurationUpdated param is empty");
         return;
     }
-    LOGI("AceContainerSG::UpdateConfiguration, colorMode:%{public}s, direction:%{public}s, densityDpi:%{public}s,",
-         parsedConfig.colorMode.c_str(), parsedConfig.direction.c_str(), parsedConfig.densitydpi.c_str());
+    LOGI("AceContainerSG::UpdateConfiguration, colorMode:%{public}s, direction:%{public}s, densityDpi:%{public}s,"
+        "language:%{public}s",
+        parsedConfig.colorMode.c_str(), parsedConfig.direction.c_str(), parsedConfig.densitydpi.c_str(),
+        parsedConfig.languageTag.c_str());
     CHECK_NULL_VOID(pipelineContext_);
     ContainerScope scope(instanceId_);
     auto themeManager = pipelineContext_->GetThemeManager();
@@ -674,6 +690,7 @@ void AceContainerSG::UpdateConfiguration(Platform::ParsedConfig& parsedConfig)
     auto resConfig = GetResourceConfiguration();
     SetColor(parsedConfig, configurationChange, resConfig);
     SetDirectionAndDensity(parsedConfig, configurationChange, resConfig);
+    SetLanguage(parsedConfig, configurationChange, resConfig);
     SetFontAndScale(parsedConfig, configurationChange);
     SetResourceConfiguration(resConfig);
     themeManager->UpdateConfig(resConfig);
@@ -737,6 +754,25 @@ void AceContainerSG::SetDirectionAndDensity(Platform::ParsedConfig& parsedConfig
     }
 }
 
+void AceContainerSG::SetLanguage(Platform::ParsedConfig& parsedConfig, ConfigurationChange configurationChange,
+    ResourceConfiguration resConfig)
+{
+    if (!parsedConfig.languageTag.empty()) {
+        std::string language;
+        std::string script;
+        std::string region;
+        ParseLocaleTag(parsedConfig.languageTag, language, script, region);
+        LOGI("language:%{public}s, script:%{public}s, region:%{public}s", language.c_str(), script.c_str(),
+            region.c_str());
+        if (!language.empty() || !script.empty() || !region.empty()) {
+            if (parsedConfig.languageTag != AceApplicationInfo::GetInstance().GetLocaleTag()) {
+                configurationChange.languageUpdate = true;
+            }
+            AceApplicationInfo::GetInstance().SetLocale(language, region, script, "");
+        }
+    }
+}
+
 void AceContainerSG::SetFontAndScale(Platform::ParsedConfig& parsedConfig, ConfigurationChange configurationChange)
 {
     if (!parsedConfig.fontFamily.empty()) {
@@ -749,7 +785,7 @@ void AceContainerSG::SetFontAndScale(Platform::ParsedConfig& parsedConfig, Confi
         configurationChange.fontUpdate = true;
         pipelineContext_->SetFontScale(std::stod(parsedConfig.fontScale));
     }
-}   
+}
 
 void AceContainerSG::InitThemeManager()
 {
