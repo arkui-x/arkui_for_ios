@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2025-2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -13,13 +13,17 @@
  * limitations under the License.
  */
 
-#include <string>
-#include <map>
-#include "core/components/web/web_event.h"
+#ifndef FOUNDATION_ACE_ADAPTER_IOS_STAGE_ABILITY_STAGE_SECURE_CONTAINER_VIEW_H
+#define FOUNDATION_ACE_ADAPTER_IOS_STAGE_ABILITY_STAGE_SECURE_CONTAINER_VIEW_H
 
-void AceWebObject(const std::string& id, const std::string& event,void* object);
-bool AceWebObjectWithBoolReturn(const std::string& id, const std::string& event, void* object);
-bool AceWebObjectWithResponseReturn(const std::string& id, const std::string& event, void* object);
-void AceWebObjectWithUnResponseReturn(const std::string& id);
-const OHOS::Ace::RefPtr<OHOS::Ace::WebResponse>& AceWebObjectGetResponse();
+#import <UIKit/UIKit.h>
 
+NS_ASSUME_NONNULL_BEGIN
+
+@interface StageSecureContainerView : UITextField
+// please user this function instead of addSubview
+- (void)addView:(UIView *)window;
+@end
+
+NS_ASSUME_NONNULL_END
+#endif // FOUNDATION_ACE_ADAPTER_IOS_STAGE_ABILITY_STAGE_SECURE_CONTAINER_VIEW_H

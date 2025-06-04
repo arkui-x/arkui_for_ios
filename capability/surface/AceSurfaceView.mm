@@ -21,7 +21,7 @@
 
 #import "AceSurfaceHolder.h"
 #import "WindowView.h"
-
+#import "StageViewController.h"
 @interface AceSurfaceView (){
     BOOL _viewAdded;
     BOOL _isLock;
@@ -145,10 +145,7 @@
 - (void)layerCreate
 {
     [AceSurfaceHolder addLayer:self.layer withId:self.incId inceId:self.instanceId];
-
-    UIViewController* superViewController = (UIViewController*)self.target;
-    WindowView *windowView = (WindowView *)[self findWindowViewInView:superViewController.view];
-    [superViewController.view addSubview:self];
+    [self bringSubviewToFront];
 }
 
 - (NSDictionary<NSString*, IAceOnCallSyncResourceMethod>*)getCallMethod
@@ -167,17 +164,18 @@
         CGFloat surface_width = [params[SURFACE_WIDTH_KEY] floatValue];
         CGFloat surface_height = [params[SURFACE_HEIGHT_KEY] floatValue];
         CGRect surfaceRect = CGRectMake(surface_x, surface_y, surface_width, surface_height);
-        [self callSurfaceChange:surfaceRect];
-       
+
         if (_viewAdded) {
+            [self callSurfaceChange:surfaceRect];
             [self layoutIfNeeded];
         } else {
             _viewAdded = YES;
             UIViewController* superViewController = (UIViewController*)self.target;
             self.frame = superViewController.view.bounds;
             self.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-            WindowView *windowView = (WindowView *)[self findWindowViewInView:superViewController.view];
-            [superViewController.view bringSubviewToFront:windowView];
+            [self callSurfaceChange:surfaceRect];
+            [self bringSubviewToFront];
+            
         }
     } @catch (NSException* exception) {
         NSLog(@"AceSurfaceView NumberFormatException, setSurfaceSize failed");
@@ -325,15 +323,15 @@
 - (void)bringSubviewToFront
 {
     if (self.target){
-        UIViewController* superViewController = (UIViewController*)self.target;
+        StageViewController* superViewController = (StageViewController*)self.target;
         if (!superViewController){
             return;
         }
-        WindowView *windowView = (WindowView *)[self findWindowViewInView:superViewController.view];
+        UIView *windowView = [superViewController getWindowView];
         if (!windowView){
             return;
         }
-        [superViewController.view insertSubview:self belowSubview:windowView];
+        [windowView.superview insertSubview:self belowSubview:windowView];
     }
 }
 
@@ -359,7 +357,7 @@
         if (self.layer) {
             [AceSurfaceHolder removeLayerWithId:self.incId inceId:self.instanceId];
         }
-        
+
         if (self.callMethodMap) {
             for (id key in self.callMethodMap) {
                 IAceOnCallSyncResourceMethod block = [self.callMethodMap objectForKey:key];

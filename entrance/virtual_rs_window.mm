@@ -180,12 +180,23 @@ std::map<uint32_t, std::vector<sptr<IWindowLifeCycle>>> Window::lifecycleListene
 std::map<uint32_t, std::vector<sptr<IWindowChangeListener>>> Window::windowChangeListeners_;
 std::map<uint32_t, std::vector<sptr<ITouchOutsideListener>>> Window::touchOutsideListeners_;
 std::map<uint32_t, std::vector<sptr<IWindowSurfaceNodeListener>>> Window::surfaceNodeListeners_;
+std::map<uint32_t, std::vector<sptr<IWindowStatusChangeListener>>> Window::windowStatusChangeListeners_;
+std::map<uint32_t, std::vector<sptr<IAvoidAreaChangedListener>>> Window::avoidAreaChangeListeners_;
 
 std::recursive_mutex Window::globalMutex_;
 std::map<uint32_t, std::vector<sptr<IOccupiedAreaChangeListener>>> Window::occupiedAreaChangeListeners_;
 std::map<uint32_t, std::vector<sptr<IAvoidAreaChangedListener>>> Window::avoidAreaChangedListeners_;
 constexpr Rect emptyRect = {0, 0, 0, 0};
-CGFloat keyBoardHieght = 0;
+
+static Rect MakeAvoidRect(float left, float top , float width, float height) {
+    if (width <= 0 || height <= 0) {
+        width = 0;
+        height = 0;
+        left = 0;
+        top = 0;
+    }
+    return (Rect){left, top, width, height};
+}
 
 static uint32_t ColorConvertFromUIColor(UIColor* uiColor)
 {
@@ -228,9 +239,15 @@ static WMError SetSystemBar(WindowType type, const SystemBarProperty& property)
     } else if (type == WindowType::WINDOW_TYPE_STATUS_BAR) {
         if (!property.enable_) {
             controller.statusBarHidden = YES;
-            [controller setNeedsStatusBarAppearanceUpdate];
         } else {
             controller.statusBarHidden = NO;
+        }
+        [[UIApplication sharedApplication]setStatusBarHidden:!property.enable_ animated:property.enableAnimation_];
+        if (property.enableAnimation_) {
+            [UIView animateWithDuration:0.25 animations:^{
+                [controller setNeedsStatusBarAppearanceUpdate];
+            }];
+        } else {
             [controller setNeedsStatusBarAppearanceUpdate];
         }
     }
@@ -326,6 +343,7 @@ std::shared_ptr<Window> Window::CreateSubWindow(
     window->IncStrongRef(window.get());
     window->SetWindowName(option->GetWindowName());
     window->SetWindowType(option->GetWindowType());
+    window->SetMode(Rosen::WindowMode::WINDOW_MODE_FLOATING);
     LOGI("Window::Createsubwindow with name:%s, parentId=%{public}u", window->GetWindowName().c_str(), option->GetParentId());
     window->SetParentId(option->GetParentId());
     AddToSubWindowMap(window);
@@ -585,11 +603,16 @@ WMError Window::ShowWindow()
     }
 
     StageViewController *controller = [StageApplication getApplicationTopViewController];
+    if (![controller isKindOfClass:[StageViewController class]]) {
+        return WMError::WM_ERROR_INVALID_PARENT;
+    }
+    UIView *mainWindowView = [controller getWindowView];
 
-    if ([windowView_ showOnView:controller.view]) {
+    if ([windowView_ showOnView:mainWindowView.superview]) {
         DelayNotifyUIContentIfNeeded();
         NotifyAfterForeground();
         isWindowShow_ = true;
+        UpdateWindowStatus();
         return WMError::WM_OK;
     }
     return WMError::WM_ERROR_INVALID_PARENT;
@@ -604,7 +627,8 @@ WMError Window::Hide()
 
     if ([windowView_ hide]) {
         isWindowShow_ = false;
-         NotifyAfterBackground();
+        NotifyAfterBackground();
+        UpdateWindowStatus();
         return WMError::WM_OK;
     }
 
@@ -620,8 +644,13 @@ WMError Window::MoveWindowTo(int32_t x, int32_t y)
     if (isFullScreen_) {
         return WMError::WM_ERROR_INVALID_PARENT;
     }
-    x = x < 0 ? 0 : x;
-    y = y < 0 ? 0 : y;
+    UIScreen *screen = [UIScreen mainScreen];
+    CGFloat scale = screen.scale;
+    if (scale == 0) {
+        scale = 2;
+    }
+    x = x < 0 ? 0 : x / scale;
+    y = y < 0 ? 0 : y / scale;
     windowView_.frame = CGRectMake(x, y, windowView_.frame.size.width, windowView_.frame.size.height);
     rect_.posX_ = x;
     rect_.posY_ = y;
@@ -837,6 +866,23 @@ void Window::CreateSurfaceNode(void* layer)
     }
 }
 
+WindowStatus Window::GetWindowStatusInner(WindowMode mode)
+{
+    LOGD("GetWindowStatusInner mode= %d",mode);
+    auto windowStatus = WindowStatus::WINDOW_STATUS_UNDEFINED;
+    if (mode == WindowMode::WINDOW_MODE_FLOATING) {
+        windowStatus = WindowStatus::WINDOW_STATUS_FLOATING;
+    } else if (mode == WindowMode::WINDOW_MODE_FULLSCREEN) {
+        windowStatus = WindowStatus::WINDOW_STATUS_FULLSCREEN;
+    } if (mode == WindowMode::WINDOW_MODE_SPLIT_PRIMARY || mode == WindowMode::WINDOW_MODE_SPLIT_SECONDARY) {
+        windowStatus = WindowStatus::WINDOW_STATUS_SPLITSCREEN;
+    }
+    if (!isWindowShow_) {
+        windowStatus = WindowStatus::WINDOW_STATUS_MINIMIZE;
+    }
+    return windowStatus;
+}
+
 void Window::NotifySurfaceChanged(int32_t width, int32_t height, float density)
 {
     rect_.width_ = width;
@@ -872,6 +918,84 @@ void Window::NotifySurfaceChanged(int32_t width, int32_t height, float density)
         }
     }
 }
+void Window::NotifyTraitCollectionDidChange(bool isSplitScreen)
+{
+    if (windowMode_ == WindowMode::WINDOW_MODE_FULLSCREEN && isSplitScreen) {
+        windowMode_ = WindowMode::WINDOW_MODE_SPLIT_PRIMARY;
+    } else if (windowMode_ == WindowMode::WINDOW_MODE_SPLIT_PRIMARY && !isSplitScreen) {
+        windowMode_ = WindowMode::WINDOW_MODE_FULLSCREEN;
+    }
+    UpdateWindowStatus();
+}
+
+void Window::UpdateWindowStatus()
+{
+    auto windowStatus = GetWindowStatusInner(windowMode_);
+    if (status_ != windowStatus) {
+        status_ = windowStatus;
+        NotifyWindowStatusChange(windowStatus);
+    }
+}
+void Window::NotifyWindowStatusChange(WindowStatus windowStatus)
+{
+    LOGD("NotifyWindowStatusChange %d",windowStatus);
+    auto windowStatusChangeListeners = GetListeners<IWindowStatusChangeListener>();
+    for (auto& listener : windowStatusChangeListeners) {
+        if (listener != nullptr) {
+            listener->OnWindowStatusChange(windowStatus);
+        }
+    }
+}
+
+void Window::NotifySafeAreaChanged()
+{
+     for (auto type : {
+            AvoidAreaType::TYPE_SYSTEM,
+            AvoidAreaType::TYPE_CUTOUT,
+            AvoidAreaType::TYPE_NAVIGATION_INDICATOR
+        }) {
+        auto avoidArea  = std::make_shared<Rosen::AvoidArea>();
+        GetAvoidAreaByType(type, *avoidArea);
+        UpdateAvoidArea(avoidArea, type);
+    }
+}
+
+void Window::UpdateAvoidArea(const std::shared_ptr<Rosen::AvoidArea>& avoidArea, AvoidAreaType type)
+{
+    if (!avoidArea) {
+        LOGE("invalid avoidArea");
+        return;
+    }
+
+    LOGD("UpdateAvoidArea type:%{public}d, top:{%{public}d,%{public}d,%{public}d,%{public}d}, "
+        "left:{%{public}d,%{public}d,%{public}d,%{public}d}, right:{%{public}d,%{public}d,%{public}d,%{public}d}, "
+        "bottom:{%{public}d,%{public}d,%{public}d,%{public}d}",
+        type, avoidArea->topRect_.posX_, avoidArea->topRect_.posY_, avoidArea->topRect_.width_,
+        avoidArea->topRect_.height_, avoidArea->leftRect_.posX_, avoidArea->leftRect_.posY_,
+        avoidArea->leftRect_.width_, avoidArea->leftRect_.height_, avoidArea->rightRect_.posX_,
+        avoidArea->rightRect_.posY_, avoidArea->rightRect_.width_, avoidArea->rightRect_.height_,
+        avoidArea->bottomRect_.posX_, avoidArea->bottomRect_.posY_, avoidArea->bottomRect_.width_,
+        avoidArea->bottomRect_.height_);
+
+    {
+        std::lock_guard<std::recursive_mutex> lock(globalMutex_);
+        if (avoidAreaMap_[type] != *avoidArea) {
+            avoidAreaMap_[type] = *avoidArea;
+            NotifyAvoidAreaChange(avoidArea, type);
+        }    
+    }
+}
+void Window::NotifyAvoidAreaChange(const std::shared_ptr<AvoidArea>& avoidArea, AvoidAreaType type)
+{
+    auto avoidAreaChangeListeners = GetListeners<IAvoidAreaChangedListener>();
+    for (auto& listener : avoidAreaChangeListeners) {
+        if (listener != nullptr) {
+            LOGD("type=%{public}u", type);
+            listener->OnAvoidAreaChanged(*avoidArea, type);
+        }
+    }
+}
+
 void Window::NotifyTouchOutside()
 {
     auto touchOutsideListeners = GetListeners<ITouchOutsideListener>();
@@ -1096,6 +1220,7 @@ void Window::Foreground()
     uiContent_->Foreground();
     NotifyAfterForeground();
     isWindowShow_ = true;
+    UpdateWindowStatus();
 }
 
 void Window::Background()
@@ -1108,6 +1233,7 @@ void Window::Background()
     isWindowShow_ = false;
     uiContent_->Background();
     NotifyAfterBackground();
+    UpdateWindowStatus();
 }
 
 void Window::ReleaseWindowView()
@@ -1178,6 +1304,17 @@ bool Window::IsKeepScreenOn()
     }
 }
 
+WMError Window::SetWindowPrivacyMode(bool isPrivacyMode) {
+    if (IsSubWindow()) {
+        return WMError::WM_OK;
+    }
+    StageViewController* controller = [StageApplication getApplicationTopViewController];
+    if (![controller isKindOfClass:[StageViewController class]]) {
+        return WMError::WM_ERROR_INVALID_WINDOW;;
+    }
+    controller.privacyMode = isPrivacyMode;
+     return WMError::WM_OK;
+}
 WMError Window::SetSystemBarProperty(WindowType type, const SystemBarProperty& property)
 {
     WMError ret = SetSystemBar(type, property);
@@ -1185,6 +1322,67 @@ WMError Window::SetSystemBarProperty(WindowType type, const SystemBarProperty& p
         sysBarPropMap_[type] = property;
     }
     return WMError::WM_OK;
+}
+
+WMError Window::UpdateSystemBarProperties(
+    const std::unordered_map<WindowType, SystemBarProperty>& systemBarProperties,
+    const std::unordered_map<WindowType, SystemBarPropertyFlag>& systemBarPropertyFlags)
+{
+    for (auto& [systemBarType, systemBarPropertyFlag] : systemBarPropertyFlags) {
+        if (systemBarProperties.find(systemBarType) == systemBarProperties.end()) {
+            LOGI("Window::UpdateSystemBarProperties system bar type is invalid");
+            return WMError::WM_DO_NOTHING;
+        }
+        auto property = GetSystemBarPropertyByType(systemBarType);
+        property.enable_ = systemBarPropertyFlag.enableFlag ?
+            systemBarProperties.at(systemBarType).enable_ : property.enable_;
+        
+        property.backgroundColor_ = systemBarPropertyFlag.backgroundColorFlag ?
+            systemBarProperties.at(systemBarType).backgroundColor_ : property.backgroundColor_;
+        property.contentColor_ = systemBarPropertyFlag.contentColorFlag ?
+            systemBarProperties.at(systemBarType).contentColor_ : property.contentColor_;
+        property.enableAnimation_ = systemBarPropertyFlag.enableAnimationFlag ?
+            systemBarProperties.at(systemBarType).enableAnimation_ : property.enableAnimation_;
+        if (systemBarPropertyFlag.enableFlag) {
+            property.settingFlag_ |= SystemBarSettingFlag::ENABLE_SETTING;
+        }
+        if (systemBarPropertyFlag.backgroundColorFlag || systemBarPropertyFlag.contentColorFlag) {
+            property.settingFlag_ |= SystemBarSettingFlag::COLOR_SETTING;
+        }
+        if (systemBarPropertyFlag.enableFlag || systemBarPropertyFlag.backgroundColorFlag ||
+            systemBarPropertyFlag.contentColorFlag || systemBarPropertyFlag.enableAnimationFlag) {
+            if (systemBarType == WindowType::WINDOW_TYPE_STATUS_BAR) {
+                SetStatusBar(property.contentColor_, property.backgroundColor_, property.enableAnimation_);
+            } else {
+                LOGE("The WindowType is not set to UpdateSystemBarProperties. The WindowType is %{public}d", systemBarType);
+            }
+        }
+        // std::lock_guard<std::recursive_mutex> lock(g_sysBarPropMapMutex);
+        sysBarPropMap_[systemBarType] = property;
+    }
+    return WMError::WM_OK;
+}
+
+void Window::SetStatusBar(uint32_t titleColor, uint32_t backgroundColor, bool animation)
+{
+    StageViewController* controller = [StageApplication getApplicationTopViewController];
+    if (![controller isKindOfClass:[StageViewController class]]) {
+        return;
+    }
+    if (titleColor == SYSTEM_COLOR_WHITE) {
+        controller.statusBarStyle = UIStatusBarStyleLightContent;
+    } else if (titleColor == SYSTEM_COLOR_BLACK) {
+        if (@available(iOS 13.0, *)) {
+            controller.statusBarStyle =  UIStatusBarStyleDarkContent;
+        } else {
+            controller.statusBarStyle =  UIStatusBarStyleDefault;
+        }
+    } else {
+        controller.statusBarStyle =  UIStatusBarStyleDefault;
+    }
+    controller.statusBarAnimation = animation;
+    [[UIApplication sharedApplication]setStatusBarStyle:controller.statusBarStyle animated:animation];
+    [controller setNeedsStatusBarAppearanceUpdate];
 }
 
 void Window::SetRequestedOrientation(Orientation orientation)
@@ -1221,7 +1419,12 @@ SystemBarProperty Window::GetSystemBarPropertyByType(WindowType type) const
 void Window::ClearListenersById(uint32_t winId)
 {
     std::lock_guard<std::recursive_mutex> lock(globalMutex_);
-    ClearUselessListeners(lifecycleListeners_, winId); 
+    ClearUselessListeners(lifecycleListeners_, winId);
+    ClearUselessListeners(windowChangeListeners_, winId);
+    ClearUselessListeners(touchOutsideListeners_, winId);
+    ClearUselessListeners(surfaceNodeListeners_, winId);
+    ClearUselessListeners(windowStatusChangeListeners_, winId);
+    ClearUselessListeners(avoidAreaChangeListeners_, winId);
 }
 
 void Window::NotifyWillTeminate()
@@ -1243,7 +1446,10 @@ void Window::NotifySizeChange(Rect rect)
 
 void Window::NotifyKeyboardHeightChanged(int32_t height)
 {
-    keyBoardHieght = height;
+    if (keyBoardHieght_ == height) {
+        return;
+    }
+    keyBoardHieght_ = height;
     auto occupiedAreaChangeListeners = GetListeners<IOccupiedAreaChangeListener>();
     for (auto& listener : occupiedAreaChangeListeners) {
         if (listener != nullptr) {
@@ -1251,6 +1457,11 @@ void Window::NotifyKeyboardHeightChanged(int32_t height)
             listener->OnSizeChange(rect, OccupiedAreaType::TYPE_INPUT);
         }
     }
+    LOGD("NotifyKeyboardHeightChanged %d",height);
+    auto type = AvoidAreaType::TYPE_KEYBOARD;
+    auto avoidArea  = std::make_shared<Rosen::AvoidArea>();
+    GetAvoidAreaByType(type, *avoidArea);
+    UpdateAvoidArea(avoidArea, type);
 }
 
 WMError Window::RegisterOccupiedAreaChangeListener(const sptr<IOccupiedAreaChangeListener>& listener)
@@ -1267,13 +1478,6 @@ WMError Window::UnregisterOccupiedAreaChangeListener(const sptr<IOccupiedAreaCha
     return UnregisterListener(occupiedAreaChangeListeners_[GetWindowId()], listener);
 }
 
-WMError Window::RegisterAvoidAreaChangeListener(const sptr<IAvoidAreaChangedListener> &listener)
-{
-    LOGD("Start register");
-    std::lock_guard<std::recursive_mutex> lock(globalMutex_);
-    return RegisterListener(avoidAreaChangedListeners_[GetWindowId()], listener);
-}
-
 WMError Window::RegisterLifeCycleListener(const sptr<IWindowLifeCycle>& listener)
 {
     LOGD("Start register");
@@ -1286,6 +1490,37 @@ WMError Window::UnregisterLifeCycleListener(const sptr<IWindowLifeCycle>& listen
     LOGD("Start unregister");
     std::lock_guard<std::recursive_mutex> lock(globalMutex_);
     return UnregisterListener(lifecycleListeners_[GetWindowId()], listener);
+}
+
+WMError Window::RegisterAvoidAreaChangeListener(const sptr<IAvoidAreaChangedListener>& listener)
+{
+    LOGD("Start register AvoidAreaChangeListener");
+    std::lock_guard<std::recursive_mutex> lock(globalMutex_);
+    WMError ret = RegisterListener(avoidAreaChangeListeners_[GetWindowId()], listener);
+    return ret;
+}
+
+WMError Window::UnregisterAvoidAreaChangeListener(const sptr<IAvoidAreaChangedListener>& listener)
+{
+    LOGD("Start unregister AvoidAreaChangeListener");
+    std::lock_guard<std::recursive_mutex> lock(globalMutex_);
+    WMError ret = UnregisterListener(avoidAreaChangeListeners_[GetWindowId()], listener);
+    return ret;
+}
+
+WMError Window::RegisterWindowStatusChangeListener(const sptr<IWindowStatusChangeListener>& listener)
+{
+    LOGD("Start register WindowChangeListener");
+    std::lock_guard<std::recursive_mutex> lock(globalMutex_);
+    return RegisterListener(windowStatusChangeListeners_[GetWindowId()], listener);
+}
+
+WMError Window::UnregisterWindowStatusChangeListener(const sptr<IWindowStatusChangeListener>& listener)
+{
+    LOGD("Start unregister WindowChangeListener");
+    std::lock_guard<std::recursive_mutex> lock(globalMutex_);
+    return UnregisterListener(windowStatusChangeListeners_[GetWindowId()], listener);
+
 }
 
 WMError Window::RegisterWindowChangeListener(const sptr<IWindowChangeListener>& listener)
@@ -1431,22 +1666,49 @@ WMError Window::GetAvoidAreaByType(AvoidAreaType type, AvoidArea& avoidArea) {
         if (![controller isKindOfClass:[StageViewController class]]) {
             return WMError::WM_ERROR_INVALID_WINDOW;
         }
-        UIEdgeInsets insets = [UIApplication sharedApplication].delegate.window.safeAreaInsets;
-        CGFloat screenWidth = UIScreen.mainScreen.bounds.size.width;
-        CGFloat screenHeight = UIScreen.mainScreen.bounds.size.height;
-        double bottomSafeAreaHeight = insets.bottom ? Ace::PipelineBase::Vp2PxWithCurrentDensity(BOTTOM_SAFE_AREA_HEIGHT_VP) : 0;
+        UIEdgeInsets insets = windowView_.safeAreaInsets;
+        UIScreen *screen = [UIScreen mainScreen];
+        AvoidArea area;
+        CGFloat scale = screen.scale;
+        insets.left = insets.left * scale;
+        insets.right = insets.right * scale;
+        insets.top = insets.top * scale;
+        insets.bottom = insets.bottom * scale;
+        CGFloat width = windowView_.bounds.size.width * scale;
+        CGFloat height = windowView_.bounds.size.height * scale;
+        area.topRect_ = MakeAvoidRect(0, 0, width, insets.top);
+        area.leftRect_ = MakeAvoidRect(0, 0, insets.left, height);
+        area.rightRect_ = MakeAvoidRect(width, 0, insets.right ,height);
+        area.bottomRect_ = MakeAvoidRect(0, height, width, insets.bottom);
+
+         LOGD("UpdateAvoidAreaNew type:%{public}d, top:{%{public}d,%{public}d,%{public}d,%{public}d}, "
+        "left:{%{public}d,%{public}d,%{public}d,%{public}d}, right:{%{public}d,%{public}d,%{public}d,%{public}d}, "
+        "bottom:{%{public}d,%{public}d,%{public}d,%{public}d}",
+        type, area.topRect_.posX_, area.topRect_.posY_, area.topRect_.width_,
+        area.topRect_.height_, area.leftRect_.posX_, area.leftRect_.posY_,
+       area.leftRect_.width_,  area.leftRect_.height_,  area.rightRect_.posX_,
+        area.rightRect_.posY_,  area.rightRect_.width_,  area.rightRect_.height_,
+         area.bottomRect_.posX_,  area.bottomRect_.posY_,  area.bottomRect_.width_,
+        area.bottomRect_.height_);
         if (type == AvoidAreaType::TYPE_CUTOUT) {
-            avoidArea.topRect_ = controller.statusBarHidden ? emptyRect : (Rect){0, 0, screenWidth, insets.top};
+            avoidArea.topRect_ = area.topRect_;
+            avoidArea.leftRect_ = area.leftRect_;
+            avoidArea.rightRect_ = area.rightRect_;
         } else if (type == AvoidAreaType::TYPE_KEYBOARD) {
-            avoidArea.bottomRect_ = {0, screenHeight - keyBoardHieght, screenWidth, keyBoardHieght};
+            CGFloat screenHeight = windowView_.window.bounds.size.height;
+            CGRect rect = [windowView_ convertRect:windowView_.bounds toView:windowView_.window];
+            CGFloat windowViewMaxY = (rect.size.height + rect.origin.y) * scale;
+            CGFloat avoidHeight = windowViewMaxY - (screenHeight * scale - keyBoardHieght_);
+            avoidHeight = avoidHeight > 0 ? avoidHeight : 0;
+            avoidArea.bottomRect_ = MakeAvoidRect(0, rect.size.height * scale - avoidHeight, width, avoidHeight);
+            LOGD("GetAvoidAreaByType screenHeight=%f,windowViewMaxY = %f avoidHeight = %f recty = %f,rectH= %f",
+                screenHeight * scale, windowViewMaxY,avoidHeight,rect.origin.y,rect.size.height);
         } else if (type == AvoidAreaType::TYPE_SYSTEM) {
-            avoidArea.topRect_ = controller.statusBarHidden ? emptyRect : (Rect){0, 0, screenWidth, insets.top};
-            avoidArea.bottomRect_ = {0, screenHeight - bottomSafeAreaHeight, screenWidth, bottomSafeAreaHeight};
+            avoidArea.topRect_ = area.topRect_;
+            avoidArea.bottomRect_ = area.bottomRect_;
         } else if (type == AvoidAreaType::TYPE_NAVIGATION_INDICATOR) {
-            avoidArea.bottomRect_ = {0, screenHeight - bottomSafeAreaHeight, screenWidth, bottomSafeAreaHeight};
+            avoidArea.bottomRect_ = area.bottomRect_;
         } else if (type == AvoidAreaType::TYPE_SYSTEM_GESTURE) {
-            avoidArea.leftRect_ = emptyRect;
-            avoidArea.rightRect_ = emptyRect;
         } else {
             LOGE("GetAvoidAreaByType failed, AvoidAreaType is invalid");
             return WMError::WM_ERROR_INVALID_PARAM;

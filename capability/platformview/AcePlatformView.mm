@@ -481,9 +481,11 @@ const static size_t QueueSize = 3;
     if (_isVideo) {
         StageViewController* controller = [StageApplication getApplicationTopViewController];
         embeddedView.autoresizingMask = (UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight);
-
-        WindowView *windowView = (WindowView *) [self findWindowViewInView: controller.view];
-        [controller.view insertSubview:embeddedView belowSubview:windowView];
+        if (![controller isKindOfClass:[StageViewController class]]) {
+            return;
+        }
+        UIView *windowView = [controller getWindowView];
+        [windowView.superview insertSubview:embeddedView belowSubview:windowView];
         return;
     }
     if (_renderView) {
@@ -493,9 +495,9 @@ const static size_t QueueSize = 3;
 
         StageViewController* controller = [StageApplication getApplicationTopViewController];
         embeddedView.autoresizingMask = (UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight);
-
-        WindowView *windowView = (WindowView *) [self findWindowViewInView: controller.view];
-        [controller.view insertSubview:_renderView belowSubview:windowView];
+        UIView *windowView = [controller getWindowView];
+        [windowView.superview insertSubview:_renderView belowSubview:windowView];
+        
     }
 }
 

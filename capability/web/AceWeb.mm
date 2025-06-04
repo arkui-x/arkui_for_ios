@@ -72,6 +72,7 @@
 #define NTC_RICHTEXT_LOADDATA             @"loadData"
 #define NTC_ONFULLSCREENENTER             @"onFullScreenEnter"
 #define NTC_ONFULLSCREENEXIT              @"onFullScreenExit"
+#define NTC_ONINTERCEPTREQUEST            @"onInterceptRequest"
 #define NTC_ONREFRESHACCESSED_HISTORYEVENT     @"onRefreshAccessedHistory"
 #define WEBVIEW_PAGE_HALF                 2
 @interface DownloadTaskInfo : NSObject
@@ -92,7 +93,7 @@ typedef void (^onDownloadFailed)(NSString* guid, NSString* state, int64_t code);
 typedef void (^onDownloadFinish)(NSString* guid, NSString* path);
 typedef id (^onJavaScriptFunction)(NSString* objName, NSString* methodName, NSArray* args);
 @interface AceWeb()<WKScriptMessageHandler, WKUIDelegate, WKNavigationDelegate, 
-                    UIScrollViewDelegate, NSURLSessionDownloadDelegate, WKHTTPCookieStoreObserver>
+                    UIScrollViewDelegate, NSURLSessionDownloadDelegate, WKHTTPCookieStoreObserver, WKURLSchemeHandler>
 /**webView*/
 @property (nonatomic, assign) WKWebView *webView;
 @property (nonatomic, assign) int64_t incId;
@@ -185,6 +186,7 @@ static BOOL _webDebuggingAccessInit = NO;
 
     config.preferences = preference;
     config.userContentController = userContentController;
+    [config setURLSchemeHandler:self forURLScheme:@"arkuixcustomscheme"];
     [self incognitoModeWithConfig:config];
     self.webView = [[WKWebView alloc] initWithFrame:CGRectZero configuration:config];
     self.webView.UIDelegate = self;
@@ -1322,11 +1324,48 @@ static BOOL _webDebuggingAccessInit = NO;
     AceWebObject([[self event_hashFormat:NTC_ONREFRESHACCESSED_HISTORYEVENT] UTF8String], [NTC_ONREFRESHACCESSED_HISTORYEVENT UTF8String], obj);
 }
 
+#pragma mark - WKURLSchemeHandler
+- (void)webView:(WKWebView *)webView startURLSchemeTask:(id<WKURLSchemeTask>)urlSchemeTask {
+    const auto& AceWebResponse = AceWebObjectGetResponse();
+    if (!AceWebResponse) {
+        return;
+    }
+    NSURLRequest* request = urlSchemeTask.request;
+    const std::string& rawData = AceWebResponse->GetData();
+    NSData* responseData = [NSData dataWithBytes:rawData.c_str() length:rawData.size()];
+
+    NSString* contentType = [NSString stringWithFormat:@"%@;charset=%@;",
+        [NSString stringWithUTF8String:AceWebResponse->GetMimeType().c_str()],
+        [NSString stringWithUTF8String:AceWebResponse->GetEncoding().c_str()]];
+    NSMutableDictionary* headers = [NSMutableDictionary dictionaryWithDictionary:@{
+        @"Content-Type": contentType,
+        @"Content-Length": [@(responseData.length) stringValue],
+        @"Reason-Phrase": [NSString stringWithUTF8String:AceWebResponse->GetReason().c_str()]
+    }];
+
+    const auto& cppHeaders = AceWebResponse->GetHeaders();
+    for (const auto& header : cppHeaders) {
+        NSString* key = [NSString stringWithUTF8String:header.first.c_str()];
+        NSString* value = [NSString stringWithUTF8String:header.second.c_str()];
+        [headers setObject:value forKey:key];
+    }
+    
+    NSHTTPURLResponse* response = [[NSHTTPURLResponse alloc] initWithURL:request.URL
+        statusCode:AceWebResponse->GetStatusCode() HTTPVersion:@"HTTP/1.1"
+        headerFields:headers];
+
+    [urlSchemeTask didReceiveResponse:response];
+    [urlSchemeTask didReceiveData:responseData];
+    [urlSchemeTask didFinish];
+}
+
+- (void)webView:(WKWebView *)webView stopURLSchemeTask:(id<WKURLSchemeTask>)urlSchemeTask {}
+
 - (void)webView:(WKWebView *)webView
     decidePolicyForNavigationAction:(WKNavigationAction *)navigationAction
                     decisionHandler:(void (^)(WKNavigationActionPolicy))decisionHandler
 {
-    NSString *url = navigationAction.request.URL.absoluteString;  
+    NSString *url = navigationAction.request.URL.absoluteString;
     if (navigationAction.navigationType == WKNavigationTypeReload || 
         (navigationAction.navigationType == WKNavigationTypeBackForward && 
         url && 
@@ -1335,12 +1374,21 @@ static BOOL _webDebuggingAccessInit = NO;
     }
     NSString* requestURL =
             navigationAction.request.URL.absoluteString ? navigationAction.request.URL.absoluteString : @"";
-        AceWebErrorReceiveInfoObject* obj = new AceWebErrorReceiveInfoObject(std::string([requestURL UTF8String]), "", 0);
-        if (AceWebObjectWithBoolReturn(
-                [[self event_hashFormat:NTC_ONLOADINTERCEPT] UTF8String], [NTC_ONLOADINTERCEPT UTF8String], obj)) {
-            decisionHandler(WKNavigationActionPolicyCancel);
-            return;
-        }
+    AceWebErrorReceiveInfoObject* obj = new AceWebErrorReceiveInfoObject(std::string([requestURL UTF8String]), "", 0);
+    if (AceWebObjectWithBoolReturn(
+            [[self event_hashFormat:NTC_ONLOADINTERCEPT] UTF8String], [NTC_ONLOADINTERCEPT UTF8String], obj)) {
+        decisionHandler(WKNavigationActionPolicyCancel);
+        return;
+    }
+
+    if (![url hasPrefix:@"arkuixcustomscheme://"] && AceWebObjectWithResponseReturn(
+            [[self event_hashFormat:NTC_ONINTERCEPTREQUEST] UTF8String], [NTC_ONINTERCEPTREQUEST UTF8String], obj)) {
+        NSString* customURL = [NSString stringWithFormat:@"arkuixcustomscheme://%@", url];
+        NSURLRequest* newRequest = [NSURLRequest requestWithURL:[NSURL URLWithString:customURL]];
+        [webView loadRequest:newRequest];
+        decisionHandler(WKNavigationActionPolicyCancel);
+        return;
+    }
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= 140500
     if (@available(iOS 14.5, *)) {
         if (navigationAction.shouldPerformDownload) {
