@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2022-2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -128,6 +128,7 @@ void TextInputConnectionImpl::Show(bool isFocusViewChanged, int32_t instanceId){
         updateEditingClientBlock textInputCallback = ^(int client, NSDictionary *state){
             if(clientId == client && [state objectForKey:@"text"]){
                 NSString *text = [state objectForKey:@"text"];
+                NSString *appendText = [state objectForKey:@"appendText"];
                 NSInteger selectionBase = [state[@"selectionBase"] intValue];
                 NSInteger selectionExtent = [state[@"selectionExtent"] intValue];
                 NSInteger composingBase = [state[@"composingBase"] intValue];
@@ -136,8 +137,11 @@ void TextInputConnectionImpl::Show(bool isFocusViewChanged, int32_t instanceId){
                 LOGE("vailclientid->Show textInputBlock sb:%d se:%d cb:%d ce:%d",selectionBase,selectionExtent,composingBase,composingExtent);
                 auto textEditingValue = std::make_shared<TextEditingValue>();
                 textEditingValue->text = text.UTF8String;
+                textEditingValue->appendText = appendText.UTF8String;
                 textEditingValue->UpdateSelection(selectionBase,selectionExtent);
                 textEditingValue->UpdateCompose(composingBase,composingExtent);
+                textEditingValue->isDelete = [state[@"isDelete"] boolValue];
+                textEditingValue->unmarkText = [state[@"unmarkText"] boolValue];
                 TextInputClientHandler::GetInstance().UpdateEditingValue(client, textEditingValue, needFireChangeEvent_);
                 needFireChangeEvent_ = true;
             }

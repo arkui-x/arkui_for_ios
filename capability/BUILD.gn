@@ -1,4 +1,4 @@
-# Copyright (c) 2021-2024 Huawei Device Co., Ltd.
+# Copyright (c) 2021-2025 Huawei Device Co., Ltd.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -104,6 +104,7 @@ template("ace_capability_ios_source_set") {
       "$ace_root/adapter/ios/capability/clipboard/clipboard_impl.mm",
       "$ace_root/adapter/ios/capability/clipboard/clipboard_proxy_impl.cpp",
       "$ace_root/adapter/ios/capability/clipboard/multiType_record_impl.cpp",
+      "$ace_root/adapter/ios/capability/clipboard/pasteData_impl.cpp",
 
       # environment
       "$ace_root/adapter/ios/capability/environment/environment_impl.mm",

@@ -1,6 +1,17 @@
-// Copyright 2013 The Flutter Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
+/*
+ * Copyright (c) 2025 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 #import "iOSTxtInputManager.h"
 #import "KeyboardTypeMapper.h"
@@ -69,6 +80,7 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
 // UITextInput
 @property(nonatomic, readonly) NSMutableString* text;
 @property(nonatomic, readonly) NSMutableString* markedText;
+@property(nonatomic, readonly) NSMutableString* appendText;
 @property(readwrite, copy) UITextRange* selectedTextRange;
 @property(nonatomic, strong) UITextRange* markedTextRange;
 @property(nonatomic, copy) NSDictionary* markedTextStyle;
@@ -77,6 +89,7 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
 @property(nonatomic) NSUInteger maxLength;
 @property(nonatomic) NSUInteger markedTextLocation;
 @property(nonatomic) NSUInteger markedTextLength;
+@property(nonatomic) NSUInteger textLength;
 
 // UITextInputTraits
 @property(nonatomic) UITextAutocapitalizationType autocapitalizationType;
@@ -98,6 +111,8 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
     int _textInputClient;
     const char* _selectionAffinity;
     iOSTextRange* _selectedTextRange;
+    BOOL _isDelete;
+    BOOL _unmarkText;
 }
 
 @synthesize tokenizer = _tokenizer;
@@ -112,9 +127,12 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
         // UITextInput
         _text = [[NSMutableString alloc] init];
         _markedText = [[NSMutableString alloc] init];
+        _appendText = [[NSMutableString alloc] init];
         _selectedTextRange = [[iOSTextRange alloc] initWithNSRange:NSMakeRange(0, 0)];
         _markedTextLocation = 0;
         _markedTextLength = 0;
+        _isDelete = NO;
+        _unmarkText = NO;
         
         // UITextInputTraits
         _autocapitalizationType = UITextAutocapitalizationTypeSentences;
@@ -134,6 +152,7 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
 - (void)dealloc {
     [_text release];
     [_markedText release];
+    [_appendText release];
     [_markedTextRange release];
     [_selectedTextRange release];
     [_tokenizer release];
@@ -230,6 +249,10 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
     if (textRange.length + textRange.location > self.text.length) {
         textRange.length = self.text.length - textRange.location;
     }
+    if (textRange.location > self.maxLength) {
+        textRange.location = 0;
+        textRange.length = self.maxLength;
+    }
     return [self.text substringWithRange:textRange];
 }
 
@@ -237,6 +260,7 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
     if (self.returnKeyType == UIReturnKeyDefault && [text isEqualToString:@"\n"]) {
         return;
     }
+    _isDelete = (text.length == 0);
     NSRange replaceRange = ((iOSTextRange*)range).range;
     NSRange selectedRange = _selectedTextRange.range;
     // Adjust the text selection:
@@ -253,7 +277,7 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
     [self.text replaceCharactersInRange:[self clampSelection:replaceRange forText:self.text] withString:text];
     
     [self setSelectedTextRange:[iOSTextRange rangeWithNSRange:[self clampSelection:selectedRange forText:self.text]] updateEditingState:NO];
-    
+    [self.appendText setString:text];
     [self updateEditingState];
     
 }
@@ -373,7 +397,14 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
 }
 
 - (void)unmarkText {
-    self.markedTextRange = nil;
+    _unmarkText = YES;
+    if (self.text.length >= self.maxLength) {
+        NSInteger length = self.maxLength - self.textLength;
+        [self.appendText setString:[self.text substringWithRange:
+            NSMakeRange(self.markedTextLocation, length > 0 ? length : 0)]];
+    } else {
+        self.markedTextRange = nil;
+    }
     [self updateEditingState];
 }
 
@@ -570,8 +601,10 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
                 newText = [newText stringByAppendingString: suffixText];
                 [self.text setString:newText];                
             } else {
-                NSString *newText = [self.text substringWithRange:NSMakeRange(0, self.maxLength)];
-                [self.text setString:newText];
+                if (self.appendText.length == 0 || _unmarkText) {
+                    NSString *newText = [self.text substringWithRange:NSMakeRange(0, self.maxLength)];
+                    [self.text setString:newText];
+                }
                 selectionBase = self.maxLength;
                 selectionExtent = self.maxLength;
             }
@@ -591,8 +624,24 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
         @"composingBase" : @(composingBase),
         @"composingExtent" : @(composingExtent),
         @"text" : [NSString stringWithString:self.text],
+        @"appendText" : [NSString stringWithString:self.appendText],
+        @"isDelete" : @(_isDelete),
+        @"unmarkText" : @(_unmarkText),
     };
-    
+    if (_unmarkText) {
+        _unmarkText = NO;
+        self.markedTextRange = nil;
+        self.markedTextLocation = 0;
+        self.markedTextLength = 0;
+        self.textLength = self.text.length > self.maxLength ? self.maxLength : self.text.length;
+    } else {
+        self.textLength = self.text.length - self.markedTextLength;
+    }
+    if  (_isDelete) { 
+        _isDelete = NO;
+        self.textLength = self.text.length;
+    }
+    [self.appendText setString:@""];
     if(self.textInputBlock){
         self.textInputBlock(_textInputClient,dict);
     }
@@ -634,9 +683,9 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
         }
         text = filteredText;
     }
-
-    if (self.text.length + text.length > self.maxLength && self.maxLength - self.text.length > 0) {
-        text = [text substringWithRange:NSMakeRange(0, self.maxLength - self.text.length)];
+    NSInteger length = self.maxLength - self.text.length;
+    if (self.text.length + text.length > self.maxLength && length > 0) {
+        text = [text substringWithRange:NSMakeRange(0, length)];
     }
 
     _selectionAffinity = _kTextAffinityDownstream;
@@ -714,7 +763,7 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
     [_view release];
     [_secureView release];
     [_inputHider release];
-    
+    [self clearTextInputClient];
     [super dealloc];
 }
 
@@ -726,14 +775,19 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
     NSAssert([UIApplication sharedApplication].keyWindow != nullptr,
              @"The application must have a key window since the keyboard client "
              @"must be part of the responder chain to function");
-    if ([_activeView isFirstResponder]) {
-       return;
+    if (self.textInputBlock) {
+        _activeView.textInputBlock = self.textInputBlock;
     }
-    _activeView.textInputBlock = _textInputBlock;
-    _activeView.errorTextBlock = _errorTextBlock;
-    _activeView.textPerformBlock = _textPerformBlock;
-    [self addToInputParentViewIfNeeded:_activeView];
-    [_activeView becomeFirstResponder];
+    if (self.errorTextBlock) {
+        _activeView.errorTextBlock = self.errorTextBlock;
+    }
+    if (self.textPerformBlock) {
+        _activeView.textPerformBlock = self.textPerformBlock;
+    }
+    if (![_activeView isFirstResponder]) {
+        [self addToInputParentViewIfNeeded:_activeView];
+        [_activeView becomeFirstResponder];
+    }
 }
 
 - (UIView*)keyWindow {
@@ -824,6 +878,9 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
 
 - (void)clearTextInputClient {
     [_activeView setTextInputClient:0];
+    _activeView.textInputBlock = NULL;
+    _activeView.errorTextBlock = NULL;
+    _activeView.textPerformBlock = NULL;
 }
 
 @end

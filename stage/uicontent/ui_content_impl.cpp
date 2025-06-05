@@ -794,6 +794,8 @@ bool IsNeedAvoidWindowMode(OHOS::Rosen::Window* rsWindow)
 void UIContentImpl::UpdateViewportConfig(const ViewportConfig& config, OHOS::Rosen::WindowSizeChangeReason reason)
 {
     LOGI("UIContentImpl: UpdateViewportConfig %{public}s", config.ToString().c_str());
+    auto orientation = config.Height() >= config.Width() ? ORIENTATION_PORTRAIT : ORIENTATION_LANDSCAPE;
+    SystemProperties::InitDeviceInfo(config.Width(), config.Height(), orientation, config.Density(), false);
     SystemProperties::SetResolution(config.Density());
     SystemProperties::SetDeviceOrientation(
         config.Height() >= config.Width() ? ORIENTATION_PORTRAIT : ORIENTATION_LANDSCAPE);

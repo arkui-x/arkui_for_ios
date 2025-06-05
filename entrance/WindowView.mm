@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2023-2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -553,6 +553,10 @@ static int32_t GetModifierKeys(UIKeyModifierFlags modifierFlags) {
 }
 - (void)setupNotificationCenterObservers {
     NSNotificationCenter* center = [NSNotificationCenter defaultCenter];
+    [center addObserver:self
+               selector:@selector(keyboardWillShow:)
+                   name:UIKeyboardWillShowNotification
+                 object:nil];
 
     [center addObserver:self
                selector:@selector(keyboardWillChangeFrame:)
@@ -592,6 +596,10 @@ static int32_t GetModifierKeys(UIKeyModifierFlags modifierFlags) {
     }
 }
 
+- (void)keyboardWillShow:(NSNotification*)notification {
+    [self setIsFocused:true];
+}
+
 - (void)keyboardWillChangeFrame:(NSNotification*)notification {
     NSDictionary* info = [notification userInfo];
     CGFloat keyboardHeight = [info[UIKeyboardFrameEndUserInfoKey] CGRectValue].size.height;
@@ -611,6 +619,7 @@ static int32_t GetModifierKeys(UIKeyModifierFlags modifierFlags) {
     if (_windowDelegate.lock() != nullptr) {
         _windowDelegate.lock()->NotifyKeyboardHeightChanged(0);
     }
+    [self setIsFocused:false];
 }
 
 - (void)notifyTraitCollectionDidChange:(BOOL)isSplitScreen {
