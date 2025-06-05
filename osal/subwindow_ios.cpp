@@ -805,10 +805,6 @@ void SubwindowIos::ShowBindSheetNG(bool isShow, std::function<void(const std::st
     std::function<void()>&& sheetSpringBack, const RefPtr<NG::FrameNode>& targetNode)
 {}
 
-void SubwindowIos::ShowDialogMaskNG(const RefPtr<NG::FrameNode>& dialog) {}
-
-void SubwindowIos::CloseDialogMaskNG(const RefPtr<NG::FrameNode>& dialog) {}
-
 void SubwindowIos::SwitchFollowParentWindowLayout(bool freeMultiWindowEnable) {}
 
 bool SubwindowIos::NeedFollowParentWindowLayout()
@@ -819,4 +815,11 @@ bool SubwindowIos::NeedFollowParentWindowLayout()
 void SubwindowIos::AddFollowParentWindowLayoutNode(int32_t nodeId) {}
 
 void SubwindowIos::RemoveFollowParentWindowLayoutNode(int32_t nodeId) {}
+
+void SubwindowIos::SetNodeId(int32_t nodeId) {}
+
+int32_t SubwindowIos::GetNodeId() const
+{
+    return -1;
+}
 } // namespace OHOS::Ace

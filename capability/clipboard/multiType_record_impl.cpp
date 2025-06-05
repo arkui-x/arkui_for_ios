@@ -35,6 +35,12 @@ void MultiTypeRecordImpl::SetSpanStringBuffer(const std::vector<uint8_t>& buffer
 {
     spanStringBuffer_ = buffer;
 }
+
+void MultiTypeRecordImpl::SetHtmlText(const std::string& htmlText)
+{
+    htmlText_ = htmlText;
+}
+
 const RefPtr<PixelMap> MultiTypeRecordImpl::GetPixelMap()
 {
     return pixelMap_;
