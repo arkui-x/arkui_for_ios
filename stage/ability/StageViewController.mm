@@ -196,6 +196,7 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 
     self.view = [[StageSecureContainerView alloc]initWithFrame:self.view.bounds];
     _stageContainerView = [[StageContainerView alloc]initWithFrame:self.view.bounds];
+    self.view.isAccessibilityElement = NO;
     [((StageSecureContainerView*)self.view)  addView: _stageContainerView];
      _stageContainerView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     _stageContainerView.notifyDelegate = self;
