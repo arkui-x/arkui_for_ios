@@ -554,11 +554,6 @@ static int32_t GetModifierKeys(UIKeyModifierFlags modifierFlags) {
 - (void)setupNotificationCenterObservers {
     NSNotificationCenter* center = [NSNotificationCenter defaultCenter];
     [center addObserver:self
-               selector:@selector(keyboardWillShow:)
-                   name:UIKeyboardWillShowNotification
-                 object:nil];
-
-    [center addObserver:self
                selector:@selector(keyboardWillChangeFrame:)
                    name:UIKeyboardWillChangeFrameNotification
                  object:nil];
@@ -594,10 +589,6 @@ static int32_t GetModifierKeys(UIKeyModifierFlags modifierFlags) {
     if (_windowDelegate.lock() != nullptr) {
         _windowDelegate.lock()->WindowFocusChanged(focus);
     }
-}
-
-- (void)keyboardWillShow:(NSNotification*)notification {
-    [self setIsFocused:true];
 }
 
 - (void)keyboardWillChangeFrame:(NSNotification*)notification {

@@ -702,6 +702,7 @@ void AceContainerSG::UpdateConfiguration(Platform::ParsedConfig& parsedConfig)
     } else {
         pipelineContext_->SetAppBgColor(Color::WHITE);
     }
+    configurationChange.fontScaleUpdate = true;
     pipelineContext_->NotifyConfigurationChange();
     pipelineContext_->FlushReload(configurationChange);
     pipelineContext_->FlushReloadTransition();
