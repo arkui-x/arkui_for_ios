@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -13,8 +13,18 @@
  * limitations under the License.
  */
 
-#include "base/log/exception_handler.h"
+#ifndef FOUNDATION_ACE_ADAPTER_PREVIEW_ENTRANCE_REPORTER_IMPL_H
+#define FOUNDATION_ACE_ADAPTER_PREVIEW_ENTRANCE_REPORTER_IMPL_H
 
-namespace OHOS::Ace {
-void ExceptionHandler::HandleJsException(const std::string& exceptionMsg, const JsErrorObject& errorInfo) {}
-} // namespace OHOS::Ace
+#include "frameworks/core/common/reporter/reporter.h"
+#include "frameworks/core/components_ng/manager/event/json_report.h"
+
+namespace OHOS::Ace::NG {
+class ReporterImpl : public Reporter {
+    DECLARE_ACE_TYPE(ReporterImpl, Reporter);
+
+public:
+    void HandleUISessionReporting(const JsonReport& report) const override;
+};
+} // namespace OHOS::Ace::NG
+#endif

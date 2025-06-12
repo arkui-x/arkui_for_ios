@@ -144,7 +144,8 @@ int32_t UdmfClientImpl::GetData(const RefPtr<UnifiedData>& unifiedData, const st
     return UDMF::E_OK;
 }
 
-int32_t UdmfClientImpl::GetSummary(std::string& key, std::map<std::string, int64_t>& summaryMap)
+int32_t UdmfClientImpl::GetSummary(std::string& key, std::map<std::string, int64_t>& summaryMap,
+    std::map<std::string, int64_t>& detailedSummaryMap)
 {
     if (key.empty()) {
         LOGE("GetSummary Failed, Invalid key");
@@ -350,6 +351,11 @@ bool UdmfClientImpl::GetFileUriEntry(const RefPtr<UnifiedData>& unifiedData, std
 std::vector<uint8_t> UdmfClientImpl::GetSpanStringEntry(const RefPtr<UnifiedData>& unifiedData)
 {
     return {};
+}
+
+bool UdmfClientImpl::IsBelongsTo(const std::string& summary, const std::string& allowDropType)
+{
+    return false;
 }
 
 } // namespace OHOS::Ace
