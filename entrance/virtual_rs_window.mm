@@ -251,6 +251,8 @@ static WMError SetSystemBar(WindowType type, const SystemBarProperty& property)
             [controller setNeedsStatusBarAppearanceUpdate];
         }
     }
+    [controller.view setNeedsLayout];
+    [controller.view layoutIfNeeded];
     return WMError::WM_OK;
 }
 
@@ -273,7 +275,8 @@ static WMError SetSpecificBar(WindowType type, const SystemBarProperty& property
                 controller.homeIndicatorHidden = NO;
                 [controller setNeedsUpdateOfHomeIndicatorAutoHidden];
             }
-
+            [controller.view setNeedsLayout];
+            [controller.view layoutIfNeeded];
         } else {
             LOGE("Set SetSpecificBarProperty failed, iOS version less than 11");
             return WMError::WM_ERROR_INVALID_PARAM;
@@ -1690,10 +1693,26 @@ WMError Window::GetAvoidAreaByType(AvoidAreaType type, AvoidArea& avoidArea) {
         area.rightRect_.posY_,  area.rightRect_.width_,  area.rightRect_.height_,
          area.bottomRect_.posX_,  area.bottomRect_.posY_,  area.bottomRect_.width_,
         area.bottomRect_.height_);
+
         if (type == AvoidAreaType::TYPE_CUTOUT) {
-            avoidArea.topRect_ = area.topRect_;
-            avoidArea.leftRect_ = area.leftRect_;
-            avoidArea.rightRect_ = area.rightRect_;
+            static UIDeviceOrientation orientation = UIDeviceOrientationPortrait;
+            if ([UIDevice currentDevice].orientation == UIDeviceOrientationPortrait) {
+                orientation = UIDeviceOrientationPortrait;
+                avoidArea.topRect_ = area.topRect_;
+            } else if ([UIDevice currentDevice].orientation == UIDeviceOrientationLandscapeLeft) {
+                orientation = UIDeviceOrientationLandscapeLeft;
+                avoidArea.leftRect_ = area.leftRect_;
+            } else if ([UIDevice currentDevice].orientation == UIDeviceOrientationLandscapeRight) {
+                orientation = UIDeviceOrientationLandscapeRight;
+                avoidArea.rightRect_ = area.rightRect_;
+            }
+            if (orientation == UIDeviceOrientationPortrait) {
+                avoidArea.topRect_ = area.topRect_;
+            } else if (orientation == UIDeviceOrientationLandscapeLeft) {
+                avoidArea.leftRect_ = area.leftRect_;
+            } else if (orientation == UIDeviceOrientationLandscapeRight) {
+                avoidArea.rightRect_ = area.rightRect_;
+            }
         } else if (type == AvoidAreaType::TYPE_KEYBOARD) {
             CGFloat screenHeight = windowView_.window.bounds.size.height;
             CGRect rect = [windowView_ convertRect:windowView_.bounds toView:windowView_.window];
