@@ -55,6 +55,7 @@ template("ace_osal_ios_source_set") {
       "frame_trace_adapter_impl.cpp",
       "hitrace_meter.cpp",
       "image_packer_ios.cpp",
+      "image_perf_ios.cpp",
       "image_source_ios.cpp",
       "input_manager.cpp",
       "input_method_manager_ios.cpp",
