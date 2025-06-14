@@ -29,6 +29,7 @@
         UIView*view =  self.subviews[0];
         view.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
         view.frame = self.bounds;
+        view.userInteractionEnabled = YES;
         view.backgroundColor = [UIColor clearColor];
     }
     return self;
