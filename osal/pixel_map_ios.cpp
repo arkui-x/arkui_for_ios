@@ -269,7 +269,7 @@ void PixelMapIOS::Scale(float xAxis, float yAxis, const AceAntiAliasingOption &o
     }
 }
 
-void PixelMapIOS::SavePixelMapToFile(const std::string& dst) const
-{
-}
+void PixelMapIOS::SavePixelMapToFile(const std::string& dst) const {}
+
+void PixelMapIOS::SetMemoryName(std::string pixelMapName) const {}
 } // namespace OHOS::Ace

@@ -247,6 +247,11 @@ int32_t InteractionImpl::GetAppDragSwitchState(bool& state)
 
 void InteractionImpl::SetDraggableStateAsync(bool state, int64_t downTime) {}
 
+int32_t InteractionImpl::EnableInternalDropAnimation(const std::string& animationInfo)
+{
+    return -1;
+}
+
 int32_t InteractionImpl::UpdatePointAction(const std::shared_ptr<MMI::PointerEvent>& pointerEvent)
 {
 #if defined(ENABLE_DRAG_FRAMEWORK)
