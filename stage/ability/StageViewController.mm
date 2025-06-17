@@ -169,21 +169,6 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
     }
     [(StageContainerView*)self.view  notifyBackground];
     [(StageContainerView*)self.view  notifyActiveChanged:NO];
-    
-    if ([UIDevice currentDevice].systemVersion.floatValue >= 18.0 && ([self isBeingDismissed] || [self isMovingFromParentViewController])) {
-        NSLog(@"iOS 18 StageVC->%@ dealloc", self);
-        [_platformPlugin platformRelease];
-        _platformPlugin = nil;
-        [_windowView notifySurfaceDestroyed];
-        [_windowView notifyWindowDestroyed];
-        _windowView = nil;
-        [BridgePluginManager innerUnbridgePluginManager:_instanceId];
-        _bridgePluginManager = nil;
-        [self deallocArkUIXPlugin];
-        AppMain::GetInstance()->DispatchOnDestroy(_cInstanceName);
-        [self removeFromParentViewController];
-        [[NSNotificationCenter defaultCenter] removeObserver:self];
-    }
 }
 
 - (void)didReceiveMemoryWarning {
