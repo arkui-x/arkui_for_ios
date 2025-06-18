@@ -125,7 +125,11 @@ typedef id (^onJavaScriptFunction)(NSString* objName, NSString* methodName, NSAr
 @property (nonatomic, strong) onDownloadFinish onDownloadFinishCallBack;
 @property (nonatomic, strong) onJavaScriptFunction onJavaScriptFunctionCallBack;
 @property (nonatomic, strong) NSMutableDictionary<NSString*, DownloadTaskInfo*>* downloadTasksDic;
+@property (nonatomic, strong) NSArray* syncMethodList;
+@property (nonatomic, strong) NSArray* asyncMethodList;
+@property (nonatomic, strong) NSString* objName;
 @property (nonatomic, assign) bool allowIncognitoMode;
+@property (nonatomic, assign) BOOL jsReady;
 @end
 
 static BOOL _webDebuggingAccessInit = NO;
@@ -156,6 +160,7 @@ static BOOL _webDebuggingAccessInit = NO;
     self.oldScale = 100.0f;
     self.httpErrorCode = 400;
     self.isLoadRichText = false;
+    self.jsReady = false;
     [self initConfigure];
     [self initEventCallback];
     [self initWeb];
@@ -788,11 +793,14 @@ static BOOL _webDebuggingAccessInit = NO;
     return false;
 }
 
-- (void)registerJavaScriptProxy:(NSString*)objName
-                 syncMethodList:(NSArray*)syncMethodList
-                asyncMethodList:(NSArray*)asyncMethodList
-                       callback:(id (^)(NSString* objName, NSString* methodName, NSArray* args))callback
+- (void)registerJavaScriptMethods:(NSArray*)syncMethodList
+                  asyncMethodList:(NSArray*)asyncMethodList
+                          objName:(NSString*)objName
 {
+    if ((syncMethodList == nil && asyncMethodList == nil) || objName == nil) {
+        NSLog(@"Error: AceWeb: registerJavaScriptMethods parameters are nil");
+        return;
+    }
     for (NSString* method in syncMethodList) {
         NSString* js = [NSString stringWithFormat:
             @"window.%@ = window.%@ || {};"
@@ -810,20 +818,39 @@ static BOOL _webDebuggingAccessInit = NO;
     }
 
     for (NSString* method in asyncMethodList) {
-         NSString* js = [NSString stringWithFormat:
+        NSString* js = [NSString stringWithFormat:
             @"window.%@ = window.%@ || {};"
             "window.%@.%@ = function(...args) {"
             "window.webkit.messageHandlers.nativeHandler.postMessage({ class: '%@', method: '%@', params: args });"
             "};", objName, objName, objName, method, objName, method];
         [self.webView evaluateJavaScript:js completionHandler:^(id result, NSError* error) {}];
     }
+}
+
+- (void)registerJavaScriptProxy:(NSString*)objName
+                 syncMethodList:(NSArray*)syncMethodList
+                asyncMethodList:(NSArray*)asyncMethodList
+                       callback:(id (^)(NSString* objName, NSString* methodName, NSArray* args))callback
+{
+    NSLog(@"registerJavaScriptProxy objName is : %@", objName);
+    if (self.jsReady) {
+        [self registerJavaScriptMethods:syncMethodList asyncMethodList:asyncMethodList objName:objName];
+    } else {
+        self.syncMethodList = syncMethodList;
+        self.asyncMethodList = asyncMethodList;
+        self.objName = objName;
+    }
     self.onJavaScriptFunctionCallBack = callback;
 }
 
 - (void)deleteJavaScriptRegister:(NSString*)objName
 {
+    NSLog(@"deleteJavaScriptRegister objName is : %@", objName);
     NSString* js = [NSString stringWithFormat:@"delete window.%@;", objName];
     [self.webView evaluateJavaScript:js completionHandler:^(id result, NSError* error) {}];
+    self.syncMethodList = nil;
+    self.asyncMethodList = nil;
+    self.objName = nil;
     self.onJavaScriptFunctionCallBack = nil;
 }
 
@@ -1307,6 +1334,11 @@ static BOOL _webDebuggingAccessInit = NO;
 
 - (void)webView:(WKWebView *)webView didFinishNavigation:(WKNavigation *)navigation
 {
+    if(!self.jsReady) {
+        [self registerJavaScriptMethods:self.syncMethodList 
+            asyncMethodList:self.asyncMethodList objName:self.objName];
+    }
+    self.jsReady = true;
     NSString *param = [NSString stringWithFormat:@"%@",webView.URL];
     if (self.isLoadRichText) {
         self.isLoadRichText = false;
