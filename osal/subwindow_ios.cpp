@@ -770,6 +770,10 @@ void SubwindowIos::HideEventColumn()
     manager->RemoveEventColumn();
 }
 
+void SubwindowIos::SetFollowParentWindowLayoutEnabled(bool enable)
+{
+}
+
 bool SubwindowIos::ShowSelectOverlay(const RefPtr<NG::FrameNode>& overlayNode)
 {
     return false;
@@ -801,4 +805,15 @@ void SubwindowIos::ShowBindSheetNG(bool isShow, std::function<void(const std::st
     std::function<void()>&& sheetSpringBack, const RefPtr<NG::FrameNode>& targetNode)
  {
  }
+
+void SubwindowIos::SwitchFollowParentWindowLayout(bool freeMultiWindowEnable) {}
+
+bool SubwindowIos::NeedFollowParentWindowLayout()
+{
+    return false;
+}
+
+void SubwindowIos::AddFollowParentWindowLayoutNode(int32_t nodeId) {}
+
+void SubwindowIos::RemoveFollowParentWindowLayoutNode(int32_t nodeId) {}
 } // namespace OHOS::Ace
