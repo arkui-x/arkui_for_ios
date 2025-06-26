@@ -133,6 +133,7 @@ typedef id (^onJavaScriptFunction)(NSString* objName, NSString* methodName, NSAr
 @end
 
 static BOOL _webDebuggingAccessInit = NO;
+static NSString *const kJavaScriptURLPrefix = @"javascript:";
 
 @implementation AceWeb
 
@@ -269,7 +270,17 @@ static BOOL _webDebuggingAccessInit = NO;
     }
 
     if (httpHeaders == nil || httpHeaders.count == 0) {
-        [self.webView loadRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:url]]];
+        if ([self isJavascriptUrl:url]) {
+            NSString *js = [url substringFromIndex:kJavaScriptURLPrefix.length];
+            if (js.length > 0) {
+                NSLog(@"AceWeb: load javascript url");
+                [self evaluateJavaScript:js callback:nil];
+            } else {
+                NSLog(@"Error:AceWeb: javascript url is empty");
+            }
+        } else {
+            [self.webView loadRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:url]]];
+        }
         return;
     }
 
@@ -278,6 +289,14 @@ static BOOL _webDebuggingAccessInit = NO;
     NSMutableURLRequest *mutableRequest = [request mutableCopy];
     [mutableRequest setAllHTTPHeaderFields:headerFields];
     [self.webView loadRequest:mutableRequest];
+}
+
+- (BOOL)isJavascriptUrl:(NSString *)url
+{
+    if (url.length < kJavaScriptURLPrefix.length) {
+        return NO;
+    }
+    return [url.lowercaseString hasPrefix:kJavaScriptURLPrefix];
 }
 
 - (void)loadData:(NSString*)data
