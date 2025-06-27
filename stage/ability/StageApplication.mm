@@ -267,6 +267,19 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
         } else if ([topViewController isKindOfClass:[UITabBarController class]]) {
             UITabBarController *tab = (UITabBarController *)topViewController;
             topViewController = tab.selectedViewController;
+        } else if (topViewController.childViewControllers.count > 0) {
+            NSLog(@"topViewController has childViewControllers");
+            UIViewController *foundChild = nil;
+            for (UIViewController *childVC in topViewController.childViewControllers.reverseObjectEnumerator) {
+                if (childVC.isViewLoaded && childVC.view.window) {
+                    foundChild = childVC;
+                    break;
+                }
+            }
+            if (foundChild) {
+                NSLog(@"topViewController is a child view controller, class: %@", foundChild.class);
+                topViewController = foundChild;
+            }
         } else {
             break;
         }
