@@ -62,10 +62,6 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
                    selector:@selector(onDeviceOrientationChange:)
                        name:UIApplicationDidChangeStatusBarFrameNotification
                      object:nil];
-        [center addObserver:_configurationManager
-                   selector:@selector(onfontSizeScale:)
-                       name:UIContentSizeCategoryDidChangeNotification
-                     object:nil];
     });
     return _configurationManager;
 }
@@ -84,7 +80,6 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
     }
     [self setDensitydpi];
     [self setLanguage:[self getCurrentLanguage]];
-    [self setfontSizeScale:[self getCurrentFontScale]];
     std::string json = [self getJsonString:self.configuration];
 
     if (json.empty()) {
