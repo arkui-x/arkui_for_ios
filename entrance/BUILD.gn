@@ -135,14 +135,7 @@ template("ace_ios_standard_source_set") {
       "//foundation/distributeddatamgr/udmf/interfaces/jskits/data",
     ]
 
-    if (ace_use_new_skia) {
-      deps += [ "$ace_flutter_engine_root:flutter_for_ng" ]
-    } else {
-      deps += [
-        "$ace_flutter_engine_root:third_party_flutter_engine_$platform",
-        "$ace_flutter_engine_root/skia:ace_skia_$platform",
-      ]
-    }
+    deps += [ "$ace_flutter_engine_root:flutter_for_ng" ]
 
     if (defined(config.enable_rosen_backend) && config.enable_rosen_backend) {
       deps += [ "//foundation/graphic/graphic_2d/rosen/modules/render_service_client:librender_service_client_static" ]
@@ -164,9 +157,6 @@ foreach(item, ace_platforms) {
   platform = item.name
   if (platform == "ios") {
     ace_ios_standard_source_set("ace_ios_entrance") {
-      if (!ace_use_new_skia) {
-        platform = item.name
-      }
       defines = []
       cflags_cc = []
       config = {

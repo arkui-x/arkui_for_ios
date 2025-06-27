@@ -25,7 +25,9 @@ template("ace_osal_ios_source_set") {
 
   ohos_source_set(target_name) {
     defines += invoker.defines
-
+    if (defined(ace_engine_feature_enable_upgrade_skia) && ace_engine_feature_enable_upgrade_skia) {
+      defines += [ "USE_NEW_SKIA" ]
+    }
     sources = [
       "accessibility_manager_impl.cpp",
       "ace_checker.cpp",
@@ -130,14 +132,7 @@ template("ace_osal_ios_source_set") {
       "$crossplatform_multimedia_root/image_framework/interfaces/innerkits:image_external_config",
     ]
 
-    if (ace_use_new_skia) {
-      deps += [ "$ace_flutter_engine_root:flutter_for_ng" ]
-    } else {
-      deps += [
-        "$ace_flutter_engine_root:third_party_flutter_engine_$platform",
-        "$ace_flutter_engine_root/skia:ace_skia_$platform",
-      ]
-    }
+    deps += [ "$ace_flutter_engine_root:flutter_for_ng" ]
 
     if (defined(config.enable_rosen_backend) && config.enable_rosen_backend) {
       deps += [ "$ace_graphic/rosen/modules/render_service_client:librender_service_client_static" ]
