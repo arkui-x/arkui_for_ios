@@ -770,8 +770,9 @@ void SubwindowIos::HideEventColumn()
     manager->RemoveEventColumn();
 }
 
-void SubwindowIos::SetFollowParentWindowLayoutEnabled(bool enable)
+bool SubwindowIos::SetFollowParentWindowLayoutEnabled(bool enable)
 {
+    return false;
 }
 
 bool SubwindowIos::ShowSelectOverlay(const RefPtr<NG::FrameNode>& overlayNode)

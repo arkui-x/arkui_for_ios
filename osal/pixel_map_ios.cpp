@@ -182,9 +182,9 @@ uint32_t PixelMapIOS::WritePixels(const WritePixelsOptions& opts)
     return 0;
 }
 
-bool PixelMapIOS::GetIsWideColorGamut() const
+uint32_t PixelMapIOS::GetInnerColorGamut() const
 {
-    return false;
+    return 0;
 }
 
 RefPtr<PixelMap> PixelMap::CreatePixelMap(void* rawPtr)

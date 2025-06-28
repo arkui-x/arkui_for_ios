@@ -230,7 +230,7 @@ public:
     RefPtr<NG::FrameNode> ShowDialogNGWithNode(
         const DialogProperties& dialogProps, const RefPtr<NG::UINode>& customNode) override {}
 
-    void SetFollowParentWindowLayoutEnabled(bool enable) override;
+    bool SetFollowParentWindowLayoutEnabled(bool enable) override;
 
     bool ShowSelectOverlay(const RefPtr<NG::FrameNode>& overlayNode) override;
 
