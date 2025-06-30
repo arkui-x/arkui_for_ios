@@ -80,14 +80,7 @@ template("stage_ios_standard_source_set") {
       "//foundation/arkui/ace_engine/adapter/ios/entrance/plugin_lifecycle:plugin_lifecycle",
     ]
 
-    if (ace_use_new_skia) {
-      deps += [ "$ace_flutter_engine_root:flutter_for_ng" ]
-    } else {
-      deps += [
-        "$ace_flutter_engine_root:third_party_flutter_engine_$platform",
-        "$ace_flutter_engine_root/skia:ace_skia_$platform",
-      ]
-    }
+    deps += [ "$ace_flutter_engine_root:flutter_for_ng" ]
 
     frameworks = [
       "CoreFoundation.framework",
@@ -107,9 +100,6 @@ foreach(item, ace_platforms) {
   platform = item.name
   if (platform == "ios") {
     stage_ios_standard_source_set("stage_ios_entrance") {
-      if (!ace_use_new_skia) {
-        platform = item.name
-      }
       defines = []
       cflags_cc = []
       config = {

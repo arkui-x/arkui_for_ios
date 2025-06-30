@@ -42,18 +42,16 @@ config("capability_config") {
     "$ace_root/adapter/ios/capability/font",
   ]
 
-  if (ace_use_new_skia) {
-    include_dirs -= [
-      "//third_party/flutter",
-      "//third_party/flutter/skia",
-      "//third_party/flutter/engine/flutter/shell/common",
-    ]
+  include_dirs -= [
+    "//third_party/flutter",
+    "//third_party/flutter/skia",
+    "//third_party/flutter/engine/flutter/shell/common",
+  ]
 
-    include_dirs += [
-      "//foundation/arkui/ace_engine/frameworks/core/components/web/resource",
-      "//third_party/skia",
-    ]
-  }
+  include_dirs += [
+    "//foundation/arkui/ace_engine/frameworks/core/components/web/resource",
+    "$skia_root_new",
+  ]
 
   cflags_objc = [
     "-fvisibility=default",
