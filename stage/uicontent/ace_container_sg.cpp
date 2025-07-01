@@ -708,8 +708,8 @@ void AceContainerSG::UpdateConfiguration(Platform::ParsedConfig& parsedConfig)
     pipelineContext_->FlushReloadTransition();
 }
 
-void AceContainerSG::SetColor(Platform::ParsedConfig& parsedConfig, ConfigurationChange configurationChange,
-    ResourceConfiguration resConfig)
+void AceContainerSG::SetColor(Platform::ParsedConfig& parsedConfig, ConfigurationChange& configurationChange,
+    ResourceConfiguration& resConfig)
 {
     if (!parsedConfig.colorMode.empty()) {
         configurationChange.colorModeUpdate = true;
@@ -729,8 +729,8 @@ void AceContainerSG::SetColor(Platform::ParsedConfig& parsedConfig, Configuratio
     }
 }
 
-void AceContainerSG::SetDirectionAndDensity(Platform::ParsedConfig& parsedConfig, ConfigurationChange configurationChange,
-    ResourceConfiguration resConfig)
+void AceContainerSG::SetDirectionAndDensity(Platform::ParsedConfig& parsedConfig, ConfigurationChange& configurationChange,
+    ResourceConfiguration& resConfig)
 {
     if (!parsedConfig.direction.empty()) {
         if (parsedConfig.direction == "vertical") {
@@ -755,8 +755,8 @@ void AceContainerSG::SetDirectionAndDensity(Platform::ParsedConfig& parsedConfig
     }
 }
 
-void AceContainerSG::SetLanguage(Platform::ParsedConfig& parsedConfig, ConfigurationChange configurationChange,
-    ResourceConfiguration resConfig)
+void AceContainerSG::SetLanguage(Platform::ParsedConfig& parsedConfig, ConfigurationChange& configurationChange,
+    ResourceConfiguration& resConfig)
 {
     if (!parsedConfig.languageTag.empty()) {
         std::string language;
@@ -774,7 +774,7 @@ void AceContainerSG::SetLanguage(Platform::ParsedConfig& parsedConfig, Configura
     }
 }
 
-void AceContainerSG::SetFontAndScale(Platform::ParsedConfig& parsedConfig, ConfigurationChange configurationChange)
+void AceContainerSG::SetFontAndScale(Platform::ParsedConfig& parsedConfig, ConfigurationChange& configurationChange)
 {
     if (!parsedConfig.fontFamily.empty()) {
         auto fontManager = pipelineContext_->GetFontManager();
