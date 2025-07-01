@@ -293,6 +293,14 @@ Dimension ResourceAdapterImpl::GetDimensionByName(const std::string& resName)
     return Dimension(static_cast<double>(dimensionFloat), ParseDimensionUnit(unit));
 }
 
+ColorMode ResourceAdapterImpl::GetResourceColorMode() const
+{
+    CHECK_NULL_RETURN(resourceManager_, ColorMode::LIGHT);
+    std::unique_ptr<Global::Resource::ResConfig> resConfig(Global::Resource::CreateResConfig());
+    resourceManager_->GetResConfig(*resConfig);
+    return resConfig->GetColorMode() == OHOS::Global::Resource::ColorMode::DARK ? ColorMode::DARK : ColorMode::LIGHT;
+}
+
 std::string ResourceAdapterImpl::GetString(uint32_t resId)
 {
     std::string strResult = "";
