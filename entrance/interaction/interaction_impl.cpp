@@ -252,6 +252,14 @@ int32_t InteractionImpl::EnableInternalDropAnimation(const std::string& animatio
     return -1;
 }
 
+bool InteractionImpl::IsDragStart() const
+{
+#if defined(ENABLE_DRAG_FRAMEWORK)
+    return InteractionManager::GetInstance()->IsDragStart();
+#endif
+    return false;
+}
+
 int32_t InteractionImpl::UpdatePointAction(const std::shared_ptr<MMI::PointerEvent>& pointerEvent)
 {
 #if defined(ENABLE_DRAG_FRAMEWORK)
