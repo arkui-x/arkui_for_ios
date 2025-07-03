@@ -14,12 +14,18 @@
  */
 
 #include "adapter/ios/capability/storage/storage_impl.h"
+#include "core/pipeline_ng/pipeline_context.h"
 
 #import <Foundation/Foundation.h>
 
 namespace OHOS::Ace::Platform {
 
-StorageImpl::StorageImpl() : Storage() {}
+StorageImpl::StorageImpl() : Storage() {
+    auto pipelineContext = NG::PipelineContext::GetCurrentContext();
+    CHECK_NULL_VOID(pipelineContext);
+    RefPtr<TaskExecutor> taskExecutor = pipelineContext->GetTaskExecutor();
+    taskExecutor_ = taskExecutor;
+}
 
 void StorageImpl::SetString(const std::string& key, const std::string& value)
 {
