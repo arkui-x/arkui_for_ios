@@ -852,13 +852,12 @@ static NSString *const kJavaScriptURLPrefix = @"javascript:";
                        callback:(id (^)(NSString* objName, NSString* methodName, NSArray* args))callback
 {
     NSLog(@"registerJavaScriptProxy objName is : %@", objName);
-    if (self.jsReady) {
-        [self registerJavaScriptMethods:syncMethodList asyncMethodList:asyncMethodList objName:objName];
-    } else {
+    if (!self.jsReady) {
         self.syncMethodList = syncMethodList;
         self.asyncMethodList = asyncMethodList;
         self.objName = objName;
     }
+    [self registerJavaScriptMethods:syncMethodList asyncMethodList:asyncMethodList objName:objName];
     self.onJavaScriptFunctionCallBack = callback;
 }
 
