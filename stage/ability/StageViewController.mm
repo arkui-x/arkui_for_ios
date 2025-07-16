@@ -141,6 +141,13 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 - (void)viewDidAppear:(BOOL)animated {
     [super viewDidAppear:animated];
     NSLog(@"StageVC->%@ viewDidAppear call.", self);
+}
+
+- (void)viewWillAppear:(BOOL)animated {
+    [super viewWillAppear:animated];
+    if (_bridgePluginManager) {
+        [_bridgePluginManager updateCurrentInstanceId:_instanceId];
+    }
     if (_needOnForeground) {
         AppMain::GetInstance()->DispatchOnForeground(_cInstanceName);
     }
@@ -150,13 +157,6 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
     }
     [(StageContainerView*)self.view  notifyForeground];
     [(StageContainerView*)self.view  notifyActiveChanged:YES];
-}
-
-- (void)viewWillAppear:(BOOL)animated {
-    [super viewWillAppear:animated];
-    if (_bridgePluginManager) {
-        [_bridgePluginManager updateCurrentInstanceId:_instanceId];
-    }
 }
 
 - (void)viewDidDisappear:(BOOL)animated {
