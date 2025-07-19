@@ -823,4 +823,6 @@ int32_t SubwindowIos::GetNodeId() const
 {
     return -1;
 }
+
+void SubwindowIos::SetWindowAnchorInfo(const NG::OffsetF& offset, SubwindowType type, int32_t nodeId) {}
 } // namespace OHOS::Ace
