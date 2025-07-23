@@ -102,6 +102,10 @@
         CGFloat screenScale = scale;
         layer.contentsScale = screenScale;
         layer.rasterizationScale = screenScale;
+        layer.drawableProperties = @{
+            kEAGLDrawablePropertyColorFormat : kEAGLColorFormatRGBA8,
+            kEAGLDrawablePropertyRetainedBacking : @(NO),
+        };
     }
     [self notifySurfaceChangedWithWidth:width height:height density:scale];
 }
