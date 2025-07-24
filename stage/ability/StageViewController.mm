@@ -110,6 +110,7 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 
 - (void)initWindowView {
     _windowView = [[AccessibilityWindowView alloc] init];
+    [_windowView startBaseDisplayLink];
     _windowView.frame = self.view.bounds;
     _windowView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     WindowViwAdapter::GetInstance()->AddWindowView(_cInstanceName, (__bridge void*)_windowView);

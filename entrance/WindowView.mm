@@ -36,6 +36,8 @@
 #define ACE_ENABLE_GL
 @interface WindowView()
 
+@property (nonatomic, strong) CADisplayLink *displayLinkTouch;
+
 @end
 
 @implementation WindowView
@@ -54,6 +56,7 @@
     BOOL _firstTouchFlag;
     std::vector<CGRect> hotAreas_;
     float _oldBrightness;
+    NSTimer *_autoPausedTimer;
 }
 
 +(Class)layerClass{
@@ -275,18 +278,32 @@
 }
 
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event {
+    if (self.displayLinkTouch) {
+        self.displayLinkTouch.paused = NO;
+        [self stopPausedTimer];
+    }
     [self dispatchTouches:touches withEvent:event phase:UITouchPhaseBegan];
 }
 
 - (void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event {
+    if (self.displayLinkTouch) {
+        self.displayLinkTouch.paused = NO;
+        [self stopPausedTimer];
+    }
     [self dispatchTouches:touches withEvent:event phase:UITouchPhaseMoved];
 }
 
 - (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event {
+    if (self.displayLinkTouch) {
+        [self startPausedTimer];
+    }
     [self dispatchTouches:touches withEvent:event phase:UITouchPhaseEnded];
 }
 
 - (void)touchesCancelled:(NSSet *)touches withEvent:(UIEvent *)event {
+    if (self.displayLinkTouch) {
+        [self startPausedTimer];
+    }
     [self dispatchTouches:touches withEvent:event phase:UITouchPhaseCancelled];
 }
 
@@ -548,6 +565,12 @@ static int32_t GetModifierKeys(UIKeyModifierFlags modifierFlags) {
     if (_windowDelegate.lock() != nullptr) {
         _windowDelegate.lock()->Destroy();
     }
+    if (self.displayLinkTouch) {
+        NSLog(@"WindowView notifyWindowDestroyed in");
+        [self stopPausedTimer];
+        [self.displayLinkTouch invalidate];
+        self.displayLinkTouch = nil;
+    }
 }
 
 - (void)setupNotificationCenterObservers {
@@ -643,4 +666,50 @@ static int32_t GetModifierKeys(UIKeyModifierFlags modifierFlags) {
     return nil;
 }
 
+- (void)startBaseDisplayLink {
+    float mainMaxFrameRate = [UIScreen mainScreen].maximumFramesPerSecond;
+     const double epsilon = 0.1;
+    if (mainMaxFrameRate < 60.0 + epsilon) {
+        return;
+    }
+    self.displayLinkTouch = [CADisplayLink displayLinkWithTarget:self selector:@selector(onDisplayLinkTouch:)];
+    self.displayLinkTouch.paused = YES;
+    if (@available(iOS 15.0,*)) {
+        float maxFrameRate = fmax(mainMaxFrameRate, 60);
+        NSLog(@"startBaseDisplayLink maxFrameRate = %f",maxFrameRate);
+        self.displayLinkTouch.preferredFrameRateRange = CAFrameRateRangeMake(maxFrameRate, maxFrameRate, maxFrameRate);
+    } else {
+        self.displayLinkTouch.preferredFramesPerSecond = mainMaxFrameRate;
+    }
+    [self.displayLinkTouch addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSRunLoopCommonModes];
+}
+
+- (void)onDisplayLinkTouch:(CADisplayLink*)link {}
+
+- (void)startPausedTimer {
+    if (_autoPausedTimer) {
+        [_autoPausedTimer invalidate];
+        _autoPausedTimer = nil;
+    }
+    _autoPausedTimer = [NSTimer scheduledTimerWithTimeInterval:5.0
+                                    target:self
+                                  selector:@selector(autoPausedTimerFun)
+                                  userInfo:nil
+                                   repeats:NO];
+}
+
+- (void)stopPausedTimer {
+    if (_autoPausedTimer) {
+        [_autoPausedTimer invalidate];
+        _autoPausedTimer = nil;
+    }
+}
+
+- (void)autoPausedTimerFun {
+    self.displayLinkTouch.paused = YES;
+    if (_autoPausedTimer) {
+        [_autoPausedTimer invalidate];
+        _autoPausedTimer = nil;
+    }
+}
 @end
