@@ -177,7 +177,7 @@ void ResourceAdapterImpl::Init(const ResourceInfo& resourceInfo)
 }
 
 RefPtr<ResourceAdapter> ResourceAdapter::CreateNewResourceAdapter(
-    const std::string& bundleName, const std::string& moduleName, bool fromTheme)
+    const std::string& bundleName, const std::string& moduleName)
 {
     return nullptr;
 }

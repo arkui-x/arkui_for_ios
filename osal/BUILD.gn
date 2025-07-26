@@ -88,6 +88,7 @@ template("ace_osal_ios_source_set") {
       "subwindow_ios.cpp",
       "system_bar_style_ohos.cpp",
       "system_properties.cpp",
+      "system_properties_multi_thread.cpp",
       "thread_priority.cpp",
       "time_event_proxy_ios.cpp",
       "view_data_wrap_impl.cpp",
