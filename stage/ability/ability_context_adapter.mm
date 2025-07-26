@@ -154,7 +154,6 @@ int32_t AbilityContextAdapter::StartAbility(const std::string& instanceName, con
         NSURL *appUrl = components.URL;
         dispatch_main_async_safe(^{
             if ([[UIApplication sharedApplication] canOpenURL:appUrl]) {
-                NSLog(@"yanTestNow canOpenURL in %@",appUrl.absoluteString);
                 [[UIApplication sharedApplication] openURL:appUrl options: @{} completionHandler: ^(BOOL success) {}];
             } else {
                 NSLog(@"startAbility failed, can't open app");
