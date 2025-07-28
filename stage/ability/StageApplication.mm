@@ -258,11 +258,7 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
 }
 
 + (UIViewController *)findTopViewController:(UIViewController*)topViewController {
-    int count = 0;
     while (true) {
-        if (count > 50) {
-            break;
-        }
         if (topViewController.presentedViewController) {
             topViewController = topViewController.presentedViewController;
         } else if ([topViewController isKindOfClass:[UINavigationController class]]
@@ -283,11 +279,13 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
             if (foundChild) {
                 NSLog(@"topViewController is a child view controller, class: %@", foundChild.class);
                 topViewController = foundChild;
+            } else {
+                NSLog(@"topViewController is a container view controller, class: %@", topViewController.class);
+                break;
             }
         } else {
             break;
         }
-        count++;
     }
     return topViewController;
 }
