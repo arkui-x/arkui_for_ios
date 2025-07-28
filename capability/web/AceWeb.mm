@@ -192,6 +192,7 @@ static NSString *const kJavaScriptURLPrefix = @"javascript:";
 
     config.preferences = preference;
     config.userContentController = userContentController;
+    config.allowsInlineMediaPlayback = YES;
     [config setURLSchemeHandler:self forURLScheme:@"arkuixcustomscheme"];
     [self incognitoModeWithConfig:config];
     self.webView = [[WKWebView alloc] initWithFrame:CGRectZero configuration:config];
