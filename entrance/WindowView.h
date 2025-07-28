@@ -54,6 +54,7 @@ class Window;
 - (BOOL)processBackPressed;
 - (void)keyboardWillChangeFrame:(NSNotification*)notification;
 - (void)keyboardWillBeHidden:(NSNotification*)notification;
+- (void)startBaseDisplayLink;
 @end
 
 #endif  // FOUNDATION_ACE_ADAPTER_IOS_ENTRANCE_WINDOW_VIEW_H
