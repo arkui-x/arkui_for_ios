@@ -288,6 +288,9 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
             if (foundChild) {
                 NSLog(@"topViewController is a child view controller, class: %@", foundChild.class);
                 topViewController = foundChild;
+            } else {
+                NSLog(@"topViewController is a container view controller, class: %@", topViewController.class);
+                break;
             }
         } else {
             break;
