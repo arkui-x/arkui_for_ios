@@ -231,8 +231,8 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
         AppMain::GetInstance()->DispatchOnForeground(_cInstanceName);
     }
     _needOnForeground = true;
-    [(StageContainerView*)self.view  notifyForeground];
-    [(StageContainerView*)self.view  notifyActiveChanged:YES];
+    [_stageContainerView notifyForeground];
+    [_stageContainerView notifyActiveChanged:YES];
 }
 
 - (void)viewDidDisappear:(BOOL)animated {
