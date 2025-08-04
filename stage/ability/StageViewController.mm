@@ -195,11 +195,15 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 - (void)viewDidLoad {
     [super viewDidLoad];
 
-    self.view = [[StageSecureContainerView alloc]initWithFrame:self.view.bounds];
     _stageContainerView = [[StageContainerView alloc]initWithFrame:self.view.bounds];
+    if ([self supportWindowPrivacyMode]) {
+        self.view = [[StageSecureContainerView alloc]initWithFrame:self.view.bounds];
+        [((StageSecureContainerView*)self.view)  addView: _stageContainerView];
+    } else {
+        self.view = _stageContainerView;
+    }
     self.view.isAccessibilityElement = NO;
-    [((StageSecureContainerView*)self.view)  addView: _stageContainerView];
-     _stageContainerView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+    _stageContainerView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     _stageContainerView.notifyDelegate = self;
     self.view.backgroundColor = UIColor.whiteColor;
     NSLog(@"StageVC->%@ viewDidLoad call.", self);
@@ -212,6 +216,10 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
     std::string paramsString = [self getCPPString:self.params.length ? self.params : @""];
     AppMain::GetInstance()->DispatchOnCreate(_cInstanceName, paramsString);
     AppMain::GetInstance()->DispatchOnForeground(_cInstanceName);
+}
+
+- (BOOL)supportWindowPrivacyMode {
+    return false;
 }
 
 - (void)viewDidAppear:(BOOL)animated {
@@ -797,6 +805,9 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 }
 
 - (void)setPrivacyMode:(BOOL)privacyMode {
+    if (![self supportWindowPrivacyMode]) {
+        return;
+    }
     if (_privacyMode != privacyMode) {
         _privacyMode = privacyMode;
         ((StageSecureContainerView*)self.view).secureTextEntry = privacyMode;
