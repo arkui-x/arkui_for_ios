@@ -77,6 +77,11 @@
 - (void)addPlugin:(NSString *)pluginName;
 
 /**
+ * config privacy mode, if your ability need support privacy mode, please return YES, default is NO.
+ * @since 20
+ */
+- (BOOL)supportWindowPrivacyMode;
+/**
  * Get the PluginContext of StageViewController.
  * @return The PluginContext.
  */
