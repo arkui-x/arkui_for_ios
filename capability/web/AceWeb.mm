@@ -1568,7 +1568,21 @@ static NSString *const kJavaScriptURLPrefix = @"javascript:";
         NSDictionary* messageBody = (NSDictionary *)message.body;
         NSString* className = messageBody[@"class"];
         NSString* methodName = messageBody[@"method"];
-        NSArray* params = (NSArray *)messageBody[@"params"];
+        NSArray* params = [NSArray array];
+        if ([messageBody[@"params"] isKindOfClass:NSArray.class]) {
+            params = [NSArray arrayWithArray:messageBody[@"params"]];
+        } else {
+            NSString* jsonString = [NSString stringWithFormat:@"%@", messageBody[@"params"]];
+            NSData* jsonData = [jsonString dataUsingEncoding:NSUTF8StringEncoding];
+            NSError* error;
+            NSArray* array = [NSJSONSerialization JSONObjectWithData:jsonData
+                                options:NSJSONReadingMutableContainers error:&error];
+            if (!array) {
+                NSLog(@"Failed to parse JSON:: %@", error);
+            } else {
+                params = array;
+            }
+        }
         id result = self.onJavaScriptFunctionCallBack(className, methodName, params);
         if (result != nil && ![result isEqual:@""]) {
             NSString* js = [self generateJavaScriptForResult:result className:className methodName:methodName];
