@@ -180,7 +180,7 @@ static NSString *const kJavaScriptURLPrefix = @"javascript:";
     [self initConsole:CONSOLEDEBUG controller:userContentController];
     [self initConsole:CONSOLEWARN controller:userContentController];
     [userContentController addScriptMessageHandler:self name:@"onWebMessagePortMessage"];
-    [userContentController addScriptMessageHandler:self name:@"nativeHandler"];
+    [userContentController addScriptMessageHandler:self name:@"AceWebHandler"];
     NSString *htmlFBody = @"var vSrc = e.target.currentSrc;window.webkit.messageHandlers.videoPlayed.postMessage(vSrc);";
     NSString *htmlFunc = [NSString stringWithFormat:@"function(e) {if (e.target.tagName === 'VIDEO') {%@}}", htmlFBody];
     NSString *htmlJS = [NSString stringWithFormat:@"document.addEventListener('play', %@, true);", htmlFunc];
@@ -828,7 +828,7 @@ static NSString *const kJavaScriptURLPrefix = @"javascript:";
         NSString* js = [NSString stringWithFormat:
             @"window.%@ = window.%@ || {};"
             "window.%@.%@ = function(...args) {"
-            "window.webkit.messageHandlers.nativeHandler.postMessage({ class: '%@', method: '%@', params: args });"
+            "window.webkit.messageHandlers.AceWebHandler.postMessage({ class: '%@', method: '%@', params: args });"
             "   return new Promise((resolve, reject) => {"
             "       try {"
             "           window.%@.%@.resolve = resolve;"
@@ -844,7 +844,7 @@ static NSString *const kJavaScriptURLPrefix = @"javascript:";
         NSString* js = [NSString stringWithFormat:
             @"window.%@ = window.%@ || {};"
             "window.%@.%@ = function(...args) {"
-            "window.webkit.messageHandlers.nativeHandler.postMessage({ class: '%@', method: '%@', params: args });"
+            "window.webkit.messageHandlers.AceWebHandler.postMessage({ class: '%@', method: '%@', params: args });"
             "};", objName, objName, objName, method, objName, method];
         [self.webView evaluateJavaScript:js completionHandler:^(id result, NSError* error) {}];
     }
@@ -1564,7 +1564,7 @@ static NSString *const kJavaScriptURLPrefix = @"javascript:";
         NSString *videoSrc = message.body;
         self.videoSrc = videoSrc;
         return;
-    } else if ([message.name isEqualToString:@"nativeHandler"] && self.onJavaScriptFunctionCallBack) {
+    } else if ([message.name isEqualToString:@"AceWebHandler"] && self.onJavaScriptFunctionCallBack) {
         NSDictionary* messageBody = (NSDictionary *)message.body;
         NSString* className = messageBody[@"class"];
         NSString* methodName = messageBody[@"method"];
