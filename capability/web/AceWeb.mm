@@ -75,6 +75,7 @@
 #define NTC_ONINTERCEPTREQUEST            @"onInterceptRequest"
 #define NTC_ONREFRESHACCESSED_HISTORYEVENT     @"onRefreshAccessedHistory"
 #define WEBVIEW_PAGE_HALF                 2
+#define NTC_TEXT_ZOOM_RATIO               @"textZoomRatio"
 @interface DownloadTaskInfo : NSObject
 @property (nonatomic, assign) bool isDownload;
 @property (nonatomic, strong) NSString* filePath;
@@ -130,6 +131,7 @@ typedef id (^onJavaScriptFunction)(NSString* objName, NSString* methodName, NSAr
 @property (nonatomic, strong) NSString* objName;
 @property (nonatomic, assign) bool allowIncognitoMode;
 @property (nonatomic, assign) BOOL jsReady;
+@property (nonatomic, assign) NSInteger textZoomRatio;
 @end
 
 static BOOL _webDebuggingAccessInit = NO;
@@ -162,6 +164,7 @@ static NSString *const kJavaScriptURLPrefix = @"javascript:";
     self.httpErrorCode = 400;
     self.isLoadRichText = false;
     self.jsReady = false;
+    self.textZoomRatio = 100;
     [self initConfigure];
     [self initEventCallback];
     [self initWeb];
@@ -900,6 +903,8 @@ static NSString *const kJavaScriptURLPrefix = @"javascript:";
     [self setTouchMoveCallback];
     // touchUp callback
     [self setTouchUpCallback];
+    // textZoomRatio callback
+    [self updateTextZoomRatio];
 
     [self enterFullScreenOrExitFullScreenNotifi];
 }
@@ -1277,6 +1282,40 @@ static NSString *const kJavaScriptURLPrefix = @"javascript:";
     
 }
 
+- (void)updateTextZoomRatio
+{
+    __weak __typeof(self) weakSelf = self;
+    NSString *text_zoom_ratio_hash = [self method_hashFormat:NTC_TEXT_ZOOM_RATIO];
+    IAceOnCallSyncResourceMethod text_zoom_ratio_callback = ^NSString *(NSDictionary * param) {
+        __strong __typeof(weakSelf) strongSelf = weakSelf;
+        NSInteger textZoomRatio = [[param objectForKey:NTC_TEXT_ZOOM_RATIO] integerValue];
+        if (strongSelf) {
+            strongSelf.textZoomRatio = textZoomRatio;
+            if (strongSelf.jsReady) {
+                [strongSelf updateTextZoomRatio:textZoomRatio];
+            }
+            return SUCCESS;
+        } else {
+            NSLog(@"AceWeb: textZoomRatio fail");
+            return FAIL;
+        }
+    };
+    [self.callSyncMethodMap setObject:[text_zoom_ratio_callback copy] forKey:text_zoom_ratio_hash];
+}
+
+- (void)updateTextZoomRatio:(NSInteger)textZoomRatio {
+    NSString* js = [NSString stringWithFormat:
+        @"var style = document.createElement('style');"
+        @"style.innerHTML = 'body { -webkit-text-size-adjust: %d%% !important; }';"
+        @"document.head.appendChild(style);",
+        textZoomRatio];
+    [self.webView evaluateJavaScript:js completionHandler:^(id result, NSError* error) {
+        if (error) {
+            NSLog(@"AceWeb: updateTextZoomRatio evaluateJavaScript error: %@", error.localizedDescription);
+        }
+    }];
+}
+
 - (NSString *)method_hashFormat:(NSString *)method
 {
     return [NSString stringWithFormat:@"%@%lld%@%@%@%@", WEB_FLAG, self.incId, METHOD, PARAM_EQUALS, method, PARAM_BEGIN];
@@ -1361,6 +1400,7 @@ static NSString *const kJavaScriptURLPrefix = @"javascript:";
             asyncMethodList:self.asyncMethodList objName:self.objName];
     }
     self.jsReady = true;
+    [self updateTextZoomRatio:self.textZoomRatio];
     NSString *param = [NSString stringWithFormat:@"%@",webView.URL];
     if (self.isLoadRichText) {
         self.isLoadRichText = false;
