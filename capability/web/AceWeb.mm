@@ -132,6 +132,7 @@ typedef id (^onJavaScriptFunction)(NSString* objName, NSString* methodName, NSAr
 @property (nonatomic, assign) bool allowIncognitoMode;
 @property (nonatomic, assign) BOOL jsReady;
 @property (nonatomic, assign) NSInteger textZoomRatio;
+@property (nonatomic, copy) NSString* schemeUrl;
 @end
 
 static BOOL _webDebuggingAccessInit = NO;
@@ -1420,37 +1421,80 @@ static NSString *const kJavaScriptURLPrefix = @"javascript:";
 
 #pragma mark - WKURLSchemeHandler
 - (void)webView:(WKWebView *)webView startURLSchemeTask:(id<WKURLSchemeTask>)urlSchemeTask {
-    const auto& AceWebResponse = AceWebObjectGetResponse();
-    if (!AceWebResponse) {
-        return;
+    NSURL *originalURL = urlSchemeTask.request.URL;
+    self.schemeUrl = originalURL.absoluteString;
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        AceWebErrorReceiveInfoObject* obj = new AceWebErrorReceiveInfoObject(std::string([originalURL.absoluteString UTF8String]), "", 0);
+        if (AceWebObjectWithResponseReturn(
+                [[self event_hashFormat:NTC_ONINTERCEPTREQUEST] UTF8String], [NTC_ONINTERCEPTREQUEST UTF8String], obj)) {
+            const auto& AceWebResponse = AceWebObjectGetResponse();
+            if (AceWebResponse) {
+                NSURLRequest* request = urlSchemeTask.request;
+                const std::string& rawData = AceWebResponse->GetData();
+                NSData* responseData = [NSData dataWithBytes:rawData.c_str() length:rawData.size()];
+                NSString* contentType = [NSString stringWithFormat:@"%@;charset=%@;",
+                    [NSString stringWithUTF8String:AceWebResponse->GetMimeType().c_str()],
+                    [NSString stringWithUTF8String:AceWebResponse->GetEncoding().c_str()]];
+                NSMutableDictionary* headers = [NSMutableDictionary dictionaryWithDictionary:@{
+                    @"Content-Type": contentType,
+                    @"Content-Length": [@(responseData.length) stringValue],
+                    @"Reason-Phrase": [NSString stringWithUTF8String:AceWebResponse->GetReason().c_str()]
+                }];
+                const auto& cppHeaders = AceWebResponse->GetHeaders();
+                for (const auto& header : cppHeaders) {
+                    NSString* key = [NSString stringWithUTF8String:header.first.c_str()];
+                    NSString* value = [NSString stringWithUTF8String:header.second.c_str()];
+                    [headers setObject:value forKey:key];
+                }
+                NSHTTPURLResponse* response = [[NSHTTPURLResponse alloc] initWithURL:request.URL
+                    statusCode:AceWebResponse->GetStatusCode() HTTPVersion:@"HTTP/1.1"
+                    headerFields:headers];
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    [urlSchemeTask didReceiveResponse:response];
+                    [urlSchemeTask didReceiveData:responseData];
+                    [urlSchemeTask didFinish];
+                });
+            }
+        } else {
+            NSURLSessionDataTask *task = [[NSURLSession sharedSession] dataTaskWithURL:[NSURL URLWithString:[self respellPath:originalURL.absoluteString]]
+                completionHandler:^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error) {
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    if (error) {
+                        [urlSchemeTask didFailWithError:error];;
+                        return;
+                    }
+                    [urlSchemeTask didReceiveResponse:response];
+                    [urlSchemeTask didReceiveData:data];
+                    [urlSchemeTask didFinish];
+                });
+            }];
+            [task resume];
+        }
+    });
+}
+
+- (NSString *)respellPath:(NSString *)originalUrl {
+    NSString *prefix = @"arkuixcustomscheme://";
+    if (![originalUrl hasPrefix:prefix]) {
+        return originalUrl;
     }
-    NSURLRequest* request = urlSchemeTask.request;
-    const std::string& rawData = AceWebResponse->GetData();
-    NSData* responseData = [NSData dataWithBytes:rawData.c_str() length:rawData.size()];
-
-    NSString* contentType = [NSString stringWithFormat:@"%@;charset=%@;",
-        [NSString stringWithUTF8String:AceWebResponse->GetMimeType().c_str()],
-        [NSString stringWithUTF8String:AceWebResponse->GetEncoding().c_str()]];
-    NSMutableDictionary* headers = [NSMutableDictionary dictionaryWithDictionary:@{
-        @"Content-Type": contentType,
-        @"Content-Length": [@(responseData.length) stringValue],
-        @"Reason-Phrase": [NSString stringWithUTF8String:AceWebResponse->GetReason().c_str()]
-    }];
-
-    const auto& cppHeaders = AceWebResponse->GetHeaders();
-    for (const auto& header : cppHeaders) {
-        NSString* key = [NSString stringWithUTF8String:header.first.c_str()];
-        NSString* value = [NSString stringWithUTF8String:header.second.c_str()];
-        [headers setObject:value forKey:key];
+    NSString *strippedUrl = [originalUrl substringFromIndex:prefix.length];
+    if ([strippedUrl hasPrefix:@"https//"]) {
+        NSRange range = NSMakeRange(0, MIN(7, strippedUrl.length));
+        return [strippedUrl stringByReplacingOccurrencesOfString:@"https//" 
+                    withString:@"https://" options:NSLiteralSearch range:range];
     }
-    
-    NSHTTPURLResponse* response = [[NSHTTPURLResponse alloc] initWithURL:request.URL
-        statusCode:AceWebResponse->GetStatusCode() HTTPVersion:@"HTTP/1.1"
-        headerFields:headers];
-
-    [urlSchemeTask didReceiveResponse:response];
-    [urlSchemeTask didReceiveData:responseData];
-    [urlSchemeTask didFinish];
+    if ([strippedUrl hasPrefix:@"http//"]) {
+        NSRange range = NSMakeRange(0, MIN(6, strippedUrl.length));
+        return [strippedUrl stringByReplacingOccurrencesOfString:@"http//" 
+                    withString:@"http://" options:NSLiteralSearch range:range];
+    }
+    if ([strippedUrl hasPrefix:@"file///"]) {
+        NSRange range = NSMakeRange(0, MIN(7, strippedUrl.length));
+        return [strippedUrl stringByReplacingOccurrencesOfString:@"file///" 
+                    withString:@"file:///" options:NSLiteralSearch range:range];
+    }
+    return strippedUrl;
 }
 
 - (void)webView:(WKWebView *)webView stopURLSchemeTask:(id<WKURLSchemeTask>)urlSchemeTask {}
@@ -1474,9 +1518,15 @@ static NSString *const kJavaScriptURLPrefix = @"javascript:";
         decisionHandler(WKNavigationActionPolicyCancel);
         return;
     }
-
-    if (![url hasPrefix:@"arkuixcustomscheme://"] && AceWebObjectWithResponseReturn(
-            [[self event_hashFormat:NTC_ONINTERCEPTREQUEST] UTF8String], [NTC_ONINTERCEPTREQUEST UTF8String], obj)) {
+    if ([url hasPrefix:@"arkuixcustomscheme://"] && [url isEqualToString:self.schemeUrl]) {
+        AceWebObjectWithUnResponseReturn([[self event_hashFormat:NTC_ONINTERCEPTREQUEST] UTF8String]);
+        NSURLRequest* newRequest = [NSURLRequest requestWithURL:[NSURL URLWithString:[self respellPath:self.schemeUrl]]];
+        [webView loadRequest:newRequest];
+        decisionHandler(WKNavigationActionPolicyCancel);
+        return;
+    }
+    if (![url hasPrefix:@"arkuixcustomscheme://"] && AceWebObjectWithIsRegisteredObjectEvent(
+            [[self event_hashFormat:NTC_ONINTERCEPTREQUEST] UTF8String])) {
         NSString* customURL = [NSString stringWithFormat:@"arkuixcustomscheme://%@", url];
         NSURLRequest* newRequest = [NSURLRequest requestWithURL:[NSURL URLWithString:customURL]];
         [webView loadRequest:newRequest];
