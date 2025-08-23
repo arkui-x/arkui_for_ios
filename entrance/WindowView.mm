@@ -625,6 +625,12 @@ static int32_t GetModifierKeys(UIKeyModifierFlags modifierFlags) {
     }
 }
 
+- (void)notifyApplicationForeground:(BOOL)isForeground {
+    if (_windowDelegate.lock() != nullptr) {
+        _windowDelegate.lock()->NotifyApplicationForeground(isForeground);
+    }
+}
+
 - (void)keyboardWillChangeFrame:(NSNotification*)notification {
     NSDictionary* info = [notification userInfo];
     CGFloat keyboardHeight = [info[UIKeyboardFrameEndUserInfoKey] CGRectValue].size.height;
