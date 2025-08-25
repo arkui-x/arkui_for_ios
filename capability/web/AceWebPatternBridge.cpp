@@ -36,10 +36,6 @@ bool AceWebObjectWithResponseReturn(const std::string& id, const std::string& ev
     return true;
 }
 
-bool AceWebObjectWithIsRegisteredObjectEvent(const std::string& eventId) {
-    return OHOS::Ace::WebObjectEventManager::GetInstance().IsRegisteredObjectEvent(eventId);
-}
-
 void AceWebObjectWithUnResponseReturn(const std::string& id) {
     OHOS::Ace::WebObjectEventManager::GetInstance().UnRegisterObjectEventWithResponseReturn(id);
 }

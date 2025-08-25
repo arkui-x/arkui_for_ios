@@ -20,7 +20,6 @@
 void AceWebObject(const std::string& id, const std::string& event,void* object);
 bool AceWebObjectWithBoolReturn(const std::string& id, const std::string& event, void* object);
 bool AceWebObjectWithResponseReturn(const std::string& id, const std::string& event, void* object);
-bool AceWebObjectWithIsRegisteredObjectEvent(const std::string& eventId);
 void AceWebObjectWithUnResponseReturn(const std::string& id);
 const OHOS::Ace::RefPtr<OHOS::Ace::WebResponse>& AceWebObjectGetResponse();
 
