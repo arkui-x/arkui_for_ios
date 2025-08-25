@@ -113,6 +113,7 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
     iOSTextRange* _selectedTextRange;
     BOOL _isDelete;
     BOOL _unmarkText;
+    BOOL _selectText;
 }
 
 @synthesize tokenizer = _tokenizer;
@@ -133,7 +134,7 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
         _markedTextLength = 0;
         _isDelete = NO;
         _unmarkText = NO;
-        
+        _selectText = NO; 
         // UITextInputTraits
         _autocapitalizationType = UITextAutocapitalizationTypeSentences;
         _autocorrectionType = UITextAutocorrectionTypeDefault;
@@ -278,8 +279,24 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
     
     [self setSelectedTextRange:[iOSTextRange rangeWithNSRange:[self clampSelection:selectedRange forText:self.text]] updateEditingState:NO];
     [self.appendText setString:text];
+    if (_selectText) {
+        _unmarkText = YES;
+        if (self.text.length >= self.maxLength) {
+            NSInteger length = self.maxLength - (self.text.length - self.appendText.length);
+            NSRange range = NSMakeRange(self.markedTextLocation, length > 0 ? length : 0);
+            if (range.location + range.length > self.text.length) {
+                return;
+            }
+            [self.appendText setString:[self.text substringWithRange:range]];
+        }
+    }
     [self updateEditingState];
-    
+    if (_selectText) {
+        self.markedTextRange = nil;
+    }
+    // Some third-party input methods may bypass the UITextInput delegate method unmarkText during Chinese composition.
+    // Verify actual text selection through callback data to determine if Chinese characters are committed.
+    _selectText = (replaceRange.length > 0 && text.length == 0);
 }
 
 - (BOOL)shouldChangeTextInRange:(UITextRange*)range replacementText:(NSString*)text {
@@ -385,10 +402,10 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
         [self replaceRange:_selectedTextRange withText:markedText];
         markedTextRange = NSMakeRange(selectedRange.location, markedText.length);
     }
-    
-    self.markedTextRange =
-    markedTextRange.length > 0 ? [iOSTextRange rangeWithNSRange:markedTextRange] : nil;
-    
+    if (!_selectText) {
+        self.markedTextRange =
+            markedTextRange.length > 0 ? [iOSTextRange rangeWithNSRange:markedTextRange] : nil;
+    }
     NSUInteger selectionLocation = markedSelectedRange.location + markedTextRange.location;
     selectedRange = NSMakeRange(selectionLocation, markedSelectedRange.length);
     [self setSelectedTextRange:[iOSTextRange rangeWithNSRange:[self clampSelection:selectedRange
@@ -400,8 +417,11 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
     _unmarkText = YES;
     if (self.text.length >= self.maxLength) {
         NSInteger length = self.maxLength - self.textLength;
-        [self.appendText setString:[self.text substringWithRange:
-            NSMakeRange(self.markedTextLocation, length > 0 ? length : 0)]];
+        NSRange range =  NSMakeRange(self.markedTextLocation, length > 0 ? length : 0);
+        if (range.location + range.length > self.text.length) {
+            return;
+        }
+        [self.appendText setString:[self.text substringWithRange:range]];
     } else {
         self.markedTextRange = nil;
     }
