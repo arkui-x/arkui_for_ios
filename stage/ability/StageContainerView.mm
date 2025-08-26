@@ -154,6 +154,7 @@
     for (UIView *subview in [self.subviews reverseObjectEnumerator]) {
        if ([subview isKindOfClass:[WindowView class]]) {
            [(WindowView*)subview notifyForeground];
+           [(WindowView*)subview notifyApplicationForeground:YES];
        }
     }
 }
@@ -161,6 +162,7 @@
     for (UIView *subview in [self.subviews reverseObjectEnumerator]) {
        if ([subview isKindOfClass:[WindowView class]]) {
            [(WindowView*)subview notifyBackground];
+           [(WindowView*)subview notifyApplicationForeground:NO];
        }
     }
 }

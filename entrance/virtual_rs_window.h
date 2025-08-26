@@ -207,6 +207,7 @@ public:
     WMError Destroy();
     void RegisterWindowDestroyedListener(const NotifyNativeWinDestroyFunc& func);
     void RegisterWillTerminateListener(const NotifyWillTerminateFunc& func);
+    void NotifyApplicationForeground(bool applicationForeground);
 
     WMError RegisterOccupiedAreaChangeListener(const sptr<IOccupiedAreaChangeListener> &listener);
     WMError UnregisterOccupiedAreaChangeListener(const sptr<IOccupiedAreaChangeListener> &listener);
@@ -484,6 +485,7 @@ private:
     WindowType windowType_;
     uint32_t backgroundColor_;
     WindowState state_ { WindowState::STATE_INITIAL };
+    bool applicationForeground_ = true;
 
     static void AddToWindowMap(std::shared_ptr<Window> window);
     static void DeleteFromWindowMap(std::shared_ptr<Window> window);

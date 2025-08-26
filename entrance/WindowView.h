@@ -49,6 +49,7 @@ class Window;
 - (void)notifyActiveChanged:(BOOL)isActive;
 - (void)notifyWindowDestroyed;
 - (std::shared_ptr<OHOS::Rosen::Window>)getWindow;
+- (void)notifyApplicationForeground:(BOOL)isForeground;
 
 - (void)updateBrightness:(BOOL)isShow;
 - (BOOL)processBackPressed;
