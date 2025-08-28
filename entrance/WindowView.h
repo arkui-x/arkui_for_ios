@@ -49,6 +49,7 @@ class Window;
 - (void)notifySafeAreaChanged;
 - (void)notifyTraitCollectionDidChange:(BOOL)isSplitScreen;
 - (std::shared_ptr<OHOS::Rosen::Window>)getWindow;
+- (void)notifyApplicationForeground:(BOOL)isForeground;
 
 - (void)updateBrightness:(BOOL)isShow;
 - (BOOL)processBackPressed;

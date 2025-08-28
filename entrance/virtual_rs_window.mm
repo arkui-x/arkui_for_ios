@@ -553,6 +553,12 @@ void Window::RegisterWillTerminateListener(const NotifyWillTerminateFunc& func)
     notifyWillTerminatefunc_ = std::move(func);
 }
 
+void Window::NotifyApplicationForeground(bool applicationForeground)
+{
+    NSLog(@"NotifyApplicationForeground: %d", applicationForeground);
+    applicationForeground_ = applicationForeground;
+}
+
 std::vector<std::shared_ptr<Window>> Window::GetSubWindow(uint32_t parentId)
 {
     HILOG_INFO("Window::GetSubWindow : Start... / parentId = %{public}u, subWIndowMapSize=%{public}u",
@@ -1127,7 +1133,10 @@ WMError Window::SetUIContent(const std::string& contentInfo,
     uiContent_ = std::move(uiContent);
 
     DelayNotifyUIContentIfNeeded();
-    uiContent_->Foreground();
+    if (applicationForeground_) {
+        NSLog(@"Window::SetUIContent : applicationForeground_ is true, call uiContent Foreground");
+        uiContent_->Foreground();
+    }
     LOGI("Window::SetUIContent : End!!!");
     return WMError::WM_OK;
 }
