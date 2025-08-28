@@ -152,13 +152,14 @@ int32_t AbilityContextAdapter::StartAbility(const std::string& instanceName, con
         }
         components.queryItems = queryItems;
         NSURL *appUrl = components.URL;
-        dispatch_main_async_safe(^{
-            if ([[UIApplication sharedApplication] canOpenURL:appUrl]) {
-                [[UIApplication sharedApplication] openURL:appUrl options: @{} completionHandler: ^(BOOL success) {}];
-            } else {
-                NSLog(@"startAbility failed, can't open app");
-            }
-        });
+        if ([[UIApplication sharedApplication] canOpenURL:appUrl]) {	
+            dispatch_main_async_safe(^{
+                [[UIApplication sharedApplication] openURL:appUrl options: @{} completionHandler: ^(BOOL success) {}];	
+            });	
+        } else {	
+            NSLog(@"startAbility failed, can't open app");	
+            return AAFwk::RESOLVE_ABILITY_ERR;	
+        }
     }
     return ERR_OK;
 }
