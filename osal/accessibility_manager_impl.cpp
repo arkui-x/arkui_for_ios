@@ -197,7 +197,7 @@ void DumpTreeNG(const RefPtr<NG::FrameNode>& parent, int32_t depth, NodeId nodeI
     DumpLog::GetInstance().AddDesc("width: " + std::to_string(rect.Width()));
     DumpLog::GetInstance().AddDesc("height: " + std::to_string(rect.Height()));
     DumpLog::GetInstance().AddDesc("visible: " + std::to_string(node->IsVisible()));
-    auto gestureEventHub = node->GetOrCreateEventHub<NG::EventHub>()->GetGestureEventHub();
+    auto gestureEventHub = node->GetEventHub<NG::EventHub>()->GetGestureEventHub();
     DumpLog::GetInstance().AddDesc(
         "clickable: " + std::to_string(gestureEventHub ? gestureEventHub->IsAccessibilityClickable() : false));
     DumpLog::GetInstance().AddDesc(
@@ -369,14 +369,14 @@ bool LostFocus(const RefPtr<NG::FrameNode>& frameNode)
 
 bool ActClick(RefPtr<NG::FrameNode>& frameNode)
 {
-    auto gesture = frameNode->GetOrCreateEventHub<NG::EventHub>()->GetGestureEventHub();
+    auto gesture = frameNode->GetEventHub<NG::EventHub>()->GetGestureEventHub();
     CHECK_NULL_RETURN(gesture, false);
     return gesture->ActClick();
 }
 
 bool ActLongClick(RefPtr<NG::FrameNode>& frameNode)
 {
-    auto gesture = frameNode->GetOrCreateEventHub<NG::EventHub>()->GetGestureEventHub();
+    auto gesture = frameNode->GetEventHub<NG::EventHub>()->GetGestureEventHub();
     CHECK_NULL_RETURN(gesture, false);
     return gesture->ActLongClick();
 }
@@ -451,7 +451,7 @@ static void DumpCommonPropertyNG(
     const RefPtr<NG::FrameNode>& frameNode, const RefPtr<PipelineBase>& pipeline, int32_t pageId)
 {
     CHECK_NULL_VOID(frameNode);
-    auto gestureEventHub = frameNode->GetOrCreateEventHub<NG::EventHub>()->GetGestureEventHub();
+    auto gestureEventHub = frameNode->GetEventHub<NG::EventHub>()->GetGestureEventHub();
     DumpLog::GetInstance().AddDesc("ID: ", frameNode->GetAccessibilityId());
     DumpLog::GetInstance().AddDesc("parent ID: ", GetParentId(frameNode));
     DumpLog::GetInstance().AddDesc("child IDs: ", ChildernToString(frameNode, pageId));
@@ -525,7 +525,7 @@ static void DumpAccessibilityPropertyNG(const RefPtr<NG::FrameNode>& frameNode)
 
     std::string actionForDump;
     accessibilityProperty->ResetSupportAction();
-    auto gestureEventHub = frameNode->GetOrCreateEventHub<NG::EventHub>()->GetGestureEventHub();
+    auto gestureEventHub = frameNode->GetEventHub<NG::EventHub>()->GetGestureEventHub();
     if (gestureEventHub) {
         if (gestureEventHub->IsAccessibilityClickable()) {
             accessibilityProperty->AddSupportAction(AceAction::ACTION_CLICK);
@@ -634,7 +634,7 @@ static OHOS::Ace::Platform::ComponentInfo SetComponentInfo(const RefPtr<NG::Fram
     componentInfo.width = rect.Width();
     componentInfo.left = rect.Left();
     componentInfo.height = rect.Height();
-    auto gestureEventHub = node->GetOrCreateEventHub<NG::EventHub>()->GetGestureEventHub();
+    auto gestureEventHub = node->GetEventHub<NG::EventHub>()->GetGestureEventHub();
     componentInfo.clickable = gestureEventHub ? gestureEventHub->IsAccessibilityClickable() : false;
     auto accessibilityProperty = node->GetAccessibilityProperty<NG::AccessibilityProperty>();
     componentInfo.checked = accessibilityProperty->IsChecked();
@@ -936,7 +936,7 @@ void UpdateSupportAction(const RefPtr<NG::FrameNode>& node, AccessibilityElement
         }
     }
 
-    auto eventHub = node->GetOrCreateEventHub<NG::EventHub>();
+    auto eventHub = node->GetEventHub<NG::EventHub>();
     CHECK_NULL_VOID(eventHub);
     auto gestureEventHub = eventHub->GetGestureEventHub();
     CHECK_NULL_VOID(gestureEventHub);
