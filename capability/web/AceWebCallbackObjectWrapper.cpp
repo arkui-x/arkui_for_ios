@@ -14,7 +14,7 @@
  */
 
 #include "AceWebCallbackObjectWrapper.h"
-#include "foundation/arkui/ace_engine/frameworks/core/components_ng/pattern/web/cross_platform/web_object_event.h"
+#include "core/components_ng/pattern/web/web_object_event.h"
 #include "AceWebErrorReceiveInfoObject.h"
 #include "AceWebObject.h"
 #include <stdio.h>

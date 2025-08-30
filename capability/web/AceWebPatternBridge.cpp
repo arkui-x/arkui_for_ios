@@ -16,7 +16,7 @@
 #include <string>
 #include <map>
 #include "AceWebPatternBridge.h"
-#include "frameworks/core/components_ng/pattern/web/cross_platform/web_object_event.h"
+#include "core/components_ng/pattern/web/web_object_event.h"
 
 OHOS::Ace::RefPtr<OHOS::Ace::WebResponse> response_ = nullptr;
 void AceWebObject(const std::string& id, const std::string& event, void* object) {
