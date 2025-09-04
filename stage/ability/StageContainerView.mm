@@ -15,6 +15,7 @@
 
 #import "StageContainerView.h"
 #import <set>
+#include "StageApplication.h"
 
 @implementation StageContainerView
 /*
@@ -116,14 +117,19 @@
 }
 
 - (void)applicationDidEnterBackground:(NSNotification *)notification {
-   [self notifyBackground];
+    if (self.notifyDelegate == [StageApplication getApplicationTopViewController]) {
+        [self notifyBackground];
+    }
+   
     if ([self.notifyDelegate respondsToSelector:@selector(notifyApplicationDidEnterBackground)]) {
         [self.notifyDelegate notifyApplicationDidEnterBackground];
     }
 }
 
 - (void)applicationWillEnterForeground:(NSNotification *)notification {
-    [self notifyForeground];
+    if (self.notifyDelegate == [StageApplication getApplicationTopViewController]) {
+        [self notifyForeground];
+    }
     if ([self.notifyDelegate respondsToSelector:@selector(notifyApplicationWillEnterForeground)]) {
         [self.notifyDelegate notifyApplicationWillEnterForeground];
     }
