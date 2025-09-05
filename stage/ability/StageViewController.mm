@@ -33,6 +33,7 @@
 #import "WindowView.h"
 #include "app_main.h"
 #include "window_view_adapter.h"
+#include "dump_helper.h"
 
 #define PHOTO_PICKER_TYPE_IMAGE @"image/*"
 #define PHOTO_PICKER_TYPE_VIDEO @"video/*"
@@ -216,6 +217,18 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
     std::string paramsString = [self getCPPString:self.params.length ? self.params : @""];
     AppMain::GetInstance()->DispatchOnCreate(_cInstanceName, paramsString);
     AppMain::GetInstance()->DispatchOnForeground(_cInstanceName);
+}
+
+- (void)saveDumpFile:(NSArray<NSString *> *)dumpParams {
+    NSLog(@"saveDumpFile enter");
+
+    std::vector<std::string> dumpParamsVector;
+    for (NSString *dumpParam in dumpParams) {
+        dumpParamsVector.push_back([dumpParam UTF8String]);
+    }
+
+    OHOS::Ace::Platform::DumpHelper::Dump(_instanceId, dumpParamsVector);
+    NSLog(@"saveDumpFile finished");
 }
 
 - (BOOL)supportWindowPrivacyMode {
