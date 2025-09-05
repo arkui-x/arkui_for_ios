@@ -37,8 +37,8 @@ config("capability_config") {
     "$ace_root/adapter/ios/capability/surface",
     "$ace_root/adapter/ios/stage/ability",
     "$ace_root/adapter/ios/capability/web",
+    "//foundation/appframework/arkui",
     "//foundation/graphic/graphic_2d/rosen/modules",
-    "$ace_root/frameworks/core/components_ng/pattern/web/cross_platform",
     "$ace_root/adapter/ios/capability/font",
   ]
 
