@@ -97,6 +97,13 @@
  * @return void
  */
 - (void)registerPlatformViewFactory:(NSObject<PlatformViewFactory> *)platformViewFactory;
+
+/**
+ * save dump file.
+ * @param dumpParams dump params.
+ * @return void
+ */
+- (void) saveDumpFile:(NSArray<NSString *> *)dumpParams;
 @end
 
 #endif // FOUNDATION_ACE_ADAPTER_IOS_STAGE_ABILITY_STAGEVIEWCONTROLLER_H
