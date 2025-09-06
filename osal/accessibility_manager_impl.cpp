@@ -1040,8 +1040,7 @@ void AccessibilityManagerImpl::ProcessAccessibilityEvent(
     CHECK_NULL_VOID(node);
     windowId_ = ngPipeline->GetWindowId();
     int64_t elementId = DEFAULT_ElEMENTID;
-    if (eventType == static_cast<size_t>(OHOS::Ace::AccessibilityEventType::TEXT_CHANGE) ||
-        eventType == static_cast<size_t>(OHOS::Ace::AccessibilityEventType::PAGE_CHANGE)) {
+    if (eventType == static_cast<size_t>(OHOS::Ace::AccessibilityEventType::TEXT_CHANGE)) {
         elementId = accessibilityEvent.nodeId;
     }
     UpdateElementInfos(elementId, node, needAsync, eventType);

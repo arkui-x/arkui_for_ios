@@ -15,6 +15,7 @@
 
 #import <Foundation/Foundation.h>
 #import "AccessibilityWindowView.h"
+#import "AccessibilityDateParse.h"
 
 #include "adapter/ios/osal/mock/accessibility_element_info.h"
 #include "core/accessibility/accessibility_utils.h"
@@ -150,10 +151,14 @@ typedef enum {
     if (element == nil) {
         element = [[AccessibilityElement alloc] initWithAccessibilityContainer:self];
     }
-    CGRect rect =
-        CGRectMake(node.nodeX, node.nodeY + [self getStatusBarAndNavigationBarHeight], node.nodeWidth, node.nodeHeight);
+    CGRect rect = CGRectMake(node.nodeX, node.nodeY + [self getStatusBarAndNavigationBarHeight],
+        node.nodeWidth, node.nodeHeight);
     if ([node.componentType isEqualToString:COMPONENTTYPE_ROOT]) {
         element.rootId = node.elementId;
+    }
+    NSDate *dateLabel = [AccessibilityDateParse parseDateIfPossible:node.nodeLable];
+    if (dateLabel) {
+        node.nodeLable = [[AccessibilityDateParse sharedOutputFormatter] stringFromDate:dateLabel];
     }
     element.accessibilityDelegate_ = self;
     element.elementId = node.elementId;
@@ -211,7 +216,7 @@ typedef enum {
             }
         }
         AccessibilityElement* element = [self CreateObject:node];
-        NSMutableArray* newChildren = [[NSMutableArray alloc] init];
+        NSMutableArray* newChildren = [NSMutableArray array];
         NSString* strLabel = @"";
         for (NSString* childId in node.childIds) {
             AccessibilityNodeInfo* childNode = [dictNodeInfo objectForKey:childId];
@@ -239,6 +244,11 @@ typedef enum {
         }
         element.children = [newChildren copy];
     }
+    [self setElementIsAccessibility];
+}
+
+- (void)setElementIsAccessibility
+{
     for (AccessibilityElement* element in self.isCreateElements.allValues) {
         element.accessibilityLevel = [self getAccessibilityLevel:element];
         if ([element.componentType isEqualToString:@"Navigation"]) {
@@ -248,8 +258,55 @@ typedef enum {
             [element.parent.componentType isEqualToString:@"Column"]) {
             element.isAccessibility = ![self isParentElementTypePicker:element.parent];
         }
+        if ([element.componentType isEqualToString:@"SheetPage"] && element.parent != nil &&
+            [element.parent.componentType isEqualToString:@"SheetWrapper"]) {
+            element.children = [[element.children  reverseObjectEnumerator] allObjects];
+            BOOL isAccess = CGRectIntersectsRect(element.accessibilityFrame, element.parent.accessibilityFrame);
+            if (!isAccess) {
+                element.parent.isAccessibility = isAccess;
+            }
+            [self setSheetPageIsAccessibility:element isAccessibility:isAccess];
+        }
+        [self sortCoveredViewsToFront:element];
     }
 }
+
+- (void)sortCoveredViewsToFront:(AccessibilityElement*)element
+{
+    NSMutableArray* newChildren = [NSMutableArray array];
+    NSMutableArray* coveringComponents = [NSMutableArray array];
+    NSMutableArray* otherComponents = [NSMutableArray array];
+    for (AccessibilityElement* childElement in element.children) {
+        if (CGRectContainsRect(childElement.accessibilityFrame, element.accessibilityFrame)) {
+            [coveringComponents addObject:childElement];
+        } else {
+            [otherComponents addObject:childElement];
+        }
+    }
+    if (coveringComponents.count >= 1) {
+        NSMutableArray *sortComponentsArr = [self sortObjects:coveringComponents byKey:@"elementId" ascending:NO];
+        [newChildren addObjectsFromArray:sortComponentsArr];
+    }
+    if (otherComponents.count >= 1) {
+        [newChildren addObjectsFromArray:otherComponents];
+    }
+    element.children = [newChildren copy];
+}
+
+- (NSMutableArray *)sortObjects:(NSMutableArray *)objects byKey:(NSString *)key ascending:(BOOL)ascending
+{
+    if (objects == nil || objects.count <= 1) {
+        return objects;
+    }
+    id firstObject = [objects firstObject];
+    if (![firstObject respondsToSelector:NSSelectorFromString(key)]) {
+        return objects;
+    }
+    NSSortDescriptor *sortDescriptor = [NSSortDescriptor sortDescriptorWithKey:key 
+                                                                     ascending:ascending];
+    return [objects sortedArrayUsingDescriptors:@[sortDescriptor]];
+}
+
 - (void)setNavigationIsAccessibility:(AccessibilityElement*)element showElement:(AccessibilityElement*)showElement
 {
     for (AccessibilityElement* childElement in element.children) {
@@ -281,6 +338,16 @@ typedef enum {
             changeElement.isAccessibility = NO;
         }
         [self setNavDestinationIsAccessibility:childElement showElement:showElement];
+    }
+}
+
+- (void)setSheetPageIsAccessibility:(AccessibilityElement*)element isAccessibility:(BOOL)isAccess
+{
+    if (!element.isAccessibility) {
+        element.isAccessibility = isAccess;
+    }
+    for (AccessibilityElement *elementChild in element.children) {
+        [self setSheetPageIsAccessibility:elementChild isAccessibility:isAccess];
     }
 }
 
@@ -364,19 +431,16 @@ typedef enum {
     }
     NSString* defaultElementId = [NSString stringWithFormat:@"%lld", _focusElementId];
     AccessibilityElement* defaultObject = [self.isCreateElements objectForKey:defaultElementId];
-    if (_focusElementId != ElEMENTID_DEFAULT && defaultObject != nil && defaultObject.isAccessibility &&
-        [self IsViewOffscreenTopOrBottom:_focusElementId] == ACCESSIBILITY_SCROLL_DEFAULT) {
-        UIAccessibilityPostNotification(UIAccessibilityScreenChangedNotification, defaultObject);
-        return;
-    }
-    defaultObject = nil;
-    for (AccessibilityElement* object in self.isCreateElements.allValues) {
-        if (object != nil && [self IsViewOffscreenTopOrBottom:object.elementId] == ACCESSIBILITY_SCROLL_DEFAULT &&
-            object.isAccessibility) {
-            defaultObject = [self GetMidYElement:object defaultElement:defaultObject];
+    if (_focusElementId == ElEMENTID_DEFAULT || defaultObject == nil || !defaultObject.isAccessibility ||
+        [self IsViewOffscreenTopOrBottom:_focusElementId] != ACCESSIBILITY_SCROLL_DEFAULT) {
+        for (AccessibilityElement* object in self.isCreateElements.allValues) {
+            if (object != nil && [self IsViewOffscreenTopOrBottom:object.elementId] == ACCESSIBILITY_SCROLL_DEFAULT &&
+                object.isAccessibility) {
+                defaultObject = [self GetMidYElement:object defaultElement:defaultObject];
+            }
         }
+        UIAccessibilityPostNotification(UIAccessibilityScreenChangedNotification, defaultObject);
     }
-    UIAccessibilityPostNotification(UIAccessibilityScreenChangedNotification, defaultObject);
 }
 - (AccessibilityElement*)GetMidYElement:(AccessibilityElement*)object
                          defaultElement:(AccessibilityElement*)defaultObject
