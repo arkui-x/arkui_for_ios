@@ -34,6 +34,7 @@
 #include "app_main.h"
 #include "window_view_adapter.h"
 #include "dump_helper.h"
+#include "version_printer.h"
 
 #define PHOTO_PICKER_TYPE_IMAGE @"image/*"
 #define PHOTO_PICKER_TYPE_VIDEO @"video/*"
@@ -102,6 +103,7 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
         [self initBridge];
         self.homeIndicatorHidden = NO;
         self.interfaceOrientationMask = UIInterfaceOrientationMaskAll;
+        OHOS::Ace::Platform::VersionPrinter::printVersion();
         [[NSNotificationCenter defaultCenter]addObserver:self selector:@selector(orientationMaskUpdate:)
             name:@(kOrientationMaskUpdateNotificationName) object:nil];
     }

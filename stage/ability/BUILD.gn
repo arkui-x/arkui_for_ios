@@ -13,6 +13,7 @@
 
 import("//build/ohos.gni")
 import("//foundation/arkui/ace_engine/ace_config.gni")
+import("//build_plugins/version.gni")
 
 # build static
 template("stage_ios_standard_source_set") {
@@ -47,7 +48,10 @@ template("stage_ios_standard_source_set") {
       defines += [ "_ARM64_" ]
     }
 
-    defines += [ "BUILD_FOR_ARKUI" ]
+    defines += [
+      "BUILD_FOR_ARKUI",
+      "ARKUI_X_VERSION=\"$arkuix_sdk_version\"",
+    ]
 
     cflags_objc = [
       "-fvisibility=default",
@@ -71,6 +75,7 @@ template("stage_ios_standard_source_set") {
       "application_context_adapter.mm",
       "stage_application_info_adapter.cpp",
       "stage_asset_provider.mm",
+      "version_printer.cpp",
       "window_view_adapter.mm",
     ]
     deps = [
