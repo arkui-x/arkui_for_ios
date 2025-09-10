@@ -479,6 +479,7 @@ private:
     bool delayNotifySurfaceCreated_ = false;
     bool delayNotifySurfaceChanged_ = false;
     bool delayNotifySurfaceDestroyed_ = false;
+    bool delayNotifyFocusChanged_ = false;
     uint32_t windowId_ = 0;
     uint32_t parentId_ = 0;
     WindowMode windowMode_;

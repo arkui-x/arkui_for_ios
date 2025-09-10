@@ -974,6 +974,15 @@ void Window::DelayNotifyUIContentIfNeeded()
         uiContent_->NotifySurfaceDestroyed();
         delayNotifySurfaceDestroyed_ = false;
     }
+
+    if (delayNotifyFocusChanged_) {
+        if (isFocused_) {
+            uiContent_->Focus();
+        } else {
+            uiContent_->UnFocus();
+        }
+        delayNotifyFocusChanged_ = false;
+    }
 }
 
 WMError Window::SetUIContent(const std::string& contentInfo,
@@ -1081,6 +1090,8 @@ void Window::WindowFocusChanged(bool hasWindowFocus)
             LOGI("Window: notify uiContent UnFocus");
             uiContent_->UnFocus();
         }
+    } else {
+        delayNotifyFocusChanged_ = true;
     }
     if (isActive_ != hasWindowFocus) {
         isActive_ = hasWindowFocus;

@@ -49,6 +49,7 @@
     BOOL _needNotifySurfaceChangedWithWidth;
     BOOL _needCreateSurfaceNode;
     BOOL _needNotifyForground;
+    BOOL _needNotifyFocus;
     std::map<int64_t, int32_t> _deviceMap;
     std::map<int64_t, int32_t> _pointerMap;
     int32_t _deviceId;
@@ -254,6 +255,10 @@
     if (_needNotifyForground) {
         _needNotifyForground = NO;
         [self notifyForeground];
+    }
+    if (_needNotifyFocus) {
+        _needNotifyFocus = NO;
+        [self notifyFocusChanged:_isFocused];
     }
 }
 
@@ -611,6 +616,8 @@ static int32_t GetModifierKeys(UIKeyModifierFlags modifierFlags) {
 - (void)notifyFocusChanged:(BOOL)focus {
     if (_windowDelegate.lock() != nullptr) {
         _windowDelegate.lock()->WindowFocusChanged(focus);
+    } else {
+        _needNotifyFocus = YES;
     }
 }
 
