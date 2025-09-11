@@ -111,6 +111,11 @@ RefPtr<PixelMap> ImageSourceIOS::CreatePixelMap()
     return PixelMap::Create(std::move(pixelMap));
 }
 
+RefPtr<PixelMap> ImageSourceIOS::CreatePixelMap(const DecodeOptions& options)
+{
+    return nullptr;
+}
+
 ImageSource::Size ImageSourceIOS::GetImageSize()
 {
     Media::ImageInfo info;

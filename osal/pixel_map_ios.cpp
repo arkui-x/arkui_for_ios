@@ -157,6 +157,12 @@ std::string PixelMapIOS::GetId()
     return strm.str();
 }
 
+uint32_t PixelMapIOS::GetUniqueId()
+{
+    CHECK_NULL_RETURN(pixmap_, -1);
+    return pixmap_->GetUniqueId();
+}
+
 std::string PixelMapIOS::GetModifyId()
 {
     return std::string();

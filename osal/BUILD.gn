@@ -47,7 +47,6 @@ template("ace_osal_ios_source_set") {
       "display_info_utils.cpp",
       "display_manager_ios.cpp",
       "drag_window.cpp",
-      "drawable_descriptor_ios.cpp",
       "drawing_color_filter_ios.cpp",
       "drawing_lattice_ios.cpp",
       "event_report.cpp",
