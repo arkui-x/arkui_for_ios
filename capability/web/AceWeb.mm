@@ -73,6 +73,7 @@
 #define NTC_ONFULLSCREENENTER             @"onFullScreenEnter"
 #define NTC_ONFULLSCREENEXIT              @"onFullScreenExit"
 #define NTC_ONINTERCEPTREQUEST            @"onInterceptRequest"
+#define NTC_REGISTEREDONINTERCEPTREQUEST  @"IsRegisteredOnInterceptRequest"
 #define NTC_ONREFRESHACCESSED_HISTORYEVENT     @"onRefreshAccessedHistory"
 #define WEBVIEW_PAGE_HALF                 2
 @interface DownloadTaskInfo : NSObject
@@ -1485,8 +1486,8 @@ static NSString *const kJavaScriptURLPrefix = @"javascript:";
         decisionHandler(WKNavigationActionPolicyCancel);
         return;
     }
-    if (![url hasPrefix:@"arkuixcustomscheme://"] && AceWebObjectWithIsRegisteredObjectEvent(
-            [[self event_hashFormat:NTC_ONINTERCEPTREQUEST] UTF8String])) {
+    if (![url hasPrefix:@"arkuixcustomscheme://"] && AceWebObjectWithIsRegisteredOnInterceptRequest(
+            [[self event_hashFormat:NTC_REGISTEREDONINTERCEPTREQUEST] UTF8String])) {
         NSString* customURL = [NSString stringWithFormat:@"arkuixcustomscheme://%@", url];
         NSURLRequest* newRequest = [NSURLRequest requestWithURL:[NSURL URLWithString:customURL]];
         [webView loadRequest:newRequest];
