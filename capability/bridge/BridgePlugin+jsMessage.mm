@@ -135,23 +135,27 @@
         selector = NSSelectorFromString(methodName);
         signature = [target methodSignatureForSelector:selector];
     } else {
-        unsigned int methodCount;
-        Method* methodList = class_copyMethodList([target class], &methodCount);
-        for (int i = 0; i < methodCount; i++) {
-            Method method = methodList[i];
-            SEL c_sel = method_getName(method);
-            const char* name = sel_getName(c_sel);
-            if (![methodName hasSuffix:@":"]) {
-                methodName = [methodName stringByAppendingString:@":"];
+        Class currentClass = [target class];
+        while (currentClass && currentClass != [BridgePlugin class] && currentClass != [NSObject class]) {
+            unsigned int methodCount;
+            Method* methodList = class_copyMethodList(currentClass, &methodCount);
+            for (int i = 0; i < methodCount; i++) {
+                Method method = methodList[i];
+                SEL c_sel = method_getName(method);
+                const char* name = sel_getName(c_sel);
+                if (![methodName hasSuffix:@":"]) {
+                    methodName = [methodName stringByAppendingString:@":"];
+                }
+                const char* c_methodname = [methodName UTF8String];
+                signature = [target methodSignatureForSelector:c_sel];
+                if (signature && !strncmp(name, c_methodname, strlen(c_methodname))) {
+                    selector = c_sel;
+                    break;
+                }
             }
-            const char* c_methodname = [methodName UTF8String];
-            signature = [target methodSignatureForSelector:c_sel];
-            if (signature && !strncmp(name, c_methodname, strlen(c_methodname))) {
-                selector = c_sel;
-                break;
-            }
+            free(methodList);
+            currentClass = selector ? [NSObject class] : class_getSuperclass(currentClass);
         }
-        free(methodList);
     }
 
     return [self handleMethodParam:signature target:target selector:selector params:params];
