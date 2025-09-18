@@ -132,6 +132,28 @@ uint32_t ImageSourceIOS::GetFrameCount()
     return 0;
 }
 
+int32_t ImageSourceIOS::GetLoopCount()
+{
+    uint32_t errorCode;
+    auto loopCount = imageSource_->GetLoopCount(errorCode);
+    if (errorCode != Media::SUCCESS) {
+        TAG_LOGW(AceLogTag::ACE_IMAGE, "Get image loop count failed, errorCode = %{public}u", errorCode);
+        return 0;
+    }
+    return loopCount;
+}
+
+std::vector<int32_t> ImageSourceIOS::GetDelayTime()
+{
+    uint32_t errorCode;
+    auto delayTime = imageSource_->GetDelayTime(errorCode);
+    if (errorCode != Media::SUCCESS) {
+        TAG_LOGW(AceLogTag::ACE_IMAGE, "Get image delay time failed, errorCode = %{public}u", errorCode);
+        return {};
+    }
+    return std::move(*delayTime.release());
+}
+
 std::string ImageSourceIOS::GetEncodedFormat()
 {
     return "";
