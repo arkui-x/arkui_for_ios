@@ -56,11 +56,8 @@ Note:If the text contains special characters, please escape them according to th
         <licensefile></licensefile>
         <filefilterlist>
             <filefilter name="copyrightPolicyFilter" desc="Copyright文件头校验策略的过滤条件" >
-                <filteritem type="filepath" name="capability/editing/.*.h|.*.m|.*.mm" desc="import third-party Flutter files"/>
             </filefilter>
             <filefilter name="defaultPolicyFilter" desc="License文件头校验策略的过滤条件" >
-                <filteritem type="filepath" name="capability/editing/LICENSE" desc="third-party Flutter BSDStyleLicense"/>
-                <filteritem type="filepath" name="capability/editing/.*.h|.*.m|.*.mm" desc="third-party Flutter BSDStyleLicense"/>
             </filefilter>
         </filefilterlist>
     </oatconfig>

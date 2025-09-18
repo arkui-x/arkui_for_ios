@@ -18,13 +18,6 @@ config("capability_config") {
   configs = [ "$ace_root:ace_config" ]
 
   include_dirs = [
-    "//third_party/",
-    "//third_party/flutter",
-    "//third_party/flutter/engine",
-    "//third_party/flutter/skia",
-    "//third_party/flutter/engine/flutter/shell/platform/darwin/common/framework/Headers",
-    "//third_party/flutter/engine/flutter/shell/platform/darwin/ios/framework/Headers",
-    "//third_party/flutter/engine/flutter/shell/common",
     "$ace_root/frameworks",
     "$ace_root",
     "$ace_root/adapter/ios/entrance",
@@ -40,12 +33,6 @@ config("capability_config") {
     "//foundation/appframework/arkui",
     "//foundation/graphic/graphic_2d/rosen/modules",
     "$ace_root/adapter/ios/capability/font",
-  ]
-
-  include_dirs -= [
-    "//third_party/flutter",
-    "//third_party/flutter/skia",
-    "//third_party/flutter/engine/flutter/shell/common",
   ]
 
   include_dirs += [
@@ -66,7 +53,6 @@ ohos_source_set("text_input") {
   sources = [
     "$ace_root/adapter/ios/capability/editing/KeyboardTypeMapper.m",
     "$ace_root/adapter/ios/capability/editing/iOSTxtInputManager.mm",
-    "//third_party/flutter/engine/flutter/fml/platform/darwin/string_range_sanitization.mm",
   ]
 }
 

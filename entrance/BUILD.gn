@@ -23,9 +23,6 @@ template("ace_ios_standard_source_set") {
     cflags_cc += invoker.cflags_cc
 
     include_dirs = [
-      "//third_party/",
-      "//commonlibrary/c_utils/base/include",
-      "//third_party/flutter/engine",
       "$ace_root/frameworks",
       "$ace_root",
       "$ace_root/adapter/ios/entrance",
@@ -126,17 +123,9 @@ template("ace_ios_standard_source_set") {
     ]
 
     include_dirs += [
-      "//third_party/flutter",
-      "//third_party/flutter/engine",
-      "//third_party/flutter/third_party/skia",
-      "//third_party/flutter/engine/flutter/shell/platform/darwin/common/framework/Headers",
-      "//third_party/flutter/engine/flutter/shell/platform/darwin/ios/framework/Headers",
-      "//third_party/flutter/engine/flutter/shell/common",
       "//base/global/resource_management/interfaces/inner_api/include",
       "//foundation/distributeddatamgr/udmf/interfaces/jskits/data",
     ]
-
-    deps += [ "$ace_flutter_engine_root:flutter_for_ng" ]
 
     if (defined(config.enable_rosen_backend) && config.enable_rosen_backend) {
       deps += [ "//foundation/graphic/graphic_2d/rosen/modules/render_service_client:librender_service_client_static" ]

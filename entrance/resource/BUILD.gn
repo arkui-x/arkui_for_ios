@@ -23,13 +23,6 @@ ohos_source_set("resource") {
   cflags_objcc = cflags_objc
 
   include_dirs = [
-    "//third_party/",
-    "//third_party/flutter",
-    "//third_party/flutter/engine",
-    "//third_party/flutter/skia",
-    "//third_party/flutter/engine/flutter/shell/platform/darwin/common/framework/Headers",
-    "//third_party/flutter/engine/flutter/shell/platform/darwin/ios/framework/Headers",
-    "//third_party/flutter/engine/flutter/shell/common",
     "$ace_root/frameworks",
     "$ace_root",
   ]
