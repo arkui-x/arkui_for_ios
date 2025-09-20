@@ -650,7 +650,6 @@ static int32_t GetModifierKeys(UIKeyModifierFlags modifierFlags) {
     if (_windowDelegate.lock() != nullptr) {
         _windowDelegate.lock()->NotifyKeyboardHeightChanged(0);
     }
-    [self setIsFocused:false];
 }
 
 - (void)notifyTraitCollectionDidChange:(BOOL)isSplitScreen {
