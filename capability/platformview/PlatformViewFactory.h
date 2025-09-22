@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Huawei Device Co., Ltd.
+ * Copyright (c) 2024-2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -27,8 +27,13 @@ NS_ASSUME_NONNULL_BEGIN
 /**
  * return a reference to `IPlatformView` .
  */
-- (NSObject<IPlatformView>*) getPlatformView:(NSString*) xComponentId;
+- (NSObject<IPlatformView>*) getPlatformView:(NSString*) platformViewId;
 
+@optional
+/**
+ * return a reference to `IPlatformView` with data.
+ */
+- (NSObject<IPlatformView>*) getPlatformView:(NSString*) platformViewId data:(NSString*) data;
 @end
 
 NS_ASSUME_NONNULL_END

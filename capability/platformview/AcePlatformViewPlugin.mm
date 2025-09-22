@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Huawei Device Co., Ltd.
+ * Copyright (c) 2024-2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -17,6 +17,7 @@
 #import "AcePlatformView.h"
 
 #define KEY_VIEWTAG @"viewTag"
+#define KEY_DATATAG @"dataTag"
 
 @interface AcePlatformViewPlugin()
 @property (nonatomic, assign) NSObject<PlatformViewFactory> *platformViewFactory;
@@ -63,8 +64,9 @@ static NSMutableDictionary<NSString*, AcePlatformView*> *objectMap;
 
 - (int64_t)create:(NSDictionary <NSString *, NSString *> *)param
 {
-    NSString* viewtag = [param valueForKey:KEY_VIEWTAG];
-    if (!viewtag) {
+    NSString* viewTag = [param valueForKey:KEY_VIEWTAG];
+    NSString* dataTag = [param valueForKey:KEY_DATATAG];
+    if (!viewTag) {
         NSLog(@"AcePlatformViewPlugin: -1.");
         return -1;
     }
@@ -77,7 +79,10 @@ static NSMutableDictionary<NSString*, AcePlatformView*> *objectMap;
     AcePlatformView *aceViews = [[AcePlatformView alloc] initWithEvents:callback id:incId
             abilityInstanceId:self.instanceId viewdelegate:self.delegate];
     if (self.platformViewFactory) {
-        NSObject<IPlatformView>* platformView = [self.platformViewFactory getPlatformView:viewtag];
+        NSObject<IPlatformView>* platformView = 
+            dataTag && [self.platformViewFactory respondsToSelector:@selector(getPlatformView:data:)]
+            ? [self.platformViewFactory getPlatformView:viewTag data:dataTag] 
+            : [self.platformViewFactory getPlatformView:viewTag];
         [aceViews setPlatformView:platformView];
         [self addResource:incId platformView:aceViews];
     }
