@@ -29,6 +29,7 @@ ohos_source_set("accessibility") {
   ]
 
   sources = [
+    "AccessibilityDateParse.mm",
     "AccessibilityElement.mm",
     "AccessibilityNodeInfo.mm",
     "AccessibilityWindowView.mm",
