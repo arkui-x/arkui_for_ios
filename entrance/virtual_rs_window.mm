@@ -1142,8 +1142,8 @@ WMError Window::SetUIContent(const std::string& contentInfo,
     uiContent_ = std::move(uiContent);
 
     DelayNotifyUIContentIfNeeded();
-    if (applicationForeground_) {
-        NSLog(@"Window::SetUIContent : applicationForeground_ is true, call uiContent Foreground");
+    NSLog(@"applicationState is %ld", (long)[UIApplication sharedApplication].applicationState);
+    if ([UIApplication sharedApplication].applicationState != UIApplicationStateBackground) {
         uiContent_->Foreground();
     }
     LOGI("Window::SetUIContent : End!!!");
