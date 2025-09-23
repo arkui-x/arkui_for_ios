@@ -149,6 +149,8 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 
 - (void)viewWillAppear:(BOOL)animated {
     [super viewWillAppear:animated];
+
+    NSLog(@"StageVC->%@ viewWillAppear call.", self);
     if (_bridgePluginManager) {
         [_bridgePluginManager updateCurrentInstanceId:_instanceId];
     }
