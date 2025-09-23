@@ -98,7 +98,7 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
 
 - (NSArray *_Nullable)getAssetAllFilePathList {
     @synchronized (self) {
-        NSLog(@"%s, \n all asset file list : %@", __func__, self.allModuleFilePathArray);
+        NSLog(@"%s, \n all asset file list size: %ld", __func__, self.allModuleFilePathArray.count);
         return self.allModuleFilePathArray.copy;
     }
 }
