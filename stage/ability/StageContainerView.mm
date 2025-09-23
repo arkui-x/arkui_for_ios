@@ -118,6 +118,7 @@
 
 - (void)applicationDidEnterBackground:(NSNotification *)notification {
     if (self.notifyDelegate == [StageApplication getApplicationTopViewController]) {
+        NSLog(@"StageContainerView TopViewController applicationDidEnterBackground");
         [self notifyBackground];
     }
    
@@ -128,6 +129,7 @@
 
 - (void)applicationWillEnterForeground:(NSNotification *)notification {
     if (self.notifyDelegate == [StageApplication getApplicationTopViewController]) {
+        NSLog(@"StageContainerView TopViewController applicationWillEnterForeground");
         [self notifyForeground];
     }
     if ([self.notifyDelegate respondsToSelector:@selector(notifyApplicationWillEnterForeground)]) {
