@@ -39,55 +39,54 @@ TextInputConnectionImpl::TextInputConnectionImpl(
   config_ = config;
 }
 
-void TextInputConnectionImpl::Show(bool isFocusViewChanged, int32_t instanceId){
+void TextInputConnectionImpl::Show(bool isFocusViewChanged, int32_t instanceId) {
     auto renderTextField = client_.Upgrade();
     if (!renderTextField) {
         return;
     }
-    
     TextInputAction actionType = config_.action;
     NSString *inputAction = TextInputActionUnspecified;
-    if(actionType == TextInputAction::UNSPECIFIED){
+    if (actionType == TextInputAction::UNSPECIFIED) {
         inputAction = TextInputActionUnspecified;
-    }else if(actionType == TextInputAction::GO){
+    } else if (actionType == TextInputAction::GO) {
         inputAction = TextInputActionGo;
-    }else if(actionType == TextInputAction::SEARCH){
+    } else if (actionType == TextInputAction::SEARCH) {
         inputAction = TextInputActionSearch;
-    }else if(actionType == TextInputAction::SEND){
+    } else if (actionType == TextInputAction::SEND) {
         inputAction = TextInputActionSend;
-    }else if(actionType == TextInputAction::NEXT){
+    } else if (actionType == TextInputAction::NEXT) {
         inputAction = TextInputActionNext;
-    }else if(actionType == TextInputAction::DONE){
+    } else if (actionType == TextInputAction::DONE) {
         inputAction = TextInputActionDone;
-    }else if(actionType == TextInputAction::NEW_LINE){
+    } else if (actionType == TextInputAction::NEW_LINE){
         inputAction = TextInputActionNewline;
     }
-    
+
     TextInputType inputType = config_.type;
     NSString *inputTypeName = TextInputTypeText;
     NSInteger obscureText = 0;
-    if(inputType == TextInputType::TEXT){
+    if (inputType == TextInputType::TEXT) {
         inputTypeName = TextInputTypeText;
-    }else if(inputType == TextInputType::MULTILINE){
+    } else if (inputType == TextInputType::MULTILINE) {
         inputTypeName = TextInputTypeMultiline;
-    }else if(inputType == TextInputType::NUMBER || inputType == TextInputType::NUMBER_PASSWORD){
+    } else if (inputType == TextInputType::NUMBER || inputType == TextInputType::NUMBER_PASSWORD) {
         inputTypeName = TextInputTypeNumber;
-    }else if(inputType == TextInputType::DATETIME){
+    } else if (inputType == TextInputType::DATETIME) {
         inputTypeName = TextInputTypeDatetime;
-    }else if(inputType == TextInputType::PHONE){
+    } else if (inputType == TextInputType::PHONE) {
         inputTypeName = TextInputTypePhone;
-    }else if(inputType == TextInputType::EMAIL_ADDRESS){
+    } else if (inputType == TextInputType::EMAIL_ADDRESS) {
         inputTypeName = TextInputTypeEmailAddress;
-    }else if(inputType == TextInputType::URL){
+    } else if (inputType == TextInputType::URL) {
         inputTypeName = TextInputTypeURL;
-    }else if(inputType == TextInputType::VISIBLE_PASSWORD){
+    } else if (inputType == TextInputType::VISIBLE_PASSWORD) {
         inputTypeName = TextInputTypeVisiblePassword;
         obscureText = 1;
     }
 
     NSString* inputFilter = [NSString stringWithUTF8String:config_.inputFilter.c_str()];
     int32_t maxLength = config_.maxLength;
-    
+
     int32_t clientId = this->GetClientId();
     LOGE("vailclientid->Show clientId:%d inputaction:%d inputType:%d",clientId,actionType,inputType);
     NSDictionary *configure = @{
@@ -106,7 +105,7 @@ void TextInputConnectionImpl::Show(bool isFocusViewChanged, int32_t instanceId){
         @"inputFilter" : inputFilter,
         @"maxLength" : [NSNumber numberWithInt:maxLength]
     };
-    
+
     auto value = renderTextField->GetInputEditingValue();
     NSString *text = [NSString stringWithCString:value.text.c_str() encoding:NSUTF8StringEncoding];
     NSString *selectionAffinity = @"TextAffinity.downstream";
@@ -123,7 +122,6 @@ void TextInputConnectionImpl::Show(bool isFocusViewChanged, int32_t instanceId){
         @"selectionIsDirectional":@(0)
     };
     LOGE("vailclientid->Show sb:%d,se:%d,cb:%d,ce:%d,text:%s",value.selection.baseOffset,value.selection.extentOffset,value.compose.baseOffset,value.compose.extentOffset,text.UTF8String);
-    
     TextInputNoParamsBlock showCallback = ^{
         updateEditingClientBlock textInputCallback = ^(int client, NSDictionary *state){
             if(clientId == client && [state objectForKey:@"text"]){
@@ -146,14 +144,14 @@ void TextInputConnectionImpl::Show(bool isFocusViewChanged, int32_t instanceId){
                 needFireChangeEvent_ = true;
             }
         };
-        [iOSTxtInputManager shareintance].textInputBlock = textInputCallback;
+        [iOSTxtInputManager sharedInstance].textInputBlock = textInputCallback;
         updateErrorTextBlock errorTextCallback = ^(int client, NSDictionary *state){
             if(clientId == client && [state objectForKey:@"errorText"]){
                 NSString *errorText = [state objectForKey:@"errorText"];
                 TextInputClientHandler::GetInstance().UpdateInputFilterErrorText(client, [errorText UTF8String]);
             }
         };
-        [iOSTxtInputManager shareintance].errorTextBlock = errorTextCallback;
+        [iOSTxtInputManager sharedInstance].errorTextBlock = errorTextCallback;
         performActionBlock textPerformCallback = ^(int action, int client){
             if(clientId == client){
                 TextInputAction actionType = TextInputAction::DONE; 
@@ -185,37 +183,35 @@ void TextInputConnectionImpl::Show(bool isFocusViewChanged, int32_t instanceId){
                 TextInputClientHandler::GetInstance().PerformAction(client, actionType);
                 if(action == iOSTextInputActionDone){
                     dispatch_async(dispatch_get_main_queue(), ^{
-                        if ([iOSTxtInputManager shareintance]) {
-                            [[iOSTxtInputManager shareintance] hideTextInput];
-                            [iOSTxtInputManager shareintance].inputBoxY = 0.0;
-                            [iOSTxtInputManager shareintance].inputBoxTopY = 0.0;
-                            [iOSTxtInputManager shareintance].isDeclarative = false;
+                        if ([iOSTxtInputManager sharedInstance]) {
+                            [[iOSTxtInputManager sharedInstance] hideTextInput];
+                            [iOSTxtInputManager sharedInstance].inputBoxY = 0.0;
+                            [iOSTxtInputManager sharedInstance].inputBoxTopY = 0.0;
+                            [iOSTxtInputManager sharedInstance].isDeclarative = false;
                         }
                     });
                 }
             }
         };
-        [iOSTxtInputManager shareintance].textPerformBlock = textPerformCallback;
-        [iOSTxtInputManager shareintance].inputBoxY = renderTextField->GetEditingBoxY();
-        [iOSTxtInputManager shareintance].inputBoxTopY = renderTextField->GetEditingBoxTopY();
-        [iOSTxtInputManager shareintance].isDeclarative = renderTextField->GetEditingBoxModel();
-        [[iOSTxtInputManager shareintance] setTextInputClient:clientId withConfiguration:configure];
-        [[iOSTxtInputManager shareintance] setTextInputEditingState:stateDict];
-        [[iOSTxtInputManager shareintance] showTextInput];
+        [iOSTxtInputManager sharedInstance].textPerformBlock = textPerformCallback;
+        [iOSTxtInputManager sharedInstance].inputBoxY = renderTextField->GetEditingBoxY();
+        [iOSTxtInputManager sharedInstance].inputBoxTopY = renderTextField->GetEditingBoxTopY();
+        [iOSTxtInputManager sharedInstance].isDeclarative = renderTextField->GetEditingBoxModel();
+        [[iOSTxtInputManager sharedInstance] setTextInputClient:clientId withConfiguration:configure];
+        [[iOSTxtInputManager sharedInstance] setTextInputEditingState:stateDict];
+        [[iOSTxtInputManager sharedInstance] showTextInput];
     };
     dispatch_main_async_safe(showCallback);
 }
 
-void TextInputConnectionImpl::SetEditingState(const TextEditingValue& value, int32_t instanceId, bool needFireChangeEvent){
+void TextInputConnectionImpl::SetEditingState(const TextEditingValue& value, int32_t instanceId, bool needFireChangeEvent) {
     needFireChangeEvent_ = needFireChangeEvent;
     NSString *text = [NSString stringWithCString:value.text.c_str() encoding:NSUTF8StringEncoding];
     NSString *selectionAffinity = @"TextAffinity.downstream";
     if(value.selection.affinity == TextAffinity::UPSTREAM){
         selectionAffinity = @"TextAffinity.upstream";
     }
-    
     LOGE("vailclientid->SetEditingState sb:%d,se:%d,cb:%d,ce:%d,text:%s",value.selection.baseOffset,value.selection.extentOffset,value.compose.baseOffset,value.compose.extentOffset,text.UTF8String);
-    
     NSDictionary *stateDict = @{
         @"text":text?:@"",
         @"selectionBase":@(value.selection.baseOffset),
@@ -225,20 +221,19 @@ void TextInputConnectionImpl::SetEditingState(const TextEditingValue& value, int
         @"composingExtent":@(value.compose.extentOffset),
         @"selectionIsDirectional":@(0)
     };
-    
     dispatch_main_async_safe(^{
-        [[iOSTxtInputManager shareintance] setTextInputEditingState:stateDict];
+        [[iOSTxtInputManager sharedInstance] setTextInputEditingState:stateDict];
     });
 }
 
-void TextInputConnectionImpl::Close(int32_t instanceId){
+void TextInputConnectionImpl::Close(int32_t instanceId) {
     LOGE("vail->iOSTxtInput::Close");
     TextInputNoParamsBlock closeCallback = ^{
-        [[iOSTxtInputManager shareintance] clearTextInputClient];
-        [[iOSTxtInputManager shareintance] hideTextInput];
-        [iOSTxtInputManager shareintance].inputBoxY = 0.0;
-        [iOSTxtInputManager shareintance].inputBoxTopY = 0.0;
-        [iOSTxtInputManager shareintance].isDeclarative = false;
+        [[iOSTxtInputManager sharedInstance] clearTextInputClient];
+        [[iOSTxtInputManager sharedInstance] hideTextInput];
+        [iOSTxtInputManager sharedInstance].inputBoxY = 0.0;
+        [iOSTxtInputManager sharedInstance].inputBoxTopY = 0.0;
+        [iOSTxtInputManager sharedInstance].isDeclarative = false;
     };
     dispatch_main_async_safe(closeCallback);
 }
