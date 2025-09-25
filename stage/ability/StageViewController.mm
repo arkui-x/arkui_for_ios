@@ -31,6 +31,7 @@
 #import "StageContainerView.h"
 #import "StageSecureContainerView.h"
 #import "WindowView.h"
+#import "StageAssetManager.h"
 #include "app_main.h"
 #include "window_view_adapter.h"
 #include "dump_helper.h"
@@ -92,13 +93,20 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
         _instanceId = InstanceIdGenerator.getAndIncrement;
         self.instanceName = [NSString stringWithFormat:@"%@:%d", instanceName, _instanceId];
         NSLog(@"StageVC->%@ init, instanceName is : %@", self, self.instanceName);
-        _cInstanceName = [self getCPPString:self.instanceName];
         NSArray * nameArray = [self.instanceName componentsSeparatedByString:@":"];
         if (nameArray.count >= 3) {
             self.bundleName = nameArray[0];
             self.moduleName = nameArray[1];
             self.abilityName = nameArray[2];
+            NSString *moduleNamePath = [NSString stringWithFormat:@"%@.%@",self.bundleName, self.moduleName];
+            BOOL isExistsAtPath = [self ExistDir:moduleNamePath];
+            if (isExistsAtPath && nameArray.count >= 4) {
+                self.moduleName = moduleNamePath;
+                self.instanceName = [NSString stringWithFormat:@"%@:%@:%@:%@",
+                        nameArray[0], self.moduleName, nameArray[2], nameArray[3]];
+            }
         }
+        _cInstanceName = [self getCPPString:self.instanceName];
         _pluginList = [[NSMutableArray alloc] init];
         [self initBridge];
         self.homeIndicatorHidden = NO;
@@ -108,6 +116,17 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
             name:@(kOrientationMaskUpdateNotificationName) object:nil];
     }
     return self;
+}
+
+- (BOOL)ExistDir:(NSString *)filePath
+{
+    NSArray *pkgJsonFileList = [[StageAssetManager assetManager] getAssetAllFilePathList];
+    for (NSString *pkgJsonPath in pkgJsonFileList) {
+        if ([pkgJsonPath containsString:[NSString stringWithFormat:@"/%@", filePath]]) {
+            return YES;
+        }
+    }
+    return NO;
 }
 
 - (void)orientationMaskUpdate: (NSNotification *)notification {

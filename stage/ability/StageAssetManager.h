@@ -28,6 +28,10 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void)launchAbility;
 
+- (BOOL)isExistFileForPath:(NSString *)filePath;
+
+- (NSData *)updateModuleNameWithJsonData:(NSData *)date moduleJsonPath:(NSString *)moduleJsonPath;
+
 - (NSString *_Nullable)getBundlePath;
 
 - (NSArray *_Nullable)getAssetAllFilePathList;

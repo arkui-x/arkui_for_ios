@@ -58,10 +58,13 @@ public:
     std::vector<std::string> GetAllFilePath();
     std::vector<uint8_t> GetBufferByAppDataPath(const std::string& fileFullPath);
     std::vector<uint8_t> GetAotBuffer(const std::string &fileName);
+    void SetBundleName(const std::string& bundleName);
+    std::string GetSplicingModuleName(const std::string& moduleName);
     void InitModuleVersionCode();
     void UpdateVersionCode(const std::string& moduleName, bool needUpdate);
     bool IsDynamicUpdateModule(const std::string& moduleName);
 private:
+    std::string bundleName_;
     std::string fontConfigName_;
     std::mutex providerLock_;
     static std::shared_ptr<StageAssetProvider> instance_;

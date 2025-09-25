@@ -68,6 +68,7 @@ public:
     bool GetMediaData(const std::string& resName, size_t& len, std::unique_ptr<uint8_t[]>& dest,
         const std::string& bundleName, const std::string& moduleName) override;
     void UpdateResourceManager(const std::string& bundleName, const std::string& moduleName) override;
+    bool UpdatePackageResourceManager(const std::string& bundleName, const std::string& moduleName);
     bool GetRawFileDescription(const std::string& rawfileName, RawfileDescription& rawfileDescription) const override;
     bool GetMediaById(const int32_t& resId, std::string& mediaPath) const override;
     uint32_t GetSymbolById(uint32_t resId) const override;
