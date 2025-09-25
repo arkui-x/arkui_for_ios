@@ -10,7 +10,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface iOSTxtInputManager : NSObject
 
-+ (instancetype)shareintance;
++ (instancetype)sharedInstance;
 @property(nonatomic, weak) id<iOSTextInputDelegate> textInputDelegate;
 @property (nonatomic, copy) updateEditingClientBlock textInputBlock;
 @property (nonatomic, copy) updateErrorTextBlock errorTextBlock;

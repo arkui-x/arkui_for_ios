@@ -89,7 +89,7 @@ void ClipboardImpl::SetData(const RefPtr<PasteDataMix>& pasteData, CopyOptions c
                 NSMutableDictionary *item = [NSMutableDictionary dictionary];
                 if (!multiTypeRecord->GetPlainText().empty()) {
                     NSString *plainText = [NSString stringWithUTF8String:multiTypeRecord->GetPlainText().c_str()];
-                    [item setObject:plainText forKey:UTTypePlainText.identifier];
+                    [item setObject:plainText forKey:UTTypeUTF8PlainText.identifier];
                 }
 
                 if (!multiTypeRecord->GetSpanStringBuffer().empty()) {
@@ -118,9 +118,16 @@ void ClipboardImpl::GetSpanStringData(
         std::vector<std::vector<uint8_t>> arrays;
         std::string text = "";
         bool isMultiTypeRecord = false;
-
+        NSArray *types = @[UTTypeUTF8PlainText.identifier, UTTypePlainText.identifier, UTTypeUTF16PlainText.identifier,
+            UTTypeUTF16ExternalPlainText.identifier];
         for (NSDictionary<NSString *, id> *item in items) {
-            NSString *plainText = item[UTTypePlainText.identifier];
+            NSString *plainText = nil;
+            for (NSString *type in types) {
+                plainText = item[type];
+                if (plainText) {
+                    break;
+                }
+            }
             NSData *spanData = item[@"com.arkuix.custom-span-type"];
 
             if (plainText) {
@@ -151,7 +158,7 @@ void ClipboardImpl::SetData(const std::string& data, CopyOptions copyOption, boo
                     UIPasteboard *pasteboard = [UIPasteboard generalPasteboard];
                     NSMutableDictionary *item = [NSMutableDictionary dictionary];
                     NSString *plainText = [NSString stringWithCString:data.c_str() encoding:NSUTF8StringEncoding];
-                    [item setObject:plainText forKey:UTTypePlainText.identifier];
+                    [item setObject:plainText forKey:UTTypeUTF8PlainText.identifier];
                     [pasteboard setItems:@[item]];
                 },TaskExecutor::TaskType::BACKGROUND, "ArkUI-XClipboardImplSetDataBackground");
             }
@@ -166,7 +173,7 @@ void ClipboardImpl::GetData(const std::function<void(const std::string&)>& callb
         NSArray<NSDictionary<NSString *, id> *> *items = pasteboard.items;
         NSMutableString *allText = [NSMutableString string];
         for (NSDictionary<NSString *, id> *item in items) {
-            NSString *plainText = item[UTTypePlainText.identifier];
+            NSString *plainText = item[UTTypeUTF8PlainText.identifier];
             if (plainText) {
                 [allText appendString:plainText];
             }
