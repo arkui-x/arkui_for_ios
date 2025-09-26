@@ -110,6 +110,8 @@ std::list<std::vector<uint8_t>> StageAssetProvider::GetModuleJsonBufferList()
     NSArray *moduleJsons = [NSArray arrayWithArray:moduleJsonFileList];
     for (NSString *moduleJsonPath in moduleJsons) {
         NSData *pathData = [NSData dataWithContentsOfFile:moduleJsonPath];
+        pathData = [[StageAssetManager assetManager] updateModuleNameWithJsonData:pathData 
+                                                                   moduleJsonPath:moduleJsonPath];
         std::vector<uint8_t> moduleBuffer =  GetVectorFromNSData(pathData);
         if (moduleBuffer.empty() || moduleBuffer.size() == 0) {
             continue;
@@ -412,9 +414,33 @@ std::vector<uint8_t> StageAssetProvider::GetAotBuffer(const std::string &fileNam
     return buffer;
 }
 
+bool ExistDir(const std::string& target)
+{
+    NSString *path = [NSString stringWithUTF8String:target.c_str()];
+    BOOL isDir = NO;
+    BOOL exists = [[NSFileManager defaultManager] fileExistsAtPath:path isDirectory:&isDir];
+    return exists && isDir;
+}
+
+void StageAssetProvider::SetBundleName(const std::string& bundleName)
+{
+    bundleName_ = bundleName;
+}
+
+std::string StageAssetProvider::GetSplicingModuleName(const std::string& moduleName)
+{
+    if (moduleName.empty() || bundleName_.empty()) {
+        return moduleName;
+    }
+    std::string fullModuleName = bundleName_ + "." + moduleName;
+    std::string modulePath = GetAppDataModuleDir() + '/' + fullModuleName;
+    return ExistDir(modulePath) ? fullModuleName : moduleName;
+}
+
 void StageAssetProvider::InitModuleVersionCode()
 {
     auto moduleList = GetModuleJsonBufferList();
+    std::string bundleName = "";
     std::string moduleName = "";
     int32_t versionCode = 0;
     for (auto& buffer : moduleList) {
@@ -428,6 +454,14 @@ void StageAssetProvider::InitModuleVersionCode()
         }
         if (moduleJson.contains("module") && moduleJson["module"].contains("name")) {
             moduleName = moduleJson["module"]["name"].get<std::string>();
+        }
+        if (moduleJson.contains("app") && moduleJson["app"].contains("bundleName")) {
+            bundleName = moduleJson["app"]["bundleName"].get<std::string>();
+        }
+        if (!moduleName.empty() && !bundleName.empty()) {
+            std::string fullModuleName = bundleName + "." + moduleName;
+            std::string modulePath = GetAppDataModuleDir() + '/' + fullModuleName;
+            moduleName = ExistDir(modulePath) ? fullModuleName : moduleName;
         }
         if (!moduleName.empty() && versionCode > 0) {
             versionCodes_.emplace(moduleName, versionCode);

@@ -80,11 +80,49 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
     NSLog(@"%s, all files count : %lu", __func__, (unsigned long)files.count);
     @synchronized (self) {
         [self.allModuleFilePathArray addObjectsFromArray:files.copy];
+        NSOrderedSet *orderedSetAll = [NSOrderedSet orderedSetWithArray:self.allModuleFilePathArray];
+        NSOrderedSet *orderedSetPkg = [NSOrderedSet orderedSetWithArray:self.pkgJsonFileArray];
+        NSOrderedSet *orderedSetModule = [NSOrderedSet orderedSetWithArray:self.moduleJsonFileArray];
+        self.moduleJsonFileArray = [NSMutableArray arrayWithArray:[orderedSetModule array]];
+        self.pkgJsonFileArray = [NSMutableArray arrayWithArray:[orderedSetPkg array]];
+        self.allModuleFilePathArray = [NSMutableArray arrayWithArray:[orderedSetAll array]];
     }
 
     BOOL isCreatFiles = [self createDocumentSubDirectoryAtPath:DOCUMENTS_SUBDIR_FILES];
     BOOL isCreatDatabase = [self createDocumentSubDirectoryAtPath:DOCUMENTS_SUBDIR_DATABASE];
     NSLog(@"isCreatFiles : %d, isCreatDatabase : %d", isCreatFiles, isCreatDatabase);
+}
+
+- (NSData *)updateModuleNameWithJsonData:(NSData *)data moduleJsonPath:(NSString *)moduleJsonPath
+{
+    if (!data) {
+        return nil;
+    }
+    NSError *error = nil;
+    NSMutableDictionary *jsonDict = [NSJSONSerialization JSONObjectWithData:data
+                                                                    options:NSJSONReadingMutableContainers
+                                                                      error:&error];
+    if (error || !jsonDict || ![jsonDict isKindOfClass:[NSMutableDictionary class]]) {
+        return data;
+    }
+    id moduleObj = jsonDict[@"module"];
+    id appObj = jsonDict[@"app"];
+    if (![moduleObj isKindOfClass:[NSMutableDictionary class]] || ![appObj isKindOfClass:[NSDictionary class]]) {
+        return data;
+    }
+    NSString *moduleName = moduleObj[@"name"];
+    NSString *bundleName = appObj[@"bundleName"];
+    moduleName = [NSString stringWithFormat:@"%@.%@", bundleName, moduleName];
+    if (moduleJsonPath == nil || ![moduleJsonPath containsString:moduleName]) {
+        return data;
+    }
+    NSString *packageName = moduleObj[@"packageName"];
+    jsonDict[@"module"][@"name"] = moduleName;
+    jsonDict[@"module"][@"packageName"] = [NSString stringWithFormat:@"%@.%@", bundleName, packageName];
+    NSData *updatedJsonData = [NSJSONSerialization dataWithJSONObject:jsonDict
+                                                              options:NSJSONWritingPrettyPrinted
+                                                                error:nil];
+    return updatedJsonData;
 }
 
 - (void)launchAbility {
