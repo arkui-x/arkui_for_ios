@@ -23,7 +23,6 @@
 #include "WindowView.h"
 #include "base/log/log.h"
 #include "foundation/appframework/arkui/uicontent/ui_content.h"
-#include "shell/common/vsync_waiter.h"
 #include "transaction/rs_interfaces.h"
 #include "virtual_rs_window.h"
 #include "StageViewController.h"

@@ -19,8 +19,6 @@
 #include <Foundation/Foundation.h>
 #include <UIKit/UIKit.h>
 
-#include "flutter/fml/platform/darwin/string_range_sanitization.h"
-
 static const char _kTextAffinityDownstream[] = "TextAffinity.downstream";
 static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
 
@@ -222,7 +220,7 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
         if (self.hasText) {
             iOSTextRange* iosTextRange = (iOSTextRange*)selectedTextRange;
             _selectedTextRange = [[iOSTextRange
-                                   rangeWithNSRange:fml::RangeForCharactersInRange(self.text, iosTextRange.range)] copy];
+                                   rangeWithNSRange:[self RangeForCharactersInRange:self.text range:iosTextRange.range]] copy];
         } else {
             _selectedTextRange = [selectedTextRange copy];
         }
@@ -231,6 +229,14 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
         if (update)
             [self updateEditingState];
     }
+}
+
+- (NSRange)RangeForCharactersInRange:(NSString* )text range:(NSRange)range {
+    if (text == nil || range.location + range.length > text.length) {
+        return NSMakeRange(NSNotFound, 0);
+    }
+    NSRange sanitizedRange = [text rangeOfComposedCharacterSequencesForRange:range];
+    return NSMakeRange(sanitizedRange.location, range.length);
 }
 
 - (id)insertDictationResultPlaceholder {
@@ -425,12 +431,22 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
     return [iOSTextRange rangeWithNSRange:NSMakeRange(fromIndex, toIndex - fromIndex)];
 }
 
+- (NSRange)RangeForCharacterAtIndex:(NSString* )text index:(NSUInteger)index {
+    if (text == nil || index >= text.length) {
+        return NSMakeRange(NSNotFound, 0);
+    }
+    if (index < text.length) {
+        return [text rangeOfComposedCharacterSequenceAtIndex:index];
+    }
+    return NSMakeRange(index, 0);
+}
+
 - (NSUInteger)decrementOffsetPosition:(NSUInteger)position {
-    return fml::RangeForCharacterAtIndex(self.text, MAX(0, position - 1)).location;
+    return [self RangeForCharacterAtIndex:self.text index:MAX(0, position - 1)].location;
 }
 
 - (NSUInteger)incrementOffsetPosition:(NSUInteger)position {
-    NSRange charRange = fml::RangeForCharacterAtIndex(self.text, position);
+    NSRange charRange = [self RangeForCharacterAtIndex:self.text index:position];
     return MIN(position + charRange.length, self.text.length);
 }
 
@@ -563,7 +579,7 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
 
 - (UITextRange*)characterRangeAtPoint:(CGPoint)point {
     NSUInteger currentIndex = ((iOSTextPosition*)_selectedTextRange.start).index;
-    return [iOSTextRange rangeWithNSRange:fml::RangeForCharacterAtIndex(self.text, currentIndex)];
+    return [iOSTextRange rangeWithNSRange:[self RangeForCharacterAtIndex:self.text index:currentIndex]];
 }
 
 - (void)beginFloatingCursorAtPoint:(CGPoint)point {}
