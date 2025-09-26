@@ -266,20 +266,18 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
     // Adjust the text selection:
     // * reduce the length by the intersection length
     // * adjust the location by newLength - oldLength + intersectionLength
-    if (!_isDelete) {
-        NSRange intersectionRange = NSIntersectionRange(replaceRange, selectedRange);
-        if (replaceRange.location <= selectedRange.location) {
-            selectedRange.location += text.length - replaceRange.length;
-        }
-        if (intersectionRange.location != NSNotFound) {
-            selectedRange.location += intersectionRange.length;
-            selectedRange.length -= intersectionRange.length;
-        }
-        [self.text replaceCharactersInRange:[self clampSelection:replaceRange forText:self.text] withString:text];
-        [self setSelectedTextRange:
-            [iOSTextRange rangeWithNSRange:
-            [self clampSelection:selectedRange forText:self.text]] updateEditingState:NO];
+    NSRange intersectionRange = NSIntersectionRange(replaceRange, selectedRange);
+    if (replaceRange.location <= selectedRange.location) {
+        selectedRange.location += text.length - replaceRange.length;
     }
+    if (intersectionRange.location != NSNotFound) {
+        selectedRange.location += intersectionRange.length;
+        selectedRange.length -= intersectionRange.length;
+    }
+    [self.text replaceCharactersInRange:[self clampSelection:replaceRange forText:self.text] withString:text];
+    [self setSelectedTextRange:
+        [iOSTextRange rangeWithNSRange:
+        [self clampSelection:selectedRange forText:self.text]] updateEditingState:NO];
     if (text.length == 0 && replaceRange.length != 0) {
         _unmarkText = YES;
     } else {
