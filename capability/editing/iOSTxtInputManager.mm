@@ -280,8 +280,12 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
         [self clampSelection:selectedRange forText:self.text]] updateEditingState:NO];
     if (text.length == 0 && replaceRange.length != 0) {
         _unmarkText = YES;
+        self.markedTextRange = [iOSTextRange rangeWithNSRange:replaceRange];
     } else {
         [self.appendText setString:text];
+        if (![self.text isEqualToString:text]) {
+            self.markedTextRange = replaceRange.length > 0 ? [iOSTextRange rangeWithNSRange:replaceRange] : nil;
+        }
         if ((self.markedText.length == 0) && (self.text.length >= self.maxLength)) {
             NSRange range =  NSMakeRange(self.markedTextLocation, self.maxLength);
             if (range.location + range.length < self.text.length) {
@@ -289,7 +293,6 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
             }
         }
     }
-    self.markedTextRange = replaceRange.length > 0 ? [iOSTextRange rangeWithNSRange:replaceRange] : nil;
     [self updateEditingState];
 }
 
