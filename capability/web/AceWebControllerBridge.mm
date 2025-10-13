@@ -17,9 +17,12 @@
 #include <string>
 #include <vector>
 #include <mutex>
+#import <Foundation/Foundation.h>
+
+#include "scheme_handler/scheme_handler.h"
 #import "AceWebResourcePlugin.h"
 #import "AceWebControllerBridge.h"
-#import <Foundation/Foundation.h>
+#import "AceWebInfoManager.h"
 
 #define MAX_DEPTH 10
 
@@ -1101,4 +1104,32 @@ void deleteJavaScriptRegisterOC(int webId, const std::string& objName)
     }
     NSString* ocObjName = [NSString stringWithCString:objName.c_str() encoding:NSUTF8StringEncoding];
     [web deleteJavaScriptRegister:ocObjName];
+}
+
+
+bool setWebSchemeHandlerOC(int webId, const char* scheme, const ArkWeb_SchemeHandler* handler)
+{
+    if (scheme == nullptr || handler == nullptr) {
+        return false;
+    }
+    AceWeb* web = [AceWebResourcePlugin.getObjectMap objectForKey:[NSString stringWithFormat:@"%d", webId]];
+    if (web == nil) {
+        return false;
+    }
+    NSString* ocScheme = [NSString stringWithCString:scheme encoding:NSUTF8StringEncoding];
+    return [web setWebSchemeHandler:ocScheme handler:handler];
+}
+
+bool clearWebSchemeHandlerOC(int webId)
+{
+    AceWeb* web = [AceWebResourcePlugin.getObjectMap objectForKey:[NSString stringWithFormat:@"%d", webId]];
+    if (web == nil) {
+        return false;
+    }
+    return [web clearWebSchemeHandler];
+}
+
+std::string getUserAgentOC()
+{
+    return [[[AceWebInfoManager sharedManager] getUserAgent] UTF8String];
 }

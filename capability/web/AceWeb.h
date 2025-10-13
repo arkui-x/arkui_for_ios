@@ -16,6 +16,7 @@
 #import <Foundation/Foundation.h>
 #import <WebKit/WebKit.h>
 #import "AceResourcePlugin.h"
+#include "scheme_handler/scheme_handler.h"
 
 @interface AceWeb : NSObject
 
@@ -100,4 +101,6 @@
                 asyncMethodList:(NSArray*)asyncMethodList
                        callback:(id (^)(NSString* objName, NSString* methodName, NSArray* args))callback;
 - (void)deleteJavaScriptRegister:(NSString*)objName;
+- (BOOL)setWebSchemeHandler:(NSString*)scheme handler:(const ArkWeb_SchemeHandler*)handler;
+- (BOOL)clearWebSchemeHandler;
 @end

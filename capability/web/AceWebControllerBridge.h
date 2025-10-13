@@ -16,6 +16,8 @@
 #include "AceWebMessageExtImpl.h"
 #include "AceWebDownloadImpl.h"
 #include "web_javascript_value.h"
+#include "AceWebSchemeHandler.h"
+#include "scheme_handler/scheme_handler.h"
 
 struct BackForwardItem{
     std::string URL;
@@ -145,3 +147,9 @@ void registerJavaScriptProxyOC(int webId, const std::string& objName,
     const std::string& methodName, const std::vector<std::shared_ptr<OHOS::Ace::WebJSValue>>& args));
 
 void deleteJavaScriptRegisterOC(int webId, const std::string& objName);
+
+bool setWebSchemeHandlerOC(int webId, const char* scheme, const ArkWeb_SchemeHandler* handler);
+
+bool clearWebSchemeHandlerOC(int webId);
+
+std::string getUserAgentOC();

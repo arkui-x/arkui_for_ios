@@ -34,6 +34,7 @@ template("stage_ios_standard_source_set") {
       "//foundation/arkui/ace_engine/adapter/ios/entrance",
       "//foundation/appframework/ability/ability_runtime/cross_platform/interfaces/kits/native/appkit",
       "//foundation/arkui/ace_engine/adapter/ios/capability/bridge",
+      "//foundation/arkui/ace_engine/adapter/ios/capability/web",
       "//foundation/arkui/ace_engine/adapter/ios/entrance/accessibility",
       "$ace_root/frameworks",
       "$ace_root",
