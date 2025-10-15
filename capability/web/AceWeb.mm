@@ -23,6 +23,8 @@
 #import <UIKit/UIKit.h>
 #import <AVFoundation/AVFoundation.h>
 #import <AVKit/AVKit.h>
+#import "AceWebPatternOCBridge.h"
+#include "core/components_ng/pattern/scrollable/scrollable_properties.h"
 
 #define WEBVIEW_WIDTH  @"width"
 #define WEBVIEW_HEIGHT  @"height"
@@ -66,6 +68,9 @@
 #define NTC_ONHTTPERRORRECEIVE            @"onHttpErrorReceive"
 #define NTC_ONPROGRESSCHANGED             @"onProgressChanged"
 #define NTC_ONRECEIVEDTITLE               @"onReceivedTitle"
+#define NTC_ONWILL_SCROLLSTART            @"onWillScrollStart"
+#define NTC_ONSCROLLSTART                 @"onScrollStart"
+#define NTC_ONSCROLLEND                   @"onScrollEnd"
 #define NTC_ONSCROLL                      @"onScroll"
 #define NTC_ONSCALECHANGE                 @"onScaleChange"
 #define NTC_ONCONSOLEMESSAGE              @"onConsoleMessage"
@@ -76,6 +81,22 @@
 #define NTC_REGISTEREDONINTERCEPTREQUEST  @"IsRegisteredOnInterceptRequest"
 #define NTC_ONREFRESHACCESSED_HISTORYEVENT     @"onRefreshAccessedHistory"
 #define WEBVIEW_PAGE_HALF                 2
+
+typedef NS_ENUM(NSInteger, NestedScrollMode) {
+    SELF_ONLY,
+    SELF_FIRST,
+    PARENT_FIRST, 
+    PARALLEL
+};
+@interface NestedScrollOptionsExt : NSObject
+@property (nonatomic, assign) NestedScrollMode scrollUp;
+@property (nonatomic, assign) NestedScrollMode scrollDown;
+@property (nonatomic, assign) NestedScrollMode scrollLeft;
+@property (nonatomic, assign) NestedScrollMode scrollRight;
+@end
+@implementation NestedScrollOptionsExt
+@end
+
 @interface DownloadTaskInfo : NSObject
 @property (nonatomic, assign) bool isDownload;
 @property (nonatomic, strong) NSString* filePath;
@@ -132,6 +153,9 @@ typedef id (^onJavaScriptFunction)(NSString* objName, NSString* methodName, NSAr
 @property (nonatomic, assign) bool allowIncognitoMode;
 @property (nonatomic, assign) BOOL jsReady;
 @property (nonatomic, copy) NSString* schemeUrl;
+@property (nonatomic, strong) NestedScrollOptionsExt *nestedOpt;
+@property (nonatomic, assign) CGPoint dragStartPoint;
+@property (nonatomic, assign) BOOL hasCalledOnScrollStart;
 @end
 
 static BOOL _webDebuggingAccessInit = NO;
@@ -1543,18 +1567,38 @@ static NSString *const kJavaScriptURLPrefix = @"javascript:";
     }
 }
 
+#pragma mark - UIScrollViewDelegate
+- (void)scrollViewWillBeginDragging:(UIScrollView *)scrollView {
+    AceWebOnScrollObject* obj = new AceWebOnScrollObject(scrollView.contentOffset.x, scrollView.contentOffset.y);
+    AceWebObject([[self event_hashFormat:NTC_ONWILL_SCROLLSTART] UTF8String], [NTC_ONWILL_SCROLLSTART UTF8String], obj);
+    self.dragStartPoint = scrollView.contentOffset;
+    self.hasCalledOnScrollStart = NO;
+}
 - (void)scrollViewDidScroll:(UIScrollView*)scrollView
 {
-    float x = 0.f;
-    float y = 0.f;
-    if (scrollView.contentOffset.x) {
-        x = scrollView.contentOffset.x;
+   float x = scrollView.contentOffset.x;
+   float y = scrollView.contentOffset.y;
+    if (!self.hasCalledOnScrollStart) {
+        float velocityX = x - self.dragStartPoint.x;
+        float velocityY = y - self.dragStartPoint.y;
+        AceWebOnScrollObject* obj = new AceWebOnScrollObject(velocityX, velocityY);
+        AceWebObject([[self event_hashFormat:NTC_ONSCROLLSTART] UTF8String], [NTC_ONSCROLLSTART UTF8String], obj);
+        self.hasCalledOnScrollStart = YES;
     }
-    if (scrollView.contentOffset.y) {
-        y = scrollView.contentOffset.y;
-    }
+    float contentWidth = scrollView.contentSize.width;
+    float contentHeight = scrollView.contentSize.height;
+    float frameWidth = scrollView.bounds.size.width;
+    float frameHeight = scrollView.bounds.size.height;
+    AceWebOnScrollObject* obj = new AceWebOnScrollObject(x, y, contentWidth, contentHeight, frameWidth, frameHeight);
+    AceWebObject([[self event_hashFormat:NTC_ONSCROLL] UTF8String], [NTC_ONSCROLL UTF8String], obj); 
+}
+
+- (void)scrollViewDidEndDecelerating:(UIScrollView *)scrollView 
+{
+    float x = scrollView.contentOffset.x;
+    float y = scrollView.contentOffset.y;
     AceWebOnScrollObject* obj = new AceWebOnScrollObject(x, y);
-    AceWebObject([[self event_hashFormat:NTC_ONSCROLL] UTF8String], [NTC_ONSCROLL UTF8String], obj);
+    AceWebObject([[self event_hashFormat:NTC_ONSCROLLEND] UTF8String], [NTC_ONSCROLLEND UTF8String], obj);
 }
 
 - (void)scrollViewDidZoom:(UIScrollView*)scrollView
@@ -1974,6 +2018,25 @@ static NSString *const kJavaScriptURLPrefix = @"javascript:";
             self.onDownloadFailedCallBack(guid, @"INTERRUPTED", error.code);
         });
         [self.downloadTasksDic removeObjectForKey:guid];
+    }
+}
+
+- (void)setNestedScrollOptionsExt:(void *)options {
+    OHOS::Ace::NestedScrollOptionsExt* cppOptions = reinterpret_cast<OHOS::Ace::NestedScrollOptionsExt*>(options);
+    self.nestedOpt = [[NestedScrollOptionsExt alloc] init];
+    self.nestedOpt.scrollUp = static_cast<NestedScrollMode>(cppOptions->scrollUp);
+    self.nestedOpt.scrollDown = static_cast<NestedScrollMode>(cppOptions->scrollDown);
+    self.nestedOpt.scrollLeft = static_cast<NestedScrollMode>(cppOptions->scrollLeft);
+    self.nestedOpt.scrollRight = static_cast<NestedScrollMode>(cppOptions->scrollRight);
+    self.webView.scrollView.directionalLockEnabled = NO;
+}
+
+- (void)setWebScrollEnabled:(BOOL)webScrollEnabled {
+    if (_webScrollEnabled != webScrollEnabled) {
+        _webScrollEnabled = webScrollEnabled;
+    }
+    if (_webScrollEnabled != self.webView.scrollView.scrollEnabled) {
+        self.webView.scrollView.scrollEnabled = _webScrollEnabled;
     }
 }
 @end

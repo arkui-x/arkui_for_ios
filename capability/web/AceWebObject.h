@@ -31,13 +31,25 @@ using DialogResultCallBack = std::function<void(const int, const std::string&)>;
 
 class AceWebOnScrollObject {
 public:
-    AceWebOnScrollObject(const float x, const float y) : x_(x), y_(y) {}
+    AceWebOnScrollObject(float x, float y) : AceWebOnScrollObject(x, y, 0, 0, 0, 0) {}
+    AceWebOnScrollObject(const float x, const float y, const float contentWidth, const float contentHeight,
+        const float frameWidth, const float frameHeight)
+        : x_(x), y_(y), contentWidth_(contentWidth), contentHeight_(contentHeight), frameWidth_(frameWidth),
+          frameHeight_(frameHeight) {}
     float GetX();
     float GetY();
+    float GetContentWidth();
+    float GetContentHeight();
+    float GetFrameWidth();
+    float GetFrameHeight();
 
 private:
     float x_;
     float y_;
+    float contentWidth_;
+    float contentHeight_;
+    float frameWidth_;
+    float frameHeight_;
 };
 
 class AceWebOnScaleChangeObject {

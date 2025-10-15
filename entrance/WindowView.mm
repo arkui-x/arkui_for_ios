@@ -34,6 +34,15 @@
 #define HIT_TEST_TARGET_PLATFORMVIEW @"PlatformView"
 
 #define ACE_ENABLE_GL
+
+static bool g_isPointInsideWebForceResult = false;
+static bool g_isPointInsideWebForceEnable = false;
+extern "C" void SetIsPointInsideWebForceResult(bool enable, bool result)
+{
+    g_isPointInsideWebForceEnable = enable;
+    g_isPointInsideWebForceResult = result;
+}
+
 @interface WindowView()
 
 @property (nonatomic, strong) CADisplayLink *displayLinkTouch;
@@ -203,20 +212,20 @@
 }
 
 - (BOOL)isPointInsideWeb:(CGPoint)point withEvent:(UIEvent *)event {
-     __block bool isNeedTouchTestArkWeb = false;
+     __block BOOL isNeedTouchTestArkWeb = NO;
     [AceWebResourcePlugin.getObjectMap enumerateKeysAndObjectsUsingBlock:^(
         NSString * _Nonnull key, AceWeb * _Nonnull aceWeb, BOOL * _Nonnull stop) {
         UIView *uiview = [aceWeb getWeb];
         CGPoint webPoint = [self convertPoint:point toView:uiview];
         if ([uiview pointInside:webPoint withEvent:event]) {
-            isNeedTouchTestArkWeb = true;
+            isNeedTouchTestArkWeb = YES;
         }
     }];
-    bool isTouchArkWeb = false;
+    BOOL isTouchArkWeb = NO;
     if (isNeedTouchTestArkWeb) {
         isTouchArkWeb = [self touchHitTestTarget:point targetName:HIT_TEST_TARGET_WEB];
     }
-    return isTouchArkWeb;
+    return isTouchArkWeb && g_isPointInsideWebForceEnable && !g_isPointInsideWebForceResult;
 }
 
 - (BOOL)touchHitTestTarget:(CGPoint)point targetName:(NSString*)target{

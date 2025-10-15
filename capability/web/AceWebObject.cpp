@@ -23,6 +23,22 @@ float AceWebOnScrollObject::GetY() {
      return this->y_;
 }
 
+float AceWebOnScrollObject::GetContentWidth() {
+    return this->contentWidth_;
+}
+
+float AceWebOnScrollObject::GetContentHeight() {
+    return this->contentHeight_;
+}
+
+float AceWebOnScrollObject::GetFrameWidth() {
+    return this->frameWidth_;
+}
+
+float AceWebOnScrollObject::GetFrameHeight() {
+    return this->frameHeight_;
+}
+
 float AceWebOnScaleChangeObject::GetOldScale() {
     return this->oldScale_;
 }

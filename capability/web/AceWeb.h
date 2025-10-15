@@ -19,6 +19,8 @@
 
 @interface AceWeb : NSObject
 
+@property (nonatomic, assign) BOOL webScrollEnabled;
+
 -(instancetype)init:(int64_t)incId
              target:(UIViewController*)target
      onEvent:(IAceOnResourceEvent)callback
@@ -100,4 +102,5 @@
                 asyncMethodList:(NSArray*)asyncMethodList
                        callback:(id (^)(NSString* objName, NSString* methodName, NSArray* args))callback;
 - (void)deleteJavaScriptRegister:(NSString*)objName;
+- (void)setNestedScrollOptionsExt:(void *)options;
 @end

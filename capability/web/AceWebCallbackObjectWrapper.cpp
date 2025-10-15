@@ -89,6 +89,10 @@ class AceWebScrollObjectWrapper final : public OHOS::Ace::WebScrollObject {
 public:
     float GetX(void* object);
     float GetY(void* object);
+    float GetContentWidth(void* object);
+    float GetContentHeight(void* object);
+    float GetFrameWidth(void* object);
+    float GetFrameHeight(void* object);
 };
 
 float AceWebScrollObjectWrapper::GetX(void* object)
@@ -101,6 +105,34 @@ float AceWebScrollObjectWrapper::GetY(void* object)
 {
     AceWebOnScrollObject* acePtr = reinterpret_cast<AceWebOnScrollObject*>(object);
     return acePtr ? acePtr->GetY() : 0.f;
+}
+
+float AceWebScrollObjectWrapper::GetContentWidth(void* object)
+{
+    AceWebOnScrollObject* acePtr = reinterpret_cast<AceWebOnScrollObject*>(object);
+    float contentWidth = acePtr ? acePtr->GetContentWidth() : 0.f;
+    return contentWidth;
+}
+
+float AceWebScrollObjectWrapper::GetContentHeight(void* object)
+{
+    AceWebOnScrollObject* acePtr = reinterpret_cast<AceWebOnScrollObject*>(object);
+    float contentHeight = acePtr ? acePtr->GetContentHeight() : 0.f;
+    return contentHeight;
+}
+
+float AceWebScrollObjectWrapper::GetFrameWidth(void* object)
+{
+    AceWebOnScrollObject* acePtr = reinterpret_cast<AceWebOnScrollObject*>(object);
+    float frameWidth = acePtr ? acePtr->GetFrameWidth() : 0.f;
+    return frameWidth;
+}
+
+float AceWebScrollObjectWrapper::GetFrameHeight(void* object)
+{
+    AceWebOnScrollObject* acePtr = reinterpret_cast<AceWebOnScrollObject*>(object);
+    float frameHeight = acePtr ? acePtr->GetFrameHeight() : 0.f;
+    return frameHeight;
 }
 
 class AceWebScaleChangeObjectWrapper final : public OHOS::Ace::WebScaleChangeObject {

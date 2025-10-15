@@ -152,6 +152,7 @@ template("ace_capability_ios_source_set") {
       "$ace_root/adapter/ios/capability/web/AceWebPatternBridge.cpp",
       "$ace_root/adapter/ios/capability/web/AceWebResourcePlugin.mm",
       "$ace_root/adapter/ios/capability/web/WebMessageChannel.mm",
+      "$ace_root/adapter/ios/capability/web/AceWebPatternOCBridge.mm",
 
       # font
       "$ace_root/adapter/ios/capability/font/font_platform_impl.cpp",
