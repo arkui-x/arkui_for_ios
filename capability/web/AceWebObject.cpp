@@ -112,3 +112,39 @@ int AceWebFullScreenEnterObject::GetWidths() {
 int AceWebFullScreenEnterObject::GetHeights() {
     return this->heights_;
 }
+
+int AceWebSslErrorEventObject::GetError() {
+    return this->error_;
+}
+
+std::string AceWebSslErrorEventObject::GetUrl() {
+    return this->url_;
+}
+
+std::string AceWebSslErrorEventObject::GetOriginalUrl() {
+    return this->originalUrl_;
+}
+
+std::string AceWebSslErrorEventObject::GetReferrer() {
+    return this->referrer_;
+}
+
+bool AceWebSslErrorEventObject::IsFatalError() {
+    return this->isFatalError_;
+}
+
+bool AceWebSslErrorEventObject::IsMainFrame() {
+    return this->isMainFrame_;
+}
+
+std::vector<std::string> AceWebSslErrorEventObject::GetCertificateChain() {
+    return this->certChainData_;
+}
+
+int AceWebOnSslErrorEventReceiveEventObject::GetError() {
+    return this->error_;
+}
+
+std::vector<std::string> AceWebOnSslErrorEventReceiveEventObject::GetCertChainData() {
+    return this->certChainData_;
+}

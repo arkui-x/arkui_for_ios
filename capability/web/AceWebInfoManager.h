@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -13,13 +13,18 @@
  * limitations under the License.
  */
 
-#include <string>
-#include <map>
-#include "core/components/web/web_event.h"
+#import <Foundation/Foundation.h>
 
-void AceWebObject(const std::string& id, const std::string& event,void* object);
-bool AceWebObjectWithBoolReturn(const std::string& id, const std::string& event, void* object);
-bool AceWebObjectWithResponseReturn(const std::string& id, const std::string& event, void* object);
-void AceWebObjectWithUnResponseReturn(const std::string& id);
-const OHOS::Ace::RefPtr<OHOS::Ace::WebResponse>& AceWebObjectGetResponse();
+NS_ASSUME_NONNULL_BEGIN
 
+@interface AceWebInfoManager : NSObject
+
++ (instancetype)sharedManager;
+- (void)updateUserAgentIfNeeded;
+- (NSString *)getUserAgent;
+
+@property (nonatomic, strong) NSMutableSet<NSString *> *authChallengeUseCredentials;
+
+@end
+
+NS_ASSUME_NONNULL_END

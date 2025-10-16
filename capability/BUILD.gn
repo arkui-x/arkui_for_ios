@@ -147,11 +147,15 @@ template("ace_capability_ios_source_set") {
       "$ace_root/adapter/ios/capability/web/AceWebControllerBridge.mm",
       "$ace_root/adapter/ios/capability/web/AceWebDownloadImpl.cpp",
       "$ace_root/adapter/ios/capability/web/AceWebErrorReceiveInfoObject.cpp",
+      "$ace_root/adapter/ios/capability/web/AceWebInfoManager.mm",
       "$ace_root/adapter/ios/capability/web/AceWebMessageExtImpl.cpp",
       "$ace_root/adapter/ios/capability/web/AceWebObject.cpp",
       "$ace_root/adapter/ios/capability/web/AceWebPatternBridge.cpp",
       "$ace_root/adapter/ios/capability/web/AceWebResourcePlugin.mm",
+      "$ace_root/adapter/ios/capability/web/AceWebSchemeHandler.cpp",
       "$ace_root/adapter/ios/capability/web/WebMessageChannel.mm",
+      "$ace_root/adapter/ios/capability/web/scheme_handler/resource_handler.mm",
+      "$ace_root/adapter/ios/capability/web/scheme_handler/resource_request.mm",
 
       # font
       "$ace_root/adapter/ios/capability/font/font_platform_impl.cpp",
@@ -165,6 +169,15 @@ template("ace_capability_ios_source_set") {
     }
     part_name = "ace_engine_cross"
     subsystem_name = "arkui"
+
+    frameworks = [
+      "WebKit.framework",
+      "Security.framework",
+    ]
+
+    include_dirs = [
+      "//foundation/arkui/ace_engine/frameworks/core/interfaces/native/utility",
+    ]
   }
 }
 
