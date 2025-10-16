@@ -16,6 +16,7 @@
 #import "StageApplication.h"
 #import "StageAssetManager.h"
 #import "StageConfigurationManager.h"
+#import "AceWebInfoManager.h"
 
 #import "Logger.h"
 #include <string>
@@ -39,6 +40,7 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
     [self setupNotificationCenterObservers];
     [[StageAssetManager assetManager] launchAbility];
     [[StageConfigurationManager configurationManager] registConfiguration];
+    [[AceWebInfoManager sharedManager] updateUserAgentIfNeeded];
     [self startAbilityDelegator];
 }
 

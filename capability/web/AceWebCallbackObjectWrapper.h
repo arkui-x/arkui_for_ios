@@ -26,6 +26,7 @@ enum class AceWebHandleResult {
     PROMPTCONFIRM,
     GRANT,
     DENY,
+    IGNORE,
 };
 
 void InjectAceWebResourceObject();

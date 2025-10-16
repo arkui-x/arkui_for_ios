@@ -14,6 +14,7 @@
  */
 
 #import "AceWeb.h"
+#import <Security/Security.h>
 #import "AceWebPatternBridge.h"
 #import "AceWebErrorReceiveInfoObject.h"
 #import "AceWebObject.h"
@@ -25,6 +26,9 @@
 #import <AVKit/AVKit.h>
 #import "AceWebPatternOCBridge.h"
 #include "core/components_ng/pattern/scrollable/scrollable_properties.h"
+#include "scheme_handler/resource_request.h"
+#include "ace_engine_types.h"
+#import "AceWebInfoManager.h"
 
 #define WEBVIEW_WIDTH  @"width"
 #define WEBVIEW_HEIGHT  @"height"
@@ -40,6 +44,9 @@
 #define DELAY_TIME      0.3
 #define ZOOMIN_SCALE_VALUE   1.2
 #define ZOOMOUT_SCALE_VALUE  0.8
+#define POLLING_INTERVAL_MS 50
+#define TIMEOUT_S 15
+#define HTTP_STATUS_GATEWAY_TIMEOUT 504
 
 #define WEB_FLAG        @"web@"
 #define PARAM_AND       @"#HWJS-&-#"
@@ -80,7 +87,14 @@
 #define NTC_ONINTERCEPTREQUEST            @"onInterceptRequest"
 #define NTC_REGISTEREDONINTERCEPTREQUEST  @"IsRegisteredOnInterceptRequest"
 #define NTC_ONREFRESHACCESSED_HISTORYEVENT     @"onRefreshAccessedHistory"
+#define CUSTOM_SCHEME                     @"arkuixcustomscheme"
+#define CUSTOM_SCHEME_HANDLER             @"arkuixcustomschemehandler"
+#define NTC_ONOVERRIDEURLLOADING          @"onOverrideUrlLoading"
+#define NTC_ONSSLERROREVENTRECEIVE        @"onSslErrorEventReceive"
+#define NTC_ONSSLERROREVENT               @"onSslErrorEvent"
+#define NTC_ONCLIENTAUTHENTICATIONREQUEST @"onClientAuthenticationRequest"
 #define WEBVIEW_PAGE_HALF                 2
+#define NTC_TEXT_ZOOM_RATIO               @"textZoomRatio"
 
 typedef NS_ENUM(NSInteger, NestedScrollMode) {
     SELF_ONLY,
@@ -152,7 +166,15 @@ typedef id (^onJavaScriptFunction)(NSString* objName, NSString* methodName, NSAr
 @property (nonatomic, strong) NSString* objName;
 @property (nonatomic, assign) bool allowIncognitoMode;
 @property (nonatomic, assign) BOOL jsReady;
-@property (nonatomic, copy) NSString* schemeUrl;
+@property (nonatomic, strong) NSMutableDictionary<NSString*, NSValue*>* schemeHandlerMap;
+@property (nonatomic, assign) ArkWeb_ResourceRequest* currentResourceRequest;
+@property (nonatomic, assign) ArkWeb_ResourceHandler* currentResourceHandler;
+@property (nonatomic, assign) NSInteger textZoomRatio;
+@property (nonatomic, copy) NSString* referrer;
+@property (nonatomic, assign) bool isMainFrame;
+@property (nonatomic, copy) NSString* mainFrameUrl;
+@property (nonatomic, assign) bool isLoadUrl;
+@property (nonatomic, strong) NSMutableSet<NSString *> *handleSslErrorUrls;
 @property (nonatomic, strong) NestedScrollOptionsExt *nestedOpt;
 @property (nonatomic, assign) CGPoint dragStartPoint;
 @property (nonatomic, assign) BOOL hasCalledOnScrollStart;
@@ -160,8 +182,11 @@ typedef id (^onJavaScriptFunction)(NSString* objName, NSString* methodName, NSAr
 
 static BOOL _webDebuggingAccessInit = NO;
 static NSString *const kJavaScriptURLPrefix = @"javascript:";
+using SslError = OHOS::Ace::NG::Converter::SslError;
 
-@implementation AceWeb
+@implementation AceWeb {
+    dispatch_source_t _timer;
+}
 
 - (instancetype)init:(int64_t)incId
               target:(UIViewController*)target
@@ -188,6 +213,13 @@ static NSString *const kJavaScriptURLPrefix = @"javascript:";
     self.httpErrorCode = 400;
     self.isLoadRichText = false;
     self.jsReady = false;
+    self.currentResourceRequest = nullptr;
+    self.currentResourceHandler = nullptr;
+    self.textZoomRatio = 100;
+    self.referrer = @"";
+    self.isMainFrame = false;
+    self.isLoadUrl = false;
+    self.handleSslErrorUrls = [NSMutableSet set];
     [self initConfigure];
     [self initEventCallback];
     [self initWeb];
@@ -219,7 +251,8 @@ static NSString *const kJavaScriptURLPrefix = @"javascript:";
     config.preferences = preference;
     config.userContentController = userContentController;
     config.allowsInlineMediaPlayback = YES;
-    [config setURLSchemeHandler:self forURLScheme:@"arkuixcustomscheme"];
+    [config setURLSchemeHandler:self forURLScheme:CUSTOM_SCHEME];
+    [config setURLSchemeHandler:self forURLScheme:CUSTOM_SCHEME_HANDLER];
     [self incognitoModeWithConfig:config];
     self.webView = [[WKWebView alloc] initWithFrame:CGRectZero configuration:config];
     self.webView.UIDelegate = self;
@@ -286,6 +319,7 @@ static NSString *const kJavaScriptURLPrefix = @"javascript:";
 -(void)loadUrl:(NSString*)url
 {
     [self.webView loadRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:url]]];
+    self.isLoadUrl = YES;
 }
 
 -(void)loadUrl:(NSString*)url header:(NSDictionary*) httpHeaders
@@ -294,11 +328,10 @@ static NSString *const kJavaScriptURLPrefix = @"javascript:";
         NSLog(@"Error:AceWeb: url is nill");
         return;
     }
-
     if ([url hasSuffix:@".html"] && ![url hasPrefix:@"file://"] && ![url hasPrefix:@"http"]) {
         url = [NSString stringWithFormat:@"file://%@", url];
     }
-
+    [self.handleSslErrorUrls removeAllObjects];
     if (httpHeaders == nil || httpHeaders.count == 0) {
         if ([self isJavascriptUrl:url]) {
             NSString *js = [url substringFromIndex:kJavaScriptURLPrefix.length];
@@ -310,6 +343,7 @@ static NSString *const kJavaScriptURLPrefix = @"javascript:";
             }
         } else {
             [self.webView loadRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:url]]];
+            self.isLoadUrl = YES;
         }
         return;
     }
@@ -319,6 +353,7 @@ static NSString *const kJavaScriptURLPrefix = @"javascript:";
     NSMutableURLRequest *mutableRequest = [request mutableCopy];
     [mutableRequest setAllHTTPHeaderFields:headerFields];
     [self.webView loadRequest:mutableRequest];
+    self.isLoadUrl = YES;
 }
 
 - (BOOL)isJavascriptUrl:(NSString *)url
@@ -704,6 +739,7 @@ static NSString *const kJavaScriptURLPrefix = @"javascript:";
 {
     self.callSyncMethodMap = [[NSMutableDictionary alloc] init];
     self.downloadTasksDic = [[NSMutableDictionary alloc] init];
+    self.schemeHandlerMap = [[NSMutableDictionary alloc] init];
     self.screenScale = [UIScreen mainScreen].scale;
     InjectAceWebResourceObject();
 }
@@ -902,6 +938,47 @@ static NSString *const kJavaScriptURLPrefix = @"javascript:";
     self.onJavaScriptFunctionCallBack = nil;
 }
 
+- (BOOL)setWebSchemeHandler:(NSString*)scheme handler:(const ArkWeb_SchemeHandler*)handler
+{
+    if (scheme == nil || handler == nullptr) {
+        return NO;
+    }
+
+    NSValue* existingHandlerValue = [self.schemeHandlerMap objectForKey:scheme];
+    if (existingHandlerValue) {
+        ArkWeb_SchemeHandler* existingHandler = (ArkWeb_SchemeHandler*)[existingHandlerValue pointerValue];
+        if (existingHandler) {
+            [self.schemeHandlerMap removeObjectForKey:scheme];
+        }
+    }
+    NSValue* handlerValue = [NSValue valueWithPointer:handler];
+    [self.schemeHandlerMap setObject:handlerValue forKey:scheme];
+    return YES;
+}
+
+- (BOOL)clearWebSchemeHandler
+{
+    if (self.schemeHandlerMap == nil) {
+        return NO;
+    }
+    [self.schemeHandlerMap removeAllObjects];
+    return YES;
+}
+
+- (ArkWeb_SchemeHandler*)getSchemeHandler:(NSString*)scheme
+{
+    if (scheme == nil || self.schemeHandlerMap == nil) {
+        return nullptr;
+    }
+    
+    NSValue* handlerValue = [self.schemeHandlerMap objectForKey:scheme];
+    if (handlerValue) {
+        return (ArkWeb_SchemeHandler*)[handlerValue pointerValue];
+    }
+    
+    return nullptr;
+}
+
 - (void)initEventCallback
 {
     // zoomAccess callback
@@ -926,6 +1003,8 @@ static NSString *const kJavaScriptURLPrefix = @"javascript:";
     [self setTouchMoveCallback];
     // touchUp callback
     [self setTouchUpCallback];
+    // textZoomRatio callback
+    [self updateTextZoomRatio];
 
     [self enterFullScreenOrExitFullScreenNotifi];
 }
@@ -1303,6 +1382,40 @@ static NSString *const kJavaScriptURLPrefix = @"javascript:";
     
 }
 
+- (void)updateTextZoomRatio
+{
+    __weak __typeof(self) weakSelf = self;
+    NSString *text_zoom_ratio_hash = [self method_hashFormat:NTC_TEXT_ZOOM_RATIO];
+    IAceOnCallSyncResourceMethod text_zoom_ratio_callback = ^NSString *(NSDictionary * param) {
+        __strong __typeof(weakSelf) strongSelf = weakSelf;
+        NSInteger textZoomRatio = [[param objectForKey:NTC_TEXT_ZOOM_RATIO] integerValue];
+        if (strongSelf) {
+            strongSelf.textZoomRatio = textZoomRatio;
+            if (strongSelf.jsReady) {
+                [strongSelf updateTextZoomRatio:textZoomRatio];
+            }
+            return SUCCESS;
+        } else {
+            NSLog(@"AceWeb: textZoomRatio fail");
+            return FAIL;
+        }
+    };
+    [self.callSyncMethodMap setObject:[text_zoom_ratio_callback copy] forKey:text_zoom_ratio_hash];
+}
+
+- (void)updateTextZoomRatio:(NSInteger)textZoomRatio {
+    NSString* js = [NSString stringWithFormat:
+        @"var style = document.createElement('style');"
+        @"style.innerHTML = 'body { -webkit-text-size-adjust: %d%% !important; }';"
+        @"document.head.appendChild(style);",
+        textZoomRatio];
+    [self.webView evaluateJavaScript:js completionHandler:^(id result, NSError* error) {
+        if (error) {
+            NSLog(@"AceWeb: updateTextZoomRatio evaluateJavaScript error: %@", error.localizedDescription);
+        }
+    }];
+}
+
 - (NSString *)method_hashFormat:(NSString *)method
 {
     return [NSString stringWithFormat:@"%@%lld%@%@%@%@", WEB_FLAG, self.incId, METHOD, PARAM_EQUALS, method, PARAM_BEGIN];
@@ -1358,6 +1471,21 @@ static NSString *const kJavaScriptURLPrefix = @"javascript:";
     self.preferences = nil;
     self.webpagePreferences = nil;
     self.target = nil;
+    [self stopGCDTimer];
+
+    if (self.schemeHandlerMap) {
+        for (NSString* scheme in self.schemeHandlerMap) {
+            NSValue* handlerValue = [self.schemeHandlerMap objectForKey:scheme];
+            if (handlerValue) {
+                ArkWeb_SchemeHandler* handler = (ArkWeb_SchemeHandler*)[handlerValue pointerValue];
+                if (handler) {
+                    delete handler;
+                }
+            }
+        }
+        [self.schemeHandlerMap removeAllObjects];
+        self.schemeHandlerMap = nil;
+    }
 }
 
 - (NSDictionary<NSString *, IAceOnCallSyncResourceMethod> *)getSyncCallMethod
@@ -1387,6 +1515,7 @@ static NSString *const kJavaScriptURLPrefix = @"javascript:";
             asyncMethodList:self.asyncMethodList objName:self.objName];
     }
     self.jsReady = true;
+    [self updateTextZoomRatio:self.textZoomRatio];
     NSString *param = [NSString stringWithFormat:@"%@",webView.URL];
     if (self.isLoadRichText) {
         self.isLoadRichText = false;
@@ -1404,17 +1533,130 @@ static NSString *const kJavaScriptURLPrefix = @"javascript:";
     AceWebObject([[self event_hashFormat:NTC_ONREFRESHACCESSED_HISTORYEVENT] UTF8String], [NTC_ONREFRESHACCESSED_HISTORYEVENT UTF8String], obj);
 }
 
-#pragma mark - WKURLSchemeHandler
-- (void)webView:(WKWebView *)webView startURLSchemeTask:(id<WKURLSchemeTask>)urlSchemeTask {
-    NSURL *originalURL = urlSchemeTask.request.URL;
-    self.schemeUrl = originalURL.absoluteString;
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        AceWebErrorReceiveInfoObject* obj = new AceWebErrorReceiveInfoObject(std::string([originalURL.absoluteString UTF8String]), "", 0);
-        if (AceWebObjectWithResponseReturn(
-                [[self event_hashFormat:NTC_ONINTERCEPTREQUEST] UTF8String], [NTC_ONINTERCEPTREQUEST UTF8String], obj)) {
-            const auto& AceWebResponse = AceWebObjectGetResponse();
-            if (AceWebResponse) {
-                NSURLRequest* request = urlSchemeTask.request;
+- (void)releaseResourceRequest {
+    if (self.currentResourceRequest) {
+        delete self.currentResourceRequest;
+        self.currentResourceRequest = nullptr;
+    }
+    if (self.currentResourceHandler) {
+        delete self.currentResourceHandler;
+        self.currentResourceHandler = nullptr;
+    }
+}
+
+- (void)handleInterceptedRequest:(NSString*)requestURL 
+                         handler:(ArkWeb_SchemeHandler*)handler
+                         webView:(WKWebView*)webView {
+    if (!self.currentResourceHandler || !self.currentResourceHandler->response_) {
+        return;
+    }
+
+    if (self.currentResourceHandler->response_->errorCode_ != 0) {
+            AceWebErrorReceiveInfoObject *obj = new AceWebErrorReceiveInfoObject(std::string([requestURL UTF8String]),
+            self.currentResourceHandler->response_->errorDescription_,
+            self.currentResourceHandler->response_->errorCode_);
+        AceWebObject([[self event_hashFormat:@"onErrorReceive"] UTF8String], [@"onErrorReceive" UTF8String], obj);
+    } else if (self.currentResourceHandler->isFailed_) {
+        AceWebErrorReceiveInfoObject *obj = new AceWebErrorReceiveInfoObject(std::string([requestURL UTF8String]),
+            self.currentResourceHandler->errorDescription_, self.currentResourceHandler->errorCode_);
+        AceWebObject([[self event_hashFormat:@"onErrorReceive"] UTF8String], [@"onErrorReceive" UTF8String], obj);
+    } 
+
+    if (self.currentResourceHandler->response_->url_.empty()) {
+        NSString* customURL = [NSString stringWithFormat:@"%@://%@", CUSTOM_SCHEME_HANDLER, requestURL];
+        NSURLRequest* newRequest = [NSURLRequest requestWithURL:[NSURL URLWithString:customURL]];
+        [webView loadRequest:newRequest];
+    } else if (self.currentResourceHandler->response_->errorCode_ == 0) {
+        NSString* responseURL = [NSString stringWithUTF8String:self.currentResourceHandler->response_->url_.c_str()];
+        NSURL* url = [NSURL URLWithString:responseURL];
+        if (url == nil || url.scheme == nil) {
+            NSString* combinedURL = [NSString stringWithFormat:@"%@%@", requestURL, responseURL];
+            url = [NSURL URLWithString:combinedURL];
+        }
+        NSURLRequest* newRequest = [NSURLRequest requestWithURL:url];
+        [webView loadRequest:newRequest];
+    }
+    
+    if (handler->on_request_stop && (self.currentResourceHandler->isFinished_ ||
+        self.currentResourceHandler->isFailed_ || self.currentResourceHandler->response_->errorCode_ != 0)) {
+        handler->on_request_stop(handler, self.currentResourceRequest);
+    }
+    if (!self.currentResourceHandler->response_->url_.empty()) {
+        [self releaseResourceRequest];
+    }
+}
+
+- (void)handleCustomSchemeRequest:(NSURLRequest*)request 
+                     responseData:(NSData**)responseData 
+                         response:(NSHTTPURLResponse**)response {
+    if (self.currentResourceHandler && self.currentResourceHandler->response_) {
+        *responseData = [NSData dataWithBytes:self.currentResourceHandler->buffer_.c_str()
+            length:self.currentResourceHandler->bufferLen_];
+        if (self.currentResourceHandler->response_->mimeType_.empty() ||
+            self.currentResourceHandler->response_->mimeType_.length() <= 0) {
+            const_cast<ArkWeb_Response*>(self.currentResourceHandler->response_)->mimeType_ = "text/html";
+        }
+        NSString* contentType = [NSString stringWithFormat:@"%@;charset=%@;",
+            [NSString stringWithUTF8String:self.currentResourceHandler->response_->mimeType_.c_str()],
+            [NSString stringWithUTF8String:self.currentResourceHandler->response_->encoding_.c_str()]];
+        NSMutableDictionary* headers = [NSMutableDictionary dictionaryWithDictionary:@{
+            @"Content-Type": contentType,
+            @"Content-Length": [@((*responseData).length) stringValue],
+            @"Reason-Phrase": [NSString stringWithUTF8String:self.currentResourceHandler->response_->statusText_.c_str()]
+        }];
+        for (const auto& header : self.currentResourceHandler->response_->headers_) {
+            NSString* key = [NSString stringWithUTF8String:header.first.c_str()];
+            NSString* value = [NSString stringWithUTF8String:header.second.c_str()];
+            [headers setObject:value forKey:key];
+        }
+        *response = [[NSHTTPURLResponse alloc] initWithURL:request.URL
+            statusCode:self.currentResourceHandler->response_->status_ HTTPVersion:@"HTTP/1.1"
+            headerFields:headers];
+    }
+    [self releaseResourceRequest];
+}
+
+- (void)handleAceWebResponse:(id<WKURLSchemeTask>)urlSchemeTask {
+    const auto& AceWebResponse = AceWebObjectGetResponse();
+    if (!AceWebResponse) {
+        NSLog(@"AceWeb: onInterceptRequest fail");
+        NSError *error = [NSError errorWithDomain:@"onInterceptRequest fail" code:HTTP_STATUS_GATEWAY_TIMEOUT userInfo:nil];
+        [urlSchemeTask didFailWithError:error];
+        return;
+    }
+    __weak __typeof(self) weakSelf = self;
+    [self startGCDTimer:^(bool timeout) {
+        __strong __typeof(weakSelf)strongSelf = weakSelf;
+        if (!strongSelf) {
+            NSLog(@"AceWeb: onInterceptRequest fail");
+            NSError *error = [NSError errorWithDomain:@"onInterceptRequest fail" code:HTTP_STATUS_GATEWAY_TIMEOUT userInfo:nil];
+            [urlSchemeTask didFailWithError:error];
+            return;
+        }
+        NSURLRequest* request = urlSchemeTask.request;
+        if (timeout) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                const std::string& rawData = "<html><body><h1>Response Timeout</h1><p>The request has timed out.</p></body></html>";
+                NSData* responseData = [NSData dataWithBytes:rawData.c_str() length:rawData.size()];
+                NSString* contentType = @"text/html;charset=tf-8;";
+                NSMutableDictionary* headers = [NSMutableDictionary dictionaryWithDictionary:@{
+                    @"Content-Type": contentType,
+                    @"Content-Length": [@(responseData.length) stringValue],
+                    @"Reason-Phrase": @"Response timed out"
+                }];
+                NSHTTPURLResponse* response = [[NSHTTPURLResponse alloc] initWithURL:request.URL
+                    statusCode:HTTP_STATUS_GATEWAY_TIMEOUT HTTPVersion:@"HTTP/1.1"
+                    headerFields:headers];
+                [urlSchemeTask didReceiveResponse:response];
+                [urlSchemeTask didReceiveData:responseData];
+                [urlSchemeTask didFinish];
+                [strongSelf stopGCDTimer];
+            });
+            return;
+        }
+        bool isReady = AceWebResponse->GetResponseStatus();
+        if (isReady) {
+            dispatch_async(dispatch_get_main_queue(), ^{
                 const std::string& rawData = AceWebResponse->GetData();
                 NSData* responseData = [NSData dataWithBytes:rawData.c_str() length:rawData.size()];
                 NSString* contentType = [NSString stringWithFormat:@"%@;charset=%@;",
@@ -1434,90 +1676,119 @@ static NSString *const kJavaScriptURLPrefix = @"javascript:";
                 NSHTTPURLResponse* response = [[NSHTTPURLResponse alloc] initWithURL:request.URL
                     statusCode:AceWebResponse->GetStatusCode() HTTPVersion:@"HTTP/1.1"
                     headerFields:headers];
-                dispatch_async(dispatch_get_main_queue(), ^{
-                    [urlSchemeTask didReceiveResponse:response];
-                    [urlSchemeTask didReceiveData:responseData];
-                    [urlSchemeTask didFinish];
-                });
-            }
-        } else {
-            NSURLSessionDataTask *task = [[NSURLSession sharedSession] dataTaskWithURL:[NSURL URLWithString:[self respellPath:originalURL.absoluteString]]
-                completionHandler:^(NSData * _Nullable data, NSURLResponse * _Nullable response, NSError * _Nullable error) {
-                dispatch_async(dispatch_get_main_queue(), ^{
-                    if (error) {
-                        [urlSchemeTask didFailWithError:error];;
-                        return;
-                    }
-                    [urlSchemeTask didReceiveResponse:response];
-                    [urlSchemeTask didReceiveData:data];
-                    [urlSchemeTask didFinish];
-                });
-            }];
-            [task resume];
+                [urlSchemeTask didReceiveResponse:response];
+                [urlSchemeTask didReceiveData:responseData];
+                [urlSchemeTask didFinish];
+                [strongSelf stopGCDTimer];
+            });
+        }
+    }];
+}
+
+- (void)startGCDTimer:(nonnull void (^)(bool timeout))block {
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(TIMEOUT_S * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        if (_timer) {
+            block(true);
         }
     });
+    if (!_timer) {
+        dispatch_queue_t queue = dispatch_queue_create("com.arkuix.timer.queue", DISPATCH_QUEUE_SERIAL);
+        _timer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, queue);
+        dispatch_source_set_timer(_timer, DISPATCH_TIME_NOW, POLLING_INTERVAL_MS * NSEC_PER_MSEC, 10 * NSEC_PER_MSEC);
+        dispatch_source_set_event_handler(_timer, ^{
+            block(false);
+        });
+        dispatch_resume(_timer);
+    }
 }
 
-- (NSString *)respellPath:(NSString *)originalUrl {
-    NSString *prefix = @"arkuixcustomscheme://";
-    if (![originalUrl hasPrefix:prefix]) {
-        return originalUrl;
+- (void)stopGCDTimer {
+    if (_timer) {
+        dispatch_source_cancel(_timer);
+        _timer = nil;
     }
-    NSString *strippedUrl = [originalUrl substringFromIndex:prefix.length];
-    if ([strippedUrl hasPrefix:@"https//"]) {
-        NSRange range = NSMakeRange(0, MIN(7, strippedUrl.length));
-        return [strippedUrl stringByReplacingOccurrencesOfString:@"https//" 
-                    withString:@"https://" options:NSLiteralSearch range:range];
-    }
-    if ([strippedUrl hasPrefix:@"http//"]) {
-        NSRange range = NSMakeRange(0, MIN(6, strippedUrl.length));
-        return [strippedUrl stringByReplacingOccurrencesOfString:@"http//" 
-                    withString:@"http://" options:NSLiteralSearch range:range];
-    }
-    if ([strippedUrl hasPrefix:@"file///"]) {
-        NSRange range = NSMakeRange(0, MIN(7, strippedUrl.length));
-        return [strippedUrl stringByReplacingOccurrencesOfString:@"file///" 
-                    withString:@"file:///" options:NSLiteralSearch range:range];
-    }
-    return strippedUrl;
 }
 
-- (void)webView:(WKWebView *)webView stopURLSchemeTask:(id<WKURLSchemeTask>)urlSchemeTask {}
+#pragma mark - WKURLSchemeHandler
+- (void)webView:(WKWebView *)webView startURLSchemeTask:(id<WKURLSchemeTask>)urlSchemeTask {
+    NSURLRequest* request = urlSchemeTask.request;
+    if ([request.URL.scheme isEqualToString:CUSTOM_SCHEME_HANDLER]) {
+        NSHTTPURLResponse* response = nil;
+        NSData* responseData = nil;
+        NSError* error = nil;
+        [self handleCustomSchemeRequest:request responseData:&responseData response:&response];
+        [urlSchemeTask didReceiveResponse:response];
+        [urlSchemeTask didReceiveData:responseData];
+        [urlSchemeTask didFinish];
+    } else {
+        [self handleAceWebResponse:urlSchemeTask];
+    }
+}
+
+- (void)webView:(WKWebView *)webView stopURLSchemeTask:(id<WKURLSchemeTask>)urlSchemeTask {
+    ArkWeb_SchemeHandler* handler = [self getSchemeHandler:urlSchemeTask.request.URL.scheme];
+    if (handler && handler->on_request_stop) {
+        handler->on_request_stop(handler, self.currentResourceRequest);
+    }
+    [self stopGCDTimer];
+}
 
 - (void)webView:(WKWebView *)webView
     decidePolicyForNavigationAction:(WKNavigationAction *)navigationAction
                     decisionHandler:(void (^)(WKNavigationActionPolicy))decisionHandler
 {
-    NSString *url = navigationAction.request.URL.absoluteString;
-    if (navigationAction.navigationType == WKNavigationTypeReload || 
-        (navigationAction.navigationType == WKNavigationTypeBackForward && 
-        url && 
-        [url isEqualToString:webView.backForwardList.currentItem.URL.absoluteString])) {
-        self.reloadUrl = url;
-    }
     NSString* requestURL =
             navigationAction.request.URL.absoluteString ? navigationAction.request.URL.absoluteString : @"";
+    NSString *referer = navigationAction.request.allHTTPHeaderFields[@"Referer"];
+    self.referrer = referer ? referer : @"";
+    if (navigationAction.targetFrame.isMainFrame) {
+        self.isMainFrame = YES;
+        self.mainFrameUrl = requestURL;
+    }
+    if (navigationAction.navigationType == WKNavigationTypeReload ||
+        (navigationAction.navigationType == WKNavigationTypeBackForward &&
+        requestURL &&
+        [requestURL isEqualToString:webView.backForwardList.currentItem.URL.absoluteString])) {
+        self.reloadUrl = requestURL;
+    }
+    if ([self handleOverrideUrlLoading:navigationAction decisionHandler:decisionHandler]) {
+        decisionHandler(WKNavigationActionPolicyCancel);
+        return;
+    }
     AceWebErrorReceiveInfoObject* obj = new AceWebErrorReceiveInfoObject(std::string([requestURL UTF8String]), "", 0);
     if (AceWebObjectWithBoolReturn(
             [[self event_hashFormat:NTC_ONLOADINTERCEPT] UTF8String], [NTC_ONLOADINTERCEPT UTF8String], obj)) {
         decisionHandler(WKNavigationActionPolicyCancel);
         return;
     }
-    if ([url hasPrefix:@"arkuixcustomscheme://"] && [url isEqualToString:self.schemeUrl]) {
-        AceWebObjectWithUnResponseReturn([[self event_hashFormat:NTC_ONINTERCEPTREQUEST] UTF8String]);
-        NSURLRequest* newRequest = [NSURLRequest requestWithURL:[NSURL URLWithString:[self respellPath:self.schemeUrl]]];
-        [webView loadRequest:newRequest];
-        decisionHandler(WKNavigationActionPolicyCancel);
-        return;
-    }
-    if (![url hasPrefix:@"arkuixcustomscheme://"] && AceWebObjectWithIsRegisteredOnInterceptRequest(
-            [[self event_hashFormat:NTC_REGISTEREDONINTERCEPTREQUEST] UTF8String])) {
-        NSString* customURL = [NSString stringWithFormat:@"arkuixcustomscheme://%@", url];
+
+    if (![requestURL hasPrefix:[NSString stringWithFormat:@"%@://", CUSTOM_SCHEME]] && AceWebObjectWithResponseReturn(
+            [[self event_hashFormat:NTC_ONINTERCEPTREQUEST] UTF8String], [NTC_ONINTERCEPTREQUEST UTF8String], obj)) {
+        NSString* customURL = [NSString stringWithFormat:@"%@://%@", CUSTOM_SCHEME, requestURL];
         NSURLRequest* newRequest = [NSURLRequest requestWithURL:[NSURL URLWithString:customURL]];
         [webView loadRequest:newRequest];
         decisionHandler(WKNavigationActionPolicyCancel);
         return;
     }
+    NSString* requestScheme = navigationAction.request.URL.scheme;
+    ArkWeb_SchemeHandler* handler = [self getSchemeHandler:requestScheme];
+    if (handler && handler->on_request_start) {
+        bool intercept = false;
+        self.currentResourceRequest = CreateResourceRequest(navigationAction);
+        self.currentResourceHandler = new ArkWeb_ResourceHandler();
+        handler->on_request_start(handler, self.currentResourceRequest,
+            self.currentResourceHandler, &intercept);
+        if (intercept) {
+            [self handleInterceptedRequest:requestURL
+                                   handler:handler
+                                   webView:webView];
+            decisionHandler(WKNavigationActionPolicyCancel);
+            return;
+        } else {
+            [self releaseResourceRequest];
+        }
+    }
+    
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= 140500
     if (@available(iOS 14.5, *)) {
         if (navigationAction.shouldPerformDownload) {
@@ -1528,6 +1799,55 @@ static NSString *const kJavaScriptURLPrefix = @"javascript:";
 #endif
     decisionHandler(WKNavigationActionPolicyAllow);
     return;
+}
+
+- (BOOL)handleOverrideUrlLoading:(WKNavigationAction *)navigationAction decisionHandler:
+(void (^)(WKNavigationActionPolicy))decisionHandler
+{
+    NSString* url =
+            navigationAction.request.URL.absoluteString ? navigationAction.request.URL.absoluteString : @"";
+
+    if (![self iSTraggerOverrideUrlLoading:navigationAction url:url]) {
+        return NO;
+    }
+
+    AceWebErrorReceiveInfoObject* obj = new AceWebErrorReceiveInfoObject(std::string([url UTF8String]), "", 0);
+    if (AceWebObjectWithBoolReturn(
+            [[self event_hashFormat:NTC_ONOVERRIDEURLLOADING] UTF8String], 
+            [NTC_ONOVERRIDEURLLOADING UTF8String], 
+            obj)) {
+        return YES;
+    }
+    return NO;
+}
+
+- (BOOL)iSTraggerOverrideUrlLoading:(WKNavigationAction *)navigationAction url:(NSString *)url
+{
+    if ([[navigationAction.request.HTTPMethod uppercaseString] isEqualToString:@"POST"]) {
+        return NO;
+    }
+
+    if ([url hasPrefix:@"javascript:"]) {
+        return NO;
+    }
+
+    if (self.isLoadUrl) {
+        self.isLoadUrl = NO;
+        return NO;
+    }
+    BOOL isIFrame = (navigationAction.targetFrame != nil) && 
+                !navigationAction.targetFrame.isMainFrame;
+    BOOL isWebURL = [url hasPrefix:@"http://"] || [url hasPrefix:@"https://"];
+    if (isIFrame) {
+        if (isWebURL || [url hasPrefix:@"about:blank"]) {
+            return NO;
+        }
+    } else  {
+        if (navigationAction.navigationType != WKNavigationTypeLinkActivated) {
+            return NO;
+        }
+    }
+    return YES;
 }
 
 - (void)webView:(WKWebView*)webView
@@ -1844,6 +2164,12 @@ static NSString *const kJavaScriptURLPrefix = @"javascript:";
                     completionHandler:(void (^)(NSURLSessionAuthChallengeDisposition disposition,
                                           NSURLCredential* credential))completionHandler
 {
+    if (challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust) {
+        [self handleAuthenticationMethodServerTrustWithUrl:
+            [NSString stringWithFormat:@"%@://%@/", challenge.protectionSpace.protocol, challenge.protectionSpace.host]
+            challenge:challenge completionHandler:completionHandler];
+        return;
+    }
     NSString* host = challenge.protectionSpace.host ? challenge.protectionSpace.host : @"";
     NSString* realm = challenge.protectionSpace.realm ? challenge.protectionSpace.realm : @"";
 
@@ -1886,6 +2212,189 @@ static NSString *const kJavaScriptURLPrefix = @"javascript:";
             NSLog(@"Error: Http auth request completionHandler call failed");
         }
     }
+}
+
+- (void)handleAuthenticationMethodServerTrustWithUrl:(NSString *)url challenge:(NSURLAuthenticationChallenge*)challenge
+    completionHandler:(void (^)(NSURLSessionAuthChallengeDisposition disposition,
+                          NSURLCredential* credential))completionHandler 
+{
+    NSString *challengeKey = [NSString stringWithFormat:@"%@:%@:%ld", 
+        challenge.protectionSpace.protocol, challenge.protectionSpace.host, (long)challenge.protectionSpace.port];
+    if ([self.handleSslErrorUrls containsObject:challengeKey] ||
+        [[AceWebInfoManager sharedManager].authChallengeUseCredentials containsObject:challengeKey]) {
+        completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, nil);
+        return;
+    }
+    [self.handleSslErrorUrls addObject:challengeKey];
+    SecTrustRef serverTrust = challenge.protectionSpace.serverTrust;
+    SecTrustResultType result;
+    OSStatus status = errSecSuccess;
+    int errorCode = 0;
+    if (@available(iOS 12.0, *)) {
+        BOOL isTrusted = NO;
+        CFErrorRef errorRef = NULL;
+        isTrusted = SecTrustEvaluateWithError(serverTrust, &errorRef);
+        result = isTrusted ? kSecTrustResultProceed : kSecTrustResultRecoverableTrustFailure;
+        if (errorRef) {
+            NSError *error = (__bridge NSError *)errorRef;
+            errorCode = [self handleSslErrorEventErrorCode:(int)error.code];
+            CFRelease(errorRef);
+        }
+    } else {
+        status = SecTrustEvaluate(serverTrust, &result);
+    }
+    if (status == errSecSuccess && (result == kSecTrustResultProceed || result == kSecTrustResultUnspecified)) {
+        NSURLCredential *credential = [NSURLCredential credentialForTrust:serverTrust];
+        completionHandler(NSURLSessionAuthChallengeUseCredential, credential);
+    } else {
+        __block BOOL completionHandlerCalled = NO;
+        void (^safeCompletionHandler)(NSURLSessionAuthChallengeDisposition, NSURLCredential *) =
+            ^(NSURLSessionAuthChallengeDisposition disposition, NSURLCredential *credential) {
+                if (!completionHandlerCalled) {
+                    completionHandlerCalled = YES;
+                    completionHandler(disposition, credential);
+                    if (disposition == NSURLSessionAuthChallengeUseCredential) {
+                        [[AceWebInfoManager sharedManager].authChallengeUseCredentials addObject:challengeKey];
+                    }
+                }
+            };
+        NSString *host = challenge.protectionSpace.host;
+        BOOL isMainFrame = [self.mainFrameUrl containsString:host];
+        [self handleSslErrorEventWithUrl:url isMainFrame:isMainFrame
+            serverTrust:serverTrust errorCode:errorCode completionHandler:safeCompletionHandler];
+    }
+}
+
+- (int)handleSslErrorEventErrorCode:(NSInteger)errorCode {
+    SslError error = SslError::INVALID;
+    switch (errorCode) {
+    case errSecHostNameMismatch:
+        error = SslError::HOST_MISMATCH;
+        break;
+    case errSecCreateChainFailed:
+    case errSecCertificateExpired:
+    case errSecCertificateNotValidYet:
+        error = SslError::DATE_INVALID;
+        break;
+    case errSecNotTrusted:
+    case errSecVerifyActionFailed:
+        error = SslError::UNTRUSTED;
+        break;
+    }
+    return static_cast<int32_t>(error);
+}
+
+- (void)handleSslErrorEventWithUrl:(NSString *)url isMainFrame:(BOOL)isMainFrame 
+    serverTrust:(SecTrustRef)serverTrust errorCode:(int)errorCode
+    completionHandler:(void (^)(NSURLSessionAuthChallengeDisposition disposition,
+                          NSURLCredential* credential))completionHandler
+{
+    SslEventMethod sslErrorEventConfirm_callback = ^void(int action) {
+        @try {
+            NSURLCredential *credential = [NSURLCredential credentialForTrust:serverTrust];
+            completionHandler(NSURLSessionAuthChallengeUseCredential, credential);
+        } @catch (NSException* exception) {
+            completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, nil);
+            NSLog(@"AceWeb error: alert dialog confirm call failed");
+        }
+    };
+    SslErrorEventCancelMethod sslErrorEventCancel_callBack = ^void(bool abortLoading) {
+        @try {
+            completionHandler(NSURLSessionAuthChallengeRejectProtectionSpace, nil);
+        } @catch (NSException* exception) {
+            completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, nil);
+            NSLog(@"AceWeb error: alert dialog cancel call failed");
+        }
+    };
+    NSArray *certificateChain = [self getCertificateChainFromTrust:serverTrust];
+    std::vector<std::string> certChainData = convertCertificateChainToDer(certificateChain);
+    AceWebSslErrorEventObject* obj = new AceWebSslErrorEventObject(errorCode, std::string([[self getUrl] UTF8String]),
+        std::string([url UTF8String]), std::string([self.referrer UTF8String]), 
+        false, isMainFrame, certChainData);
+    obj->SetSslErrorEventConfirmCallBack(sslErrorEventConfirm_callback);
+    obj->SetSslErrorEventCancelCallBack(sslErrorEventCancel_callBack);
+    BOOL onSslErrorEventFail = NO;
+    if (!AceWebObjectWithBoolReturn(
+        [[self event_hashFormat:NTC_ONSSLERROREVENT] UTF8String], [NTC_ONSSLERROREVENT UTF8String], obj)) {
+        onSslErrorEventFail = YES;
+    }
+    if (self.isMainFrame && isMainFrame) {
+        [self handleSslErrorEventReceiveWithServerTrust:serverTrust errorCode:errorCode
+            certChainData:certChainData onSslErrorEventFail:onSslErrorEventFail completionHandler:completionHandler];
+    } else {
+        if (onSslErrorEventFail) {
+            @try {
+                completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, nil);
+            } @catch (NSException* exception) {
+                NSLog(@"AceWeb error: ssl error event completionHandler call failed");
+            }
+        }
+    }
+}
+
+- (void)handleSslErrorEventReceiveWithServerTrust:(SecTrustRef)serverTrust errorCode:(int)errorCode
+    certChainData:(std::vector<std::string>&)certChainData onSslErrorEventFail:(BOOL)onSslErrorEventFail
+    completionHandler:(void (^)(NSURLSessionAuthChallengeDisposition disposition,
+                          NSURLCredential* credential))completionHandler {
+    SslEventMethod sslErrorEventReceiveEventCancel_callback = ^void(int action) {
+        @try {
+            if (action == static_cast<int>(AceWebHandleResult::CONFIRM)) {
+                NSURLCredential *credential = [NSURLCredential credentialForTrust:serverTrust];
+                completionHandler(NSURLSessionAuthChallengeUseCredential, credential);
+            } else {
+                completionHandler(NSURLSessionAuthChallengeRejectProtectionSpace, nil);
+            }
+        } @catch (NSException* exception) {
+            completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, nil);
+            NSLog(@"AceWeb error: alert dialog completionHandler call failed");
+        }
+    };
+    AceWebOnSslErrorEventReceiveEventObject *obj = new AceWebOnSslErrorEventReceiveEventObject(errorCode, certChainData);
+    obj->SetWebOnSslErrorEventReceiveCallBack(sslErrorEventReceiveEventCancel_callback);
+    BOOL onSslErrorEventReceiveFail = NO;
+    if (!AceWebObjectWithBoolReturn(
+        [[self event_hashFormat:NTC_ONSSLERROREVENTRECEIVE] UTF8String], [NTC_ONSSLERROREVENTRECEIVE UTF8String], obj)) {
+        onSslErrorEventReceiveFail = YES;
+    }
+    if (onSslErrorEventFail && onSslErrorEventReceiveFail) {
+        @try {
+            completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, nil);
+        } @catch (NSException* exception) {
+            NSLog(@"AceWeb error: ssl error event completionHandler call failed");
+        }
+    }
+}
+
+- (NSArray *)getCertificateChainFromTrust:(SecTrustRef)trust {
+    CFIndex certificateCount = SecTrustGetCertificateCount(trust);
+    NSMutableArray *certificateChain = [NSMutableArray arrayWithCapacity:certificateCount];
+    for (CFIndex i = 0; i < certificateCount; i++) {
+        SecCertificateRef certificate = SecTrustGetCertificateAtIndex(trust, i);
+        [certificateChain addObject:(__bridge id)certificate];
+    }
+    return [certificateChain copy];
+}
+
+std::string certificateToDerString(SecCertificateRef cert) {
+    CFDataRef derData = SecCertificateCopyData(cert);
+    if (!derData) {
+        NSLog(@"AceWeb error: SecCertificateCopyData failed");
+        return "";
+    }
+    const UInt8 *bytes = CFDataGetBytePtr(derData);
+    CFIndex length = CFDataGetLength(derData);
+    std::string der(reinterpret_cast<const char*>(bytes), length);
+    CFRelease(derData);
+    return der;
+}
+
+std::vector<std::string> convertCertificateChainToDer(NSArray *certificateChain) {
+    std::vector<std::string> result;
+    for (id certObj in certificateChain) {
+        SecCertificateRef cert = (__bridge SecCertificateRef)certObj;
+        result.push_back(certificateToDerString(cert));
+    }
+    return result;
 }
 
 - (void)webView:(WKWebView*)webView
