@@ -91,6 +91,7 @@ public:
         const int64_t uiExtensionOffset = DEFAULT_ID);
     void UpdateNodeChildIds(const RefPtr<AccessibilityNode>& node);
     void SendActionEvent(const Accessibility::ActionType& action, int64_t nodeId);
+    void FireAccessibilityEventCallback(uint32_t eventId, int64_t parameter) override;
 
     std::string GetPagePath();
 
