@@ -2049,4 +2049,20 @@ void AccessibilityManagerImpl::SetPipelineContext(const RefPtr<PipelineBase>& co
 {
     context_ = context;
 }
+
+void AccessibilityManagerImpl::FireAccessibilityEventCallback(uint32_t eventId, int64_t parameter)
+{
+    auto eventType = static_cast<AccessibilityCallbackEventId>(eventId);
+    AccessibilityEvent event;
+    switch (eventType) {
+        case AccessibilityCallbackEventId::ON_LOAD_PAGE:
+            event.nodeId = parameter;
+            event.windowChangeTypes = WindowUpdateType::WINDOW_UPDATE_ACTIVE;
+            event.type = AccessibilityEventType::CHANGE;
+            SendAccessibilityAsyncEvent(event);
+            break;
+        default:
+            break;
+    }
+}
 } // namespace OHOS::Ace::Framework
