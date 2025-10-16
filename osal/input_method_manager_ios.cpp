@@ -134,4 +134,11 @@ void InputMethodManager::Attach(const WeakPtr<TextInputClient>& client, const Te
     auto connection = AceType::MakeRefPtr<Platform::TextInputConnectionImpl>(client, taskExecutor, config);
     Platform::TextInputClientHandler::GetInstance().SetCurrentConnection(connection);
 }
+
+void InputMethodManager::FinishComposing(int32_t instanceId)
+{
+    auto connection = Platform::TextInputClientHandler::GetInstance().GetCurrentConnection();
+    CHECK_NULL_VOID(connection);
+    connection->FinishComposing(instanceId);
+}
 } // namespace OHOS::Ace

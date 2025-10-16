@@ -36,6 +36,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)setTextInputClient:(int)client withConfiguration:(NSDictionary*)configuration;
 - (void)setTextInputEditingState:(NSDictionary*)state;
 - (void)clearTextInputClient;
+- (void)finishComposing;
 
 @end
 
