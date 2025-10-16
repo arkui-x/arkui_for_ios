@@ -668,6 +668,13 @@ void AceContainerSG::AttachView(
     InitThemeManager();
     SetupRootElement();
 
+    auto accessibilityEventCallback = [weak = WeakClaim(this)](uint32_t eventId, int64_t parameter) {
+        auto container = weak.Upgrade();
+        CHECK_NULL_VOID(container);
+        container->FireAccessibilityEventCallback(eventId, parameter);
+    };
+    pipelineContext_->SetAccessibilityEventCallback(accessibilityEventCallback);
+
     aceView_->Launch();
     if (!isSubContainer_) {
         frontend_->AttachPipelineContext(pipelineContext_);
@@ -1299,5 +1306,16 @@ void AceContainerSG::RegisterStopDragCallback(int32_t pointerId, StopDragCallbac
         list.emplace_back(std::move(stopDragCallback));
         stopDragCallbackMap_.emplace(pointerId, list);
     }
+}
+
+void AceContainerSG::FireAccessibilityEventCallback(uint32_t eventId, int64_t parameter)
+{
+    ContainerScope scope(GetInstanceId());
+    auto pipelineContext = GetPipelineContext();
+    auto ngPipeline = AceType::DynamicCast<NG::PipelineContext>(pipelineContext);
+    CHECK_NULL_VOID(ngPipeline);
+    auto accessibilityManager = ngPipeline->GetAccessibilityManager();
+    CHECK_NULL_VOID(accessibilityManager);
+    accessibilityManager->FireAccessibilityEventCallback(eventId, parameter);
 }
 } // namespace OHOS::Ace::Platform
