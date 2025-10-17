@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -109,31 +109,32 @@ float AceWebScrollObjectWrapper::GetY(void* object)
 
 float AceWebScrollObjectWrapper::GetContentWidth(void* object)
 {
-    AceWebOnScrollObject* acePtr = reinterpret_cast<AceWebOnScrollObject*>(object);
+    AceWebOnScrollObject* acePtr = static_cast<AceWebOnScrollObject*>(object);
     float contentWidth = acePtr ? acePtr->GetContentWidth() : 0.f;
     return contentWidth;
 }
 
 float AceWebScrollObjectWrapper::GetContentHeight(void* object)
 {
-    AceWebOnScrollObject* acePtr = reinterpret_cast<AceWebOnScrollObject*>(object);
+    AceWebOnScrollObject* acePtr = static_cast<AceWebOnScrollObject*>(object);
     float contentHeight = acePtr ? acePtr->GetContentHeight() : 0.f;
     return contentHeight;
 }
 
 float AceWebScrollObjectWrapper::GetFrameWidth(void* object)
 {
-    AceWebOnScrollObject* acePtr = reinterpret_cast<AceWebOnScrollObject*>(object);
+    AceWebOnScrollObject* acePtr = static_cast<AceWebOnScrollObject*>(object);
     float frameWidth = acePtr ? acePtr->GetFrameWidth() : 0.f;
     return frameWidth;
 }
 
 float AceWebScrollObjectWrapper::GetFrameHeight(void* object)
 {
-    AceWebOnScrollObject* acePtr = reinterpret_cast<AceWebOnScrollObject*>(object);
+    AceWebOnScrollObject* acePtr = static_cast<AceWebOnScrollObject*>(object);
     float frameHeight = acePtr ? acePtr->GetFrameHeight() : 0.f;
     return frameHeight;
 }
+
 
 class AceWebScaleChangeObjectWrapper final : public OHOS::Ace::WebScaleChangeObject {
 public:
