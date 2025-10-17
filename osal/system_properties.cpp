@@ -452,4 +452,9 @@ int32_t SystemProperties::GetWhiteBlockCacheCountValue()
 {
     return 0;
 }
+
+int32_t SystemProperties::GetPreviewStatus()
+{
+    return -1;
+}
 } // namespace OHOS::Ace
