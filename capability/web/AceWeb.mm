@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -263,6 +263,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
     }
     [self.webView addObserver:self forKeyPath:ESTIMATEDPROGRESS options:NSKeyValueObservingOptionNew context:nil];
     [self.webView addObserver:self forKeyPath:TITLE options:NSKeyValueObservingOptionNew context:nil];
+    self.hasCalledOnScrollStart = YES;
 }
 
 - (void)incognitoModeWithConfig:(WKWebViewConfiguration*) config
@@ -1894,6 +1895,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
     self.dragStartPoint = scrollView.contentOffset;
     self.hasCalledOnScrollStart = NO;
 }
+
 - (void)scrollViewDidScroll:(UIScrollView*)scrollView
 {
    float x = scrollView.contentOffset.x;
@@ -1904,6 +1906,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
         AceWebOnScrollObject* obj = new AceWebOnScrollObject(velocityX, velocityY);
         AceWebObject([[self event_hashFormat:NTC_ONSCROLLSTART] UTF8String], [NTC_ONSCROLLSTART UTF8String], obj);
         self.hasCalledOnScrollStart = YES;
+        return;
     }
     float contentWidth = scrollView.contentSize.width;
     float contentHeight = scrollView.contentSize.height;
@@ -1913,8 +1916,18 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
     AceWebObject([[self event_hashFormat:NTC_ONSCROLL] UTF8String], [NTC_ONSCROLL UTF8String], obj); 
 }
 
-- (void)scrollViewDidEndDecelerating:(UIScrollView *)scrollView 
-{
+- (void)scrollViewDidEndDecelerating:(UIScrollView *)scrollView {
+    [self scrollViewDidEndScrolling:scrollView];
+}
+
+- (void)scrollViewDidEndDragging:(UIScrollView *)scrollView willDecelerate:(BOOL)decelerate {
+    if (!decelerate) {
+        [self scrollViewDidEndScrolling:scrollView];
+    }
+}
+
+- (void)scrollViewDidEndScrolling:(UIScrollView *)scrollView {
+    NSLog(@"AceWeb: scrollViewDidEndScrolling called");
     float x = scrollView.contentOffset.x;
     float y = scrollView.contentOffset.y;
     AceWebOnScrollObject* obj = new AceWebOnScrollObject(x, y);

@@ -19,7 +19,7 @@
 
 namespace OHOS::Ace::Platform {
 
-RefPtr<Storage> StorageProxyImpl::GetStorage(int areaMode) const
+RefPtr<Storage> StorageProxyImpl::GetStorage(int areaMode, bool useStatic) const
 {
     return AceType::MakeRefPtr<StorageImpl>();
 }
