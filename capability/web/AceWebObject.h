@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -38,13 +38,25 @@ using ClientAuthenticationEventConfirmCallBack = std::function<void(const std::s
 
 class AceWebOnScrollObject {
 public:
-    AceWebOnScrollObject(const float x, const float y) : x_(x), y_(y) {}
+    AceWebOnScrollObject(float x, float y) : AceWebOnScrollObject(x, y, 0, 0, 0, 0) {}
+    AceWebOnScrollObject(const float x, const float y, const float contentWidth, const float contentHeight,
+        const float frameWidth, const float frameHeight)
+        : x_(x), y_(y), contentWidth_(contentWidth), contentHeight_(contentHeight), frameWidth_(frameWidth),
+          frameHeight_(frameHeight) {}
     float GetX();
     float GetY();
+    float GetContentWidth();
+    float GetContentHeight();
+    float GetFrameWidth();
+    float GetFrameHeight();
 
 private:
     float x_;
     float y_;
+    float contentWidth_;
+    float contentHeight_;
+    float frameWidth_;
+    float frameHeight_;
 };
 
 class AceWebOnScaleChangeObject {

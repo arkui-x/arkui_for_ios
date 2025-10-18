@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -24,6 +24,8 @@
 #import <UIKit/UIKit.h>
 #import <AVFoundation/AVFoundation.h>
 #import <AVKit/AVKit.h>
+#import "AceWebPatternOCBridge.h"
+#include "core/components_ng/pattern/scrollable/scrollable_properties.h"
 #include "scheme_handler/resource_request.h"
 #include "ace_engine_types.h"
 #import "AceWebInfoManager.h"
@@ -73,6 +75,9 @@
 #define NTC_ONHTTPERRORRECEIVE            @"onHttpErrorReceive"
 #define NTC_ONPROGRESSCHANGED             @"onProgressChanged"
 #define NTC_ONRECEIVEDTITLE               @"onReceivedTitle"
+#define NTC_ONWILL_SCROLLSTART            @"onWillScrollStart"
+#define NTC_ONSCROLLSTART                 @"onScrollStart"
+#define NTC_ONSCROLLEND                   @"onScrollEnd"
 #define NTC_ONSCROLL                      @"onScroll"
 #define NTC_ONSCALECHANGE                 @"onScaleChange"
 #define NTC_ONCONSOLEMESSAGE              @"onConsoleMessage"
@@ -90,6 +95,22 @@
 #define NTC_ONCLIENTAUTHENTICATIONREQUEST @"onClientAuthenticationRequest"
 #define WEBVIEW_PAGE_HALF                 2
 #define NTC_TEXT_ZOOM_RATIO               @"textZoomRatio"
+
+typedef NS_ENUM(NSInteger, NestedScrollMode) {
+    SELF_ONLY,
+    SELF_FIRST,
+    PARENT_FIRST, 
+    PARALLEL
+};
+@interface NestedScrollOptionsExt : NSObject
+@property (nonatomic, assign) NestedScrollMode scrollUp;
+@property (nonatomic, assign) NestedScrollMode scrollDown;
+@property (nonatomic, assign) NestedScrollMode scrollLeft;
+@property (nonatomic, assign) NestedScrollMode scrollRight;
+@end
+@implementation NestedScrollOptionsExt
+@end
+
 @interface DownloadTaskInfo : NSObject
 @property (nonatomic, assign) bool isDownload;
 @property (nonatomic, strong) NSString* filePath;
@@ -154,6 +175,9 @@ typedef id (^onJavaScriptFunction)(NSString* objName, NSString* methodName, NSAr
 @property (nonatomic, copy) NSString* mainFrameUrl;
 @property (nonatomic, assign) bool isLoadUrl;
 @property (nonatomic, strong) NSMutableSet<NSString *> *handleSslErrorUrls;
+@property (nonatomic, strong) NestedScrollOptionsExt *nestedOpt;
+@property (nonatomic, assign) CGPoint dragStartPoint;
+@property (nonatomic, assign) BOOL hasCalledOnScrollStart;
 @end
 
 static BOOL _webDebuggingAccessInit = NO;
@@ -239,6 +263,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
     }
     [self.webView addObserver:self forKeyPath:ESTIMATEDPROGRESS options:NSKeyValueObservingOptionNew context:nil];
     [self.webView addObserver:self forKeyPath:TITLE options:NSKeyValueObservingOptionNew context:nil];
+    self.hasCalledOnScrollStart = YES;
 }
 
 - (void)incognitoModeWithConfig:(WKWebViewConfiguration*) config
@@ -1863,18 +1888,50 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
     }
 }
 
+#pragma mark - UIScrollViewDelegate
+- (void)scrollViewWillBeginDragging:(UIScrollView *)scrollView {
+    AceWebOnScrollObject* obj = new AceWebOnScrollObject(scrollView.contentOffset.x, scrollView.contentOffset.y);
+    AceWebObject([[self event_hashFormat:NTC_ONWILL_SCROLLSTART] UTF8String], [NTC_ONWILL_SCROLLSTART UTF8String], obj);
+    self.dragStartPoint = scrollView.contentOffset;
+    self.hasCalledOnScrollStart = NO;
+}
+
 - (void)scrollViewDidScroll:(UIScrollView*)scrollView
 {
-    float x = 0.f;
-    float y = 0.f;
-    if (scrollView.contentOffset.x) {
-        x = scrollView.contentOffset.x;
+   float x = scrollView.contentOffset.x;
+   float y = scrollView.contentOffset.y;
+    if (!self.hasCalledOnScrollStart) {
+        float velocityX = x - self.dragStartPoint.x;
+        float velocityY = y - self.dragStartPoint.y;
+        AceWebOnScrollObject* obj = new AceWebOnScrollObject(velocityX, velocityY);
+        AceWebObject([[self event_hashFormat:NTC_ONSCROLLSTART] UTF8String], [NTC_ONSCROLLSTART UTF8String], obj);
+        self.hasCalledOnScrollStart = YES;
+        return;
     }
-    if (scrollView.contentOffset.y) {
-        y = scrollView.contentOffset.y;
+    float contentWidth = scrollView.contentSize.width;
+    float contentHeight = scrollView.contentSize.height;
+    float frameWidth = scrollView.bounds.size.width;
+    float frameHeight = scrollView.bounds.size.height;
+    AceWebOnScrollObject* obj = new AceWebOnScrollObject(x, y, contentWidth, contentHeight, frameWidth, frameHeight);
+    AceWebObject([[self event_hashFormat:NTC_ONSCROLL] UTF8String], [NTC_ONSCROLL UTF8String], obj); 
+}
+
+- (void)scrollViewDidEndDecelerating:(UIScrollView *)scrollView {
+    [self scrollViewDidEndScrolling:scrollView];
+}
+
+- (void)scrollViewDidEndDragging:(UIScrollView *)scrollView willDecelerate:(BOOL)decelerate {
+    if (!decelerate) {
+        [self scrollViewDidEndScrolling:scrollView];
     }
+}
+
+- (void)scrollViewDidEndScrolling:(UIScrollView *)scrollView {
+    NSLog(@"AceWeb: scrollViewDidEndScrolling called");
+    float x = scrollView.contentOffset.x;
+    float y = scrollView.contentOffset.y;
     AceWebOnScrollObject* obj = new AceWebOnScrollObject(x, y);
-    AceWebObject([[self event_hashFormat:NTC_ONSCROLL] UTF8String], [NTC_ONSCROLL UTF8String], obj);
+    AceWebObject([[self event_hashFormat:NTC_ONSCROLLEND] UTF8String], [NTC_ONSCROLLEND UTF8String], obj);
 }
 
 - (void)scrollViewDidZoom:(UIScrollView*)scrollView
@@ -2483,6 +2540,25 @@ std::vector<std::string> convertCertificateChainToDer(NSArray *certificateChain)
             self.onDownloadFailedCallBack(guid, @"INTERRUPTED", error.code);
         });
         [self.downloadTasksDic removeObjectForKey:guid];
+    }
+}
+
+- (void)setNestedScrollOptionsExt:(void *)options {
+    OHOS::Ace::NestedScrollOptionsExt* cppOptions = reinterpret_cast<OHOS::Ace::NestedScrollOptionsExt*>(options);
+    self.nestedOpt = [[NestedScrollOptionsExt alloc] init];
+    self.nestedOpt.scrollUp = static_cast<NestedScrollMode>(cppOptions->scrollUp);
+    self.nestedOpt.scrollDown = static_cast<NestedScrollMode>(cppOptions->scrollDown);
+    self.nestedOpt.scrollLeft = static_cast<NestedScrollMode>(cppOptions->scrollLeft);
+    self.nestedOpt.scrollRight = static_cast<NestedScrollMode>(cppOptions->scrollRight);
+    self.webView.scrollView.directionalLockEnabled = NO;
+}
+
+- (void)setWebScrollEnabled:(BOOL)webScrollEnabled {
+    if (_webScrollEnabled != webScrollEnabled) {
+        _webScrollEnabled = webScrollEnabled;
+    }
+    if (_webScrollEnabled != self.webView.scrollView.scrollEnabled) {
+        self.webView.scrollView.scrollEnabled = _webScrollEnabled;
     }
 }
 @end
