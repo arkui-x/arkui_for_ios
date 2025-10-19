@@ -34,6 +34,15 @@
 #define HIT_TEST_TARGET_PLATFORMVIEW @"PlatformView"
 
 #define ACE_ENABLE_GL
+
+static bool g_isPointInsideWebForceResult = false;
+static bool g_isPointInsideWebForceEnable = false;
+extern "C" void SetIsPointInsideWebForceResult(bool enable, bool result)
+{
+    g_isPointInsideWebForceEnable = enable;
+    g_isPointInsideWebForceResult = result;
+}
+
 @interface WindowView()
 
 @property (nonatomic, strong) CADisplayLink *displayLinkTouch;
@@ -203,20 +212,20 @@
 }
 
 - (BOOL)isPointInsideWeb:(CGPoint)point withEvent:(UIEvent *)event {
-     __block bool isNeedTouchTestArkWeb = false;
+     __block BOOL isNeedTouchTestArkWeb = NO;
     [AceWebResourcePlugin.getObjectMap enumerateKeysAndObjectsUsingBlock:^(
         NSString * _Nonnull key, AceWeb * _Nonnull aceWeb, BOOL * _Nonnull stop) {
         UIView *uiview = [aceWeb getWeb];
         CGPoint webPoint = [self convertPoint:point toView:uiview];
         if ([uiview pointInside:webPoint withEvent:event]) {
-            isNeedTouchTestArkWeb = true;
+            isNeedTouchTestArkWeb = YES;
         }
     }];
-    bool isTouchArkWeb = false;
+    BOOL isTouchArkWeb = NO;
     if (isNeedTouchTestArkWeb) {
         isTouchArkWeb = [self touchHitTestTarget:point targetName:HIT_TEST_TARGET_WEB];
     }
-    return isTouchArkWeb;
+    return isTouchArkWeb && g_isPointInsideWebForceEnable && !g_isPointInsideWebForceResult;
 }
 
 - (BOOL)touchHitTestTarget:(CGPoint)point targetName:(NSString*)target{
@@ -287,7 +296,7 @@
         self.displayLinkTouch.paused = NO;
         [self stopPausedTimer];
     }
-    [self dispatchTouches:touches withEvent:event phase:UITouchPhaseBegan];
+    [self dispatchTouches:touches];
 }
 
 - (void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event {
@@ -295,21 +304,21 @@
         self.displayLinkTouch.paused = NO;
         [self stopPausedTimer];
     }
-    [self dispatchTouches:touches withEvent:event phase:UITouchPhaseMoved];
+    [self dispatchTouches:touches];
 }
 
 - (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event {
     if (self.displayLinkTouch) {
         [self startPausedTimer];
     }
-    [self dispatchTouches:touches withEvent:event phase:UITouchPhaseEnded];
+    [self dispatchTouches:touches];
 }
 
 - (void)touchesCancelled:(NSSet *)touches withEvent:(UIEvent *)event {
     if (self.displayLinkTouch) {
         [self startPausedTimer];
     }
-    [self dispatchTouches:touches withEvent:event phase:UITouchPhaseCancelled];
+    [self dispatchTouches:touches];
 }
 
 - (void)setBrightness:(float)brightness {
@@ -439,16 +448,13 @@ static OHOS::Ace::Platform::AcePointerData::ToolType DeviceKindFromTouchType(UIT
     return pointerId;
 }
 
-- (void)dispatchTouches:(NSSet *)touches withEvent:(UIEvent *)event phase:(UITouchPhase)phase {
-    NSSet<UITouch *> *allTouches = [event allTouches];
+- (void)dispatchTouches:(NSSet *)touches {
     const CGFloat scale = [UIScreen mainScreen].scale;
     std::unique_ptr<OHOS::Ace::Platform::AcePointerDataPacket> packet = 
-        std::make_unique<OHOS::Ace::Platform::AcePointerDataPacket>(allTouches.count);
-
+        std::make_unique<OHOS::Ace::Platform::AcePointerDataPacket>(touches.count);
     size_t pointer_index = 0;
-
     UIView *rootView = self.superview;
-    for (UITouch *touch in allTouches) {
+    for (UITouch *touch in touches) {
         CGPoint windowCoordinates = [touch locationInView:self];
         CGPoint screenCoordinates = [self convertPoint:windowCoordinates toView:rootView];
 
@@ -458,9 +464,9 @@ static OHOS::Ace::Platform::AcePointerData::ToolType DeviceKindFromTouchType(UIT
         pointer_data.device_id = [self getTouchDevice:touch];
 
         pointer_data.time_stamp = OHOS::Ace::GetMicroTickCount();
-        pointer_data.finger_count = allTouches.count;
+        pointer_data.finger_count = touches.count;
 
-        pointer_data.pointer_action = PointerDataChangeFromUITouchPhase(phase);
+        pointer_data.pointer_action = PointerDataChangeFromUITouchPhase(touch.phase);
         pointer_data.tool_type = DeviceKindFromTouchType(touch);
 
         pointer_data.display_x = screenCoordinates.x * scale;
@@ -473,9 +479,6 @@ static OHOS::Ace::Platform::AcePointerData::ToolType DeviceKindFromTouchType(UIT
         pointer_data.radius_min = touch.majorRadius - touch.majorRadiusTolerance;
         pointer_data.radius_max = touch.majorRadius + touch.majorRadiusTolerance;
         pointer_data.actionPoint = true;
-        if (![touches containsObject:touch] && (phase == UITouchPhaseBegan || phase == UITouchPhaseEnded)) {
-            pointer_data.actionPoint = false;
-        }
         pointer_data.tilt = M_PI_2 - touch.altitudeAngle;
         pointer_data.orientation = [touch azimuthAngleInView:nil] - M_PI_2;
 

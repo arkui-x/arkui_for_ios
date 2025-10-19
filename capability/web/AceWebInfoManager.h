@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Huawei Device Co., Ltd.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -13,15 +13,18 @@
  * limitations under the License.
  */
 
-#include "adapter/ios/capability/storage/storage_proxy_impl.h"
+#import <Foundation/Foundation.h>
 
-#include "adapter/ios/capability/storage/storage_impl.h"
+NS_ASSUME_NONNULL_BEGIN
 
-namespace OHOS::Ace::Platform {
+@interface AceWebInfoManager : NSObject
 
-RefPtr<Storage> StorageProxyImpl::GetStorage(int areaMode, bool useStatic) const
-{
-    return AceType::MakeRefPtr<StorageImpl>();
-}
++ (instancetype)sharedManager;
+- (void)updateUserAgentIfNeeded;
+- (NSString *)getUserAgent;
 
-} // namespace OHOS::Ace::Platform
+@property (nonatomic, strong) NSMutableSet<NSString *> *authChallengeUseCredentials;
+
+@end
+
+NS_ASSUME_NONNULL_END

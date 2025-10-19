@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -16,6 +16,7 @@
 #ifndef AceWebObject_hpp
 #define AceWebObject_hpp
 
+#include <vector>
 #include <iostream>
 #include <string>
 
@@ -23,21 +24,39 @@ typedef bool (^HttpAuthRequestMethod)(int action, std::string name, std::string 
 typedef void (^PermissionRequestMethod)(int action, int ResourcesId);
 typedef void (^DialogResultMethod)(int action, std::string promptResult);
 typedef void (^FullEnterRequestExitMethod)();
+typedef void (^SslEventMethod)(int action);
+typedef void (^SslErrorEventCancelMethod)(bool abortLoading);
+typedef void (^ClientAuthenticationEventConfirmMethod)(std::string privateKeyFile, std::string certChainFile);
 
 using FullEnterRequestExitCallBack = std::function<void()>;
 using AuthResultCallback = std::function<bool(const int, const std::string&, const std::string&)>;
 using PermissionResultCallback = std::function<void(const int, const int)>;
 using DialogResultCallBack = std::function<void(const int, const std::string&)>;
+using SslEventCallBack = std::function<void(const int)>;
+using SslErrorEventCancelCallBack = std::function<void(bool)>;
+using ClientAuthenticationEventConfirmCallBack = std::function<void(const std::string&, const std::string&)>;
 
 class AceWebOnScrollObject {
 public:
-    AceWebOnScrollObject(const float x, const float y) : x_(x), y_(y) {}
+    AceWebOnScrollObject(float x, float y) : AceWebOnScrollObject(x, y, 0, 0, 0, 0) {}
+    AceWebOnScrollObject(const float x, const float y, const float contentWidth, const float contentHeight,
+        const float frameWidth, const float frameHeight)
+        : x_(x), y_(y), contentWidth_(contentWidth), contentHeight_(contentHeight), frameWidth_(frameWidth),
+          frameHeight_(frameHeight) {}
     float GetX();
     float GetY();
+    float GetContentWidth();
+    float GetContentHeight();
+    float GetFrameWidth();
+    float GetFrameHeight();
 
 private:
     float x_;
     float y_;
+    float contentWidth_;
+    float contentHeight_;
+    float frameWidth_;
+    float frameHeight_;
 };
 
 class AceWebOnScaleChangeObject {
@@ -202,5 +221,76 @@ private:
     FullEnterRequestExitMethod fullEnterRequestExitCallback_;
 };
 class AceWebFullScreenExitObject{
+};
+
+class AceWebSslErrorEventObject {
+public:
+    AceWebSslErrorEventObject(int error, const std::string& url, const std::string& originalUrl, const std::string& referrer,
+        bool isFatalError, bool isMainFrame, std::vector<std::string>& certChainData)
+        : error_(error), url_(url), originalUrl_(originalUrl), referrer_(referrer),
+        isFatalError_(isFatalError), isMainFrame_(isMainFrame), certChainData_(certChainData) {}
+    int GetError();
+    std::string GetUrl();
+    std::string GetOriginalUrl();
+    std::string GetReferrer();
+    bool IsFatalError();
+    bool IsMainFrame();
+    std::vector<std::string> GetCertificateChain();
+    void SetSslErrorEventConfirmCallBack(SslEventMethod confirmCallback)
+    {
+        confirmCallback_ = confirmCallback;
+    }
+
+    SslEventCallBack GetSslErrorEventConfirmCallBack()
+    {
+        return [this](bool abortLoading) -> void {
+            confirmCallback_(abortLoading);
+        };
+    }
+
+    void SetSslErrorEventCancelCallBack(SslErrorEventCancelMethod cancelCallback)
+    {
+        cancelCallback_ = cancelCallback;
+    }
+
+    SslErrorEventCancelCallBack GetSslErrorEventCancelCallBack()
+    {
+        return [this](const int action) -> void {
+            cancelCallback_(action);
+        };
+    }
+private:
+    int error_;
+    std::string url_;
+    std::string originalUrl_;
+    std::string referrer_;
+    bool isFatalError_;
+    bool isMainFrame_;
+    std::vector<std::string> certChainData_;
+    SslEventMethod confirmCallback_;
+    SslErrorEventCancelMethod cancelCallback_;
+};
+
+class AceWebOnSslErrorEventReceiveEventObject {
+public:
+    AceWebOnSslErrorEventReceiveEventObject(int error, std::vector<std::string>& certChainData)
+        : error_(error), certChainData_(certChainData) {}
+    int GetError();
+    std::vector<std::string> GetCertChainData();
+    void SetWebOnSslErrorEventReceiveCallBack(SslEventMethod confirmCallback)
+    {
+        sslEventCallback_ = confirmCallback;
+    }
+
+    SslEventCallBack GetWebOnSslErrorEventReceiveCallBack()
+    {
+        return [this](const int action) -> void {
+            sslEventCallback_(action);
+        };
+    }
+private:
+    int error_;
+    std::vector<std::string> certChainData_;
+    SslEventMethod sslEventCallback_;
 };
 #endif /* AceWebObject_hpp */

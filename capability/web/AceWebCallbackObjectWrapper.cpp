@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -89,6 +89,10 @@ class AceWebScrollObjectWrapper final : public OHOS::Ace::WebScrollObject {
 public:
     float GetX(void* object);
     float GetY(void* object);
+    float GetContentWidth(void* object);
+    float GetContentHeight(void* object);
+    float GetFrameWidth(void* object);
+    float GetFrameHeight(void* object);
 };
 
 float AceWebScrollObjectWrapper::GetX(void* object)
@@ -102,6 +106,35 @@ float AceWebScrollObjectWrapper::GetY(void* object)
     AceWebOnScrollObject* acePtr = reinterpret_cast<AceWebOnScrollObject*>(object);
     return acePtr ? acePtr->GetY() : 0.f;
 }
+
+float AceWebScrollObjectWrapper::GetContentWidth(void* object)
+{
+    AceWebOnScrollObject* acePtr = static_cast<AceWebOnScrollObject*>(object);
+    float contentWidth = acePtr ? acePtr->GetContentWidth() : 0.f;
+    return contentWidth;
+}
+
+float AceWebScrollObjectWrapper::GetContentHeight(void* object)
+{
+    AceWebOnScrollObject* acePtr = static_cast<AceWebOnScrollObject*>(object);
+    float contentHeight = acePtr ? acePtr->GetContentHeight() : 0.f;
+    return contentHeight;
+}
+
+float AceWebScrollObjectWrapper::GetFrameWidth(void* object)
+{
+    AceWebOnScrollObject* acePtr = static_cast<AceWebOnScrollObject*>(object);
+    float frameWidth = acePtr ? acePtr->GetFrameWidth() : 0.f;
+    return frameWidth;
+}
+
+float AceWebScrollObjectWrapper::GetFrameHeight(void* object)
+{
+    AceWebOnScrollObject* acePtr = static_cast<AceWebOnScrollObject*>(object);
+    float frameHeight = acePtr ? acePtr->GetFrameHeight() : 0.f;
+    return frameHeight;
+}
+
 
 class AceWebScaleChangeObjectWrapper final : public OHOS::Ace::WebScaleChangeObject {
 public:
@@ -434,6 +467,120 @@ void AceWebFullScreenEnterObjectWrapper::ExitFullScreen(void* object, int index)
     }
 }
 
+class AceWebSslErrorEventObjectWrapper final : public OHOS::Ace::WebSslErrorEventObject {
+public:
+    int GetError(void* object);
+    std::string GetUrl(void* object);
+    std::string GetOriginalUrl(void* object);
+    std::string GetReferrer(void* object);
+    bool IsFatalError(void* object);
+    bool IsMainFrame(void* object);
+    std::vector<std::string> GetCertificateChain(void* object);
+    void Confirm(void* object, int index);
+    void Cancel(void* object, bool abortLoading, int index);
+};
+
+int AceWebSslErrorEventObjectWrapper::GetError(void* object)
+{
+    AceWebSslErrorEventObject* acePtr = reinterpret_cast<AceWebSslErrorEventObject*>(object);
+    return acePtr ? acePtr->GetError() : -1;
+}
+
+std::string AceWebSslErrorEventObjectWrapper::GetUrl(void* object)
+{
+    AceWebSslErrorEventObject* acePtr = reinterpret_cast<AceWebSslErrorEventObject*>(object);
+    return acePtr ? acePtr->GetUrl() : "";
+}
+
+std::string AceWebSslErrorEventObjectWrapper::GetOriginalUrl(void* object)
+{
+    AceWebSslErrorEventObject* acePtr = reinterpret_cast<AceWebSslErrorEventObject*>(object);
+    return acePtr ? acePtr->GetOriginalUrl() : "";
+}
+
+std::string AceWebSslErrorEventObjectWrapper::GetReferrer(void* object)
+{
+    AceWebSslErrorEventObject* acePtr = reinterpret_cast<AceWebSslErrorEventObject*>(object);
+    return acePtr ? acePtr->GetReferrer() : "";
+}
+
+bool AceWebSslErrorEventObjectWrapper::IsFatalError(void* object)
+{
+    AceWebSslErrorEventObject* acePtr = reinterpret_cast<AceWebSslErrorEventObject*>(object);
+    return acePtr ? acePtr->IsFatalError() : false;
+}
+
+std::vector<std::string> AceWebSslErrorEventObjectWrapper::GetCertificateChain(void* object)
+{
+    AceWebSslErrorEventObject* acePtr = reinterpret_cast<AceWebSslErrorEventObject*>(object);
+    return acePtr ? acePtr->GetCertificateChain() : std::vector<std::string>();
+}
+
+bool AceWebSslErrorEventObjectWrapper::IsMainFrame(void* object)
+{
+    AceWebSslErrorEventObject* acePtr = reinterpret_cast<AceWebSslErrorEventObject*>(object);
+    return acePtr ? acePtr->IsMainFrame() : false;
+}
+
+void AceWebSslErrorEventObjectWrapper::Confirm(void* object, int index)
+{
+    SslEventCallBack callback;
+    AceWebSslErrorEventObject* acePtr = reinterpret_cast<AceWebSslErrorEventObject*>(object);
+    callback = acePtr ? acePtr->GetSslErrorEventConfirmCallBack() : callback;
+    if (callback) {
+        callback(static_cast<int>(AceWebHandleResult::CONFIRM));
+    }
+}
+
+void AceWebSslErrorEventObjectWrapper::Cancel(void* object, bool abortLoading, int index)
+{
+    SslErrorEventCancelCallBack callback;
+    AceWebSslErrorEventObject* acePtr = reinterpret_cast<AceWebSslErrorEventObject*>(object);
+    callback = acePtr ? acePtr->GetSslErrorEventCancelCallBack() : callback;
+    if (callback) {
+        callback(abortLoading);
+    }
+}
+
+class AceWebOnSslErrorEventReceiveEventObjectWrapper final : public OHOS::Ace::WebOnSslErrorEventReceiveEventObject {
+public:
+    int GetError(void* object);
+    std::vector<std::string> GetCertChainData(void* object);
+    void Confirm(void* object, int index);
+    void Cancel(void* object, int index);
+};
+
+int AceWebOnSslErrorEventReceiveEventObjectWrapper::GetError(void* object)
+{
+    AceWebOnSslErrorEventReceiveEventObject* acePtr = reinterpret_cast<AceWebOnSslErrorEventReceiveEventObject*>(object);
+    return acePtr ? acePtr->GetError() : -1;
+}
+
+std::vector<std::string> AceWebOnSslErrorEventReceiveEventObjectWrapper::GetCertChainData(void* object) {
+    AceWebOnSslErrorEventReceiveEventObject* acePtr = reinterpret_cast<AceWebOnSslErrorEventReceiveEventObject*>(object);
+    return acePtr ? acePtr->GetCertChainData() : std::vector<std::string>();
+}
+
+void AceWebOnSslErrorEventReceiveEventObjectWrapper::Confirm(void* object, int index)
+{
+    SslEventCallBack callback;
+    AceWebOnSslErrorEventReceiveEventObject* acePtr = reinterpret_cast<AceWebOnSslErrorEventReceiveEventObject*>(object);
+    callback = acePtr ? acePtr->GetWebOnSslErrorEventReceiveCallBack() : callback;
+    if (callback) {
+        callback(static_cast<int>(AceWebHandleResult::CONFIRM));
+    }
+}
+
+void AceWebOnSslErrorEventReceiveEventObjectWrapper::Cancel(void* object, int index)
+{
+    SslEventCallBack callback;
+    AceWebOnSslErrorEventReceiveEventObject* acePtr = reinterpret_cast<AceWebOnSslErrorEventReceiveEventObject*>(object);
+    callback = acePtr ? acePtr->GetWebOnSslErrorEventReceiveCallBack() : callback;
+    if (callback) {
+        callback(static_cast<int>(AceWebHandleResult::CANCEL));
+    }
+}
+
 void InjectAceWebResourceObject()
 {
     auto aceWebResourceObjectWrapper = OHOS::Ace::Referenced::MakeRefPtr<AceWebResourceObjectWrapper>();
@@ -462,4 +609,8 @@ void InjectAceWebResourceObject()
     OHOS::Ace::WebObjectEventManager::GetInstance().SetFullScreenEnterObject(aceWebFullScreenEnterObject);
     auto aceWebFullScreenExitObject = OHOS::Ace::Referenced::MakeRefPtr<AceWebFullScreenExitObjectWrapper>();
     OHOS::Ace::WebObjectEventManager::GetInstance().SetFullScreenExitObject(aceWebFullScreenExitObject);
+    auto aceWebSslErrorEventObject = OHOS::Ace::Referenced::MakeRefPtr<AceWebSslErrorEventObjectWrapper>();
+    OHOS::Ace::WebObjectEventManager::GetInstance().SetSslErrorEventObject(aceWebSslErrorEventObject);
+    auto aceWebOnSslErrorEventReceiveEventObject= OHOS::Ace::Referenced::MakeRefPtr<AceWebOnSslErrorEventReceiveEventObjectWrapper>();
+    OHOS::Ace::WebObjectEventManager::GetInstance().SetOnSslErrorEventReceiveEventObject(aceWebOnSslErrorEventReceiveEventObject);
 }

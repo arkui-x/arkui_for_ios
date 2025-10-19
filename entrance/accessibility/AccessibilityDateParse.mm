@@ -119,9 +119,9 @@
     static NSRegularExpression *cachedRegex;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
-        NSString *datePattern = [NSString stringWithFormat:@"d{1,%@}",MOON_DIGITS_LENGTH];
+        NSString *datePattern = [NSString stringWithFormat:@"d{1,%d}",MOON_DIGITS_LENGTH];
         NSString *pattern = [NSString stringWithFormat:
-            @"\\b\\d{%@}[-/]\\%@([-/]\\%@)?(?:[ T]\\%@:\\d{2}(:\\d{2})?)?\\b",
+            @"\\b\\d{%d}[-/]\\%@([-/]\\%@)?(?:[ T]\\%@:\\d{2}(:\\d{2})?)?\\b",
             YEAR_DIGITS_LENGTH, datePattern, datePattern, datePattern];
         cachedRegex = [NSRegularExpression regularExpressionWithPattern:pattern
                                                                 options:0

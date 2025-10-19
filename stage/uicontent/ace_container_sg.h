@@ -354,6 +354,7 @@ public:
     bool GetCurPointerEventInfo( DragPointerEvent& dragPointerEvent, StopDragCallback&& stopDragCallback) override;
 
     bool GetLastMovingPointerPosition(DragPointerEvent& dragPointerEvent) override;
+    void FireAccessibilityEventCallback(uint32_t eventId, int64_t parameter);
 private:
     virtual bool MaybeRelease() override;
     void InitializeFrontend();

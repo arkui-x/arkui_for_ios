@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -16,8 +16,11 @@
 #import <Foundation/Foundation.h>
 #import <WebKit/WebKit.h>
 #import "AceResourcePlugin.h"
+#include "scheme_handler/scheme_handler.h"
 
 @interface AceWeb : NSObject
+
+@property (nonatomic, assign) BOOL webScrollEnabled;
 
 -(instancetype)init:(int64_t)incId
              target:(UIViewController*)target
@@ -100,4 +103,7 @@
                 asyncMethodList:(NSArray*)asyncMethodList
                        callback:(id (^)(NSString* objName, NSString* methodName, NSArray* args))callback;
 - (void)deleteJavaScriptRegister:(NSString*)objName;
+- (void)setNestedScrollOptionsExt:(void *)options;
+- (BOOL)setWebSchemeHandler:(NSString*)scheme handler:(const ArkWeb_SchemeHandler*)handler;
+- (BOOL)clearWebSchemeHandler;
 @end

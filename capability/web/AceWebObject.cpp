@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -21,6 +21,22 @@ float AceWebOnScrollObject::GetX() {
 
 float AceWebOnScrollObject::GetY() {
      return this->y_;
+}
+
+float AceWebOnScrollObject::GetContentWidth() {
+    return this->contentWidth_;
+}
+
+float AceWebOnScrollObject::GetContentHeight() {
+    return this->contentHeight_;
+}
+
+float AceWebOnScrollObject::GetFrameWidth() {
+    return this->frameWidth_;
+}
+
+float AceWebOnScrollObject::GetFrameHeight() {
+    return this->frameHeight_;
 }
 
 float AceWebOnScaleChangeObject::GetOldScale() {
@@ -111,4 +127,40 @@ int AceWebFullScreenEnterObject::GetWidths() {
 }
 int AceWebFullScreenEnterObject::GetHeights() {
     return this->heights_;
+}
+
+int AceWebSslErrorEventObject::GetError() {
+    return this->error_;
+}
+
+std::string AceWebSslErrorEventObject::GetUrl() {
+    return this->url_;
+}
+
+std::string AceWebSslErrorEventObject::GetOriginalUrl() {
+    return this->originalUrl_;
+}
+
+std::string AceWebSslErrorEventObject::GetReferrer() {
+    return this->referrer_;
+}
+
+bool AceWebSslErrorEventObject::IsFatalError() {
+    return this->isFatalError_;
+}
+
+bool AceWebSslErrorEventObject::IsMainFrame() {
+    return this->isMainFrame_;
+}
+
+std::vector<std::string> AceWebSslErrorEventObject::GetCertificateChain() {
+    return this->certChainData_;
+}
+
+int AceWebOnSslErrorEventReceiveEventObject::GetError() {
+    return this->error_;
+}
+
+std::vector<std::string> AceWebOnSslErrorEventReceiveEventObject::GetCertChainData() {
+    return this->certChainData_;
 }
