@@ -122,9 +122,11 @@ template("ace_capability_ios_source_set") {
       "$ace_root/adapter/ios/capability/platformview/render/RenderView.mm",
 
       # bridge
+      "$ace_root/adapter/ios/capability/bridge/BridgeGCDTaskQueue.mm",
       "$ace_root/adapter/ios/capability/bridge/BridgeManagerHolder.mm",
       "$ace_root/adapter/ios/capability/bridge/BridgePlugin+jsMessage.mm",
       "$ace_root/adapter/ios/capability/bridge/BridgePlugin.mm",
+      "$ace_root/adapter/ios/capability/bridge/BridgePlugin+internal.mm",
       "$ace_root/adapter/ios/capability/bridge/BridgePluginManager+internal.mm",
       "$ace_root/adapter/ios/capability/bridge/BridgePluginManager.mm",
       "$ace_root/adapter/ios/capability/bridge/BridgeTaskInfo.mm",
