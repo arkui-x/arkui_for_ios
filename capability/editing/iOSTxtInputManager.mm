@@ -111,6 +111,7 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
     iOSTextRange* _selectedTextRange;
     BOOL _isDelete;
     BOOL _unmarkText;
+    BOOL _discardedMarkedText;
 }
 
 @synthesize tokenizer = _tokenizer;
@@ -131,6 +132,7 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
         _markedTextLength = 0;
         _isDelete = NO;
         _unmarkText = NO;
+        _discardedMarkedText = NO;
         // UITextInputTraits
         _autocapitalizationType = UITextAutocapitalizationTypeSentences;
         _autocorrectionType = UITextAutocorrectionTypeDefault;
@@ -627,7 +629,8 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
                 newText = [newText stringByAppendingString: suffixText];
                 [self.text setString:newText];                
             } else {
-                if (self.appendText.length == 0 || _unmarkText) {
+                // NOTE: When discarding marked text, we skip maxLength trimming to avoid unintended extra truncation.
+                if (self.appendText.length == 0 || (_unmarkText && !_discardedMarkedText)) {
                     NSString *newText = [self.text substringWithRange:NSMakeRange(0, self.maxLength)];
                     [self.text setString:newText];
                 }
@@ -653,13 +656,14 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
         @"appendText" : [NSString stringWithString:self.appendText],
         @"isDelete" : @(_isDelete),
         @"unmarkText" : @(_unmarkText),
+        @"discardedMarkedText" : @(_discardedMarkedText),
     };
-    if (_unmarkText) {
+    if (_unmarkText || _discardedMarkedText) {
         _unmarkText = NO;
         self.markedTextRange = nil;
         self.markedTextLocation = 0;
         self.markedTextLength = 0;
-        self.textLength = self.text.length > self.maxLength ? self.maxLength : self.text.length;
+        self.textLength = self.text.length > self.maxLength && !_discardedMarkedText ? self.maxLength : self.text.length;
     } else {
         self.textLength = self.text.length - self.markedTextLength;
     }
@@ -667,6 +671,7 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
         _isDelete = NO;
         self.textLength = self.text.length;
     }
+    _discardedMarkedText = NO;
     [self.appendText setString:@""];
     if(self.textInputBlock){
         self.textInputBlock(_textInputClient,dict);
@@ -731,6 +736,16 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
     
     if (!_selectedTextRange.isEmpty)
         [self replaceRange:_selectedTextRange withText:@""];
+}
+
+- (void)discardMarkedText {
+    [self.inputDelegate textWillChange:self];
+    [self.inputDelegate selectionWillChange:self];
+    _discardedMarkedText = YES;
+    _unmarkText = YES;
+    [self setMarkedText:nil selectedRange:NSMakeRange(0, 0)];
+    [self.inputDelegate selectionDidChange:self];
+    [self.inputDelegate textDidChange:self];
 }
 
 @end
@@ -907,6 +922,10 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
     _activeView.textInputBlock = NULL;
     _activeView.errorTextBlock = NULL;
     _activeView.textPerformBlock = NULL;
+}
+
+- (void)finishComposing {
+    [_activeView discardMarkedText];
 }
 
 @end

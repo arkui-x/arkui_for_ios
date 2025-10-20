@@ -142,6 +142,7 @@ void TextInputConnectionImpl::Show(bool isFocusViewChanged, int32_t instanceId){
                 textEditingValue->UpdateCompose(composingBase,composingExtent);
                 textEditingValue->isDelete = [state[@"isDelete"] boolValue];
                 textEditingValue->unmarkText = [state[@"unmarkText"] boolValue];
+                textEditingValue->discardedMarkedText = [state[@"discardedMarkedText"] boolValue];
                 TextInputClientHandler::GetInstance().UpdateEditingValue(client, textEditingValue, needFireChangeEvent_);
                 needFireChangeEvent_ = true;
             }
@@ -241,6 +242,15 @@ void TextInputConnectionImpl::Close(int32_t instanceId){
         [iOSTxtInputManager shareintance].isDeclarative = false;
     };
     dispatch_main_async_safe(closeCallback);
+}
+
+void TextInputConnectionImpl::FinishComposing(int32_t instanceId)
+{
+    LOGI("vailclientid->FinishComposing");
+    TextInputNoParamsBlock finishComposingCallback = ^{
+        [[iOSTxtInputManager shareintance] finishComposing];
+    };
+    dispatch_main_async_safe(finishComposingCallback);
 }
 
 }
