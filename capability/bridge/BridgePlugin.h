@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2023-2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -130,14 +130,14 @@ typedef enum : int {
  * 
  * @since 10
  */
-@property(nonatomic, assign) id<IMethodResult> methodResult;
+@property(nonatomic, weak) id<IMethodResult> methodResult;
 
 /**
  * SendMessage listerner delegate
  * 
  * @since 10
  */
-@property(nonatomic, assign) id<IMessageListener> messageListener;
+@property(nonatomic, weak) id<IMessageListener> messageListener;
 
 /**
  * @since 10
@@ -219,6 +219,18 @@ typedef enum : int {
  * @since 10
  */
 - (void)callMethod:(MethodData*)method;
+
+/**
+ * Calls a method registered by Arkui synchronously and listens for the call results 
+ * using the 'methodResult' delegate.
+ *
+ * @param methodName The name of the method to call.
+ * @param firstObj The first parameter of the method. Additional parameters can be passed as a variable argument list.
+ *                 The argument list must be terminated with nil.
+ * @return The result of the method call, returned as an object.
+ * @since 22
+ */
+- (id)callMethodSync:(NSString*)methodName parameters:(id)firstObj, ... NS_REQUIRES_NIL_TERMINATION;
 
 /**
  * sendMessage to arkui.

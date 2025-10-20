@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2025 Huawei Device Co., Ltd.
+ * Copyright (c) 2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -12,20 +12,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#ifndef FOUNDATION_ADAPTER_CAPABILITY_BRIDGE_GCDTASKQUEUE_H
+#define FOUNDATION_ADAPTER_CAPABILITY_BRIDGE_GCDTASKQUEUE_H
 
-#import "BridgeManagerHolder.h"
-#import "BridgePluginManager+internal.h"
+#import <Foundation/Foundation.h>
 
-@implementation BridgeManagerHolder
+NS_ASSUME_NONNULL_BEGIN
 
+@interface BridgeGCDTaskQueue : NSObject
 
-+ (BridgePluginManager*)getBridgePluginManager
-{
-    BridgePluginManager* object = nil;
-    @synchronized (self) {
-        object = [BridgePluginManager sharedInstance];
-    }
-    return object;
-}
++ (instancetype)sharedInstance;
+- (void)gcdDispatchAsync:(dispatch_block_t)block;
 
 @end
+
+NS_ASSUME_NONNULL_END
+#endif // FOUNDATION_ADAPTER_CAPABILITY_BRIDGE_GCDTASKQUEUE_H

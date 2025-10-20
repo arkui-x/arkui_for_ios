@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2025 Huawei Device Co., Ltd.
+ * Copyright (c) 2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -13,19 +13,19 @@
  * limitations under the License.
  */
 
-#import "BridgeManagerHolder.h"
-#import "BridgePluginManager+internal.h"
+#ifndef FOUNDATION_ADAPTER_CAPABILITY_BRIDGE_BridgePlugin_INTERNAL_H
+#define FOUNDATION_ADAPTER_CAPABILITY_BRIDGE_BridgePlugin_INTERNAL_H
 
-@implementation BridgeManagerHolder
+#import "BridgePlugin.h"
 
+NS_ASSUME_NONNULL_BEGIN
 
-+ (BridgePluginManager*)getBridgePluginManager
-{
-    BridgePluginManager* object = nil;
-    @synchronized (self) {
-        object = [BridgePluginManager sharedInstance];
-    }
-    return object;
-}
+@interface BridgePlugin (internal)
+
+- (void)onRegisterResult:(BOOL)result;
 
 @end
+
+NS_ASSUME_NONNULL_END
+
+#endif // FOUNDATION_ADAPTER_CAPABILITY_BRIDGE_BridgePlugin_INTERNAL_H
