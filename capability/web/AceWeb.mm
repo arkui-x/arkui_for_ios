@@ -38,6 +38,9 @@
 #define DELAY_TIME      0.3
 #define ZOOMIN_SCALE_VALUE   1.2
 #define ZOOMOUT_SCALE_VALUE  0.8
+#define POLLING_INTERVAL_MS 50
+#define TIMEOUT_S 15
+#define HTTP_STATUS_GATEWAY_TIMEOUT 504
 
 #define WEB_FLAG        @"web@"
 #define PARAM_AND       @"#HWJS-&-#"
@@ -74,7 +77,9 @@
 #define NTC_ONFULLSCREENEXIT              @"onFullScreenExit"
 #define NTC_ONINTERCEPTREQUEST            @"onInterceptRequest"
 #define NTC_ONREFRESHACCESSED_HISTORYEVENT     @"onRefreshAccessedHistory"
+#define CUSTOM_SCHEME                     @"arkuixcustomscheme"
 #define WEBVIEW_PAGE_HALF                 2
+#define NTC_TEXT_ZOOM_RATIO               @"textZoomRatio"
 @interface DownloadTaskInfo : NSObject
 @property (nonatomic, assign) bool isDownload;
 @property (nonatomic, strong) NSString* filePath;
@@ -130,12 +135,15 @@ typedef id (^onJavaScriptFunction)(NSString* objName, NSString* methodName, NSAr
 @property (nonatomic, strong) NSString* objName;
 @property (nonatomic, assign) bool allowIncognitoMode;
 @property (nonatomic, assign) BOOL jsReady;
+@property (nonatomic, assign) NSInteger textZoomRatio;
 @end
 
 static BOOL _webDebuggingAccessInit = NO;
 static NSString *const kJavaScriptURLPrefix = @"javascript:";
 
-@implementation AceWeb
+@implementation AceWeb {
+    dispatch_source_t _timer;
+}
 
 - (instancetype)init:(int64_t)incId
               target:(UIViewController*)target
@@ -162,6 +170,7 @@ static NSString *const kJavaScriptURLPrefix = @"javascript:";
     self.httpErrorCode = 400;
     self.isLoadRichText = false;
     self.jsReady = false;
+    self.textZoomRatio = 100;
     [self initConfigure];
     [self initEventCallback];
     [self initWeb];
@@ -193,7 +202,7 @@ static NSString *const kJavaScriptURLPrefix = @"javascript:";
     config.preferences = preference;
     config.userContentController = userContentController;
     config.allowsInlineMediaPlayback = YES;
-    [config setURLSchemeHandler:self forURLScheme:@"arkuixcustomscheme"];
+    [config setURLSchemeHandler:self forURLScheme:CUSTOM_SCHEME];
     [self incognitoModeWithConfig:config];
     self.webView = [[WKWebView alloc] initWithFrame:CGRectZero configuration:config];
     self.webView.UIDelegate = self;
@@ -900,6 +909,8 @@ static NSString *const kJavaScriptURLPrefix = @"javascript:";
     [self setTouchMoveCallback];
     // touchUp callback
     [self setTouchUpCallback];
+    // textZoomRatio callback
+    [self updateTextZoomRatio];
 
     [self enterFullScreenOrExitFullScreenNotifi];
 }
@@ -1277,6 +1288,40 @@ static NSString *const kJavaScriptURLPrefix = @"javascript:";
     
 }
 
+- (void)updateTextZoomRatio
+{
+    __weak __typeof(self) weakSelf = self;
+    NSString *text_zoom_ratio_hash = [self method_hashFormat:NTC_TEXT_ZOOM_RATIO];
+    IAceOnCallSyncResourceMethod text_zoom_ratio_callback = ^NSString *(NSDictionary * param) {
+        __strong __typeof(weakSelf) strongSelf = weakSelf;
+        if (strongSelf) {
+            NSInteger textZoomRatio = [[param objectForKey:NTC_TEXT_ZOOM_RATIO] integerValue];
+            strongSelf.textZoomRatio = textZoomRatio;
+            if (strongSelf.jsReady) {
+                [strongSelf updateTextZoomRatio:textZoomRatio];
+            }
+            return SUCCESS;
+        } else {
+            NSLog(@"AceWeb: textZoomRatio fail");
+            return FAIL;
+        }
+    };
+    [self.callSyncMethodMap setObject:[text_zoom_ratio_callback copy] forKey:text_zoom_ratio_hash];
+}
+
+- (void)updateTextZoomRatio:(NSInteger)textZoomRatio {
+    NSString* js = [NSString stringWithFormat:
+        @"var style = document.createElement('style');"
+        @"style.innerHTML = 'body { -webkit-text-size-adjust: %d%% !important; }';"
+        @"document.head.appendChild(style);",
+        textZoomRatio];
+    [self.webView evaluateJavaScript:js completionHandler:^(id result, NSError* error) {
+        if (error) {
+            NSLog(@"AceWeb: updateTextZoomRatio evaluateJavaScript error: %@", error.localizedDescription);
+        }
+    }];
+}
+
 - (NSString *)method_hashFormat:(NSString *)method
 {
     return [NSString stringWithFormat:@"%@%lld%@%@%@%@", WEB_FLAG, self.incId, METHOD, PARAM_EQUALS, method, PARAM_BEGIN];
@@ -1332,6 +1377,7 @@ static NSString *const kJavaScriptURLPrefix = @"javascript:";
     self.preferences = nil;
     self.webpagePreferences = nil;
     self.target = nil;
+    [self stopGCDTimer];
 }
 
 - (NSDictionary<NSString *, IAceOnCallSyncResourceMethod> *)getSyncCallMethod
@@ -1361,6 +1407,7 @@ static NSString *const kJavaScriptURLPrefix = @"javascript:";
             asyncMethodList:self.asyncMethodList objName:self.objName];
     }
     self.jsReady = true;
+    [self updateTextZoomRatio:self.textZoomRatio];
     NSString *param = [NSString stringWithFormat:@"%@",webView.URL];
     if (self.isLoadRichText) {
         self.isLoadRichText = false;
@@ -1378,42 +1425,109 @@ static NSString *const kJavaScriptURLPrefix = @"javascript:";
     AceWebObject([[self event_hashFormat:NTC_ONREFRESHACCESSED_HISTORYEVENT] UTF8String], [NTC_ONREFRESHACCESSED_HISTORYEVENT UTF8String], obj);
 }
 
-#pragma mark - WKURLSchemeHandler
-- (void)webView:(WKWebView *)webView startURLSchemeTask:(id<WKURLSchemeTask>)urlSchemeTask {
+- (void)handleAceWebResponse:(id<WKURLSchemeTask>)urlSchemeTask {
     const auto& AceWebResponse = AceWebObjectGetResponse();
     if (!AceWebResponse) {
+        NSLog(@"AceWeb: onInterceptRequest fail");
+        NSError *error = [NSError errorWithDomain:@"onInterceptRequest fail" code:HTTP_STATUS_GATEWAY_TIMEOUT userInfo:nil];
+        [urlSchemeTask didFailWithError:error];
         return;
     }
-    NSURLRequest* request = urlSchemeTask.request;
-    const std::string& rawData = AceWebResponse->GetData();
-    NSData* responseData = [NSData dataWithBytes:rawData.c_str() length:rawData.size()];
-
-    NSString* contentType = [NSString stringWithFormat:@"%@;charset=%@;",
-        [NSString stringWithUTF8String:AceWebResponse->GetMimeType().c_str()],
-        [NSString stringWithUTF8String:AceWebResponse->GetEncoding().c_str()]];
-    NSMutableDictionary* headers = [NSMutableDictionary dictionaryWithDictionary:@{
-        @"Content-Type": contentType,
-        @"Content-Length": [@(responseData.length) stringValue],
-        @"Reason-Phrase": [NSString stringWithUTF8String:AceWebResponse->GetReason().c_str()]
+    __weak __typeof(self) weakSelf = self;
+    [self startGCDTimer:^(bool timeout) {
+        __strong __typeof(weakSelf)strongSelf = weakSelf;
+        if (!strongSelf) {
+            NSLog(@"AceWeb: onInterceptRequest fail");
+            NSError *error = [NSError errorWithDomain:@"onInterceptRequest fail" code:HTTP_STATUS_GATEWAY_TIMEOUT userInfo:nil];
+            [urlSchemeTask didFailWithError:error];
+            return;
+        }
+        NSURLRequest* request = urlSchemeTask.request;
+        if (timeout) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                const std::string& rawData = "<html><body><h1>Response Timeout</h1><p>The request has timed out.</p></body></html>";
+                NSData* responseData = [NSData dataWithBytes:rawData.c_str() length:rawData.size()];
+                NSString* contentType = @"text/html;charset=tf-8;";
+                NSMutableDictionary* headers = [NSMutableDictionary dictionaryWithDictionary:@{
+                    @"Content-Type": contentType,
+                    @"Content-Length": [@(responseData.length) stringValue],
+                    @"Reason-Phrase": @"Response timed out"
+                }];
+                NSHTTPURLResponse* response = [[NSHTTPURLResponse alloc] initWithURL:request.URL
+                    statusCode:HTTP_STATUS_GATEWAY_TIMEOUT HTTPVersion:@"HTTP/1.1"
+                    headerFields:headers];
+                [urlSchemeTask didReceiveResponse:response];
+                [urlSchemeTask didReceiveData:responseData];
+                [urlSchemeTask didFinish];
+                [strongSelf stopGCDTimer];
+            });
+            return;
+        }
+        bool isReady = AceWebResponse->GetResponseStatus();
+        if (isReady) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                const std::string& rawData = AceWebResponse->GetData();
+                NSData* responseData = [NSData dataWithBytes:rawData.c_str() length:rawData.size()];
+                NSString* contentType = [NSString stringWithFormat:@"%@;charset=%@;",
+                    [NSString stringWithUTF8String:AceWebResponse->GetMimeType().c_str()],
+                    [NSString stringWithUTF8String:AceWebResponse->GetEncoding().c_str()]];
+                NSMutableDictionary* headers = [NSMutableDictionary dictionaryWithDictionary:@{
+                    @"Content-Type": contentType,
+                    @"Content-Length": [@(responseData.length) stringValue],
+                    @"Reason-Phrase": [NSString stringWithUTF8String:AceWebResponse->GetReason().c_str()]
+                }];
+                const auto& cppHeaders = AceWebResponse->GetHeaders();
+                for (const auto& header : cppHeaders) {
+                    NSString* key = [NSString stringWithUTF8String:header.first.c_str()];
+                    NSString* value = [NSString stringWithUTF8String:header.second.c_str()];
+                    [headers setObject:value forKey:key];
+                }
+                NSHTTPURLResponse* response = [[NSHTTPURLResponse alloc] initWithURL:request.URL
+                    statusCode:AceWebResponse->GetStatusCode() HTTPVersion:@"HTTP/1.1"
+                    headerFields:headers];
+                [urlSchemeTask didReceiveResponse:response];
+                [urlSchemeTask didReceiveData:responseData];
+                [urlSchemeTask didFinish];
+                [strongSelf stopGCDTimer];
+            });
+        }
     }];
-
-    const auto& cppHeaders = AceWebResponse->GetHeaders();
-    for (const auto& header : cppHeaders) {
-        NSString* key = [NSString stringWithUTF8String:header.first.c_str()];
-        NSString* value = [NSString stringWithUTF8String:header.second.c_str()];
-        [headers setObject:value forKey:key];
-    }
-    
-    NSHTTPURLResponse* response = [[NSHTTPURLResponse alloc] initWithURL:request.URL
-        statusCode:AceWebResponse->GetStatusCode() HTTPVersion:@"HTTP/1.1"
-        headerFields:headers];
-
-    [urlSchemeTask didReceiveResponse:response];
-    [urlSchemeTask didReceiveData:responseData];
-    [urlSchemeTask didFinish];
 }
 
-- (void)webView:(WKWebView *)webView stopURLSchemeTask:(id<WKURLSchemeTask>)urlSchemeTask {}
+- (void)startGCDTimer:(nonnull void (^)(bool timeout))block {
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(TIMEOUT_S * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        if (_timer) {
+            block(true);
+        }
+    });
+    if (!_timer) {
+        dispatch_queue_t queue = dispatch_queue_create("com.arkuix.timer.queue", DISPATCH_QUEUE_SERIAL);
+        _timer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, queue);
+        dispatch_source_set_timer(_timer, DISPATCH_TIME_NOW, POLLING_INTERVAL_MS * NSEC_PER_MSEC, 10 * NSEC_PER_MSEC);
+        dispatch_source_set_event_handler(_timer, ^{
+            block(false);
+        });
+        dispatch_resume(_timer);
+    }
+}
+
+- (void)stopGCDTimer {
+    if (_timer) {
+        dispatch_source_cancel(_timer);
+        _timer = nil;
+    }
+}
+
+#pragma mark - WKURLSchemeHandler
+- (void)webView:(WKWebView *)webView startURLSchemeTask:(id<WKURLSchemeTask>)urlSchemeTask {
+    [self handleAceWebResponse:urlSchemeTask];
+}
+
+- (void)webView:(WKWebView *)webView stopURLSchemeTask:(id<WKURLSchemeTask>)urlSchemeTask {
+    NSError *error = [NSError errorWithDomain:@"onInterceptRequest fail" code:HTTP_STATUS_GATEWAY_TIMEOUT userInfo:nil];
+    [urlSchemeTask didFailWithError:error];
+    [self stopGCDTimer];
+}
 
 - (void)webView:(WKWebView *)webView
     decidePolicyForNavigationAction:(WKNavigationAction *)navigationAction
@@ -1435,9 +1549,9 @@ static NSString *const kJavaScriptURLPrefix = @"javascript:";
         return;
     }
 
-    if (![url hasPrefix:@"arkuixcustomscheme://"] && AceWebObjectWithResponseReturn(
+    if (![requestURL hasPrefix:[NSString stringWithFormat:@"%@://", CUSTOM_SCHEME]] && AceWebObjectWithResponseReturn(
             [[self event_hashFormat:NTC_ONINTERCEPTREQUEST] UTF8String], [NTC_ONINTERCEPTREQUEST UTF8String], obj)) {
-        NSString* customURL = [NSString stringWithFormat:@"arkuixcustomscheme://%@", url];
+        NSString* customURL = [NSString stringWithFormat:@"%@://%@", CUSTOM_SCHEME, requestURL];
         NSURLRequest* newRequest = [NSURLRequest requestWithURL:[NSURL URLWithString:customURL]];
         [webView loadRequest:newRequest];
         decisionHandler(WKNavigationActionPolicyCancel);
