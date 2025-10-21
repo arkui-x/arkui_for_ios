@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Huawei Device Co., Ltd.
+ * Copyright (c) Huawei Technologies Co., Ltd. 2025-2025. All rights reserved.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -82,7 +82,7 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
 @property(readwrite, copy) UITextRange* selectedTextRange;
 @property(nonatomic, strong) UITextRange* markedTextRange;
 @property(nonatomic, copy) NSDictionary* markedTextStyle;
-@property(nonatomic, assign) id<UITextInputDelegate> inputDelegate;
+@property(nonatomic, weak) id<UITextInputDelegate> inputDelegate;
 @property(nonatomic, copy) NSString* inputFilter;
 @property(nonatomic) NSUInteger maxLength;
 @property(nonatomic) NSUInteger markedTextLocation;
@@ -112,17 +112,16 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
     BOOL _isDelete;
     BOOL _unmarkText;
     BOOL _discardedMarkedText;
+    BOOL _isSetSelectedTextRange;
 }
 
 @synthesize tokenizer = _tokenizer;
 
 - (instancetype)init {
     self = [super init];
-    
     if (self) {
         _textInputClient = 0;
         _selectionAffinity = _kTextAffinityUpstream;
-        
         // UITextInput
         _text = [[NSMutableString alloc] init];
         _markedText = [[NSMutableString alloc] init];
@@ -133,6 +132,7 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
         _isDelete = NO;
         _unmarkText = NO;
         _discardedMarkedText = NO;
+        _isSetSelectedTextRange = NO;
         // UITextInputTraits
         _autocapitalizationType = UITextAutocapitalizationTypeSentences;
         _autocorrectionType = UITextAutocorrectionTypeDefault;
@@ -144,7 +144,6 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
         _secureTextEntry = NO;
         _inputFilter = @"";
     }
-    
     return self;
 }
 
@@ -163,27 +162,30 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
 }
 
 - (void)setTextInputState:(NSDictionary*)state {
-    
-    if(self.markedTextRange!=nil){
+    if (self.markedTextRange != nil) {
         return;
     }
-    
     NSString *newText = state[@"text"];
     BOOL textChanged = ![self.text isEqualToString:newText];
     if (textChanged) {
+        [self.inputDelegate textWillChange:self];
         [self.text setString:newText];
     }
-    
     NSInteger selectionBase = [state[@"selectionBase"] intValue];
     NSInteger selectionExtent = [state[@"selectionExtent"] intValue];
     NSRange selectedRange = [self clampSelection:NSMakeRange(MIN(selectionBase, selectionExtent), ABS(selectionBase - selectionExtent)) forText:self.text];
     NSRange oldSelectedRange = [(iOSTextRange*)self.selectedTextRange range];
     if (selectedRange.location != oldSelectedRange.location || selectedRange.length != oldSelectedRange.length) {
+        [self.inputDelegate selectionWillChange:self];
         [self setSelectedTextRange:[iOSTextRange rangeWithNSRange:selectedRange] updateEditingState:NO];
         _selectionAffinity = _kTextAffinityDownstream;
         if ([state[@"selectionAffinity"] isEqualToString:@(_kTextAffinityUpstream)]){
            _selectionAffinity = _kTextAffinityUpstream;
         }
+        [self.inputDelegate selectionDidChange:self];
+    }
+    if (textChanged) {
+        [self.inputDelegate textDidChange:self];
     }
 }
 
@@ -209,28 +211,28 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
 }
 
 - (UITextRange*)selectedTextRange {
-    return [[_selectedTextRange copy] autorelease];
+    return [_selectedTextRange copy];
 }
 
 - (void)setSelectedTextRange:(UITextRange*)selectedTextRange {
+    _isSetSelectedTextRange = YES;
     [self setSelectedTextRange:selectedTextRange updateEditingState:YES];
 }
 
 - (void)setSelectedTextRange:(UITextRange*)selectedTextRange updateEditingState:(BOOL)update {
     if (_selectedTextRange != selectedTextRange) {
-        UITextRange* oldSelectedRange = _selectedTextRange;
-        if (self.hasText) {
+        if (self.hasText && !_isSetSelectedTextRange) {
             iOSTextRange* iosTextRange = (iOSTextRange*)selectedTextRange;
             _selectedTextRange = [[iOSTextRange
                                    rangeWithNSRange:[self RangeForCharactersInRange:self.text range:iosTextRange.range]] copy];
         } else {
             _selectedTextRange = [selectedTextRange copy];
         }
-        [oldSelectedRange release];
-        
-        if (update)
+        if (update) {
             [self updateEditingState];
+        }
     }
+    _isSetSelectedTextRange = NO;
 }
 
 - (NSRange)RangeForCharactersInRange:(NSString* )text range:(NSRange)range {
@@ -253,8 +255,8 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
     if (textRange.location < 0) {
         textRange.location = 0;
     }
-    if (textRange.length + textRange.location > self.text.length) {
-        textRange.length = self.text.length - textRange.location;
+    if (textRange.length > self.text.length) {
+        textRange.length = 0;
     }
     if (textRange.location > self.maxLength) {
         textRange.location = 0;
@@ -267,27 +269,31 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
     if (self.returnKeyType == UIReturnKeyDefault && [text isEqualToString:@"\n"]) {
         return;
     }
-    _isDelete = (text.length == 0);
     NSRange replaceRange = ((iOSTextRange*)range).range;
     NSRange selectedRange = _selectedTextRange.range;
     // Adjust the text selection:
     // * reduce the length by the intersection length
     // * adjust the location by newLength - oldLength + intersectionLength
     NSRange intersectionRange = NSIntersectionRange(replaceRange, selectedRange);
-    if (replaceRange.location <= selectedRange.location)
+    if (replaceRange.location <= selectedRange.location) {
         selectedRange.location += text.length - replaceRange.length;
+    }
     if (intersectionRange.location != NSNotFound) {
         selectedRange.location += intersectionRange.length;
         selectedRange.length -= intersectionRange.length;
     }
-    
     [self.text replaceCharactersInRange:[self clampSelection:replaceRange forText:self.text] withString:text];
-    
-    [self setSelectedTextRange:[iOSTextRange rangeWithNSRange:[self clampSelection:selectedRange forText:self.text]] updateEditingState:NO];
+    [self setSelectedTextRange:
+        [iOSTextRange rangeWithNSRange:
+        [self clampSelection:selectedRange forText:self.text]] updateEditingState:NO];
     if (text.length == 0 && replaceRange.length != 0) {
         _unmarkText = YES;
+        self.markedTextRange = [iOSTextRange rangeWithNSRange:replaceRange];
     } else {
         [self.appendText setString:text];
+        if (![self.text isEqualToString:text]) {
+            self.markedTextRange = replaceRange.length > 0 ? [iOSTextRange rangeWithNSRange:replaceRange] : nil;
+        }
         if ((self.markedText.length == 0) && (self.text.length >= self.maxLength)) {
             NSRange range =  NSMakeRange(self.markedTextLocation, self.maxLength);
             if (range.location + range.length < self.text.length) {
@@ -295,7 +301,6 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
             }
         }
     }
-    self.markedTextRange = replaceRange.length > 0 ? [iOSTextRange rangeWithNSRange:replaceRange] : nil;
     [self updateEditingState];
 }
 
@@ -317,7 +322,7 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
                 [NSRegularExpression regularExpressionWithPattern:self.inputFilter options:NSRegularExpressionUseUnixLineSeparators error:nil];
 
             NSString *temp = nil;
-            for(int i = 0; i < [text length]; i++) {
+            for (int i = 0; i < [text length]; i++) {
                 temp = [text substringWithRange:NSMakeRange(i, 1)];
                 auto hits = [regex matchesInString:temp options:0 range:NSMakeRange(0, [temp length])];                
                 if ([hits count] > 0) {
@@ -334,12 +339,12 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
     }
 
     if (self.returnKeyType == UIReturnKeyDefault && [text isEqualToString:@"\n"]) {
-        if(self.textPerformBlock){
-            self.textPerformBlock(iOSTextInputActionNewline,_textInputClient);
+        if (self.textPerformBlock) {
+            self.textPerformBlock(iOSTextInputActionNewline, _textInputClient);
         }
         return YES;
     }
-    
+
     if ([text isEqualToString:@"\n"]) {
         iOSTextInputAction action;
         switch (self.returnKeyType) {
@@ -376,9 +381,8 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
                 action = iOSTextInputActionEmergencyCall;
                 break;
         }
-        
-        if(self.textPerformBlock){
-            self.textPerformBlock(action,_textInputClient);
+        if (self.textPerformBlock) {
+            self.textPerformBlock(action, _textInputClient);
         }
         return NO;
     }
@@ -389,10 +393,10 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
 - (void)setMarkedText:(NSString*)markedText selectedRange:(NSRange)markedSelectedRange {
     NSRange selectedRange = _selectedTextRange.range;
     NSRange markedTextRange = ((iOSTextRange*)self.markedTextRange).range;
-    
-    if (markedText == nil)
+    if (markedText == nil) {
         markedText = @"";
-    
+    }
+    [self.markedText setString:markedText];
     if (markedTextRange.length > 0) {
         // Replace text in the marked range with the new text.
         [self replaceRange:self.markedTextRange withText:markedText];
@@ -406,9 +410,8 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
         markedTextRange.length > 0 ? [iOSTextRange rangeWithNSRange:markedTextRange] : nil;
     NSUInteger selectionLocation = markedSelectedRange.location + markedTextRange.location;
     selectedRange = NSMakeRange(selectionLocation, markedSelectedRange.length);
-    [self setSelectedTextRange:[iOSTextRange rangeWithNSRange:[self clampSelection:selectedRange
-                                                                           forText:self.text]]
-            updateEditingState:YES];
+    [self setSelectedTextRange:
+        [iOSTextRange rangeWithNSRange:[self clampSelection:selectedRange forText:self.text]] updateEditingState:YES];
 }
 
 - (void)unmarkText {
@@ -454,18 +457,18 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
 
 - (UITextPosition*)positionFromPosition:(UITextPosition*)position offset:(NSInteger)offset {
     NSUInteger offsetPosition = ((iOSTextPosition*)position).index;
-    
     NSInteger newLocation = (NSInteger)offsetPosition + offset;
     if (newLocation < 0 || newLocation > (NSInteger)self.text.length) {
         return nil;
     }
-    
     if (offset >= 0) {
-        for (NSInteger i = 0; i < offset && offsetPosition < self.text.length; ++i)
+        for (NSInteger i = 0; i < offset && offsetPosition < self.text.length; ++i) {
             offsetPosition = [self incrementOffsetPosition:offsetPosition];
+        }
     } else {
-        for (NSInteger i = 0; i < ABS(offset) && offsetPosition > 0; ++i)
+        for (NSInteger i = 0; i < ABS(offset) && offsetPosition > 0; ++i) {
             offsetPosition = [self decrementOffsetPosition:offsetPosition];
+        }
     }
     return [iOSTextPosition positionWithIndex:offsetPosition];
 }
@@ -494,10 +497,12 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
 - (NSComparisonResult)comparePosition:(UITextPosition*)position toPosition:(UITextPosition*)other {
     NSUInteger positionIndex = ((iOSTextPosition*)position).index;
     NSUInteger otherIndex = ((iOSTextPosition*)other).index;
-    if (positionIndex < otherIndex)
+    if (positionIndex < otherIndex) {
         return NSOrderedAscending;
-    if (positionIndex > otherIndex)
+    }
+    if (positionIndex > otherIndex) {
         return NSOrderedDescending;
+    }
     return NSOrderedSame;
 }
 
@@ -614,7 +619,7 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
                 if (self.text.length >= self.markedTextLocation) {
                     prefixText = [self.text substringWithRange:NSMakeRange(0, self.markedTextLocation)];
                 }
-                if (self.text.length >= self.markedTextLocation + self.markedTextLocation) {
+                if (self.text.length >= self.markedTextLocation + self.markedTextLength) {
                     insertText = [self.text substringWithRange:NSMakeRange(self.markedTextLocation, self.markedTextLength)];
                     suffixText = [self.text substringWithRange:NSMakeRange(self.markedTextLocation + self.markedTextLength, self.text.length - (self.markedTextLocation + self.markedTextLength))];
                 }
@@ -627,7 +632,7 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
                 selectionBase = newText.length;
                 selectionExtent = newText.length;
                 newText = [newText stringByAppendingString: suffixText];
-                [self.text setString:newText];                
+                [self.text setString:newText];
             } else {
                 // NOTE: When discarding marked text, we skip maxLength trimming to avoid unintended extra truncation.
                 if (self.appendText.length == 0 || (_unmarkText && !_discardedMarkedText)) {
@@ -644,7 +649,6 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
         self.markedTextLocation = markedTextRange.location;
         self.markedTextLength = markedTextRange.length;
     }
-    
     NSDictionary *dict = @{
         @"selectionBase" : @(selectionBase),
         @"selectionExtent" : @(selectionExtent),
@@ -673,17 +677,17 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
     }
     _discardedMarkedText = NO;
     [self.appendText setString:@""];
-    if(self.textInputBlock){
-        self.textInputBlock(_textInputClient,dict);
+    [self.markedText setString:@""];
+    if (self.textInputBlock) {
+        self.textInputBlock(_textInputClient, dict);
     }
-    
 }
 
-- (void)updateInputFilterErrorText: (NSString*)errorText {
+- (void)updateInputFilterErrorText:(NSString*)errorText {
     NSDictionary *dict = @{
         @"errorText" : errorText,
     };
-    if(self.errorTextBlock){
+    if (self.errorTextBlock) {
         self.errorTextBlock(_textInputClient, dict);
     }
 }
@@ -700,7 +704,7 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
             [NSRegularExpression regularExpressionWithPattern:self.inputFilter options:NSRegularExpressionUseUnixLineSeparators error:nil];
 
         NSString *temp = nil;
-        for(int i = 0; i < [text length]; i++) {
+        for (int i = 0; i < [text length]; i++) {
             temp = [text substringWithRange:NSMakeRange(i, 1)];
             auto hits = [regex matchesInString:temp options:0 range:NSMakeRange(0, [temp length])];                
             if ([hits count] > 0) {
@@ -725,6 +729,9 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
 
 - (void)deleteBackward {
     _selectionAffinity = _kTextAffinityDownstream;
+    if ([self hasText]) {
+        _isDelete = YES;
+    }
     if (_selectedTextRange.isEmpty && [self hasText]) {
         NSRange oldRange = ((iOSTextRange*)_selectedTextRange).range;
         if (oldRange.location > 0) {
@@ -733,9 +740,9 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
                     updateEditingState:false];
         }
     }
-    
-    if (!_selectedTextRange.isEmpty)
+    if (!_selectedTextRange.isEmpty) {
         [self replaceRange:_selectedTextRange withText:@""];
+    }
 }
 
 - (void)discardMarkedText {
@@ -750,14 +757,11 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
 
 @end
 
-
-@interface TextInputHideView : UIView {
-}
+@interface TextInputHideView : UIView
 
 @end
 
-@implementation TextInputHideView {
-}
+@implementation TextInputHideView
 
 - (BOOL)accessibilityElementsHidden {
     return YES;
@@ -765,7 +769,7 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
 
 @end
 
-@implementation iOSTxtInputManager{
+@implementation iOSTxtInputManager {
     iOSTextInputView* _view;
     iOSTextInputView* _secureView;
     iOSTextInputView* _activeView;
@@ -776,7 +780,7 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
 @synthesize errorTextBlock = _errorTextBlock;
 @synthesize textPerformBlock = _textPerformBlock;
 
-+ (instancetype)shareintance{
++ (instancetype)sharedInstance {
     static dispatch_once_t onceToken;
     static iOSTxtInputManager *instance = nil;
     dispatch_once(&onceToken, ^{
@@ -787,7 +791,6 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
 
 - (instancetype)init {
     self = [super init];
-    
     if (self) {
         _view = [[iOSTextInputView alloc] init];
         _view.secureTextEntry = NO;
@@ -844,10 +847,10 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
     } else {
         keyWindow = sharedApplication.keyWindow;
     }
-  NSAssert(keyWindow != nullptr,
-           @"The application must have a key window since the keyboard client "
-           @"must be part of the responder chain to function");
-  return keyWindow;
+    NSAssert(keyWindow != nullptr,
+            @"The application must have a key window since the keyboard client "
+            @"must be part of the responder chain to function");
+    return keyWindow;
 }
 
 - (void)addToInputParentViewIfNeeded:(iOSTextInputView*)inputView {
@@ -858,7 +861,7 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
     
     UIView* parentView = self.keyWindow;
     if ([_inputHider isDescendantOfView:parentView]) {
-         [_inputHider removeFromSuperview];
+        [_inputHider removeFromSuperview];
       }
     [parentView addSubview:_inputHider];
 }
