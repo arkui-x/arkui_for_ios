@@ -114,7 +114,7 @@ template("ace_ios_standard_source_set") {
       "//foundation/distributeddatamgr/udmf/adapter:arkui_x_udmf_data_napi",
       "//foundation/graphic/graphic_2d/rosen/modules/render_service_client:librender_service_client_static",
       "//third_party/zlib:libz",
-      "//third_party/libxml2",
+      "//third_party/libxml2:static_libxml2",
     ]
 
     frameworks = [
@@ -126,10 +126,6 @@ template("ace_ios_standard_source_set") {
     include_dirs += [
       "//base/global/resource_management/interfaces/inner_api/include",
       "//foundation/distributeddatamgr/udmf/interfaces/jskits/data",
-    ]
-
-    external_deps = [
-      "libxml2:libxml2",
     ]
 
     if (defined(config.enable_rosen_backend) && config.enable_rosen_backend) {
