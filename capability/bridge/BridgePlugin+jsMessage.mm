@@ -280,6 +280,10 @@ BOOL isNumberTypeMatch(id argument, const char *argumentType) {
     if (params.count > 0) {
         for (int i = 0; i < paramsCount; i++) {
             id argument = params[i];
+            if (argument == [NSNull null]) {
+                return @{@"errorCode": @(BRIDGE_METHOD_PARAM_ERROR),
+                            @"errorMessage": BRIDGE_METHOD_PARAM_ERROR_MESSAGE};
+            }
             const char* argumentType = [signature getArgumentTypeAtIndex:i + signatureDefaultArgsNum];
             if (!strcmp(argumentType, @encode(id))) {
                 [invocation setArgument:&argument atIndex:i + signatureDefaultArgsNum];

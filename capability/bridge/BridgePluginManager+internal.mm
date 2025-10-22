@@ -449,14 +449,18 @@ static char kBridgeQueueMapKey;
     if (!bridgeName.length) {
         resultValue.errorCode = BRIDGE_NAME_ERROR;
         resultValue.errorMessage = BRIDGE_NAME_ERROR_MESSAGE;
-        callback(resultValue);
+        if (callback) {
+            callback(resultValue);
+        }
         return;
     }
 
     if (!methodName.length) {
         resultValue.errorCode = BRIDGE_METHOD_NAME_ERROR;
         resultValue.errorMessage = BRIDGE_METHOD_NAME_ERROR_MESSAGE;
-        callback(resultValue);
+        if (callback) {
+            callback(resultValue);
+        }
         return;
     }
     NSString* jsonString = nil;

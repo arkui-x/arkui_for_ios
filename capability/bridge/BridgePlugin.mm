@@ -44,6 +44,12 @@
 }
 
 - (instancetype)initBridgePlugin:(NSString* _Nonnull)bridgeName
+                    bridgeType:(BridgeType)type {
+    BridgePluginManager* bridgeManager = [BridgeManagerHolder getBridgePluginManager];
+    return [self initBridgePlugin:bridgeName bridgeManager:bridgeManager bridgeType:type taskOption:nil];
+}
+
+- (instancetype)initBridgePlugin:(NSString* _Nonnull)bridgeName
                     bridgeManager:(BridgePluginManager*)bridgeManager {
     bridgeManager = [BridgeManagerHolder getBridgePluginManager];
     return [self initBridgePlugin:bridgeName bridgeManager:bridgeManager bridgeType:JSON_TYPE taskOption:nil];
@@ -123,7 +129,7 @@
                                                            userInfo:nil];
             @throw exception;
         }
-        return resultValue;
+        return resultValue.result;
     } @catch (NSException* exception) {
         NSLog(@"bridge callMethodSyncInner catch");
     } @finally {
