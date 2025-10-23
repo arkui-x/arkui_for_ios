@@ -30,6 +30,7 @@ template("ace_osal_ios_source_set") {
       defines += [ "USE_NEW_SKIA" ]
     }
     sources = [
+      "accessibility_event_manager.cpp",
       "accessibility_manager_impl.cpp",
       "ace_checker.cpp",
       "ace_engine_ext.cpp",
