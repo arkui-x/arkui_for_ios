@@ -2551,6 +2551,7 @@ std::vector<std::string> convertCertificateChainToDer(NSArray *certificateChain)
     self.nestedOpt.scrollLeft = static_cast<NestedScrollMode>(cppOptions->scrollLeft);
     self.nestedOpt.scrollRight = static_cast<NestedScrollMode>(cppOptions->scrollRight);
     self.webView.scrollView.directionalLockEnabled = NO;
+    self.webScrollEnabled = YES;
 }
 
 - (void)setWebScrollEnabled:(BOOL)webScrollEnabled {
