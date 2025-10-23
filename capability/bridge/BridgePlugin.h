@@ -172,6 +172,15 @@ typedef enum : int {
 - (instancetype)initBridgePlugin:(NSString* _Nonnull)bridgeName
                     instanceId:(int32_t)instanceId DEPRECATED_MSG_ATTRIBUTE("This API deprecated since API version 11."
                     "Use initBridgePlugin: bridgeManager: instead.");
+/**
+ * Initializes this BridgePlugin.
+ * 
+ * @param bridgeName  bridgeName.
+ * @param type type.
+ * @since 22
+ */
+- (instancetype)initBridgePlugin:(NSString* _Nonnull)bridgeName
+                    bridgeType:(BridgeType)type;
 
 /**
  * Initializes this BridgePlugin.
