@@ -81,7 +81,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void)jsCallMethodBinary:(NSString*)bridgeName methodName:(NSString*)methodName param:(NSData*)data;
 
-- (NSData*)jsCallMethodBinarySync:(NSString*)bridgeName methodName:(NSString*)methodName param:(NSData*)data;
+- (ResultValue*)jsCallMethodBinarySync:(NSString*)bridgeName methodName:(NSString*)methodName param:(NSData*)data;
 
 - (void)platformSendMethodResultBinary:(NSString*)bridgeName
                     methodName:(NSString*)methodName

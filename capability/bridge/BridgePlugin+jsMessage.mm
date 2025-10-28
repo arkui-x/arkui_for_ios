@@ -13,13 +13,14 @@
  * limitations under the License.
  */
 
-#include <Foundation/Foundation.h>
-#import "BridgePlugin+jsMessage.h"
-
+#import <Foundation/Foundation.h>
 #import <objc/runtime.h>
+
 #import "BridgeBinaryCodec.h"
 #import "BridgeJsonCodec.h"
+#import "BridgePlugin+jsMessage.h"
 #import "BridgePluginManager+internal.h"
+#import "ResultValue.h"
 
 @implementation BridgePlugin (jsMessage)
 
@@ -69,7 +70,7 @@
                                                         methodName:callMethod.methodName
                                                         errorCode:errorCode
                                                         errorMessage:errorMessage.length ? errorMessage : @""
-                                                        result:resultString.length ? resultString : @""];
+                                                        result:resultString];
     } else {
         // BINARY_TYPE
         if ([result isKindOfClass:[NSArray class]]) {
@@ -142,36 +143,53 @@
     return resultJson;
 }
 
-- (NSData*)jsCallMethodBinarySync:(MethodData*)callMethod
+- (int)SafeParseErrorCode:(id)errorCodeObj
 {
-    id result = nil;
-    if (callMethod) {
-        NSArray* parameterArray = (NSArray*)callMethod.parameter;
-        if (callMethod.methodName.length == 0) {
-            return nil;
-        }
-        @try {
-            NSString* tmep = callMethod.methodName;
-            if ([tmep containsString:@"$"]) {
-                NSArray* strinMethodNameArr = [tmep componentsSeparatedByString:@"$"];
-                tmep = strinMethodNameArr[0];
-            }
-            result = [self performeNewSelector:tmep withParams:parameterArray target:self];
-            if (result == nil) {
-                return nil;
-            }
-            if ([result isKindOfClass:[NSDictionary class]] && [((NSDictionary*)result) objectForKey:@"errorCode"]) {
-                return nil;
-            }
-            NSData* dataResult = [[BridgeBinaryCodec sharedInstance] encode:result];
-            return dataResult;
-        } @catch (NSException* exception) {
-            NSLog(@"catch exception name : %@, reason : %@", [exception name], [exception reason]);
-        } @finally {
-            NSLog(@"jsCallMethodBinarySync completed for method: %@ finally", callMethod.methodName);
-        }
+    int errorCode = BRIDGE_ERROR_NO;
+    if ([errorCodeObj isKindOfClass:[NSNumber class]] || [errorCodeObj isKindOfClass:[NSString class]]) {
+        errorCode = [errorCodeObj intValue];
     }
-    return nil;
+    if (errorCode < BRIDGE_ERROR_NO || errorCode > BRIDGE_END) {
+        return BRIDGE_INVALID;
+    }
+    return errorCode;
+}
+
+- (ResultValue*)jsCallMethodBinarySync:(MethodData*)callMethod
+{
+    ResultValue* resultValue = [[ResultValue alloc] init];
+    if (!callMethod) {
+        resultValue.errorCode = BRIDGE_INVALID;
+        resultValue.errorMessage = BRIDGE_INVALID_MESSAGE;
+        return resultValue;
+    }
+    if (callMethod.methodName.length == 0) {
+        resultValue.errorCode = BRIDGE_METHOD_NAME_ERROR;
+        resultValue.errorMessage = BRIDGE_METHOD_NAME_ERROR_MESSAGE;
+        return resultValue;
+    }
+    NSArray* parameterArray = (NSArray*)callMethod.parameter;
+    NSString* tmep = callMethod.methodName;
+    if ([tmep containsString:@"$"]) {
+        NSArray* strinMethodNameArr = [tmep componentsSeparatedByString:@"$"];
+        tmep = strinMethodNameArr[0];
+    }
+    id result = [self performeNewSelector:tmep withParams:parameterArray target:self];
+    if (result == nil) {
+        resultValue.errorCode = BRIDGE_DATA_ERROR;
+        resultValue.errorMessage = BRIDGE_DATA_ERROR_MESSAGE;
+        return resultValue;
+    }
+    if ([result isKindOfClass:[NSDictionary class]] && [((NSDictionary*)result) objectForKey:@"errorCode"]) {
+        NSDictionary* dic = (NSDictionary*)result;
+        resultValue.errorCode = (ErrorCode)[self SafeParseErrorCode:dic[@"errorCode"]];
+        resultValue.errorMessage = dic[@"errorMessage"] ?: @"";
+    } else {
+        resultValue.errorCode = BRIDGE_ERROR_NO;
+        resultValue.errorMessage = BRIDGE_ERROR_NO_MESSAGE;
+        resultValue.result = [[BridgeBinaryCodec sharedInstance] encode:result];
+    }
+    return resultValue;
 }
 
 - (void)jsSendMethodResult:(ResultValue*)object {
@@ -252,7 +270,7 @@ BOOL isNumberTypeMatch(id argument, const char *argumentType) {
     if (![argument isKindOfClass:[NSNumber class]]) {
         return NO;
     }
-    const char *numberType = [argument objCType];
+    const char* numberType = [argument objCType];
     if (strcmp(numberType, "c") == 0 && strcmp(argumentType, "B") == 0) {
         return YES;
     }
@@ -278,39 +296,16 @@ BOOL isNumberTypeMatch(id argument, const char *argumentType) {
     invocation.target = target;
     invocation.selector = selector;
     if (params.count > 0) {
-        for (int i = 0; i < paramsCount; i++) {
-            id argument = params[i];
-            if (argument == [NSNull null]) {
-                return @{@"errorCode": @(BRIDGE_METHOD_PARAM_ERROR),
-                            @"errorMessage": BRIDGE_METHOD_PARAM_ERROR_MESSAGE};
-            }
-            const char* argumentType = [signature getArgumentTypeAtIndex:i + signatureDefaultArgsNum];
-            if (!strcmp(argumentType, @encode(id))) {
-                [invocation setArgument:&argument atIndex:i + signatureDefaultArgsNum];
-            } else if ([argument isKindOfClass:[NSNumber class]]) {
-                if (!isNumberTypeMatch(argument, argumentType)) {
-                    return @{@"errorCode": @(BRIDGE_METHOD_PARAM_ERROR),
-                            @"errorMessage": BRIDGE_METHOD_PARAM_ERROR_MESSAGE};
-                }
-                if (!strcmp(argumentType, @encode(BOOL))) {
-                    BOOL arg = [argument boolValue];
-                    [invocation setArgument:&arg atIndex:i + signatureDefaultArgsNum];
-                } else if (!strcmp(argumentType, @encode(int))) {
-                    int arg = [argument intValue];
-                    [invocation setArgument:&arg atIndex:i + signatureDefaultArgsNum];
-                } else if (!strcmp(argumentType, @encode(float))) {
-                    float arg = [argument floatValue];
-                    [invocation setArgument:&arg atIndex:i + signatureDefaultArgsNum];
-                } else if (!strcmp(argumentType, @encode(long))) {
-                    long arg = [argument longValue];
-                    [invocation setArgument:&arg atIndex:i + signatureDefaultArgsNum];
-                } else {
-                    return @{@"errorCode": @(BRIDGE_METHOD_PARAM_ERROR),
-                            @"errorMessage": BRIDGE_METHOD_PARAM_ERROR_MESSAGE};
-                }
-            } else {
-                [invocation setArgument:&argument atIndex:i + signatureDefaultArgsNum];
-            }
+        if ([params containsObject:[NSNull null]]) {
+            return @{@"errorCode": @(BRIDGE_METHOD_PARAM_ERROR),
+                     @"errorMessage": BRIDGE_METHOD_PARAM_ERROR_MESSAGE};
+        }
+        id err = [self bridgeFillInvocationParams:params
+                                        signature:signature
+                                       invocation:invocation
+                                       startIndex:signatureDefaultArgsNum];
+        if (err) {
+            return err;
         }
     }
     [invocation retainArguments];
@@ -319,6 +314,56 @@ BOOL isNumberTypeMatch(id argument, const char *argumentType) {
         return [self handleReturnValue:signature invocation:invocation];
     }
     NSLog(@"no returnValue");
+    return nil;
+}
+
+- (id)bridgeFillInvocationParams:(NSArray*)params
+                       signature:(NSMethodSignature*)signature
+                      invocation:(NSInvocation*)invocation
+                      startIndex:(int)signatureDefaultArgsNum {
+    NSInteger paramsCount = signature.numberOfArguments - signatureDefaultArgsNum;
+    for (int i = 0; i < paramsCount; i++) {
+        id argument = params[i];
+        if (argument == [NSNull null]) {
+            return
+                @{ @"errorCode" : @(BRIDGE_METHOD_PARAM_ERROR), @"errorMessage" : BRIDGE_METHOD_PARAM_ERROR_MESSAGE };
+        }
+        const char* argumentType = [signature getArgumentTypeAtIndex:i + signatureDefaultArgsNum];
+        if (!strcmp(argumentType, @encode(id))) {
+            [invocation setArgument:&argument atIndex:i + signatureDefaultArgsNum];
+        } else if ([argument isKindOfClass:[NSNumber class]]) {
+            if (!isNumberTypeMatch(argument, argumentType)) {
+                return @{
+                    @"errorCode" : @(BRIDGE_METHOD_PARAM_ERROR),
+                    @"errorMessage" : BRIDGE_METHOD_PARAM_ERROR_MESSAGE
+                };
+            }
+            if (!strcmp(argumentType, @encode(BOOL))) {
+                BOOL arg = [argument boolValue];
+                [invocation setArgument:&arg atIndex:i + signatureDefaultArgsNum];
+            } else if (!strcmp(argumentType, @encode(int))) {
+                int arg = [argument intValue];
+                [invocation setArgument:&arg atIndex:i + signatureDefaultArgsNum];
+            } else if (!strcmp(argumentType, @encode(float))) {
+                float arg = [argument floatValue];
+                [invocation setArgument:&arg atIndex:i + signatureDefaultArgsNum];
+            } else if (!strcmp(argumentType, @encode(long))) {
+                long arg = [argument longValue];
+                [invocation setArgument:&arg atIndex:i + signatureDefaultArgsNum];
+            } else if (!strcmp(argumentType, @encode(double))) {
+                double arg = [argument doubleValue];
+                [invocation setArgument:&arg atIndex:i + signatureDefaultArgsNum];
+            } else {
+                return @{
+                    @"errorCode" : @(BRIDGE_METHOD_PARAM_ERROR),
+                    @"errorMessage" : BRIDGE_METHOD_PARAM_ERROR_MESSAGE
+                };
+            }
+        } else {
+            return
+                @{ @"errorCode" : @(BRIDGE_METHOD_PARAM_ERROR), @"errorMessage" : BRIDGE_METHOD_PARAM_ERROR_MESSAGE };
+        }
+    }
     return nil;
 }
 
@@ -354,6 +399,8 @@ BOOL isNumberTypeMatch(id argument, const char *argumentType) {
             result = [NSNumber numberWithFloat:*((float*)returnValue)];
         } else if (!strcmp(returnType, @encode(long))) {
             result = [NSNumber numberWithLong:*((long*)returnValue)];
+        } else if (!strcmp(returnType, @encode(double))) {
+            result = [NSNumber numberWithDouble:*((double*)returnValue)];
         }
         free(returnValue);
 

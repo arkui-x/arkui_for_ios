@@ -27,7 +27,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (NSString*)jsCallMethodSync:(MethodData*)method;
 
-- (NSData *)jsCallMethodBinarySync:(MethodData *)callMethod;
+- (ResultValue*)jsCallMethodBinarySync:(MethodData *)callMethod;
 
 - (void)jsSendMethodResult:(ResultValue*)object;
 

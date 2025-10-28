@@ -13,23 +13,24 @@
  * limitations under the License.
  */
 
-#include "BridgeGCDTaskQueue.h"
-#import "BridgePluginManager+internal.h"
-
 #import <Foundation/Foundation.h>
 #import <objc/runtime.h>
+
+#import "BridgeBinaryCodec.h"
+#import "BridgeCodecUtil.h"
+#import "BridgeGCDTaskQueue.h"
+#import "BridgeJsonCodec.h"
+#import "BridgeManagerHolder.h"
+#import "BridgePlugin+internal.h"
+#import "BridgePlugin+jsMessage.h"
+#import "BridgePlugin.h"
+#import "BridgePluginManager+internal.h"
+#import "BridgeTaskQueueHandler.h"
+#import "ResultValue.h"
 
 #include "adapter/ios/capability/bridge/bridge_manager.h"
 #include "adapter/ios/capability/bridge/buffer_mapping.h"
 #include "base/log/log.h"
-#import "BridgeBinaryCodec.h"
-#import "BridgeCodecUtil.h"
-#import "BridgeJsonCodec.h"
-#import "BridgePlugin.h"
-#import "BridgePlugin+internal.h"
-#import "BridgePlugin+jsMessage.h"
-#import "BridgeManagerHolder.h"
-#import "BridgeTaskQueueHandler.h"
 #include "core/common/ace_engine.h"
 #include "core/common/container.h"
 
@@ -175,7 +176,13 @@ static char kBridgeQueueMapKey;
 - (NSString*)jsCallMethodSync:(NSString*)bridgeName methodName:(NSString*)methodName param:(NSString*)param {
     BridgePlugin* bridgePlugin = (BridgePlugin*)[self getPluginWithBridgeName:bridgeName];
     if (!bridgePlugin || bridgePlugin.type != JSON_TYPE) {
-        return @"";
+        NSNumber* numberErrorCode = [NSNumber numberWithInt:BRIDGE_INVALID];
+        NSString* strErrorMessage = BRIDGE_INVALID_MESSAGE;
+        NSString* strResult = @"";
+        NSDictionary* dict = @{ @"errorCode" : numberErrorCode, @"errorMessage" : strErrorMessage, @"result" : strResult };
+        NSData* jsonData = [NSJSONSerialization dataWithJSONObject:dict options:NSJSONWritingPrettyPrinted error:nil];
+        NSString* resultJson = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+        return resultJson;
     }
     NSMutableArray* mArray = [NSMutableArray array];
     if (param) {
@@ -602,11 +609,14 @@ static char kBridgeQueueMapKey;
     [bridgePlugin jsCallMethod:methodData];
 }
 
-- (NSData*)jsCallMethodBinarySync:(NSString*)bridgeName methodName:(NSString*)methodName param:(NSData*)data
+- (ResultValue*)jsCallMethodBinarySync:(NSString*)bridgeName methodName:(NSString*)methodName param:(NSData*)data
 {
     BridgePlugin* bridgePlugin = (BridgePlugin*)[self getPluginWithBridgeName:bridgeName];
     if (!bridgePlugin || bridgePlugin.type != BINARY_TYPE) {
-        return nil;
+        ResultValue* resultValue = [[ResultValue alloc] init];
+        resultValue.errorCode = BRIDGE_INVALID;
+        resultValue.errorMessage = BRIDGE_INVALID_MESSAGE;
+        return resultValue;
     }
     NSArray* oc_parameter = @[];
     if (data && data.length != 0) {

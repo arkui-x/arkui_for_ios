@@ -106,13 +106,13 @@
 }
 
 - (id)callMethodSyncInner:(MethodData*)method {
+    ResultValue* resultValue = [[ResultValue alloc] init];
     @try {
         if (!_isAvailable) {
             NSString* strCode = [NSString stringWithFormat:@"%d", BRIDGE_INVALID];
             NSException* exception = [NSException exceptionWithName:strCode reason:BRIDGE_INVALID_MESSAGE userInfo:nil];
             @throw exception;
         }
-        ResultValue* resultValue = nil;
         if (self.type == JSON_TYPE) {
             resultValue = [self.bridgeManager platformCallMethodInnerReult:self.bridgeName
                                                                 methodName:method.methodName
@@ -122,19 +122,18 @@
                                                                        methodName:method.methodName
                                                                             param:method.parameter];
         }
-        if (resultValue == nil || resultValue.errorCode != 0) {
+        if (resultValue.errorCode != BRIDGE_ERROR_NO) {
             NSString* strCode = [NSString stringWithFormat:@"%d", resultValue.errorCode];
             NSException* exception = [NSException exceptionWithName:strCode
                                                              reason:resultValue.errorMessage
                                                            userInfo:nil];
             @throw exception;
         }
-        return resultValue.result;
     } @catch (NSException* exception) {
         NSLog(@"bridge callMethodSyncInner catch");
-    } @finally {
-        NSLog(@"bridge callMethodSyncInner finally");
+        [exception raise];
     }
+    return resultValue.result;
 }
 
 - (id)callMethodSync:(NSString*)methodName parameters:(id)firstObj, ... NS_REQUIRES_NIL_TERMINATION {

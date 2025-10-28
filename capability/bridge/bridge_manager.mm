@@ -15,16 +15,19 @@
 
 #include "adapter/ios/capability/bridge/bridge_manager.h"
 
+#import <Foundation/Foundation.h>
 #include <memory>
+
+#import "BridgeBinaryCodec.h"
+#import "BridgeManagerHolder.h"
+#import "BridgePlugin+internal.h"
+#import "BridgePlugin.h"
+#import "BridgePluginManager+internal.h"
+#import "BridgePluginManager.h"
+#import "ResultValue.h"
 
 #include "base/log/log.h"
 #include "base/utils/utils.h"
-#include "BridgePlugin.h"
-#include "BridgePlugin+internal.h"
-#include "BridgePluginManager.h"
-#import "BridgeBinaryCodec.h"
-#import "BridgePluginManager+internal.h"
-#import "BridgeManagerHolder.h"
 
 namespace OHOS::Ace::Platform {
 std::map<std::string, std::shared_ptr<BridgeReceiver>> BridgeManager::bridgeList_;
@@ -285,20 +288,26 @@ void BridgeManager::JSCallMethodBinary(const std::string& bridgeName,
     }
 }
 
-std::unique_ptr<BufferMapping> BridgeManager::JSCallMethodBinarySync(const std::string& bridgeName,
-    const std::string& methodName, const std::vector<uint8_t>& data)
-{
+BinaryResultHolder BridgeManager::JSCallMethodBinarySync(
+    const std::string& bridgeName, const std::string& methodName, const std::vector<uint8_t>& data) {
+    BinaryResultHolder resultHolder;
     NSString* oc_bridgeName = getOCstring(bridgeName);
     NSString* oc_methodName = getOCstring(methodName);
     NSData* oc_data = convertToNSData(data);
     BridgePluginManager* bridgePluginManager = getBridgePluginManager();
-    if (bridgePluginManager) {
-        NSData* data = [bridgePluginManager jsCallMethodBinarySync:oc_bridgeName
-                                                        methodName:oc_methodName
-                                                             param:oc_data];
-        return ConvertNSDataToBufferMapping(data);
+    ResultValue* resultValue = [bridgePluginManager jsCallMethodBinarySync:oc_bridgeName
+                                                                methodName:oc_methodName
+                                                                     param:oc_data];
+    if (resultValue == nil) {
+        resultHolder.errorCode = BRIDGE_DATA_ERROR;
+        return resultHolder;
     }
-    return nullptr;
+    resultHolder.errorCode = resultValue.errorCode;
+    if ([resultValue.result isKindOfClass:[NSData class]]) {
+        NSData* data = (NSData*)resultValue.result;
+        resultHolder.buffer = ConvertNSDataToBufferMapping(data);
+    }
+    return resultHolder;
 }
 
 void BridgeManager::JSSendMethodResultBinary(const std::string& bridgeName,
