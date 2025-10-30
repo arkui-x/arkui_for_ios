@@ -24,6 +24,12 @@
 #include "bridge_receiver.h"
 
 namespace OHOS::Ace::Platform {
+
+struct ACE_EXPORT BinaryResultHolder {
+    int32_t errorCode { 0 };
+    std::unique_ptr<BufferMapping> buffer { nullptr };
+};
+
 class ACE_EXPORT BridgeManager final {
 public:
     BridgeManager() = default;
@@ -60,7 +66,7 @@ public:
         const std::string& bridgeName, const std::vector<uint8_t>& data);
     static void JSCallMethodBinary(
         const std::string& bridgeName, const std::string& methodName, const std::vector<uint8_t>& data);
-    static std::unique_ptr<BufferMapping> JSCallMethodBinarySync(const std::string& bridgeName,
+    static BinaryResultHolder JSCallMethodBinarySync(const std::string& bridgeName,
             const std::string& methodName, const std::vector<uint8_t>& data);
     static void JSSendMethodResultBinary(
         const std::string& bridgeName, const std::string& methodName, int errorCode,
