@@ -1087,9 +1087,16 @@ void AccessibilityManagerImpl::SendAccessibilityAsyncEvent(const AccessibilityEv
         case AccessibilityEventType::SCROLL_END:
             ProcessAccessibilityEvent(accessibilityEvent, true, static_cast<size_t>(accessibilityEvent.type));
             break;
+        case AccessibilityEventType::REQUEST_FOCUS:
+            SendAccessibilityEventOC(accessibilityEvent.nodeId, static_cast<int>(accessibilityEvent.windowId),
+                static_cast<size_t>(accessibilityEvent.type));
+            break;
         case AccessibilityEventType::FOCUS:
             SendAccessibilityEventOC(
                 accessibilityEvent.nodeId, static_cast<int>(windowId_), static_cast<size_t>(accessibilityEvent.type));
+            break;
+        case AccessibilityEventType::ANNOUNCE_FOR_ACCESSIBILITY:
+            AnnounceForAccessibilityOC(accessibilityEvent.textAnnouncedForAccessibility);
             break;
         default:
             break;

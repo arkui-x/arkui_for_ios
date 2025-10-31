@@ -504,6 +504,7 @@ typedef enum {
 - (void)SendAccessibilityEvent:(int64_t)elementId eventType:(size_t)eventType
 {
     switch (eventType) {
+        case static_cast<size_t>(OHOS::Ace::AccessibilityEventType::REQUEST_FOCUS):
         case static_cast<size_t>(OHOS::Ace::AccessibilityEventType::FOCUS):
             [self setFocus:elementId];
             break;
