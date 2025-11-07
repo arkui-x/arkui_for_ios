@@ -22,7 +22,7 @@
 
 @interface AccessibilityNodeInfo : NSObject
 
-@property(nonatomic, strong) NSString* nodeLable;
+@property(nonatomic, strong) NSString* nodeLabel;
 @property(nonatomic, strong) NSString* descriptionInfo;
 @property(nonatomic, strong) NSString* componentType;
 @property(nonatomic, strong) NSString* accessibilityLevel;
