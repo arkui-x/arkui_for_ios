@@ -100,7 +100,7 @@ AccessibilityNodeInfo* SetAccessibilityNodeInfo(
     }
     const CGFloat scale = [UIScreen mainScreen].scale;
 
-    aiModel.nodeLable = text;
+    aiModel.nodeLabel = text;
     aiModel.componentType = componentType;
     aiModel.descriptionInfo = descriptionInfo;
     aiModel.nodeX = left / scale + window->GetRect().posX_;
