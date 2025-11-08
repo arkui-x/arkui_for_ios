@@ -15,7 +15,6 @@
 
 #import <Foundation/Foundation.h>
 #import "AccessibilityWindowView.h"
-#import "AccessibilityDateParse.h"
 
 #include "adapter/ios/osal/mock/accessibility_element_info.h"
 #include "core/accessibility/accessibility_utils.h"
@@ -156,14 +155,10 @@ typedef enum {
     if ([node.componentType isEqualToString:COMPONENTTYPE_ROOT]) {
         element.rootId = node.elementId;
     }
-    NSDate *dateLabel = [AccessibilityDateParse parseDateIfPossible:node.nodeLable];
-    if (dateLabel) {
-        node.nodeLable = [[AccessibilityDateParse sharedOutputFormatter] stringFromDate:dateLabel];
-    }
     element.accessibilityDelegate_ = self;
     element.elementId = node.elementId;
     element.accessibilityFrame = rect;
-    element.accessibilityLabel = node.nodeLable;
+    element.accessibilityLabel = node.nodeLabel;
     element.accessibilityHint = node.descriptionInfo;
     element.accessibilityLevel = node.accessibilityLevel;
     element.componentType = node.componentType;
@@ -194,10 +189,10 @@ typedef enum {
         return NO;
     }
     if ([node.componentType isEqualToString:@"Text"] &&
-        (node.nodeLable.length > 0 || node.descriptionInfo.length > 0)) {
+        (node.nodeLabel.length > 0 || node.descriptionInfo.length > 0)) {
         return YES;
     }
-    if (node.isClickable || node.isLongClickable || node.nodeLable.length > 0 || node.descriptionInfo.length > 0) {
+    if (node.isClickable || node.isLongClickable || node.nodeLabel.length > 0 || node.descriptionInfo.length > 0) {
         return YES;
     }
     return NO;
@@ -223,12 +218,12 @@ typedef enum {
             AccessibilityElement* childElement = [self CreateObject:childNode];
             childElement.parent = element;
             [newChildren addObject:childElement];
-            strLabel = [NSString stringWithFormat:@"%@%@", strLabel, childNode.nodeLable];
+            strLabel = [NSString stringWithFormat:@"%@%@", strLabel, childNode.nodeLabel];
         }
 
         element.isAccessibility = [self isAccessibilityEnabled:node allNodeInfo:dictNodeInfo];
-        if (node.nodeLable.length <= 0 && node.descriptionInfo.length <= 0 && element.isAccessibility) {
-            node.nodeLable = strLabel;
+        if (node.nodeLabel.length <= 0 && node.descriptionInfo.length <= 0 && element.isAccessibility) {
+            node.nodeLabel = strLabel;
         }
         if ([node.componentType isEqualToString:@"NavigationContent"] ||
             [node.componentType isEqualToString:@"Navigation"]) {
@@ -615,7 +610,7 @@ typedef enum {
     AccessibilityElement* parentElement = [self.isCreateElements objectForKey:parentKey];
     if ([nodeInfo.componentType isEqualToString:@"Text"] &&
         [parentElement.componentType isEqualToString:@"TextClock"] && parentElement.accessibilityLabel.length == 0) {
-        parentElement.accessibilityLabel = nodeInfo.nodeLable;
+        parentElement.accessibilityLabel = nodeInfo.nodeLabel;
     }
 }
 @end
