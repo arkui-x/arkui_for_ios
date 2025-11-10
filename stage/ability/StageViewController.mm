@@ -192,7 +192,7 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 }
 
 - (void)initBridge {
-    _bridgePluginManager = [BridgePluginManager innerBridgePluginManager:_instanceId];
+    _bridgePluginManager = [BridgePluginManager sharedInstance];
 }
 
 - (void)viewDidLoad {
@@ -249,9 +249,6 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
     [super viewWillAppear:animated];
 
     NSLog(@"StageVC->%@ viewWillAppear call.", self);
-    if (_bridgePluginManager) {
-        [_bridgePluginManager updateCurrentInstanceId:_instanceId];
-    }
     if (_needOnForeground) {
         AppMain::GetInstance()->DispatchOnForeground(_cInstanceName);
     }
@@ -289,8 +286,6 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
         [_windowView notifyWindowDestroyed];
         _windowView = nil;
         _stageContainerView = nil;
-        [BridgePluginManager innerUnbridgePluginManager:_instanceId];
-        _bridgePluginManager = nil;
         [self deallocArkUIXPlugin];
         AppMain::GetInstance()->DispatchOnDestroy(_cInstanceName);
         [self removeFromParentViewController];
@@ -306,8 +301,6 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
     _stageContainerView = nil;
     [_platformPlugin platformRelease];
     _platformPlugin = nil;
-    [BridgePluginManager innerUnbridgePluginManager:_instanceId];
-    _bridgePluginManager = nil;
     [self deallocArkUIXPlugin];
     [[NSNotificationCenter defaultCenter] removeObserver:self];
     AppMain::GetInstance()->DispatchOnDestroy(_cInstanceName);

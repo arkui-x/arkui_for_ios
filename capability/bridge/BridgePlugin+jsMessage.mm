@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2023-2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -13,12 +13,14 @@
  * limitations under the License.
  */
 
-#import "BridgePlugin+jsMessage.h"
-
+#import <Foundation/Foundation.h>
 #import <objc/runtime.h>
 
+#import "BridgeBinaryCodec.h"
 #import "BridgeJsonCodec.h"
+#import "BridgePlugin+jsMessage.h"
 #import "BridgePluginManager+internal.h"
+#import "ResultValue.h"
 
 @implementation BridgePlugin (jsMessage)
 
@@ -68,7 +70,7 @@
                                                         methodName:callMethod.methodName
                                                         errorCode:errorCode
                                                         errorMessage:errorMessage.length ? errorMessage : @""
-                                                        result:resultString.length ? resultString : @""];
+                                                        result:resultString];
     } else {
         // BINARY_TYPE
         if ([result isKindOfClass:[NSArray class]]) {
@@ -85,6 +87,109 @@
                                                             errorMessage:errorMessage.length ? errorMessage : @""
                                                             result:result];
     }
+}
+
+- (NSString*)jsCallMethodSync:(MethodData*)callMethod
+{
+    NSString* resultString = @"";
+    ErrorCode errorCode = BRIDGE_ERROR_NO;
+    NSString* errorMessage = BRIDGE_ERROR_NO_MESSAGE;
+    id result = nil;
+    if (!callMethod) {
+        errorCode = BRIDGE_INVALID;
+        errorMessage = BRIDGE_INVALID_MESSAGE;
+        return [self createResultJson:errorCode errorMessage:errorMessage resultString:resultString];
+    }
+    NSArray* parameterArray = (NSArray*)callMethod.parameter;
+    if (callMethod.methodName.length == 0) {
+        errorCode = BRIDGE_METHOD_UNIMPL;
+        errorMessage = BRIDGE_METHOD_UNIMPL_MESSAGE;
+        NSLog(@"method error, message : %@", errorMessage);
+        return [self createResultJson:errorCode errorMessage:errorMessage resultString:resultString];
+    }
+    @try {
+        NSString* tmep = callMethod.methodName;
+        if ([tmep containsString:@"$"]) {
+            NSArray* strinMethodNameArr = [tmep componentsSeparatedByString:@"$"];
+            tmep = strinMethodNameArr[0];
+        }
+        result = [self performeNewSelector:tmep withParams:parameterArray target:self];
+        if (result && [result isKindOfClass:NSDictionary.class]) {
+            NSDictionary* dic = (NSDictionary*)result;
+            errorCode = (ErrorCode)[dic[@"errorCode"] intValue];
+            errorMessage = dic[@"errorMessage"];
+        }
+    } @catch (NSException* exception) {
+        errorCode = BRIDGE_METHOD_UNIMPL;
+        errorMessage = BRIDGE_METHOD_UNIMPL_MESSAGE;
+        NSLog(@"catch exception name : %@, reason : %@", [exception name], [exception reason]);
+    } @finally {
+        if (result && [result isKindOfClass:NSString.class]) {
+            resultString = result;
+        }
+        NSLog(@"jsCallMethodBinarySync completed for method: %@ finally", callMethod.methodName);
+    }
+    return [self createResultJson:errorCode errorMessage:errorMessage resultString:resultString];
+}
+
+- (NSString*)createResultJson:(int)errorCode errorMessage:(NSString*)errorMessage resultString:(NSString*)resultString
+{
+    NSNumber* numberErrorCode = [NSNumber numberWithInt:errorCode];
+    NSString* strErrorMessage = errorMessage ?: @"";
+    NSString* strResult = resultString ?: @"";
+    NSDictionary* dict = @{ @"errorCode" : numberErrorCode, @"errorMessage" : strErrorMessage, @"result" : strResult };
+    NSData* jsonData = [NSJSONSerialization dataWithJSONObject:dict options:NSJSONWritingPrettyPrinted error:nil];
+    NSString* resultJson = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+    return resultJson;
+}
+
+- (int)SafeParseErrorCode:(id)errorCodeObj
+{
+    int errorCode = BRIDGE_ERROR_NO;
+    if ([errorCodeObj isKindOfClass:[NSNumber class]] || [errorCodeObj isKindOfClass:[NSString class]]) {
+        errorCode = [errorCodeObj intValue];
+    }
+    if (errorCode < BRIDGE_ERROR_NO || errorCode > BRIDGE_END) {
+        return BRIDGE_INVALID;
+    }
+    return errorCode;
+}
+
+- (ResultValue*)jsCallMethodBinarySync:(MethodData*)callMethod
+{
+    ResultValue* resultValue = [[ResultValue alloc] init];
+    if (!callMethod) {
+        resultValue.errorCode = BRIDGE_INVALID;
+        resultValue.errorMessage = BRIDGE_INVALID_MESSAGE;
+        return resultValue;
+    }
+    if (callMethod.methodName.length == 0) {
+        resultValue.errorCode = BRIDGE_METHOD_NAME_ERROR;
+        resultValue.errorMessage = BRIDGE_METHOD_NAME_ERROR_MESSAGE;
+        return resultValue;
+    }
+    NSArray* parameterArray = (NSArray*)callMethod.parameter;
+    NSString* tmep = callMethod.methodName;
+    if ([tmep containsString:@"$"]) {
+        NSArray* strinMethodNameArr = [tmep componentsSeparatedByString:@"$"];
+        tmep = strinMethodNameArr[0];
+    }
+    id result = [self performeNewSelector:tmep withParams:parameterArray target:self];
+    if (result == nil) {
+        resultValue.errorCode = BRIDGE_DATA_ERROR;
+        resultValue.errorMessage = BRIDGE_DATA_ERROR_MESSAGE;
+        return resultValue;
+    }
+    if ([result isKindOfClass:[NSDictionary class]] && [((NSDictionary*)result) objectForKey:@"errorCode"]) {
+        NSDictionary* dic = (NSDictionary*)result;
+        resultValue.errorCode = (ErrorCode)[self SafeParseErrorCode:dic[@"errorCode"]];
+        resultValue.errorMessage = dic[@"errorMessage"] ?: @"";
+    } else {
+        resultValue.errorCode = BRIDGE_ERROR_NO;
+        resultValue.errorMessage = BRIDGE_ERROR_NO_MESSAGE;
+        resultValue.result = [[BridgeBinaryCodec sharedInstance] encode:result];
+    }
+    return resultValue;
 }
 
 - (void)jsSendMethodResult:(ResultValue*)object {
@@ -161,6 +266,17 @@
     return [self handleMethodParam:signature target:target selector:selector params:params];
 }
 
+BOOL isNumberTypeMatch(id argument, const char *argumentType) {
+    if (![argument isKindOfClass:[NSNumber class]]) {
+        return NO;
+    }
+    const char* numberType = [argument objCType];
+    if (strcmp(numberType, "c") == 0 && strcmp(argumentType, "B") == 0) {
+        return YES;
+    }
+    return strcmp(argumentType, numberType) == 0;
+}
+
 - (id)handleMethodParam:(NSMethodSignature*)signature
                 target:(id)target
                 selector:(SEL)selector
@@ -180,31 +296,16 @@
     invocation.target = target;
     invocation.selector = selector;
     if (params.count > 0) {
-        for (int i = 0; i < paramsCount; i++) {
-            id argument = params[i];
-            const char* argumentType = [signature getArgumentTypeAtIndex:i + signatureDefaultArgsNum];
-            if (!strcmp(argumentType, @encode(id))) {
-                [invocation setArgument:&argument atIndex:i + signatureDefaultArgsNum];
-            } else if ([argument isKindOfClass:[NSNumber class]]) {
-                if (!strcmp(argumentType, @encode(BOOL))) {
-                    BOOL arg = [argument boolValue];
-                    [invocation setArgument:&arg atIndex:i + signatureDefaultArgsNum];
-                } else if (!strcmp(argumentType, @encode(int))) {
-                    int arg = [argument intValue];
-                    [invocation setArgument:&arg atIndex:i + signatureDefaultArgsNum];
-                } else if (!strcmp(argumentType, @encode(float))) {
-                    float arg = [argument floatValue];
-                    [invocation setArgument:&arg atIndex:i + signatureDefaultArgsNum];
-                } else if (!strcmp(argumentType, @encode(long))) {
-                    long arg = [argument longValue];
-                    [invocation setArgument:&arg atIndex:i + signatureDefaultArgsNum];
-                } else {
-                    return @{@"errorCode": @(BRIDGE_METHOD_PARAM_ERROR),
-                            @"errorMessage": BRIDGE_METHOD_PARAM_ERROR_MESSAGE};
-                }
-            } else {
-                [invocation setArgument:&argument atIndex:i + signatureDefaultArgsNum];
-            }
+        if ([params containsObject:[NSNull null]]) {
+            return @{@"errorCode": @(BRIDGE_METHOD_PARAM_ERROR),
+                     @"errorMessage": BRIDGE_METHOD_PARAM_ERROR_MESSAGE};
+        }
+        id err = [self bridgeFillInvocationParams:params
+                                        signature:signature
+                                       invocation:invocation
+                                       startIndex:signatureDefaultArgsNum];
+        if (err) {
+            return err;
         }
     }
     [invocation retainArguments];
@@ -213,6 +314,56 @@
         return [self handleReturnValue:signature invocation:invocation];
     }
     NSLog(@"no returnValue");
+    return nil;
+}
+
+- (id)bridgeFillInvocationParams:(NSArray*)params
+                       signature:(NSMethodSignature*)signature
+                      invocation:(NSInvocation*)invocation
+                      startIndex:(int)signatureDefaultArgsNum {
+    NSInteger paramsCount = signature.numberOfArguments - signatureDefaultArgsNum;
+    for (int i = 0; i < paramsCount; i++) {
+        id argument = params[i];
+        if (argument == [NSNull null]) {
+            return
+                @{ @"errorCode" : @(BRIDGE_METHOD_PARAM_ERROR), @"errorMessage" : BRIDGE_METHOD_PARAM_ERROR_MESSAGE };
+        }
+        const char* argumentType = [signature getArgumentTypeAtIndex:i + signatureDefaultArgsNum];
+        if (!strcmp(argumentType, @encode(id))) {
+            [invocation setArgument:&argument atIndex:i + signatureDefaultArgsNum];
+        } else if ([argument isKindOfClass:[NSNumber class]]) {
+            if (!isNumberTypeMatch(argument, argumentType)) {
+                return @{
+                    @"errorCode" : @(BRIDGE_METHOD_PARAM_ERROR),
+                    @"errorMessage" : BRIDGE_METHOD_PARAM_ERROR_MESSAGE
+                };
+            }
+            if (!strcmp(argumentType, @encode(BOOL))) {
+                BOOL arg = [argument boolValue];
+                [invocation setArgument:&arg atIndex:i + signatureDefaultArgsNum];
+            } else if (!strcmp(argumentType, @encode(int))) {
+                int arg = [argument intValue];
+                [invocation setArgument:&arg atIndex:i + signatureDefaultArgsNum];
+            } else if (!strcmp(argumentType, @encode(float))) {
+                float arg = [argument floatValue];
+                [invocation setArgument:&arg atIndex:i + signatureDefaultArgsNum];
+            } else if (!strcmp(argumentType, @encode(long))) {
+                long arg = [argument longValue];
+                [invocation setArgument:&arg atIndex:i + signatureDefaultArgsNum];
+            } else if (!strcmp(argumentType, @encode(double))) {
+                double arg = [argument doubleValue];
+                [invocation setArgument:&arg atIndex:i + signatureDefaultArgsNum];
+            } else {
+                return @{
+                    @"errorCode" : @(BRIDGE_METHOD_PARAM_ERROR),
+                    @"errorMessage" : BRIDGE_METHOD_PARAM_ERROR_MESSAGE
+                };
+            }
+        } else {
+            return
+                @{ @"errorCode" : @(BRIDGE_METHOD_PARAM_ERROR), @"errorMessage" : BRIDGE_METHOD_PARAM_ERROR_MESSAGE };
+        }
+    }
     return nil;
 }
 
@@ -248,6 +399,8 @@
             result = [NSNumber numberWithFloat:*((float*)returnValue)];
         } else if (!strcmp(returnType, @encode(long))) {
             result = [NSNumber numberWithLong:*((long*)returnValue)];
+        } else if (!strcmp(returnType, @encode(double))) {
+            result = [NSNumber numberWithDouble:*((double*)returnValue)];
         }
         free(returnValue);
 

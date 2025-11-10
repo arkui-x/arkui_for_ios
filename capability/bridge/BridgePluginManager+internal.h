@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2023-2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -17,23 +17,28 @@
 #define FOUNDATION_ACE_ADAPTER_CAPABILITY_BRIDGE_BRIDGEPLUGINMANAGER_INTERNAL_H
 
 #import "BridgePluginManager.h"
+#import "BridgePlugin.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
 @interface BridgePluginManager (internal)
 
-+ (instancetype)innerBridgePluginManager:(int32_t)instanceId;
-
-+ (void)innerUnbridgePluginManager:(int32_t)instanceId;
++ (instancetype)sharedInstance;
 
 - (BOOL)innerRegisterBridgePlugin:(NSString*)bridgeName
                     bridgePlugin:(id)bridgePlugin;
 
 - (BOOL)innerUnRegisterBridgePlugin:(NSString*)bridgeName;
 
+- (BridgePlugin* _Nullable)getPluginWithBridgeName:(NSString*)bridgeName;
+
 - (void)unRegisterBridgePlugin;
 
 - (void)jsCallMethod:(NSString*)bridgeName
+                    methodName:(NSString*)methodName
+                    param:(NSString*)param;
+
+- (NSString*)jsCallMethodSync:(NSString*)bridgeName
                     methodName:(NSString*)methodName
                     param:(NSString*)param;
 
@@ -55,6 +60,10 @@ NS_ASSUME_NONNULL_BEGIN
                     param:(NSArray* _Nullable)params
                     reultValueCallback:(void (^)(ResultValue* _Nullable reultValue))callback;
 
+- (ResultValue*)platformCallMethodInnerReult:(NSString*)bridgeName
+                    methodName:(NSString*)methodName
+                    param:(NSArray* _Nullable)params;
+                    
 - (void)platformSendMessage:(NSString*)bridgeName data:(id)data;
 
 - (void)platformSendMessageResponse:(NSString*)bridgeName data:(id)data;
@@ -72,6 +81,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void)jsCallMethodBinary:(NSString*)bridgeName methodName:(NSString*)methodName param:(NSData*)data;
 
+- (ResultValue*)jsCallMethodBinarySync:(NSString*)bridgeName methodName:(NSString*)methodName param:(NSData*)data;
+
 - (void)platformSendMethodResultBinary:(NSString*)bridgeName
                     methodName:(NSString*)methodName
                     errorCode:(int)errorCode
@@ -85,13 +96,16 @@ NS_ASSUME_NONNULL_BEGIN
                     param:(NSArray* _Nullable)params
                     reultValueCallback:(void (^)(ResultValue* _Nullable reultValue))callback;
 
+- (ResultValue*)platformCallMethodBinaryInnerResult:(NSString*)bridgeName
+                    methodName:(NSString*)methodName
+                    param:(NSArray* _Nullable)params;
+
 - (void)jsSendMethodResultBinary:(NSString*)bridgeName
                     methodName:(NSString*)methodName
                     errorCode:(int)errorCode
                     errorMessage:(NSString*)errorMessage
                     result:(id)result;
 
-- (void)updateCurrentInstanceId:(int)instanceId;
 @end
 
 NS_ASSUME_NONNULL_END
