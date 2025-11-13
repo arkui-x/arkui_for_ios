@@ -193,7 +193,7 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 
 - (void)initColorMode {
     if (@available(iOS 13.0, *)) {
-        UITraitCollection* trait = [UITraitCollection currentTraitCollection];
+        UITraitCollection* trait = self.traitCollection;
         [[StageConfigurationManager configurationManager] colorModeUpdate:trait.userInterfaceStyle];
     } else {
         [[StageConfigurationManager configurationManager] colorModeUpdate:UIUserInterfaceStyleLight];
