@@ -102,6 +102,10 @@ typedef NS_ENUM(NSInteger, NestedScrollMode) {
     PARENT_FIRST, 
     PARALLEL
 };
+typedef NS_ENUM(NSUInteger, WebViewLoadType) {
+    WebViewLoadTypeURL,
+    WebViewLoadTypeData
+};
 @interface NestedScrollOptionsExt : NSObject
 @property (nonatomic, assign) NestedScrollMode scrollUp;
 @property (nonatomic, assign) NestedScrollMode scrollDown;
@@ -178,6 +182,12 @@ typedef id (^onJavaScriptFunction)(NSString* objName, NSString* methodName, NSAr
 @property (nonatomic, strong) NestedScrollOptionsExt *nestedOpt;
 @property (nonatomic, assign) CGPoint dragStartPoint;
 @property (nonatomic, assign) BOOL hasCalledOnScrollStart;
+@property (nonatomic, assign) WebViewLoadType lastLoadType;
+@property (nonatomic, copy) NSString *lastData;
+@property (nonatomic, copy) NSString *lastMimeType;
+@property (nonatomic, copy) NSString *lastEncoding;
+@property (nonatomic, copy) NSString *lastBaseUrl;
+@property (nonatomic, copy) NSString *lastHistoryUrl;
 @end
 
 static BOOL _webDebuggingAccessInit = NO;
@@ -321,6 +331,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
 {
     [self.webView loadRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:url]]];
     self.isLoadUrl = YES;
+    self.lastLoadType = WebViewLoadTypeURL;
 }
 
 -(void)loadUrl:(NSString*)url header:(NSDictionary*) httpHeaders
@@ -345,6 +356,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
         } else {
             [self.webView loadRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:url]]];
             self.isLoadUrl = YES;
+            self.lastLoadType = WebViewLoadTypeURL;
         }
         return;
     }
@@ -355,6 +367,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
     [mutableRequest setAllHTTPHeaderFields:headerFields];
     [self.webView loadRequest:mutableRequest];
     self.isLoadUrl = YES;
+    self.lastLoadType = WebViewLoadTypeURL;
 }
 
 - (BOOL)isJavascriptUrl:(NSString *)url
@@ -379,6 +392,13 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
     } else {
         [self.webView loadHTMLString:data baseURL:[NSURL URLWithString:baseUrl]];
     }
+
+    self.lastLoadType = WebViewLoadTypeData;
+    self.lastData = data;
+    self.lastMimeType = mimeType;
+    self.lastEncoding = encoding;
+    self.lastBaseUrl = baseUrl;
+    self.lastHistoryUrl = historyUrl;
 }
 
 - (void)evaluateJavaScript:(NSString*)script callback:(void (^)(id _Nullable obj, NSError* _Nullable error))callback
@@ -415,9 +435,29 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
     [self.webView goForward];
 }
 
-- (void)refresh
-{
-    [self.webView reload];
+- (void)refresh {
+    switch (self.lastLoadType) {
+        case WebViewLoadTypeURL:
+            NSLog(@"AceWeb refresh WebViewLoadTypeURL");
+            [self.webView reload];
+            break;
+            
+        case WebViewLoadTypeData:
+            NSLog(@"AceWeb refresh WebViewLoadTypeData");
+            if (self.lastData) {
+                NSLog(@"AceWeb refresh loadData");
+                [self loadData:self.lastData
+                      mimeType:self.lastMimeType
+                      encoding:self.lastEncoding
+                       baseUrl:self.lastBaseUrl
+                    historyUrl:self.lastHistoryUrl];
+            }
+            break;
+        default:
+            NSLog(@"AceWeb refresh default");
+            [self.webView reload];
+            break;
+    }
 }
 
 - (void)removeCache:(bool)value
@@ -687,6 +727,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
         [request setHTTPBody:postData];
         [request setValue:@"application/x-www-form-urlencoded" forHTTPHeaderField:@"Content-Type"];
         [self.webView loadRequest:request];
+        self.lastLoadType = WebViewLoadTypeURL;
     }
 }
 
@@ -1182,7 +1223,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
             } else {
                 self.webView.configuration.preferences.javaScriptEnabled = jsWillOpen;
             }
-            [self.webView reload];
+            [self refresh];
             self.javascriptAccessSwitch = isJavaScriptEnable? YES : NO;
 
             return SUCCESS;
@@ -1567,6 +1608,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
         NSString* customURL = [NSString stringWithFormat:@"%@://%@", CUSTOM_SCHEME_HANDLER, requestURL];
         NSURLRequest* newRequest = [NSURLRequest requestWithURL:[NSURL URLWithString:customURL]];
         [webView loadRequest:newRequest];
+        self.lastLoadType = WebViewLoadTypeURL;
     } else if (self.currentResourceHandler->response_->errorCode_ == 0) {
         NSString* responseURL = [NSString stringWithUTF8String:self.currentResourceHandler->response_->url_.c_str()];
         NSURL* url = [NSURL URLWithString:responseURL];
@@ -1576,6 +1618,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
         }
         NSURLRequest* newRequest = [NSURLRequest requestWithURL:url];
         [webView loadRequest:newRequest];
+        self.lastLoadType = WebViewLoadTypeURL;
     }
     
     if (handler->on_request_stop && (self.currentResourceHandler->isFinished_ ||
