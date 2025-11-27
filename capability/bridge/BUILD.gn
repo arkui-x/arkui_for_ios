@@ -37,9 +37,11 @@ ohos_source_set("bridge") {
   ]
 
   sources = [
+    "BridgeGCDTaskQueue.mm",
     "BridgeManagerHolder.mm",
     "BridgePlugin+jsMessage.mm",
     "BridgePlugin.mm",
+    "BridgePlugin+internal.mm",
     "BridgePluginManager+internal.mm",
     "BridgePluginManager.mm",
     "BridgeTaskInfo.m",
