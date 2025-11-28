@@ -20,6 +20,7 @@
 #include <cstddef>
 #include <memory>
 #include <vector>
+#include "base/utils/time_util.h"
 
 #include "adapter/ios/capability/editing/iOSTxtInputManager.h"
 #include "ace_pointer_data_packet.h"
