@@ -80,6 +80,12 @@
 #define CUSTOM_SCHEME                     @"arkuixcustomscheme"
 #define WEBVIEW_PAGE_HALF                 2
 #define NTC_TEXT_ZOOM_RATIO               @"textZoomRatio"
+
+typedef NS_ENUM(NSUInteger, WebViewLoadType) {
+    WebViewLoadTypeURL,
+    WebViewLoadTypeData
+};
+
 @interface DownloadTaskInfo : NSObject
 @property (nonatomic, assign) bool isDownload;
 @property (nonatomic, strong) NSString* filePath;
@@ -136,6 +142,12 @@ typedef id (^onJavaScriptFunction)(NSString* objName, NSString* methodName, NSAr
 @property (nonatomic, assign) bool allowIncognitoMode;
 @property (nonatomic, assign) BOOL jsReady;
 @property (nonatomic, assign) NSInteger textZoomRatio;
+@property (nonatomic, assign) WebViewLoadType lastLoadType;
+@property (nonatomic, copy) NSString *lastData;
+@property (nonatomic, copy) NSString *lastMimeType;
+@property (nonatomic, copy) NSString *lastEncoding;
+@property (nonatomic, copy) NSString *lastBaseUrl;
+@property (nonatomic, copy) NSString *lastHistoryUrl;
 @end
 
 static BOOL _webDebuggingAccessInit = NO;
@@ -269,6 +281,7 @@ static NSString *const kJavaScriptURLPrefix = @"javascript:";
 -(void)loadUrl:(NSString*)url
 {
     [self.webView loadRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:url]]];
+    self.lastLoadType = WebViewLoadTypeURL;
 }
 
 -(void)loadUrl:(NSString*)url header:(NSDictionary*) httpHeaders
@@ -293,6 +306,7 @@ static NSString *const kJavaScriptURLPrefix = @"javascript:";
             }
         } else {
             [self.webView loadRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:url]]];
+            self.lastLoadType = WebViewLoadTypeURL;
         }
         return;
     }
@@ -302,6 +316,7 @@ static NSString *const kJavaScriptURLPrefix = @"javascript:";
     NSMutableURLRequest *mutableRequest = [request mutableCopy];
     [mutableRequest setAllHTTPHeaderFields:headerFields];
     [self.webView loadRequest:mutableRequest];
+    self.lastLoadType = WebViewLoadTypeURL;
 }
 
 - (BOOL)isJavascriptUrl:(NSString *)url
@@ -326,6 +341,13 @@ static NSString *const kJavaScriptURLPrefix = @"javascript:";
     } else {
         [self.webView loadHTMLString:data baseURL:[NSURL URLWithString:baseUrl]];
     }
+
+    self.lastLoadType = WebViewLoadTypeData;
+    self.lastData = data;
+    self.lastMimeType = mimeType;
+    self.lastEncoding = encoding;
+    self.lastBaseUrl = baseUrl;
+    self.lastHistoryUrl = historyUrl;
 }
 
 - (void)evaluateJavaScript:(NSString*)script callback:(void (^)(id _Nullable obj, NSError* _Nullable error))callback
@@ -362,9 +384,29 @@ static NSString *const kJavaScriptURLPrefix = @"javascript:";
     [self.webView goForward];
 }
 
-- (void)refresh
-{
-    [self.webView reload];
+- (void)refresh {
+    switch (self.lastLoadType) {
+        case WebViewLoadTypeURL:
+            NSLog(@"AceWeb refresh WebViewLoadTypeURL");
+            [self.webView reload];
+            break;
+            
+        case WebViewLoadTypeData:
+            NSLog(@"AceWeb refresh WebViewLoadTypeData");
+            if (self.lastData) {
+                NSLog(@"AceWeb refresh loadData");
+                [self loadData:self.lastData
+                      mimeType:self.lastMimeType
+                      encoding:self.lastEncoding
+                       baseUrl:self.lastBaseUrl
+                    historyUrl:self.lastHistoryUrl];
+            }
+            break;
+        default:
+            NSLog(@"AceWeb refresh default");
+            [self.webView reload];
+            break;
+    }
 }
 
 - (void)removeCache:(bool)value
@@ -634,6 +676,7 @@ static NSString *const kJavaScriptURLPrefix = @"javascript:";
         [request setHTTPBody:postData];
         [request setValue:@"application/x-www-form-urlencoded" forHTTPHeaderField:@"Content-Type"];
         [self.webView loadRequest:request];
+        self.lastLoadType = WebViewLoadTypeURL;
     }
 }
 
@@ -1087,7 +1130,7 @@ static NSString *const kJavaScriptURLPrefix = @"javascript:";
             } else {
                 self.webView.configuration.preferences.javaScriptEnabled = jsWillOpen;
             }
-            [self.webView reload];
+            [self refresh];
             self.javascriptAccessSwitch = isJavaScriptEnable? YES : NO;
 
             return SUCCESS;
