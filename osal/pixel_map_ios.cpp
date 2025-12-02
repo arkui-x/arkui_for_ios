@@ -17,6 +17,7 @@
 #include "base/utils/utils.h"
 #include "adapter/ios/osal/pixel_map_ios.h"
 #include "core/image/image_file_cache.h"
+#include "drawable_descriptor.h"
 
 namespace OHOS::Ace {
 
@@ -208,6 +209,11 @@ RefPtr<PixelMap> PixelMap::Create(std::unique_ptr<Media::PixelMap>&& pixmap)
     return AceType::MakeRefPtr<PixelMapIOS>(std::move(pixmap));
 }
 
+RefPtr<PixelMap> PixelMap::Create(const std::shared_ptr<Media::PixelMap>& pixmap)
+{
+    return AceType::MakeRefPtr<PixelMapIOS>(pixmap);
+}
+
 RefPtr<PixelMap> PixelMap::Create(const InitializationOptions& opts)
 {
     Media::InitializationOptions options;
@@ -217,7 +223,10 @@ RefPtr<PixelMap> PixelMap::Create(const InitializationOptions& opts)
 
 RefPtr<PixelMap> PixelMap::GetFromDrawable(void* ptr)
 {
-    return nullptr;
+    CHECK_NULL_RETURN(ptr, nullptr);
+    auto* drawable = reinterpret_cast<Napi::DrawableDescriptor*>(ptr);
+    CHECK_NULL_RETURN(drawable, nullptr);
+    return AceType::MakeRefPtr<PixelMapIOS>(drawable->GetPixelMap());
 }
 
 bool PixelMap::GetPxielMapListFromAnimatedDrawable(void* ptr, std::vector<RefPtr<PixelMap>>& pixelMaps,
