@@ -33,6 +33,7 @@
 #include "core/common/container_scope.h"
 #include "core/common/font_manager.h"
 #include "core/common/platform_window.h"
+#include "core/common/resource/resource_manager.h"
 #include "core/common/task_executor_impl.h"
 #include "core/common/thread_checker.h"
 #include "core/common/watch_dog.h"
@@ -813,21 +814,65 @@ void AceContainerSG::SetFontAndScale(Platform::ParsedConfig& parsedConfig, Confi
     }
 }
 
+void InitResourceAndThemeManager(const RefPtr<PipelineBase>& pipelineContext, const RefPtr<AssetManager>& assetManager,
+    const ColorScheme& colorScheme, const ResourceInfo& resourceInfo, AceView* aceView,
+    const std::shared_ptr<OHOS::AbilityRuntime::Platform::Context>& context,
+    const std::shared_ptr<OHOS::AppExecFwk::AbilityInfo>& abilityInfo)
+{
+    ThemeConstants::InitDeviceType();
+    auto resourceAdapter = ResourceAdapter::CreateV2();
+    CHECK_NULL_VOID(resourceAdapter);
+    resourceAdapter->Init(resourceInfo);
+    auto themeManager = AceType::MakeRefPtr<ThemeManagerImpl>(resourceAdapter);
+    CHECK_NULL_VOID(pipelineContext);
+    pipelineContext->SetThemeManager(themeManager);
+    themeManager->SetColorScheme(colorScheme);
+    themeManager->LoadCustomTheme(assetManager);
+    themeManager->LoadResourceThemes();
+    aceView->SetBackgroundColor(themeManager->GetBackgroundColor());
+
+    auto defaultBundleName = "";
+    auto defaultModuleName = "";
+    int32_t instanceId = pipelineContext->GetInstanceId();
+    ResourceManager::GetInstance().AddResourceAdapter(
+        defaultBundleName, defaultModuleName, instanceId, resourceAdapter);
+    if (context) {
+        auto hapInfo = context->GetHapModuleInfo();
+        CHECK_NULL_VOID(hapInfo);
+        auto bundleName = context->GetBundleName();
+        if (bundleName.empty()) {
+            return;
+        }
+        auto moduleName = hapInfo->name;
+        if (!moduleName.empty()) {
+            ResourceManager::GetInstance().AddResourceAdapter(bundleName, moduleName, instanceId, resourceAdapter);
+        }
+        auto dependencies = hapInfo->dependencies;
+        for (const auto& dependency : dependencies) {
+            if (dependency.empty()) {
+                continue;
+            }
+            ResourceManager::GetInstance().AddResourceAdapter(bundleName, dependency, instanceId, resourceAdapter);
+        }
+    } else if (abilityInfo) {
+        auto bundleName = abilityInfo->bundleName;
+        auto moduleName = abilityInfo->moduleName;
+        if (!bundleName.empty() && !moduleName.empty()) {
+            ResourceManager::GetInstance().AddResourceAdapter(bundleName, moduleName, instanceId, resourceAdapter);
+        }
+    }
+}
+
 void AceContainerSG::InitThemeManager()
 {
     LOGI("Init theme manager");
     auto initThemeManagerTask = [pipelineContext = pipelineContext_, assetManager = assetManager_,
-                                    colorScheme = colorScheme_, resourceInfo = resourceInfo_, aceView = aceView_]() {
+                                    colorScheme = colorScheme_, resourceInfo = resourceInfo_, aceView = aceView_,
+                                    context = runtimeContext_.lock(), abilityInfo = abilityInfo_.lock()]() {
         ACE_SCOPED_TRACE("OHOS::LoadThemes()");
         LOGI("UIContent load theme");
-        ThemeConstants::InitDeviceType();
-        auto themeManager = AceType::MakeRefPtr<ThemeManagerImpl>();
-        pipelineContext->SetThemeManager(themeManager);
-        themeManager->InitResource(resourceInfo);
-        themeManager->SetColorScheme(colorScheme);
-        themeManager->LoadCustomTheme(assetManager);
-        themeManager->LoadResourceThemes();
-        aceView->SetBackgroundColor(themeManager->GetBackgroundColor());
+        InitResourceAndThemeManager(
+                pipelineContext, assetManager, colorScheme, resourceInfo, aceView, context, abilityInfo);
         if (colorScheme == ColorScheme::SCHEME_DARK) {
             pipelineContext->SetAppBgColor(Color::BLACK);
         } else {
@@ -1302,6 +1347,12 @@ bool AceContainerSG::GetLastMovingPointerPosition(DragPointerEvent& dragPointerE
     dragPointerEvent.displayX = pointerItem.GetDisplayX();
     dragPointerEvent.displayY = pointerItem.GetDisplayY();
     return true;
+}
+
+std::shared_ptr<OHOS::AbilityRuntime::Platform::Context> AceContainerSG::GetAbilityContext()
+{
+    auto context = runtimeContext_.lock();
+    return context;
 }
 
 void AceContainerSG::RegisterStopDragCallback(int32_t pointerId, StopDragCallback&& stopDragCallback)
