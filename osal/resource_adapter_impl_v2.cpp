@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022-2024 Huawei Device Co., Ltd.
+ * Copyright (c) 2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -13,12 +13,13 @@
  * limitations under the License.
  */
 
-#include "adapter/ios/osal/resource_adapter_impl.h"
+#include "adapter/ios/osal/resource_adapter_impl_v2.h"
 
 #include <dirent.h>
 
 #include "adapter/ios/entrance/ace_application_info_impl.h"
 #include "adapter/ios/osal/resource_convertor.h"
+#include "adapter/ios/stage/uicontent/ace_container_sg.h"
 #include "adapter/ios/osal/resource_theme_style.h"
 #include "core/common/resource/resource_manager.h"
 #include "core/components/theme/theme_attributes.h"
@@ -44,61 +45,19 @@ void CheckThemeId(int32_t& themeId)
                   : THEME_ID_DARK;
 }
 
-const char* PATTERN_MAP[] = {
-    THEME_PATTERN_BUTTON,
-    THEME_PATTERN_CHECKBOX,
-    THEME_PATTERN_DATA_PANEL,
-    THEME_PATTERN_RADIO,
-    THEME_PATTERN_SWIPER,
-    THEME_PATTERN_SWITCH,
-    THEME_PATTERN_TOOLBAR,
-    THEME_PATTERN_TOGGLE,
-    THEME_PATTERN_TOAST,
-    THEME_PATTERN_DIALOG,
-    THEME_PATTERN_DRAG_BAR,
-    THEME_PATTERN_SEMI_MODAL,
+const char* PATTERN_MAP[] = { THEME_PATTERN_BUTTON, THEME_PATTERN_CHECKBOX, THEME_PATTERN_DATA_PANEL,
+    THEME_PATTERN_RADIO, THEME_PATTERN_SWIPER, THEME_PATTERN_SWITCH, THEME_PATTERN_TOOLBAR, THEME_PATTERN_TOGGLE,
+    THEME_PATTERN_TOAST, THEME_PATTERN_DIALOG, THEME_PATTERN_DRAG_BAR, THEME_PATTERN_SEMI_MODAL,
     // append
-    THEME_PATTERN_BADGE,
-    THEME_PATTERN_CALENDAR,
-    THEME_PATTERN_CAMERA,
-    THEME_PATTERN_CLOCK,
-    THEME_PATTERN_COUNTER,
-    THEME_PATTERN_DIVIDER,
-    THEME_PATTERN_FOCUS_ANIMATION,
-    THEME_PATTERN_GRID,
-    THEME_PATTERN_IMAGE,
-    THEME_PATTERN_LIST,
-    THEME_PATTERN_LIST_ITEM,
-    THEME_PATTERN_MARQUEE,
-    THEME_PATTERN_NAVIGATION_BAR,
-    THEME_PATTERN_PICKER,
-    THEME_PATTERN_PIECE,
-    THEME_PATTERN_POPUP,
-    THEME_PATTERN_PROGRESS,
-    THEME_PATTERN_QRCODE,
-    THEME_PATTERN_RATING,
-    THEME_PATTERN_REFRESH,
-    THEME_PATTERN_SCROLL_BAR,
-    THEME_PATTERN_SEARCH,
-    THEME_PATTERN_SELECT,
-    THEME_PATTERN_SLIDER,
-    THEME_PATTERN_STEPPER,
-    THEME_PATTERN_TAB,
-    THEME_PATTERN_TEXT,
-    THEME_PATTERN_TEXTFIELD,
-    THEME_PATTERN_TEXT_OVERLAY,
-    THEME_PATTERN_VIDEO,
-    THEME_PATTERN_ICON,
-    THEME_PATTERN_INDEXER,
-    THEME_PATTERN_APP_BAR,
-    THEME_PATTERN_ADVANCED_PATTERN,
-    THEME_PATTERN_SECURITY_COMPONENT,
-    THEME_PATTERN_PATTERN_LOCK,
-    THEME_PATTERN_SHEET,
-    THEME_BLUR_STYLE_COMMON,
-    THEME_PATTERN_SHADOW,
-    THEME_PATTERN_GAUGE
-};
+    THEME_PATTERN_BADGE, THEME_PATTERN_CALENDAR, THEME_PATTERN_CAMERA, THEME_PATTERN_CLOCK, THEME_PATTERN_COUNTER,
+    THEME_PATTERN_DIVIDER, THEME_PATTERN_FOCUS_ANIMATION, THEME_PATTERN_GRID, THEME_PATTERN_IMAGE, THEME_PATTERN_LIST,
+    THEME_PATTERN_LIST_ITEM, THEME_PATTERN_MARQUEE, THEME_PATTERN_NAVIGATION_BAR, THEME_PATTERN_PICKER,
+    THEME_PATTERN_PIECE, THEME_PATTERN_POPUP, THEME_PATTERN_PROGRESS, THEME_PATTERN_QRCODE, THEME_PATTERN_RATING,
+    THEME_PATTERN_REFRESH, THEME_PATTERN_SCROLL_BAR, THEME_PATTERN_SEARCH, THEME_PATTERN_SELECT, THEME_PATTERN_SLIDER,
+    THEME_PATTERN_STEPPER, THEME_PATTERN_TAB, THEME_PATTERN_TEXT, THEME_PATTERN_TEXTFIELD, THEME_PATTERN_TEXT_OVERLAY,
+    THEME_PATTERN_VIDEO, THEME_PATTERN_ICON, THEME_PATTERN_INDEXER, THEME_PATTERN_APP_BAR,
+    THEME_PATTERN_ADVANCED_PATTERN, THEME_PATTERN_SECURITY_COMPONENT, THEME_PATTERN_PATTERN_LOCK, THEME_PATTERN_SHEET,
+    THEME_BLUR_STYLE_COMMON, THEME_PATTERN_SHADOW, THEME_PATTERN_GAUGE };
 
 bool IsDirExist(const std::string& path)
 {
@@ -127,62 +86,96 @@ DimensionUnit ParseDimensionUnit(const std::string& unit)
 
 } // namespace
 
-RefPtr<ResourceAdapter> ResourceAdapter::Create()
+RefPtr<ResourceAdapter> ResourceAdapter::CreateV2()
 {
-    return AceType::MakeRefPtr<ResourceAdapterImpl>();
+    LOGI("Use resourceAdapter v2");
+    return AceType::MakeRefPtr<ResourceAdapterImplV2>();
 }
 
-void ResourceAdapterImpl::Init(const ResourceInfo& resourceInfo)
+RefPtr<ResourceAdapter> ResourceAdapter::CreateNewResourceAdapter(
+    const std::string& bundleName, const std::string& moduleName)
+{
+    auto container = Container::CurrentSafely();
+    CHECK_NULL_RETURN(container, nullptr);
+    auto aceContainer = AceType::DynamicCast<Platform::AceContainerSG>(container);
+    CHECK_NULL_RETURN(aceContainer, nullptr);
+    
+    RefPtr<ResourceAdapter> newResourceAdapter = nullptr;
+    auto context = aceContainer->GetAbilityContext();
+    if (context) {
+        auto resourceManager = context->GetResourceManager();
+        newResourceAdapter = AceType::MakeRefPtr<ResourceAdapterImplV2>(resourceManager);
+        CHECK_NULL_RETURN(newResourceAdapter, nullptr);
+    } else {
+        newResourceAdapter = ResourceAdapter::CreateV2();
+        CHECK_NULL_RETURN(newResourceAdapter, nullptr);
+        auto resourceInfo = aceContainer->GetResourceInfo();
+        newResourceAdapter->Init(resourceInfo);
+    }
+
+    auto resConfig = aceContainer->GetResourceConfiguration();
+    auto pipelineContext = NG::PipelineContext::GetCurrentContext();
+    if (pipelineContext && pipelineContext->GetLocalColorMode() != ColorMode::COLOR_MODE_UNDEFINED) {
+        auto localColorMode = pipelineContext->GetLocalColorMode();
+        resConfig.SetColorMode(localColorMode);
+    }
+    newResourceAdapter->UpdateConfig(resConfig);
+    return newResourceAdapter;
+}
+
+ResourceAdapterImplV2::ResourceAdapterImplV2(std::shared_ptr<Global::Resource::ResourceManager> resourceManager)
+{
+    resourceManager_ = resourceManager;
+}
+
+void ResourceAdapterImplV2::Init(const ResourceInfo& resourceInfo)
 {
     std::string packagePath = resourceInfo.GetPackagePath();
     std::string sysResIndexPath = packagePath + DELIMITER + "systemres" + DELIMITER + "resources.index";
-    sysResIndexPath_ = sysResIndexPath;
     auto resConfig = ConvertConfigToGlobal(resourceInfo.GetResourceConfiguration());
-    resConfig_ = resConfig;
+    CHECK_NULL_VOID(resConfig);
     auto hapPath = resourceInfo.GetHapPath();
     if (hapPath.empty()) {
         LOGI("sysResIndexPath: %s", sysResIndexPath.c_str());
         std::shared_ptr<Global::Resource::ResourceManager> newResMgr(Global::Resource::CreateResourceManager());
+        CHECK_NULL_VOID(newResMgr);
         auto sysResRet = newResMgr->AddResource(sysResIndexPath.c_str());
         auto configRet = newResMgr->UpdateResConfig(*resConfig);
         LOGI("AddSysRes result=%{public}d, UpdateResConfig result=%{public}d,"
              "ori=%{public}d, dpi=%{public}d, device=%{public}d, colorMode=%{public}d,",
-            sysResRet, configRet, resConfig->GetDirection(), resConfig->GetScreenDensity(),
-            resConfig->GetDeviceType(), resConfig->GetColorMode());
+            sysResRet, configRet, resConfig->GetDirection(), resConfig->GetScreenDensity(), resConfig->GetDeviceType(),
+            resConfig->GetColorMode());
         resourceManager_ = newResMgr;
-        packagePathStr_ = "";
     } else {
         std::istringstream iss(hapPath);
         std::string token;
         while (std::getline(iss, token, ':')) {
-            std::shared_ptr<Global::Resource::ResourceManager> newResMgr(Global::Resource::CreateResourceManager());
-            if (!newResMgr) {
-                LOGE("create resource manager from Global::Resource::CreateResourceManager() failed!");
+            if (!resourceManager_) {
+                std::shared_ptr<Global::Resource::ResourceManager> newResMgr(Global::Resource::CreateResourceManager());
+                CHECK_NULL_VOID(newResMgr);
+                resourceManager_ = newResMgr;
             }
             std::string appResIndexPath = token + DELIMITER + "resources.index";
-            auto appResRet = newResMgr->AddResource(appResIndexPath.c_str());
+            auto appResRet = resourceManager_->AddResource(appResIndexPath.c_str());
+            LOGI("appResIndexPath: %s", appResIndexPath.c_str());
+            auto sysResRet = resourceManager_->AddResource(sysResIndexPath.c_str());
             LOGI("sysResIndexPath: %s", sysResIndexPath.c_str());
-            auto sysResRet = newResMgr->AddResource(sysResIndexPath.c_str());
-            auto configRet = newResMgr->UpdateResConfig(*resConfig);
-            LOGI("AddAppRes result=%{public}d, AddSysRes result=%{public}d, UpdateResConfig result=%{public}d,"
+            auto configRet = resourceManager_->UpdateResConfig(*resConfig);
+            LOGI("AddAppRes result=%{public}d, AddSysRes result=%{public}d,  UpdateResConfig result=%{public}d,"
                  "ori=%{public}d, dpi=%{public}d, device=%{public}d, colorMode=%{public}d,",
                 appResRet, sysResRet, configRet, resConfig->GetDirection(), resConfig->GetScreenDensity(),
                 resConfig->GetDeviceType(), resConfig->GetColorMode());
-            resourceManager_ = newResMgr;
-            resourceManagers_[token.substr(token.rfind(DELIMITER) + 1)] = resourceManager_;
-            packagePathStr_ = token;
-            rawFilePaths_[token.substr(token.rfind(DELIMITER) + 1)] = packagePathStr_;
         }
     }
 }
 
-void ResourceAdapterImpl::UpdateConfig(const ResourceConfiguration& config, bool themeFlag)
+void ResourceAdapterImplV2::UpdateConfig(const ResourceConfiguration& config, bool themeFlag)
 {
-    LOGI("UpdateConfig ori=%{public}d, dpi=%{public}d, device=%{public}d, colorMode=%{public}d,",
+    CHECK_NULL_VOID(resourceManager_);
+    LOGI("UpdateConfig ori=%{public}d, dpi=%{public}d, device=%{public}d, "
+         "colorMode=%{public}d,",
         config.GetOrientation(), config.GetDensity(), config.GetDeviceType(), config.GetColorMode());
     auto resConfig = ConvertConfigToGlobal(config);
-    LOGI("UpdateConfig ori=%{public}d, dpi=%{public}d, device=%{public}d", resConfig->GetDirection(),
-        resConfig->GetScreenDensity(), resConfig->GetDeviceType());
     LOGI("UpdateConfig ori=%{public}d, dpi=%{public}d, device=%{public}d, "
          "colorMode=%{public}d, inputDevice=%{public}d",
         resConfig->GetDirection(), resConfig->GetScreenDensity(), resConfig->GetDeviceType(), resConfig->GetColorMode(),
@@ -190,14 +183,25 @@ void ResourceAdapterImpl::UpdateConfig(const ResourceConfiguration& config, bool
     resourceManager_->UpdateResConfig(*resConfig, themeFlag);
 }
 
-RefPtr<ThemeStyle> ResourceAdapterImpl::GetTheme(int32_t themeId)
+ColorMode ResourceAdapterImplV2::GetResourceColorMode() const
 {
+    std::shared_lock<std::shared_mutex> lock(resourceMutex_);
+    CHECK_NULL_RETURN(resourceManager_, ColorMode::LIGHT);
+    std::unique_ptr<Global::Resource::ResConfig> resConfig(Global::Resource::CreateResConfig());
+    CHECK_NULL_RETURN(resConfig, ColorMode::LIGHT);
+    resourceManager_->GetResConfig(*resConfig);
+    return resConfig->GetColorMode() == OHOS::Global::Resource::ColorMode::DARK ? ColorMode::DARK : ColorMode::LIGHT;
+}
+
+RefPtr<ThemeStyle> ResourceAdapterImplV2::GetTheme(int32_t themeId)
+{
+    std::shared_lock<std::shared_mutex> lock(resourceMutex_);
+    CHECK_NULL_RETURN(resourceManager_, nullptr);
     CheckThemeId(themeId);
     auto theme = AceType::MakeRefPtr<ResourceThemeStyle>(AceType::Claim(this));
     auto ret = resourceManager_->GetThemeById(themeId, theme->rawAttrs_);
 
-    LOGI("theme themeId=%{public}d, ret=%{public}d, attr size=%{public}zu",
-        themeId, ret, theme->rawAttrs_.size());
+    LOGI("theme themeId=%{public}d, ret=%{public}d, attr size=%{public}zu", themeId, ret, theme->rawAttrs_.size());
     if (!ret) {
         ret = resourceManager_->GetThemeById(OHOS_THEME_ID, theme->rawAttrs_);
     }
@@ -205,22 +209,17 @@ RefPtr<ThemeStyle> ResourceAdapterImpl::GetTheme(int32_t themeId)
     for (uint64_t i = 0; i < sizeof(PATTERN_MAP) / sizeof(PATTERN_MAP[0]); i++) {
         ResourceThemeStyle::RawAttrMap attrMap;
         std::string patternTag = PATTERN_MAP[i];
-        std::string patternName = "";
-        if (patternTag == THEME_PATTERN_SHADOW) {
-            patternName = patternTag;
-        } else {
-            patternName = OHFlag + patternTag;
-        }
+        std::string patternName = OHFlag + PATTERN_MAP[i];
         ret = resourceManager_->GetPatternByName(patternName.c_str(), attrMap);
-        LOGI("theme pattern[%{public}s, %{public}s], attr size=%{public}zu",
-            patternTag.c_str(), patternName.c_str(), attrMap.size());
+        LOGI("theme pattern[%{public}s, %{public}s], attr size=%{public}zu", patternTag.c_str(), patternName.c_str(),
+            attrMap.size());
         if (attrMap.empty()) {
             continue;
         }
         theme->patternAttrs_[patternTag] = attrMap;
     }
-    LOGI("theme themeId=%{public}d, ret=%{public}d, attr size=%{public}zu, pattern size=%{public}zu",
-        themeId, ret, theme->rawAttrs_.size(), theme->patternAttrs_.size());
+    LOGI("theme themeId=%{public}d, ret=%{public}d, attr size=%{public}zu, pattern size=%{public}zu", themeId, ret,
+        theme->rawAttrs_.size(), theme->patternAttrs_.size());
     if (theme->patternAttrs_.empty() && theme->rawAttrs_.empty()) {
         LOGW("Failed to get the theme resource. The default theme config is used.");
         return nullptr;
@@ -242,7 +241,7 @@ RefPtr<ThemeStyle> ResourceAdapterImpl::GetTheme(int32_t themeId)
     return theme;
 }
 
-Color ResourceAdapterImpl::GetColor(uint32_t resId)
+Color ResourceAdapterImplV2::GetColor(uint32_t resId)
 {
     uint32_t result = 0;
     std::shared_lock<std::shared_mutex> lock(resourceMutex_);
@@ -254,7 +253,7 @@ Color ResourceAdapterImpl::GetColor(uint32_t resId)
     return Color(result);
 }
 
-Color ResourceAdapterImpl::GetColorByName(const std::string& resName)
+Color ResourceAdapterImplV2::GetColorByName(const std::string& resName)
 {
     uint32_t result = 0;
     auto actualResName = GetActualResourceName(resName);
@@ -267,7 +266,7 @@ Color ResourceAdapterImpl::GetColorByName(const std::string& resName)
     return Color(result);
 }
 
-Dimension ResourceAdapterImpl::GetDimension(uint32_t resId)
+Dimension ResourceAdapterImplV2::GetDimension(uint32_t resId)
 {
     float dimensionFloat = 0.0f;
     std::string unit;
@@ -281,7 +280,7 @@ Dimension ResourceAdapterImpl::GetDimension(uint32_t resId)
     return Dimension(static_cast<double>(dimensionFloat), ParseDimensionUnit(unit));
 }
 
-Dimension ResourceAdapterImpl::GetDimensionByName(const std::string& resName)
+Dimension ResourceAdapterImplV2::GetDimensionByName(const std::string& resName)
 {
     float dimensionFloat = 0.0f;
     auto actualResName = GetActualResourceName(resName);
@@ -295,15 +294,7 @@ Dimension ResourceAdapterImpl::GetDimensionByName(const std::string& resName)
     return Dimension(static_cast<double>(dimensionFloat), ParseDimensionUnit(unit));
 }
 
-ColorMode ResourceAdapterImpl::GetResourceColorMode() const
-{
-    CHECK_NULL_RETURN(resourceManager_, ColorMode::LIGHT);
-    std::unique_ptr<Global::Resource::ResConfig> resConfig(Global::Resource::CreateResConfig());
-    resourceManager_->GetResConfig(*resConfig);
-    return resConfig->GetColorMode() == OHOS::Global::Resource::ColorMode::DARK ? ColorMode::DARK : ColorMode::LIGHT;
-}
-
-std::string ResourceAdapterImpl::GetString(uint32_t resId)
+std::string ResourceAdapterImplV2::GetString(uint32_t resId)
 {
     std::string strResult = "";
     std::shared_lock<std::shared_mutex> lock(resourceMutex_);
@@ -315,9 +306,9 @@ std::string ResourceAdapterImpl::GetString(uint32_t resId)
     return strResult;
 }
 
-std::string ResourceAdapterImpl::GetStringByName(const std::string& resName)
+std::string ResourceAdapterImplV2::GetStringByName(const std::string& resName)
 {
-    std::string strResult = "";
+    std::string strResult = {""};
     auto actualResName = GetActualResourceName(resName);
     std::shared_lock<std::shared_mutex> lock(resourceMutex_);
     CHECK_NULL_RETURN(resourceManager_, strResult);
@@ -328,7 +319,24 @@ std::string ResourceAdapterImpl::GetStringByName(const std::string& resName)
     return strResult;
 }
 
-std::string ResourceAdapterImpl::GetPluralString(uint32_t resId, int quantity)
+std::string ResourceAdapterImplV2::GetStringFormatByName(const char* resName, ...)
+{
+    std::string strResult = {""};
+    std::shared_lock<std::shared_mutex> lock(resourceMutex_);
+    CHECK_NULL_RETURN(resourceManager_, strResult);
+    CHECK_NULL_RETURN(resName, strResult);
+    va_list args;
+    va_start(args, resName);
+    auto state = resourceManager_->GetStringFormatByName(strResult, resName, args);
+    va_end(args);
+    if (state != Global::Resource::SUCCESS) {
+        TAG_LOGE(AceLogTag::ACE_RESOURCE, "Get format string by name error, resName=%{public}s, errorCode=%{public}d",
+            resName, state);
+    }
+    return strResult;
+}
+
+std::string ResourceAdapterImplV2::GetPluralString(uint32_t resId, int quantity)
 {
     std::string strResult = "";
     std::shared_lock<std::shared_mutex> lock(resourceMutex_);
@@ -340,7 +348,7 @@ std::string ResourceAdapterImpl::GetPluralString(uint32_t resId, int quantity)
     return strResult;
 }
 
-std::string ResourceAdapterImpl::GetPluralStringByName(const std::string& resName, int quantity)
+std::string ResourceAdapterImplV2::GetPluralStringByName(const std::string& resName, int quantity)
 {
     std::string strResult = "";
     auto actualResName = GetActualResourceName(resName);
@@ -353,7 +361,7 @@ std::string ResourceAdapterImpl::GetPluralStringByName(const std::string& resNam
     return strResult;
 }
 
-std::vector<std::string> ResourceAdapterImpl::GetStringArray(uint32_t resId) const
+std::vector<std::string> ResourceAdapterImplV2::GetStringArray(uint32_t resId) const
 {
     std::vector<std::string> strResults;
     std::shared_lock<std::shared_mutex> lock(resourceMutex_);
@@ -365,7 +373,7 @@ std::vector<std::string> ResourceAdapterImpl::GetStringArray(uint32_t resId) con
     return strResults;
 }
 
-std::vector<std::string> ResourceAdapterImpl::GetStringArrayByName(const std::string& resName) const
+std::vector<std::string> ResourceAdapterImplV2::GetStringArrayByName(const std::string& resName) const
 {
     std::vector<std::string> strResults;
     auto actualResName = GetActualResourceName(resName);
@@ -378,7 +386,7 @@ std::vector<std::string> ResourceAdapterImpl::GetStringArrayByName(const std::st
     return strResults;
 }
 
-double ResourceAdapterImpl::GetDouble(uint32_t resId)
+double ResourceAdapterImplV2::GetDouble(uint32_t resId)
 {
     float result = 0.0f;
     std::shared_lock<std::shared_mutex> lock(resourceMutex_);
@@ -390,7 +398,7 @@ double ResourceAdapterImpl::GetDouble(uint32_t resId)
     return static_cast<double>(result);
 }
 
-double ResourceAdapterImpl::GetDoubleByName(const std::string& resName)
+double ResourceAdapterImplV2::GetDoubleByName(const std::string& resName)
 {
     float result = 0.0f;
     auto actualResName = GetActualResourceName(resName);
@@ -403,7 +411,7 @@ double ResourceAdapterImpl::GetDoubleByName(const std::string& resName)
     return static_cast<double>(result);
 }
 
-int32_t ResourceAdapterImpl::GetInt(uint32_t resId)
+int32_t ResourceAdapterImplV2::GetInt(uint32_t resId)
 {
     int32_t result = 0;
     std::shared_lock<std::shared_mutex> lock(resourceMutex_);
@@ -415,7 +423,7 @@ int32_t ResourceAdapterImpl::GetInt(uint32_t resId)
     return result;
 }
 
-int32_t ResourceAdapterImpl::GetIntByName(const std::string& resName)
+int32_t ResourceAdapterImplV2::GetIntByName(const std::string& resName)
 {
     int32_t result = 0;
     auto actualResName = GetActualResourceName(resName);
@@ -428,7 +436,7 @@ int32_t ResourceAdapterImpl::GetIntByName(const std::string& resName)
     return result;
 }
 
-std::vector<uint32_t> ResourceAdapterImpl::GetIntArray(uint32_t resId) const
+std::vector<uint32_t> ResourceAdapterImplV2::GetIntArray(uint32_t resId) const
 {
     std::vector<int> intVectorResult;
     {
@@ -447,7 +455,7 @@ std::vector<uint32_t> ResourceAdapterImpl::GetIntArray(uint32_t resId) const
     return result;
 }
 
-std::vector<uint32_t> ResourceAdapterImpl::GetIntArrayByName(const std::string& resName) const
+std::vector<uint32_t> ResourceAdapterImplV2::GetIntArrayByName(const std::string& resName) const
 {
     std::vector<int> intVectorResult;
     auto actualResName = GetActualResourceName(resName);
@@ -464,7 +472,7 @@ std::vector<uint32_t> ResourceAdapterImpl::GetIntArrayByName(const std::string& 
     return result;
 }
 
-bool ResourceAdapterImpl::GetBoolean(uint32_t resId) const
+bool ResourceAdapterImplV2::GetBoolean(uint32_t resId) const
 {
     bool result = false;
     std::shared_lock<std::shared_mutex> lock(resourceMutex_);
@@ -476,7 +484,7 @@ bool ResourceAdapterImpl::GetBoolean(uint32_t resId) const
     return result;
 }
 
-bool ResourceAdapterImpl::GetBooleanByName(const std::string& resName) const
+bool ResourceAdapterImplV2::GetBooleanByName(const std::string& resName) const
 {
     bool result = false;
     auto actualResName = GetActualResourceName(resName);
@@ -489,12 +497,12 @@ bool ResourceAdapterImpl::GetBooleanByName(const std::string& resName) const
     return result;
 }
 
-std::string ResourceAdapterImpl::GetMediaPath(uint32_t resId)
+std::string ResourceAdapterImplV2::GetMediaPath(uint32_t resId)
 {
-    CHECK_NULL_RETURN(resourceManager_, "");
     std::string mediaPath = "";
     {
         std::shared_lock<std::shared_mutex> lock(resourceMutex_);
+        CHECK_NULL_RETURN(resourceManager_, "");
         auto state = resourceManager_->GetMediaById(resId, mediaPath);
         if (state != Global::Resource::SUCCESS) {
             LOGE("GetMediaPath error, id=%{public}u", resId);
@@ -504,7 +512,7 @@ std::string ResourceAdapterImpl::GetMediaPath(uint32_t resId)
     return "file:///" + mediaPath;
 }
 
-std::string ResourceAdapterImpl::GetMediaPathByName(const std::string& resName)
+std::string ResourceAdapterImplV2::GetMediaPathByName(const std::string& resName)
 {
     std::string mediaPath = "";
     auto actualResName = GetActualResourceName(resName);
@@ -520,32 +528,41 @@ std::string ResourceAdapterImpl::GetMediaPathByName(const std::string& resName)
     return "file:///" + mediaPath;
 }
 
-std::string ResourceAdapterImpl::GetRawfile(const std::string& fileName)
-{
-    return "file:///" + packagePathStr_ + "/resources/rawfile/" + fileName;
-}
-
-bool ResourceAdapterImpl::GetRawFileData(const std::string& rawFile, size_t& len, std::unique_ptr<uint8_t[]>& dest)
+std::string ResourceAdapterImplV2::GetRawfile(const std::string& fileName)
 {
     std::shared_lock<std::shared_mutex> lock(resourceMutex_);
-    auto manager = GetResourceManager();
-    CHECK_NULL_RETURN(manager, false);
-    auto state = manager->GetRawFileFromHap(rawFile, len, dest);
+    CHECK_NULL_RETURN(resourceManager_, "");
+    std::string outPath;
+    std::string newFileName = fileName;
+    auto state = resourceManager_->GetRawFilePathByName(newFileName, outPath);
+    if (state != Global::Resource::SUCCESS) {
+        LOGE("GetRawfile error, fileName=%{public}s, errorCode=%{public}u", fileName.c_str(), state);
+        return "";
+    }
+    return "file:///" + outPath;
+}
+
+bool ResourceAdapterImplV2::GetRawFileData(const std::string& rawFile, size_t& len, std::unique_ptr<uint8_t[]>& dest)
+{
+    std::shared_lock<std::shared_mutex> lock(resourceMutex_);
+    CHECK_NULL_RETURN(resourceManager_, false);
+    auto state = resourceManager_->GetRawFileFromHap(rawFile, len, dest);
     if (state != Global::Resource::SUCCESS || !dest) {
-        LOGW("GetRawFileFromHap error, raw filename:%{public}s, error:%{public}u", rawFile.c_str(), state);
+        LOGE("GetRawFileFromHap error, raw filename:%{public}s, error:%{public}u", rawFile.c_str(), state);
         return false;
     }
     return true;
 }
 
-bool ResourceAdapterImpl::GetRawFileData(const std::string& rawFile, size_t& len, std::unique_ptr<uint8_t[]>& dest,
+bool ResourceAdapterImplV2::GetRawFileData(const std::string& rawFile, size_t& len, std::unique_ptr<uint8_t[]>& dest,
     const std::string& bundleName, const std::string& moduleName)
 {
-    auto manager = GetResourceManager(bundleName, moduleName);
-    CHECK_NULL_RETURN(manager, false);
-    auto state = manager->GetRawFileFromHap(rawFile, len, dest);
+    std::shared_lock<std::shared_mutex> lock(resourceMutex_);
+    CHECK_NULL_RETURN(resourceManager_, false);
+    auto state = resourceManager_->GetRawFileFromHap(rawFile, len, dest);
     if (state != Global::Resource::SUCCESS || !dest) {
-        LOGW("GetRawFileFromHap error, raw filename:%{public}s, bundleName:%{public}s, moduleName:%{public}s, "
+        LOGE("GetRawFileFromHap error, raw filename:%{public}s, error:%{public}u", rawFile.c_str(), state);
+        LOGE("GetRawFileFromHap error, raw filename:%{public}s, bundleName:%{public}s, moduleName:%{public}s, "
              "error:%{public}u",
             rawFile.c_str(), bundleName.c_str(), moduleName.c_str(), state);
         return false;
@@ -553,28 +570,26 @@ bool ResourceAdapterImpl::GetRawFileData(const std::string& rawFile, size_t& len
     return true;
 }
 
-bool ResourceAdapterImpl::GetMediaData(uint32_t resId, size_t& len, std::unique_ptr<uint8_t[]>& dest)
+bool ResourceAdapterImplV2::GetMediaData(uint32_t resId, size_t& len, std::unique_ptr<uint8_t[]>& dest)
 {
     std::shared_lock<std::shared_mutex> lock(resourceMutex_);
-    auto manager = GetResourceManager();
-    CHECK_NULL_RETURN(manager, false);
-    auto state = manager->GetMediaDataById(resId, len, dest);
+    CHECK_NULL_RETURN(resourceManager_, false);
+    auto state = resourceManager_->GetMediaDataById(resId, len, dest);
     if (state != Global::Resource::SUCCESS) {
         LOGW("GetMediaDataById error, id=%{public}u, error:%{public}u", resId, state);
         return false;
     }
     return true;
-    
 }
 
-bool ResourceAdapterImpl::GetMediaData(uint32_t resId, size_t& len, std::unique_ptr<uint8_t[]>& dest,
+bool ResourceAdapterImplV2::GetMediaData(uint32_t resId, size_t& len, std::unique_ptr<uint8_t[]>& dest,
     const std::string& bundleName, const std::string& moduleName)
 {
     std::shared_lock<std::shared_mutex> lock(resourceMutex_);
-    auto manager = GetResourceManager(bundleName, moduleName);
-    CHECK_NULL_RETURN(manager, false);
-    auto state = manager->GetMediaDataById(resId, len, dest);
+    CHECK_NULL_RETURN(resourceManager_, false);
+    auto state = resourceManager_->GetMediaDataById(resId, len, dest);
     if (state != Global::Resource::SUCCESS) {
+        LOGE("GetMediaDataById error, id=%{public}u, error:%{public}u", resId, state);
         LOGW("GetMediaDataById error, id=%{public}u, bundleName:%{public}s, moduleName:%{public}s, error:%{public}u",
             resId, bundleName.c_str(), moduleName.c_str(), state);
         return false;
@@ -582,26 +597,24 @@ bool ResourceAdapterImpl::GetMediaData(uint32_t resId, size_t& len, std::unique_
     return true;
 }
 
-bool ResourceAdapterImpl::GetMediaData(const std::string& resName, size_t& len, std::unique_ptr<uint8_t[]>& dest)
+bool ResourceAdapterImplV2::GetMediaData(const std::string& resName, size_t& len, std::unique_ptr<uint8_t[]>& dest)
 {
     std::shared_lock<std::shared_mutex> lock(resourceMutex_);
-    auto manager = GetResourceManager();
-    CHECK_NULL_RETURN(manager, false);
-    auto state = manager->GetMediaDataByName(resName.c_str(), len, dest);
+    CHECK_NULL_RETURN(resourceManager_, false);
+    auto state = resourceManager_->GetMediaDataByName(resName.c_str(), len, dest);
     if (state != Global::Resource::SUCCESS) {
-        LOGW("GetMediaDataByName error, res=%{public}s, error:%{public}u", resName.c_str(), state);
+        LOGE("GetMediaDataByName error, res=%{public}s, error:%{public}u", resName.c_str(), state);
         return false;
     }
     return true;
 }
 
-bool ResourceAdapterImpl::GetMediaData(const std::string& resName, size_t& len, std::unique_ptr<uint8_t[]>& dest,
+bool ResourceAdapterImplV2::GetMediaData(const std::string& resName, size_t& len, std::unique_ptr<uint8_t[]>& dest,
     const std::string& bundleName, const std::string& moduleName)
 {
     std::shared_lock<std::shared_mutex> lock(resourceMutex_);
-    auto manager = GetResourceManager(bundleName, moduleName);
-    CHECK_NULL_RETURN(manager, false);
-    auto state = manager->GetMediaDataByName(resName.c_str(), len, dest);
+    CHECK_NULL_RETURN(resourceManager_, false);
+    auto state = resourceManager_->GetMediaDataByName(resName.c_str(), len, dest);
     if (state != Global::Resource::SUCCESS) {
         LOGW("GetMediaDataByName error, res=%{public}s, bundleName:%{public}s, moduleName:%{public}s, error:%{public}u",
             resName.c_str(), bundleName.c_str(), moduleName.c_str(), state);
@@ -610,61 +623,77 @@ bool ResourceAdapterImpl::GetMediaData(const std::string& resName, size_t& len, 
     return true;
 }
 
-std::shared_ptr<Global::Resource::ResourceManager> ResourceAdapterImpl::GetResourceManager(
-    const std::string& bundleName, const std::string& moduleName)
+bool ResourceAdapterImplV2::CloseRawFileDescription(const std::string& rawfileName) const
 {
-    auto it = resourceManagers_.find(moduleName);
-    if (it != resourceManagers_.end()) {
-        packagePathStr_ = rawFilePaths_[moduleName];
-        resourceManager_ = it->second;
-    } else if (!moduleName.empty()) {
-        AddResourceManagerByModuleName(moduleName);
+    std::shared_lock<std::shared_mutex> lock(resourceMutex_);
+    CHECK_NULL_RETURN(resourceManager_, false);
+    auto state = resourceManager_->CloseRawFileDescriptor(rawfileName);
+    if (state != Global::Resource::SUCCESS) {
+        LOGE("Close RawFile Description error, error:%{public}u", state);
+        return false;
     }
-    return resourceManager_;
+    return true;
 }
 
-/**
- * @brief Try to use bundleName to concatenate moduleName to obtain resourceManager
- *
- * @param bundleName bundle name
- * @param moduleName  module name
- * @return true success
- * @return false fail
- */
- bool ResourceAdapterImpl::UpdatePackageResourceManager(const std::string& bundleName, const std::string& moduleName)
- {
-     if (bundleName.empty() || moduleName.empty()) {
-         return false;
-     }
-     std::string aarModuleName = bundleName + "." + moduleName;
-     auto it = resourceManagers_.find(aarModuleName);
-     if (it != resourceManagers_.end()) {
-         packagePathStr_ = rawFilePaths_[aarModuleName];
-         resourceManager_ = it->second;
-         return true;
-     }
-     return false;
- }
-
-void ResourceAdapterImpl::UpdateResourceManager(const std::string& bundleName, const std::string& moduleName)
+bool ResourceAdapterImplV2::GetRawFD(const std::string& rawfileName, RawfileDescription& rawfileDescription) const
 {
-    auto it = resourceManagers_.find(moduleName);
-    if (it != resourceManagers_.end()) {
-        packagePathStr_ = rawFilePaths_[moduleName];
-        resourceManager_ = it->second;
-    } else if (!moduleName.empty()) {
-        if (moduleName.empty()) {
-            LOGE("UpdateResourceManager moduleName is empty");
-            return;
-        }
-        if (UpdatePackageResourceManager(bundleName, moduleName)) {
-            return;
-        }
-        AddResourceManagerByModuleName(moduleName);
+    OHOS::Global::Resource::ResourceManager::RawFileDescriptor descriptor;
+    std::shared_lock<std::shared_mutex> lock(resourceMutex_);
+    CHECK_NULL_RETURN(resourceManager_, false);
+    auto state = resourceManager_->GetRawFdNdkFromHap(rawfileName, descriptor);
+    if (state != Global::Resource::SUCCESS) {
+        TAG_LOGE(AceLogTag::ACE_RESOURCE, "Get raw fd(no cache) error, rawFileName:%{public}s, error:%{public}u",
+            rawfileName.c_str(), state);
+        return false;
     }
+    rawfileDescription.fd = descriptor.fd;
+    rawfileDescription.offset = descriptor.offset;
+    rawfileDescription.length = descriptor.length;
+    return true;
 }
 
-bool ResourceAdapterImpl::GetRawFileDescription(
+uint32_t ResourceAdapterImplV2::GetResourceLimitKeys() const
+{
+    std::shared_lock<std::shared_mutex> lock(resourceMutex_);
+    CHECK_NULL_RETURN(resourceManager_, 0);
+    return resourceManager_->GetResourceLimitKeys();
+}
+
+RefPtr<ResourceAdapter> ResourceAdapterImplV2::GetOverrideResourceAdapter(
+    const ResourceConfiguration& config, const ConfigurationChange& configurationChange)
+{
+    std::shared_lock<std::shared_mutex> lock(resourceMutex_);
+    CHECK_NULL_RETURN(resourceManager_, nullptr);
+    std::shared_ptr<Global::Resource::ResConfig> overrideResConfig(Global::Resource::CreateResConfig());
+    CHECK_NULL_RETURN(overrideResConfig, nullptr);
+    resourceManager_->GetOverrideResConfig(*overrideResConfig);
+    if (configurationChange.colorModeUpdate) {
+        overrideResConfig->SetColorMode(ConvertColorModeToGlobal(config.GetColorMode()));
+    }
+    if (configurationChange.directionUpdate) {
+        overrideResConfig->SetDirection(ConvertDirectionToGlobal(config.GetOrientation()));
+    }
+    if (configurationChange.dpiUpdate) {
+        overrideResConfig->SetScreenDensity(config.GetDensity());
+    }
+    auto overrideResMgr = resourceManager_->GetOverrideResourceManager(overrideResConfig);
+    return AceType::MakeRefPtr<ResourceAdapterImplV2>(overrideResMgr);
+}
+
+uint32_t ResourceAdapterImplV2::GetResId(const std::string& resTypeName) const
+{
+    uint32_t resId = -1;
+    std::shared_lock<std::shared_mutex> lock(resourceMutex_);
+    CHECK_NULL_RETURN(resourceManager_, -1);
+    auto state = resourceManager_->GetResId(resTypeName, resId);
+    if (state != Global::Resource::SUCCESS) {
+        TAG_LOGE(AceLogTag::ACE_RESOURCE, "Get resId by name error, name=%s, errorCode=%{public}d",
+            resTypeName.c_str(), state);
+    }
+    return resId;
+}
+
+bool ResourceAdapterImplV2::GetRawFileDescription(
     const std::string& rawfileName, RawfileDescription& rawfileDescription) const
 {
     OHOS::Global::Resource::ResourceManager::RawFileDescriptor descriptor;
@@ -681,7 +710,7 @@ bool ResourceAdapterImpl::GetRawFileDescription(
     return true;
 }
 
-bool ResourceAdapterImpl::GetMediaById(const int32_t& resId, std::string& mediaPath) const
+bool ResourceAdapterImplV2::GetMediaById(const int32_t& resId, std::string& mediaPath) const
 {
     std::shared_lock<std::shared_mutex> lock(resourceMutex_);
     CHECK_NULL_RETURN(resourceManager_, false);
@@ -693,7 +722,7 @@ bool ResourceAdapterImpl::GetMediaById(const int32_t& resId, std::string& mediaP
     return true;
 }
 
-std::string ResourceAdapterImpl::GetActualResourceName(const std::string& resName) const
+std::string ResourceAdapterImplV2::GetActualResourceName(const std::string& resName) const
 {
     auto index = resName.find_last_of('.');
     if (index == std::string::npos) {
@@ -703,53 +732,26 @@ std::string ResourceAdapterImpl::GetActualResourceName(const std::string& resNam
     return resName.substr(index + 1, resName.length() - index - 1);
 }
 
-void ResourceAdapterImpl::AddResourceManagerByModuleName(const std::string moduleName)
-{
-    std::shared_ptr<Global::Resource::ResourceManager> newResMgr(Global::Resource::CreateResourceManager());
-    if (!newResMgr) {
-        LOGE("create resource manager from Global::Resource::CreateResourceManager() failed!");
-    }
-    std::string appResPath = IsDirExist(ResourcePathUtil::GetBundlePath() + DELIMITER + moduleName)
-                                 ? ResourcePathUtil::GetBundlePath() + DELIMITER + moduleName
-                                 : ResourcePathUtil::GetSandboxPath() + DELIMITER + moduleName;
-    std::string appResIndexPath = appResPath + DELIMITER + "resources.index";
-    auto appResRet = newResMgr->AddResource(appResIndexPath.c_str());
-    LOGI("sysResIndexPath: %s", sysResIndexPath_.c_str());
-    auto sysResRet = newResMgr->AddResource(sysResIndexPath_.c_str());
-    auto configRet = newResMgr->UpdateResConfig(*resConfig_);
-    LOGI("AddAppRes result=%{public}d, AddSysRes result=%{public}d, UpdateResConfig result=%{public}d,"
-         "ori=%{public}d, dpi=%{public}d, device=%{public}d, colorMode=%{public}d,",
-        appResRet, sysResRet, configRet, resConfig_->GetDirection(), resConfig_->GetScreenDensity(),
-        resConfig_->GetDeviceType(), resConfig_->GetColorMode());
-    resourceManager_ = newResMgr;
-    resourceManagers_[moduleName] = resourceManager_;
-    packagePathStr_ = appResPath;
-    rawFilePaths_[moduleName] = packagePathStr_;
-}
-
-uint32_t ResourceAdapterImpl::GetSymbolByName(const char* resName) const
+uint32_t ResourceAdapterImplV2::GetSymbolByName(const char* resName) const
 {
     uint32_t result = 0;
     auto actualResName = GetActualResourceName(resName);
-    auto manager = GetResourceManager();
-    CHECK_NULL_RETURN(manager, -1);
-    auto state = manager->GetSymbolByName(actualResName.c_str(), result);
+    std::shared_lock<std::shared_mutex> lock(resourceMutex_);
+    CHECK_NULL_RETURN(resourceManager_, -1);
+    auto state = resourceManager_->GetSymbolByName(actualResName.c_str(), result);
     if (state != Global::Resource::SUCCESS) {
-        TAG_LOGW(AceLogTag::ACE_RESOURCE, "Get symbol by name error, name=%{public}s, errorCode=%{public}d",
-            resName, state);
-        auto host = NG::ViewStackProcessor::GetInstance()->GetMainElementNode();
-        ResourceManager::GetInstance().AddResourceLoadError(ResourceErrorInfo(host ? host->GetId(): -1,
-            resName, "Symbol", host ? host->GetTag().c_str() : "", GetCurrentTimestamp(), state));
+        TAG_LOGE(
+            AceLogTag::ACE_RESOURCE, "Get symbol by name error, name=%{public}s, errorCode=%{public}d", resName, state);
     }
     return result;
 }
 
-uint32_t ResourceAdapterImpl::GetSymbolById(uint32_t resId) const
+uint32_t ResourceAdapterImplV2::GetSymbolById(uint32_t resId) const
 {
     uint32_t result = 0;
-    auto manager = GetResourceManager();
-    CHECK_NULL_RETURN(manager, -1);
-    manager->GetSymbolById(resId, result);
+    std::shared_lock<std::shared_mutex> lock(resourceMutex_);
+    CHECK_NULL_RETURN(resourceManager_, -1);
+    resourceManager_->GetSymbolById(resId, result);
     return result;
 }
 } // namespace OHOS::Ace

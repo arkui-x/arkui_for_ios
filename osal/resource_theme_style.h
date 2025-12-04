@@ -27,6 +27,7 @@ class ResourceThemeStyle : public ThemeStyle {
 
 public:
     friend class ResourceAdapterImpl;
+    friend class ResourceAdapterImplV2;
     using RawAttrMap = std::map<std::string, std::string>;
     using RawPatternMap = std::map<std::string, RawAttrMap>;
 

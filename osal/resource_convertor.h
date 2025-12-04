@@ -25,6 +25,7 @@ namespace OHOS::Ace {
 Global::Resource::DeviceType ConvertDeviceTypeToGlobal(DeviceType type);
 Global::Resource::Direction ConvertDirectionToGlobal(DeviceOrientation orientation);
 Global::Resource::ScreenDensity ConvertDensityToGlobal(double density);
+Global::Resource::ColorMode ConvertColorModeToGlobal(ColorMode colorMode);
 std::shared_ptr<Global::Resource::ResConfig> ConvertConfigToGlobal(const ResourceConfiguration& config);
 
 DeviceType ConvertDeviceTypeToAce(Global::Resource::DeviceType type);
