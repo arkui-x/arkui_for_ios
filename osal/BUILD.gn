@@ -76,7 +76,6 @@ template("ace_osal_ios_source_set") {
       "page_url_checker_ios.cpp",
       "perf_interfaces.cpp",
       "pixel_map_ios.cpp",
-      "resource_adapter_impl.cpp",
       "resource_adapter_impl_v2.cpp",
       "resource_convertor.cpp",
       "resource_path_util.mm",
