@@ -26,7 +26,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void)moduleFilesWithbundleDirectory:(NSString *_Nonnull)bundleDirectory;
 
-- (void)launchAbility;
+- (void)launchAbility:(BOOL)isLoadArkUI;
 
 - (BOOL)isExistFileForPath:(NSString *)filePath;
 

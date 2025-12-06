@@ -125,9 +125,9 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
     return updatedJsonData;
 }
 
-- (void)launchAbility {
+- (void)launchAbility:(BOOL)isLoadArkUI {
     NSLog(@"%s", __func__);
-    AppMain::GetInstance()->LaunchApplication();
+    AppMain::GetInstance()->LaunchApplication(true, isLoadArkUI);
 }
 
 - (NSString *_Nullable)GetResourceFilePrefixPath {

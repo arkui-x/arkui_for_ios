@@ -14,6 +14,7 @@
  */
 
 #import "StageApplication.h"
+#include <objc/objc.h>
 #import "StageAssetManager.h"
 #import "StageConfigurationManager.h"
 #import "AceWebInfoManager.h"
@@ -24,6 +25,8 @@
 #include "stage_application_info_adapter.h"
 
 using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
+static NSString* const kEtsPathRegexPattern = @"^\\./ets/([^/]+/)*[^/]+$";
+
 @implementation StageApplication
 
 #pragma mark - publice
@@ -35,10 +38,19 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
 
 + (void)launchApplication {
     NSLog(@"%s", __FUNCTION__);
+    [self initApplication:YES];
+}
+
++ (void)launchApplicationWithoutUI {
+    NSLog(@"%s", __FUNCTION__);
+    [self initApplication:NO];
+}
+
++ (void)initApplication:(BOOL)isLoadArkUI {
     [self setPidAndUid];
     [self setLocale];
     [self setupNotificationCenterObservers];
-    [[StageAssetManager assetManager] launchAbility];
+    [[StageAssetManager assetManager] launchAbility:isLoadArkUI];
     [[StageConfigurationManager configurationManager] registConfiguration];
     [[AceWebInfoManager sharedManager] updateUserAgentIfNeeded];
     [self startAbilityDelegator];
@@ -400,6 +412,30 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
         return;
     }
     AppMain::GetInstance()->PreloadModule([moduleName UTF8String], [abilityName UTF8String]);
+}
+
++ (void)loadModule:(NSString *)moduleName entryFile:(NSString *)entryFile {
+    if (moduleName == nil || moduleName.length == 0) {
+        NSLog(@"load module error: moduleName is null.");
+        return;
+    }
+    if (entryFile == nil || entryFile.length == 0) {
+        NSLog(@"load module error: path is null.");
+        return;
+    }
+    NSError *error = nil;
+    NSRegularExpression *regex = [NSRegularExpression
+                                    regularExpressionWithPattern:kEtsPathRegexPattern options:0 error:&error];
+    if (error) {
+        NSLog(@"load module error: %@", error.localizedDescription);
+        return;
+    }
+    NSUInteger matches = [regex numberOfMatchesInString:entryFile options:0 range:NSMakeRange(0, entryFile.length)];
+    if (matches == 0) {
+        NSLog(@"load module error: path is invalid.");
+        return;
+    }
+    AppMain::GetInstance()->LoadModule([moduleName UTF8String], [entryFile UTF8String]);
 }
 
 @end
