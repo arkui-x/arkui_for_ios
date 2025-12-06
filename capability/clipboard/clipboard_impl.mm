@@ -143,6 +143,11 @@ void ClipboardImpl::GetSpanStringData(
     }
 }
 
+void ClipboardImpl::GetSpanStringData(
+    const std::function<void(std::vector<std::vector<uint8_t>>&, const std::string&, bool&, bool&)>& callback,
+    bool syncMode)
+{}
+
 RefPtr<PasteDataMix> ClipboardImpl::CreatePasteDataMix()
 {
     return AceType::MakeRefPtr<PasteDataImpl>();
@@ -165,6 +170,8 @@ void ClipboardImpl::SetData(const std::string& data, CopyOptions copyOption, boo
         },TaskExecutor::TaskType::PLATFORM, "ArkUI-XClipboardImplSetDataPlatform");
     }
 }
+
+void ClipboardImpl::GetData(const std::function<void(const std::string&, bool)>& callback, bool syncMode) {}
 
 void ClipboardImpl::GetData(const std::function<void(const std::string&)>& callback, bool syncMode)
 {
