@@ -45,6 +45,10 @@ static NSMutableDictionary<NSString*, AceWeb*> *objectMap;
 }
 
 - (void)addResource:(int64_t)incId web:(AceWeb *)web{
+    if (!objectMap) {
+        NSLog(@"AceWebResourcePlugin addResource objectMap is empty");
+        objectMap = [[NSMutableDictionary alloc] init];
+    }
     [objectMap setObject:web forKey:[NSString stringWithFormat:@"%lld", incId]];
     NSDictionary *safeMethodMap = [[web getSyncCallMethod] copy];
     if (!safeMethodMap) {
