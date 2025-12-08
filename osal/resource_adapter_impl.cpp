@@ -176,6 +176,12 @@ void ResourceAdapterImpl::Init(const ResourceInfo& resourceInfo)
     }
 }
 
+RefPtr<ResourceAdapter> ResourceAdapter::CreateNewResourceAdapter(
+    const std::string& bundleName, const std::string& moduleName)
+{
+    return nullptr;
+}
+
 void ResourceAdapterImpl::UpdateConfig(const ResourceConfiguration& config, bool themeFlag)
 {
     LOGI("UpdateConfig ori=%{public}d, dpi=%{public}d, device=%{public}d, colorMode=%{public}d,",
