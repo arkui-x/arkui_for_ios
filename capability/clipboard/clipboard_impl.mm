@@ -22,6 +22,7 @@
 #import <Foundation/Foundation.h>
 #import <UIKit/UIApplication.h>
 #import <UIKit/UIKit.h>
+#import <MobileCoreServices/MobileCoreServices.h>
 #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 
 namespace OHOS::Ace::Platform {
@@ -118,8 +119,15 @@ void ClipboardImpl::GetSpanStringData(
         std::vector<std::vector<uint8_t>> arrays;
         std::string text = "";
         bool isMultiTypeRecord = false;
-        NSArray *types = @[UTTypeUTF8PlainText.identifier, UTTypePlainText.identifier, UTTypeUTF16PlainText.identifier,
-            UTTypeUTF16ExternalPlainText.identifier];
+        bool isFromAutoFill = false;
+        NSArray *types = @[];
+        if (@available(iOS 15.0, *)) {
+            types = @[UTTypeUTF8PlainText.identifier, UTTypePlainText.identifier, UTTypeUTF16PlainText.identifier,
+                        UTTypeUTF16ExternalPlainText.identifier];
+        } else {
+            types = @[(NSString *)kUTTypeUTF8PlainText, (NSString *)kUTTypePlainText, (NSString *)kUTTypeUTF16PlainText,
+                        (NSString *)kUTTypeUTF16ExternalPlainText];
+        }
         for (NSDictionary<NSString *, id> *item in items) {
             NSString *plainText = nil;
             for (NSString *type in types) {
@@ -146,7 +154,44 @@ void ClipboardImpl::GetSpanStringData(
 void ClipboardImpl::GetSpanStringData(
     const std::function<void(std::vector<std::vector<uint8_t>>&, const std::string&, bool&, bool&)>& callback,
     bool syncMode)
-{}
+{
+    if (callback) {
+        UIPasteboard *pasteboard = [UIPasteboard generalPasteboard];
+        NSArray<NSDictionary<NSString *, id> *> *items = pasteboard.items;
+        std::vector<std::vector<uint8_t>> arrays;
+        std::string text = "";
+        bool isMultiTypeRecord = false;
+        bool isFromAutoFill = false;
+        NSArray *types = @[];
+        if (@available(iOS 15.0, *)) {
+            types = @[UTTypeUTF8PlainText.identifier, UTTypePlainText.identifier, UTTypeUTF16PlainText.identifier,
+                        UTTypeUTF16ExternalPlainText.identifier];
+        } else {
+            types = @[(NSString *)kUTTypeUTF8PlainText, (NSString *)kUTTypePlainText, (NSString *)kUTTypeUTF16PlainText,
+                        (NSString *)kUTTypeUTF16ExternalPlainText];
+        }
+        for (NSDictionary<NSString *, id> *item in items) {
+            NSString *plainText = nil;
+            for (NSString *type in types) {
+                plainText = item[type];
+                if (plainText) {
+                    break;
+                }
+            }
+            NSData *spanData = item[@"com.arkuix.custom-span-type"];
+
+            if (plainText) {
+                text += plainText.UTF8String;
+            }
+
+            if (spanData && plainText != nil) {
+                const unsigned char *bytes = static_cast<const unsigned char *>(spanData.bytes);
+                arrays.emplace_back(std::vector<uint8_t>(bytes, bytes + spanData.length));
+            }
+        }
+        callback(arrays, text, isMultiTypeRecord, isFromAutoFill);
+    }
+}
 
 RefPtr<PasteDataMix> ClipboardImpl::CreatePasteDataMix()
 {
@@ -163,7 +208,11 @@ void ClipboardImpl::SetData(const std::string& data, CopyOptions copyOption, boo
                     UIPasteboard *pasteboard = [UIPasteboard generalPasteboard];
                     NSMutableDictionary *item = [NSMutableDictionary dictionary];
                     NSString *plainText = [NSString stringWithCString:data.c_str() encoding:NSUTF8StringEncoding];
-                    [item setObject:plainText forKey:UTTypeUTF8PlainText.identifier];
+                    if (@available(iOS 15.0, *)) {
+                        [item setObject:plainText forKey:UTTypeUTF8PlainText.identifier];
+                    } else {
+                        [item setObject:plainText forKey:(NSString *)kUTTypeUTF8PlainText];
+                    }
                     [pasteboard setItems:@[item]];
                 },TaskExecutor::TaskType::BACKGROUND, "ArkUI-XClipboardImplSetDataBackground");
             }
@@ -171,7 +220,27 @@ void ClipboardImpl::SetData(const std::string& data, CopyOptions copyOption, boo
     }
 }
 
-void ClipboardImpl::GetData(const std::function<void(const std::string&, bool)>& callback, bool syncMode) {}
+void ClipboardImpl::GetData(const std::function<void(const std::string&, bool)>& callback, bool syncMode)
+{
+    if (callback) {
+        UIPasteboard *pasteboard = [UIPasteboard generalPasteboard];
+        NSArray<NSDictionary<NSString *, id> *> *items = pasteboard.items;
+        NSMutableString *allText = [NSMutableString string];
+        for (NSDictionary<NSString *, id> *item in items) {
+            NSString *plainText = @"";
+            if (@available(iOS 15.0, *)) {
+                plainText = item[UTTypeUTF8PlainText.identifier];
+            } else {
+                plainText = item[(NSString *)kUTTypeUTF8PlainText];
+            }
+            if (plainText) {
+                [allText appendString:plainText];
+            }
+        }
+        auto data = allText.UTF8String;
+        callback(data, false);
+    }
+}
 
 void ClipboardImpl::GetData(const std::function<void(const std::string&)>& callback, bool syncMode)
 {
@@ -180,7 +249,12 @@ void ClipboardImpl::GetData(const std::function<void(const std::string&)>& callb
         NSArray<NSDictionary<NSString *, id> *> *items = pasteboard.items;
         NSMutableString *allText = [NSMutableString string];
         for (NSDictionary<NSString *, id> *item in items) {
-            NSString *plainText = item[UTTypeUTF8PlainText.identifier];
+            NSString *plainText = @"";
+            if (@available(iOS 15.0, *)) {
+                plainText = item[UTTypeUTF8PlainText.identifier];
+            } else {
+                plainText = item[(NSString *)kUTTypeUTF8PlainText];
+            }
             if (plainText) {
                 [allText appendString:plainText];
             }
