@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2023-2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -16,15 +16,20 @@
 #define FOUNDATION_ADAPTER_CAPABILITY_TEXTURE_ACETEXTURERESOURCEPLUGIN_H
 
 #import <Foundation/Foundation.h>
-
+#import <UIKit/UIKit.h>
+#import "AceTextureDelegate.h"
+#import "AcePlatformViewDelegate.h"
 #import "AceResourcePlugin.h"
 #import "AceTextureDelegate.h"
+#import "IAceSurface.h"
 
 NS_ASSUME_NONNULL_BEGIN
-
 @interface AceTextureResourcePlugin : AceResourcePlugin
 @property (nonatomic, weak) id<AceTextureDelegate> delegate;
-+ (AceTextureResourcePlugin *)createTexturePluginWithInstanceId:(int32_t)instanceId;
+@property (nonatomic, weak) id<AcePlatformViewDelegate> platformViewDelegate;
+@property (nonatomic, weak) id<IAceSurface> surfaceDelegate;
+
++ (AceTextureResourcePlugin *)createTexturePluginWithTarget:(UIViewController *)target instanceId:(int32_t)instanceId;
 
 - (id)getObject:(NSString *)id;
 - (int64_t)create:(NSDictionary <NSString *, NSString *> *)param;
