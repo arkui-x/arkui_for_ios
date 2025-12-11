@@ -170,4 +170,9 @@ std::string ImageSourceIOS::GetEncodedFormat()
 {
     return "";
 }
+
+bool ImageSourceIOS::IsHeifWithoutAlpha()
+{
+    return false;
+}
 } // namespace OHOS::Ace
