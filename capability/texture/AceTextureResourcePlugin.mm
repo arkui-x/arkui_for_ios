@@ -17,6 +17,11 @@
 #include "AceXcomponentTextureView.h"
 #import "AceTextureHolder.h"
 #import "AceTexture.h"
+#import "AceTextureDelegate.h"
+#import "AcePlatformViewDelegate.h"
+#import "IAceSurface.h"
+
+@class UIViewController;
 
 static const NSInteger TEXTURETYPE_PLATFORMVIEW = 0;
 static const NSInteger TEXTURETYPE_XCOMPONENT = 1;
@@ -25,8 +30,7 @@ static const NSInteger TEXTURETYPE_XCOMPONENT = 1;
 @property (nonatomic, strong) NSMutableDictionary<NSString*, AceTexture*> *objectMap;
 @property (nonatomic, strong) NSMutableDictionary<NSString*, AceXcomponentTextureView*> *textureViewMap;
 @property (nonatomic, assign) int32_t instanceId;
-@property (nonatomic, assign) UIViewController *target;
-
+@property (nonatomic, weak) UIViewController *target;
 @end
 
 @implementation AceTextureResourcePlugin

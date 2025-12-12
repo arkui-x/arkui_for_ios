@@ -79,7 +79,6 @@ static GLfloat texArray[] = {
 }
 
 @property (strong, nonatomic) RenderProgram *program;
-
 @end
 
 @implementation RenderViewXcomponent
@@ -89,14 +88,15 @@ static GLfloat texArray[] = {
     return [CAEAGLLayer class];
 }
 
-- (id)initWithFrame:(CGRect)frame
-{
+- (instancetype)initWithFrame:(CGRect)frame {
     self = [super initWithFrame:frame];
-    self.backgroundColor = [UIColor whiteColor];
-    NSString *strQueue = [NSString stringWithFormat:@"com.renderView.queue.%p", self];
-    self.renderQueue = dispatch_queue_create([strQueue UTF8String], DISPATCH_QUEUE_SERIAL);
-    dispatch_queue_set_specific(self.renderQueue, kRenderQueueSpecificKey, (void*)kRenderQueueSpecificKey, NULL);
-    _texture = -1;
+    if (self) {
+        self.backgroundColor = [UIColor whiteColor];
+        NSString *strQueue = [NSString stringWithFormat:@"com.renderView.queue.%p", self];
+        self.renderQueue = dispatch_queue_create([strQueue UTF8String], DISPATCH_QUEUE_SERIAL);
+        dispatch_queue_set_specific(self.renderQueue, kRenderQueueSpecificKey, (void*)kRenderQueueSpecificKey, NULL);
+        _texture = -1;
+    }
     return self;
 }
 
@@ -126,7 +126,6 @@ static GLfloat texArray[] = {
             [EAGLContext setCurrentContext:_context];
             [weakSelf setupBuffer];
             [weakSelf setupShaders];
-            [weakSelf createContext];
         });
         UIPanGestureRecognizer* panGesture = [[UIPanGestureRecognizer alloc] initWithTarget:self
                                                                                      action:@selector(handlePan:)];
@@ -228,12 +227,12 @@ static GLfloat texArray[] = {
             return;
         }
         if (!selfStrong->tContext) {
-            BOOL isRes = [selfStrong createContext];
-            if (!isRes) {
+            if (![selfStrong createContext]) {
                 NSLog(@"error: create context Failed");
                 return;
             }
         }
+        
         __block BOOL isDrawFinish = NO;
         dispatch_sync(dispatch_get_main_queue(), ^{
             UIGraphicsPushContext(selfStrong->tContext);
@@ -242,6 +241,7 @@ static GLfloat texArray[] = {
                                          afterScreenUpdates:NO];
             UIGraphicsPopContext();
         });
+        
         if (!isDrawFinish) {
             NSLog(@"%s error: drawViewHierarchyInRect Failed", __func__);
             return;
@@ -259,6 +259,9 @@ static GLfloat texArray[] = {
 {
     [self releaseObject];
     NSLog(@"RenderViewXcomponent dealloc");
+    if (_renderQueue) {
+        _renderQueue = nil;
+    }
 }
 
 - (void)releaseObject
