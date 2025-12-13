@@ -31,23 +31,15 @@
 #import <UIKit/UIKit.h>
 
 @interface RenderViewXcomponent : UIView <UIGestureRecognizerDelegate>
-
-@property (nonatomic, strong) dispatch_queue_t renderQueue;
-
+@property (nonatomic) dispatch_queue_t renderQueue;
 @property (nonatomic, assign) bool isTouchIng;
 
 - (void)initXComponent:(UIView *)view;
-
 - (void)setEAGLContext:(EAGLContext *)context;
-
 - (void)setTextureName:(int32_t)textureName;
-
 - (void)startRenderXComponent:(UIView *)view;
-
 - (void)exchangeBind;
-
 - (void)releaseObject;
-
 @end
 
 #endif // RENDER_VIEW_XCOMPONENT_H

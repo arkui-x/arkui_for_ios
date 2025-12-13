@@ -16,12 +16,15 @@
 #define FOUNDATION_ADAPTER_CAPABILITY_TEXTURE_ACETEXTURERESOURCEPLUGIN_H
 
 #import <Foundation/Foundation.h>
-#import <UIKit/UIKit.h>
-#import "AceTextureDelegate.h"
-#import "AcePlatformViewDelegate.h"
+
 #import "AceResourcePlugin.h"
 #import "AceTextureDelegate.h"
-#import "IAceSurface.h"
+
+@class UIViewController;
+
+@protocol AceTextureDelegate;
+@protocol AcePlatformViewDelegate;
+@protocol IAceSurface;
 
 NS_ASSUME_NONNULL_BEGIN
 @interface AceTextureResourcePlugin : AceResourcePlugin
