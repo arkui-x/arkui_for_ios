@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Huawei Device Co., Ltd.
+ * Copyright (c) 2024-2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -210,7 +210,12 @@ static GLfloat texArray[] = {
 
     CGRect cgRect = CGRectMake(0, 0, width, height);
     CGContextDrawImage(tContext, cgRect, cgImage);
+    glBindTexture(GL_TEXTURE_2D, _texture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _renderWidth, _renderHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, imageData);
+    if (glGetError() != GL_NO_ERROR) {
+        NSLog(@"%s error: glTexImage2D failed!", __func__);
+        return false;
+    }
     return true;
 }
 
