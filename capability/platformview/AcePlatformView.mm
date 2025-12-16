@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Huawei Device Co., Ltd.
+ * Copyright (c) 2024-2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -246,7 +246,7 @@ const static size_t QueueSize = 3;
         __weak __typeof(&*self) weakSelf = self;
         self.attachCallbackHandler = ^(int32_t textureName){
             if (weakSelf) {
-                [weakSelf textureAttach];
+                [weakSelf textureAttach:textureName];
             }
         };
         [self.renderTexture addAttachEventCallback:self.attachCallbackHandler];
@@ -256,7 +256,7 @@ const static size_t QueueSize = 3;
     return SUCCESS;
 }
 
-- (void)textureAttach
+- (void)textureAttach:(int32_t)textureName
 {
     dispatch_main_async_safe(^{
         NSObject<IPlatformView>* embeddedView = self.curPlatformView;
@@ -264,6 +264,7 @@ const static size_t QueueSize = 3;
             NSLog(@"AcePlatformView: registerPlatformView failed: platformView is null");
             return;
         }
+        [_renderView setTextureName:textureName];
         UIView* platformView = [embeddedView view];
         [self initWithEmbeddedView:platformView];
         [self platformViewReady];
