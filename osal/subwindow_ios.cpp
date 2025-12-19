@@ -877,6 +877,16 @@ bool SubwindowIos::NeedFollowParentWindowLayout()
 
 void SubwindowIos::AddFollowParentWindowLayoutNode(int32_t nodeId) {}
 
+bool SubwindowIos::SetReceiveDragEventEnabled(bool enabled)
+{
+    return false;
+}
+
+bool SubwindowIos::GetIsReceiveDragEventEnabled()
+{
+    return false;
+}
+
 void SubwindowIos::RemoveFollowParentWindowLayoutNode(int32_t nodeId) {}
 
 void SubwindowIos::SetNodeId(int32_t nodeId) {}
