@@ -15,15 +15,6 @@
 #ifndef RENDER_VIEW_XCOMPONENT_H
 #define RENDER_VIEW_XCOMPONENT_H
 
-#ifndef dispatch_main_sync_safe
-#define dispatch_main_sync_safe(block)                   \
-    if ([NSThread isMainThread]) {                       \
-        block();                                         \
-    } else {                                             \
-        dispatch_sync(dispatch_get_main_queue(), block); \
-    }
-#endif
-
 #import <Foundation/Foundation.h>
 #import <OpenGLES/EAGL.h>
 #import <OpenGLES/ES2/gl.h>
@@ -31,7 +22,7 @@
 #import <UIKit/UIKit.h>
 
 @interface RenderViewXcomponent : UIView <UIGestureRecognizerDelegate>
-@property (nonatomic) dispatch_queue_t renderQueue;
+
 @property (nonatomic, assign) bool isTouchIng;
 
 - (void)initXComponent:(UIView *)view;
