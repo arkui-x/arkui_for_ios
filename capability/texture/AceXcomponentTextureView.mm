@@ -350,8 +350,8 @@ typedef NS_ENUM(NSUInteger, RefreshFrequency) {
             NSLog(@"error: textureAttach _eglContextPtr is null");
             return;
         }
-        [strongSelf->_renderView setTextureName:textureId];
         [strongSelf->_renderView setEAGLContext:(__bridge EAGLContext*)strongSelf->_eglContextPtr];
+        [strongSelf->_renderView setTextureName:textureId];
         [strongSelf->_renderView initXComponent:strongSelf->_embeddedView];
         [strongSelf displayLinkPlay];
     });
@@ -395,7 +395,13 @@ typedef NS_ENUM(NSUInteger, RefreshFrequency) {
     if (_isVideo && _player) {
         [self refreshPixelBuffer];
     } else {
-        [self refreshRenderTexture];
+        __weak AceXcomponentTextureView *weakSelf = self;
+        dispatch_async(dispatch_get_main_queue(), ^{
+            if (weakSelf == nil) {
+                return;
+            }
+            [weakSelf refreshRenderTexture];
+        });
     }
 }
 
