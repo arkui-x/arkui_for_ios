@@ -160,6 +160,7 @@ typedef enum {
     element.accessibilityFrame = rect;
     element.accessibilityLabel = node.nodeLabel;
     element.accessibilityHint = node.descriptionInfo;
+    element.accessibilityIdentifier = node.inspectorKey;
     element.accessibilityLevel = node.accessibilityLevel;
     element.componentType = node.componentType;
     element.isScrollable = node.isScrollable;
