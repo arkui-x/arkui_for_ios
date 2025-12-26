@@ -232,7 +232,7 @@ int32_t InteractionImpl::EnterTextEditorArea(bool enable)
     return -1;
 }
 
-int32_t InteractionImpl::AddPrivilege()
+int32_t InteractionImpl::AddPrivilege(const std::string& signature, const DragEventData& dragEventData)
 {
     return -1;
 }
