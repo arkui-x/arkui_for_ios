@@ -26,6 +26,7 @@
 
 using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
 static NSString* const kEtsPathRegexPattern = @"^\\./ets/([^/]+/)*[^/]+$";
+static bool g_isOnBackground = false;
 
 @implementation StageApplication
 
@@ -117,10 +118,12 @@ static NSString* const kEtsPathRegexPattern = @"^\\./ets/([^/]+/)*[^/]+$";
 
 + (void)DispatchApplicationOnForeground:(NSNotification *)notification {
     AppMain::GetInstance()->NotifyApplicationForeground();
+    [self callCurrentAbilityOnForeground];
 }
 
 + (void)DispatchApplicationOnBackground:(NSNotification *)notification {
     AppMain::GetInstance()->NotifyApplicationBackground();
+    [self callCurrentAbilityOnBackground];
 }
 
 + (void)setPidAndUid {
@@ -190,6 +193,10 @@ static NSString* const kEtsPathRegexPattern = @"^\\./ets/([^/]+/)*[^/]+$";
 }
 
 + (void)callCurrentAbilityOnForeground {
+    if (!g_isOnBackground) {
+        return;
+    }
+    g_isOnBackground = false;
     StageViewController *topVC = [self getApplicationTopViewController];
     if (![topVC isKindOfClass:[StageViewController class]]) {
         NSLog(@"callCurrentAbilityOnForeground is Not StageVC");
@@ -204,6 +211,10 @@ static NSString* const kEtsPathRegexPattern = @"^\\./ets/([^/]+/)*[^/]+$";
 }
 
 + (void)callCurrentAbilityOnBackground {
+    if (g_isOnBackground) {
+        return;
+    }
+    g_isOnBackground = true;
     StageViewController *topVC = [self getApplicationTopViewController];
     if (![topVC isKindOfClass:[StageViewController class]]) {
         NSLog(@"callCurrentAbilityOnBackground is Not StageVC");
