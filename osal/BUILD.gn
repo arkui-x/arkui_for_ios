@@ -50,6 +50,7 @@ template("ace_osal_ios_source_set") {
       "drag_window.cpp",
       "drawing_color_filter_ios.cpp",
       "drawing_lattice_ios.cpp",
+      "dynamic_module_helper.cpp",
       "event_report.cpp",
       "exception_handler.cpp",
       "feature_param.cpp",
