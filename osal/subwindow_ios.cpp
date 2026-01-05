@@ -887,6 +887,16 @@ bool SubwindowIos::GetIsReceiveDragEventEnabled()
     return false;
 }
 
+bool SubwindowIos::GetDestroyInHide()
+{
+    return destroyInHide_;
+}
+
+void SubwindowIos::SetDestroyInHide(bool destroyInHide)
+{
+    destroyInHide_ = destroyInHide;
+}
+
 void SubwindowIos::RemoveFollowParentWindowLayoutNode(int32_t nodeId) {}
 
 void SubwindowIos::SetNodeId(int32_t nodeId) {}
