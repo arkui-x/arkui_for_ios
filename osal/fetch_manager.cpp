@@ -46,6 +46,8 @@ FetchManagerImpl::~FetchManagerImpl() {}
 
 } // namespace
 
+SINGLETON_INSTANCE_IMPL(FetchManagerImpl);
+
 FetchManager& FetchManager::GetInstance()
 {
     return Singleton<FetchManagerImpl>::GetInstance();
