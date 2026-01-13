@@ -1,4 +1,4 @@
-# Copyright (c) 2022-2025 Huawei Device Co., Ltd.
+# Copyright (c) 2022-2026 Huawei Device Co., Ltd.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -50,7 +50,7 @@ template("ace_osal_ios_source_set") {
       "drag_window.cpp",
       "drawing_color_filter_ios.cpp",
       "drawing_lattice_ios.cpp",
-      "dynamic_module_helper.cpp",
+      "dynamic_module_helper.mm",
       "event_report.cpp",
       "exception_handler.cpp",
       "feature_param.cpp",
