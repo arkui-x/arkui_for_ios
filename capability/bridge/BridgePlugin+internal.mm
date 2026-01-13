@@ -23,5 +23,8 @@
 
 - (void)onRegisterResult:(BOOL)result {
     self.isAvailable = result;
+    if (result) {
+        [self onPeerReady];
+    }
 }
 @end

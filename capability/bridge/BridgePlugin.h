@@ -267,6 +267,10 @@ typedef enum : int {
  */
 - (BOOL)unRegister:(NSString*)bridgeName;
 
+/**
+ * Callback when the peer is ready.
+ */
+- (void)onPeerReady;
 @end
 
 NS_ASSUME_NONNULL_END
