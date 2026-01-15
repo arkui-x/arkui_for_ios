@@ -61,6 +61,8 @@ void AceAsyncTraceEndCommercial(int32_t taskId, const char* name, bool isAnimati
 
 void AceCountTrace(const char *key, int32_t count){}
 
+void AceSetResTraceId(uint32_t traceType, uint64_t traceId, uint32_t* pOldTraceType, uint64_t* pOldTraceId) {}
+
 void AceTraceBeginCommercial(const char* name) {}
 void AceTraceEndCommercial() {}
 } // namespace OHOS::Ace
