@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022-2025 Huawei Device Co., Ltd.
+ * Copyright (c) 2022-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -22,10 +22,14 @@
 #import <Foundation/Foundation.h>
 #import <UIKit/UIApplication.h>
 #import <UIKit/UIKit.h>
-#import <MobileCoreServices/MobileCoreServices.h>
-#import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
+#import <MobileCoreServices/UTCoreTypes.h>
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 150000
+#import <UniformTypeIdentifiers/UTCoreTypes.h>
+#endif
 
 namespace OHOS::Ace::Platform {
+
+static NSString *const CUSTOM_SPAN_TYPE = @"com.arkuix.custom-span-type";
 
 void ClipboardImpl::AddPixelMapRecord(const RefPtr<PasteDataMix>& pasteData, const RefPtr<PixelMap>& pixmap) {}
 void ClipboardImpl::AddImageRecord(const RefPtr<PasteDataMix>& pasteData, const std::string& uri) {}
@@ -80,23 +84,20 @@ void ClipboardImpl::SetData(const RefPtr<PasteDataMix>& pasteData, CopyOptions c
             auto records = peData->GetRecords();
             UIPasteboard *pasteboard = [UIPasteboard generalPasteboard];
             NSMutableArray<NSDictionary<NSString *, id> *> *items = [NSMutableArray array];
-
             for (auto it = records.rbegin(); it != records.rend(); ++it) {
                 auto multiTypeRecord = AceType::DynamicCast<MultiTypeRecordImpl>(*it);
                 if (!multiTypeRecord) {
                     continue;
                 }
-                
                 NSMutableDictionary *item = [NSMutableDictionary dictionary];
                 if (!multiTypeRecord->GetPlainText().empty()) {
                     NSString *plainText = [NSString stringWithUTF8String:multiTypeRecord->GetPlainText().c_str()];
                     [item setObject:plainText forKey:UTTypeUTF8PlainText.identifier];
                 }
-
                 if (!multiTypeRecord->GetSpanStringBuffer().empty()) {
                     NSData *spanData = [NSData dataWithBytes:multiTypeRecord->GetSpanStringBuffer().data()
                                                     length:multiTypeRecord->GetSpanStringBuffer().size()];
-                    [item setObject:spanData forKey:@"com.arkuix.custom-span-type"];
+                    [item setObject:spanData forKey:CUSTOM_SPAN_TYPE];
                 }
                 [items addObject:item];
             }
@@ -162,28 +163,19 @@ void ClipboardImpl::GetSpanStringData(
         std::string text = "";
         bool isMultiTypeRecord = false;
         bool isFromAutoFill = false;
-        NSArray *types = @[];
+        NSString *type = @"";
         if (@available(iOS 15.0, *)) {
-            types = @[UTTypeUTF8PlainText.identifier, UTTypePlainText.identifier, UTTypeUTF16PlainText.identifier,
-                        UTTypeUTF16ExternalPlainText.identifier];
+            type = UTTypeUTF8PlainText.identifier;
         } else {
-            types = @[(NSString *)kUTTypeUTF8PlainText, (NSString *)kUTTypePlainText, (NSString *)kUTTypeUTF16PlainText,
-                        (NSString *)kUTTypeUTF16ExternalPlainText];
+            type = (NSString *)kUTTypeUTF8PlainText;
         }
-        for (NSDictionary<NSString *, id> *item in items) {
+        for (NSDictionary<NSString *, id> *item in [items reverseObjectEnumerator]) {
             NSString *plainText = nil;
-            for (NSString *type in types) {
-                plainText = item[type];
-                if (plainText) {
-                    break;
-                }
-            }
-            NSData *spanData = item[@"com.arkuix.custom-span-type"];
-
-            if (plainText) {
+            plainText = item[type];
+            if (plainText && [plainText isKindOfClass:[NSString class]]) {
                 text += plainText.UTF8String;
             }
-
+            NSData *spanData = item[CUSTOM_SPAN_TYPE];
             if (spanData && plainText != nil) {
                 const unsigned char *bytes = static_cast<const unsigned char *>(spanData.bytes);
                 arrays.emplace_back(std::vector<uint8_t>(bytes, bytes + spanData.length));
@@ -226,14 +218,16 @@ void ClipboardImpl::GetData(const std::function<void(const std::string&, bool)>&
         UIPasteboard *pasteboard = [UIPasteboard generalPasteboard];
         NSArray<NSDictionary<NSString *, id> *> *items = pasteboard.items;
         NSMutableString *allText = [NSMutableString string];
-        for (NSDictionary<NSString *, id> *item in items) {
+        NSString *type = @"";
+        if (@available(iOS 15.0, *)) {
+            type = UTTypeUTF8PlainText.identifier;
+        } else {
+            type = (NSString *)kUTTypeUTF8PlainText;
+        }
+        for (NSDictionary<NSString *, id> *item in [items reverseObjectEnumerator]) {
             NSString *plainText = @"";
-            if (@available(iOS 15.0, *)) {
-                plainText = item[UTTypeUTF8PlainText.identifier];
-            } else {
-                plainText = item[(NSString *)kUTTypeUTF8PlainText];
-            }
-            if (plainText) {
+            plainText = item[type];
+            if (plainText && [plainText isKindOfClass:[NSString class]]) {
                 [allText appendString:plainText];
             }
         }
@@ -269,7 +263,7 @@ void ClipboardImpl::HasData(const std::function<void(bool hasData)>& callback)
     if (callback) {
         UIPasteboard *pasteboard = [UIPasteboard generalPasteboard];
         if (pasteboard) {
-            bool hasCustomData = [pasteboard dataForPasteboardType:@"com.arkuix.spanstring"] != nil;
+            bool hasCustomData = [pasteboard containsPasteboardTypes:@[CUSTOM_SPAN_TYPE] inItemSet:nil];
             callback(pasteboard.hasStrings || hasCustomData);
         }
     }
@@ -320,7 +314,7 @@ void ClipboardImpl::Clear()
             if(executor){
                 executor->PostTask([]{
                     UIPasteboard *pasteboard = [UIPasteboard generalPasteboard];
-                    pasteboard.string = @"";
+                    pasteboard.items = @[];
                 },TaskExecutor::TaskType::BACKGROUND, "ArkUI-XClipboardImplClearBackground");
             }
         },TaskExecutor::TaskType::PLATFORM, "ArkUI-XClipboardImplClearPlatform");
