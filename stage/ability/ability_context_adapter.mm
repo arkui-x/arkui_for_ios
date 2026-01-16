@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2024 Huawei Device Co., Ltd.
+ * Copyright (c) 2023-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -36,6 +36,7 @@ dispatch_async(dispatch_get_main_queue(), block);\
 #define ABILITY_NAME @"Ability"
 #define BUNDLENAME_FILEPICKER @"com.ohos.filepicker"
 #define BUNDLENAME_PHOTOPICKER @"com.ohos.photos"
+#define BUNDLENAME_HYPERLINK @"com.ohos.hyperlink"
 #define PICKER_REQUESTCODE_ERROR_OK @0
 
 namespace OHOS::AbilityRuntime::Platform {
@@ -126,6 +127,7 @@ int32_t AbilityContextAdapter::StartAbility(const std::string& instanceName, con
                 @"requestCode" : PICKER_REQUESTCODE_ERROR_OK,
                 @"type" : type,
                 @"wantJsonStr" : jsonString}];
+
     if ([bundleName isEqualToString:BUNDLENAME_FILEPICKER] || [bundleName isEqualToString:BUNDLENAME_PHOTOPICKER]) {
         dispatch_main_async_safe(^{
                 StageViewController *stage = [StageApplication getApplicationTopViewController];
@@ -133,6 +135,8 @@ int32_t AbilityContextAdapter::StartAbility(const std::string& instanceName, con
                     [stage startAbilityForResult:dicParams isReturnValue:NO];
                 }
         });
+    } else if ([bundleName isEqualToString:BUNDLENAME_HYPERLINK]) {
+        StartAbilityForHyperlink(want);
     } else {
         if (bundleName.length == 0 || moduleName.length == 0 || abilityName.length == 0) {
             NSLog(@"startAbility failed, bundleName : %@, moduleName : %@, abilityName : %@",
@@ -160,6 +164,21 @@ int32_t AbilityContextAdapter::StartAbility(const std::string& instanceName, con
             NSLog(@"startAbility failed, can't open app");	
             return AAFwk::RESOLVE_ABILITY_ERR;	
         }
+    }
+    return ERR_OK;
+}
+
+int32_t AbilityContextAdapter::StartAbilityForHyperlink(const AAFwk::Want& want)
+{
+    NSString* uri = GetOCstring(want.GetUri());
+    NSURL* url = [NSURL URLWithString:uri];
+    if (url && uri.length > 0 && [[UIApplication sharedApplication] canOpenURL:url]) {
+        dispatch_main_async_safe(^{
+          [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:nil];
+        });
+    } else {
+        NSLog(@"No available app found for implicit start");
+        return AAFwk::RESOLVE_ABILITY_ERR;
     }
     return ERR_OK;
 }
