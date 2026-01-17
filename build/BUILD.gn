@@ -153,6 +153,11 @@ foreach(module, common_plugin_libs) {
       "UIKit.framework",
       "WebKit.framework",
     ]
+    if (module == "data/datasharepredicates") {
+      exported_symbols_list = "data_datasharepredicates.txt"
+    } else {
+      exported_symbols_list = "empty_ios_symbol.txt"
+    }
 
     # relative_install_dir = "module"
     subsystem_name = "arkui"
