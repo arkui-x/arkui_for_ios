@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2024 Huawei Device Co., Ltd.
+ * Copyright (c) 2023-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -32,6 +32,7 @@ public:
 
     static std::shared_ptr<AbilityContextAdapter> GetInstance();
     int32_t StartAbility(const std::string& instanceName, const AAFwk::Want& want);
+    int32_t StartAbilityForHyperlink(const AAFwk::Want& want);
     int32_t DoAbilityForeground(const std::string &fullname);
     int32_t DoAbilityBackground(const std::string &fullname);
     size_t StringSplit(const std::string &str, const std::string &sep, std::vector<std::string> &vecList);
