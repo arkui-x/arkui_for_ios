@@ -117,6 +117,7 @@ foreach(module, common_napi_libs) {
     ]
     deps = [ "$ace_root/interfaces/napi/kits/${module_path}:${module_name_ext}_static_ios" ]
     deps += [ ":arkui_ios" ]
+    exported_symbols_list = "empty_ios_symbol.txt"
     subsystem_name = "arkui"
     part_name = "arkui-x"
   }
@@ -222,6 +223,7 @@ foreach(module, arkui_x_components) {
       "//plugins/component/${module}:arkui_x_components_${module}_source_ios",
     ]
     deps += [ ":arkui_ios" ]
+    exported_symbols_list = "empty_ios_symbol.txt"
     frameworks = [
       "AVFoundation.framework",
       "Foundation.framework",
@@ -259,6 +261,7 @@ foreach(module, component_modules) {
     deps = [ "$ace_root/frameworks/core/components_ng/pattern/${module}:ace_core_components_${module}_pattern_ng_ios" ]
 
     deps += [ libace_target ]
+    exported_symbols_list = "empty_ios_symbol.txt"
 
     part_name = ace_engine_part
     subsystem_name = ace_engine_subsystem
