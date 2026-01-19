@@ -64,11 +64,12 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
         for (NSString *subFile in moduleArray) {
             NSString *filePath = [NSString stringWithFormat:@"%@/%@", bundlePath, subFile];
             if ([self isExistFileForPath:filePath]) {
-                if ([subFile containsString:FILTER_FILE_MODULE_JSON]) {
+                NSString *fileName = [subFile lastPathComponent];
+                if ([fileName isEqualToString:FILTER_FILE_MODULE_JSON]) {
                     @synchronized (self) {
                         [self.moduleJsonFileArray addObject:filePath];
                     }
-                } else if ([subFile containsString:PKG_CONTEXT_INFO_JSON]) {
+                } else if ([fileName isEqualToString:PKG_CONTEXT_INFO_JSON]) {
                     @synchronized (self) {
                         [self.pkgJsonFileArray addObject:filePath];
                     }

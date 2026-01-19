@@ -57,6 +57,9 @@ public:
     bool GetAppDataModuleAssetList(const std::string& path, std::vector<std::string>& fileFullPaths, bool onlyChild);
     std::vector<std::string> GetAllFilePath();
     std::vector<uint8_t> GetBufferByAppDataPath(const std::string& fileFullPath);
+    std::pair<std::string, std::vector<uint8_t>> GetPkgPairByAppDataPath(const std::string& moduleName);
+    bool ParseSharedModulePackageName(
+        const std::string& moduleName, const std::vector<uint8_t>& moduleJsonBuffer, std::string& packageName);
     std::vector<uint8_t> GetAotBuffer(const std::string &fileName);
     void SetBundleName(const std::string& bundleName);
     std::string GetSplicingModuleName(const std::string& moduleName);
