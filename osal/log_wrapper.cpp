@@ -85,7 +85,7 @@ std::string GetTimeStamp()
     tm* t = localtime(&tt);
     char time[MAX_TIME_SIZE];
 
-    if (sprintf_s(time, MAX_TIME_SIZE, " %02d/%02d %02d:%02d:%02d", t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min,
+    if (sprintf_s(time, sizeof(time), " %02d/%02d %02d:%02d:%02d", t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min,
             t->tm_sec) < 0) {
         return std::string();
     }
