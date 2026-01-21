@@ -25,7 +25,6 @@
 @implementation BridgePlugin (jsMessage)
 
 - (void)jsCallMethod:(MethodData*)callMethod {
-    NSString* resultString = nil;
     ErrorCode errorCode = BRIDGE_ERROR_NO;
     NSString* errorMessage = nil;
     id result = nil;
@@ -53,10 +52,6 @@
                 errorCode = BRIDGE_METHOD_UNIMPL;
                 errorMessage = BRIDGE_METHOD_UNIMPL_MESSAGE;
                 NSLog(@"catch exception name : %@, reason : %@", [exception name], [exception reason]);
-            } @finally {
-                if (result && [result isKindOfClass:NSString.class]) {
-                    resultString = result;
-                }
             }
         } else {
             errorCode = BRIDGE_METHOD_UNIMPL;
@@ -70,7 +65,7 @@
                                                         methodName:callMethod.methodName
                                                         errorCode:errorCode
                                                         errorMessage:errorMessage.length ? errorMessage : @""
-                                                        result:resultString];
+                                                        result:result];
     } else {
         // BINARY_TYPE
         if ([result isKindOfClass:[NSArray class]]) {
@@ -91,21 +86,20 @@
 
 - (NSString*)jsCallMethodSync:(MethodData*)callMethod
 {
-    NSString* resultString = @"";
     ErrorCode errorCode = BRIDGE_ERROR_NO;
     NSString* errorMessage = BRIDGE_ERROR_NO_MESSAGE;
     id result = nil;
     if (!callMethod) {
         errorCode = BRIDGE_INVALID;
         errorMessage = BRIDGE_INVALID_MESSAGE;
-        return [self createResultJson:errorCode errorMessage:errorMessage resultString:resultString];
+        return [self createResultJson:errorCode errorMessage:errorMessage result:result];
     }
     NSArray* parameterArray = (NSArray*)callMethod.parameter;
     if (callMethod.methodName.length == 0) {
         errorCode = BRIDGE_METHOD_UNIMPL;
         errorMessage = BRIDGE_METHOD_UNIMPL_MESSAGE;
         NSLog(@"method error, message : %@", errorMessage);
-        return [self createResultJson:errorCode errorMessage:errorMessage resultString:resultString];
+        return [self createResultJson:errorCode errorMessage:errorMessage result:result];
     }
     @try {
         NSString* tmep = callMethod.methodName;
@@ -123,21 +117,18 @@
         errorCode = BRIDGE_METHOD_UNIMPL;
         errorMessage = BRIDGE_METHOD_UNIMPL_MESSAGE;
         NSLog(@"catch exception name : %@, reason : %@", [exception name], [exception reason]);
-    } @finally {
-        if (result && [result isKindOfClass:NSString.class]) {
-            resultString = result;
-        }
-        NSLog(@"jsCallMethodBinarySync completed for method: %@ finally", callMethod.methodName);
     }
-    return [self createResultJson:errorCode errorMessage:errorMessage resultString:resultString];
+    return [self createResultJson:errorCode errorMessage:errorMessage result:result];
 }
 
-- (NSString*)createResultJson:(int)errorCode errorMessage:(NSString*)errorMessage resultString:(NSString*)resultString
+- (NSString*)createResultJson:(int)errorCode errorMessage:(NSString*)errorMessage result:(id)result
 {
     NSNumber* numberErrorCode = [NSNumber numberWithInt:errorCode];
     NSString* strErrorMessage = errorMessage ?: @"";
-    NSString* strResult = resultString ?: @"";
-    NSDictionary* dict = @{ @"errorCode" : numberErrorCode, @"errorMessage" : strErrorMessage, @"result" : strResult };
+    if (result == nil) {
+        result = @"";
+    }
+    NSDictionary* dict = @{ @"errorCode" : numberErrorCode, @"errorMessage" : strErrorMessage, @"result" : result };
     NSData* jsonData = [NSJSONSerialization dataWithJSONObject:dict options:NSJSONWritingPrettyPrinted error:nil];
     NSString* resultJson = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
     return resultJson;
@@ -377,18 +368,12 @@ BOOL isNumberTypeMatch(id argument, const char *argumentType) {
         void* returnValue;
         [invocation getReturnValue:&returnValue];
         id obj = (__bridge id)returnValue;
-        if ([obj isKindOfClass:NSString.class]) {
-            return (NSString*)obj;
-        } else {
-            if (self.type == JSON_TYPE) {
-                NSString* objString = [JsonHelper jsonStringWithObject:obj];
-                return objString;
-            } else {
-                return obj;
-            }
-        }
+        return obj;
     } else {
         void* returnValue = (void*)malloc(signature.methodReturnLength);
+        if (!returnValue) {
+            return nil;
+        }
         [invocation getReturnValue:returnValue];
         id result = nil;
         if (!strcmp(returnType, @encode(BOOL))) {
@@ -403,13 +388,7 @@ BOOL isNumberTypeMatch(id argument, const char *argumentType) {
             result = [NSNumber numberWithDouble:*((double*)returnValue)];
         }
         free(returnValue);
-
-        if (self.type == JSON_TYPE) {
-            NSString* valueString = [NSString stringWithFormat:@"%@", result];
-            return (NSString*)valueString;
-        } else {
-            return result;
-        }
+        return result;
     }
 }
 
