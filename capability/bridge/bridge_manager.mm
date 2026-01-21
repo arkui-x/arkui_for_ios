@@ -110,8 +110,7 @@ void BridgeManager::JSUnRegisterBridge(const std::string& bridgeName)
     if (bridgeIter != bridgeList_.end()) {
         bridgeList_.erase(bridgeIter);
     }
-    int32_t bridgeType = GetBridgeType(bridgeName);
-    jsOnRegisterResult(bridgeName, false, bridgeType);
+    jsOnRegisterResult(bridgeName, false, 0);
 }
 
 void BridgeManager::jsOnRegisterResult(const std::string& bridgeName, bool available, int32_t bridgeType)
