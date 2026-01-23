@@ -29,6 +29,14 @@ namespace {
 const std::string DYNAMIC_MODULE_LIB_PREFIX = "libarkui_";
 static NSString* DYNAMIC_MODULE_LIB_POSTFIX = @".dylib";
 static NSString* FRAMEWORK_TYPE = @"framework";
+const std::unordered_map<std::string, std::string> soMap = {
+    {"Checkbox", "checkbox"},
+    {"CheckboxGroup", "checkbox"},
+    {"Gauge", "gauge"},
+    {"Rating", "rating"},
+    {"FlowItem", "waterflow" },
+    {"WaterFlow", "waterflow" },
+};
 } // namespace
 DynamicModuleHelper& DynamicModuleHelper::GetInstance()
 {
@@ -51,9 +59,13 @@ DynamicModule* DynamicModuleHelper::GetDynamicModule(const std::string& name)
             return iter->second.get();
         }
     }
-
+    auto it = soMap.find(name);
+    if (it == soMap.end()) {
+        LOGE("No shared library mapping found for nativeModule: %{public}s", name.c_str());
+        return nullptr;
+    }
     // Load module without holding the lock (dlopen/dlsym may be slow)
-    std::string moduleNameStr = DYNAMIC_MODULE_LIB_PREFIX + name;
+    std::string moduleNameStr = DYNAMIC_MODULE_LIB_PREFIX + it->second;
     NSString* moduleName = [NSString stringWithUTF8String:moduleNameStr.c_str()];
     NSString* frameworkPath = [[NSBundle mainBundle] pathForResource:moduleName ofType:FRAMEWORK_TYPE];
     NSString* dylibPath = [frameworkPath stringByAppendingPathComponent:[moduleName stringByAppendingString:DYNAMIC_MODULE_LIB_POSTFIX]];
@@ -64,7 +76,7 @@ DynamicModule* DynamicModuleHelper::GetDynamicModule(const std::string& name)
         LOGE("Failed to load dynamic module library: %{public}s, error: %{public}s", name.c_str(), dlerror());
         return nullptr;
     }
-    auto* createSym = reinterpret_cast<DynamicModuleCreateFunc>(dlsym(handle, DYNAMIC_MODULE_CREATE));
+    auto* createSym = reinterpret_cast<DynamicModuleCreateFunc>(dlsym(handle, (DYNAMIC_MODULE_CREATE + name).c_str()));
     if (createSym == nullptr) {
         LOGE("Failed to find symbol in library %{public}s, error: %{public}s", name.c_str(), dlerror());
         dlclose(handle);
