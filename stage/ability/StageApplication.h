@@ -56,6 +56,11 @@ NS_ASSUME_NONNULL_BEGIN
 - (int)finishTest;
 
 + (void)preloadEtsModule:(NSString *)moduleName country:(NSString *)abilityName;
+
++ (void)launchApplicationWithoutUI;
+
++ (void)loadModule:(NSString *)moduleName entryFile:(NSString *)entryFile;
+
 @end
 
 NS_ASSUME_NONNULL_END

@@ -87,9 +87,9 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
     NSLog(@"isCreatFiles : %d, isCreatDatabase : %d", isCreatFiles, isCreatDatabase);
 }
 
-- (void)launchAbility {
+- (void)launchAbility:(BOOL)isLoadArkUI {
     NSLog(@"%s", __func__);
-    AppMain::GetInstance()->LaunchApplication();
+    AppMain::GetInstance()->LaunchApplication(true, isLoadArkUI);
 }
 
 - (NSString *_Nullable)GetResourceFilePrefixPath {
