@@ -62,8 +62,10 @@
                 _webResourcePlugin = [AceWebResourcePlugin createRegister:target abilityInstanceId:instanceId];
                 [self addResourcePlugin:_webResourcePlugin];
 
-                _textureResourcePlugin = [AceTextureResourcePlugin createTexturePluginWithInstanceId:instanceId];
+                _textureResourcePlugin = [AceTextureResourcePlugin createTexturePluginWithTarget:target instanceId:instanceId];
                 _textureResourcePlugin.delegate = self;
+                _textureResourcePlugin.platformViewDelegate = self;
+                _textureResourcePlugin.surfaceDelegate = self;
                 [self addResourcePlugin:_textureResourcePlugin];
 
                 _platformViewPlugin = [AcePlatformViewPlugin createRegister:moduleName abilityInstanceId:instanceId];

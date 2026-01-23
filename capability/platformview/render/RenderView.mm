@@ -247,6 +247,10 @@ static GLfloat texArray[] = {
         return false;
     }
 
+    if ([EAGLContext currentContext] != _context) {
+        [EAGLContext setCurrentContext:_context];
+    }
+    
     UIImage *image = [self createImageByView:view];
     if (image == nil) {
         return false;
