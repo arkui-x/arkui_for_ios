@@ -14,6 +14,7 @@
 import("//build/config/config.gni")
 import("//build/ohos.gni")
 import("//foundation/arkui/ace_engine/ace_config.gni")
+import("//third_party/icu/icu.gni")
 
 # import(
 #     "//foundation/arkui/ace_engine/frameworks/core/components_ng/components_plugin.gni")
@@ -90,6 +91,9 @@ ohos_shared_library("arkui_ios") {
   exported_symbols_list = "libarkui_ios.txt"
   part_name = "arkui-x"
   subsystem_name = "arkui"
+
+  assert(icu_dat_name == "icudt74l",
+      "arkui_ios exports are aligned to ICU 74; update libarkui_ios.txt when ICU version changes.")
 }
 
 # napi target
@@ -154,8 +158,13 @@ foreach(module, common_plugin_libs) {
       "UIKit.framework",
       "WebKit.framework",
     ]
+    if (module == "i18n") {
+      deps += [ ":intl" ]
+    }
     if (module == "data/datasharepredicates") {
       exported_symbols_list = "data_datasharepredicates.txt"
+    } else if (module == "intl") {
+      exported_symbols_list = "intl.txt"
     } else {
       exported_symbols_list = "empty_ios_symbol.txt"
     }
