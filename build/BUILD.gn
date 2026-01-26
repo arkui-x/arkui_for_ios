@@ -254,7 +254,12 @@ foreach(module, arkui_x_components) {
 }
 
 # for arkui component modules
-component_modules = [ "gauge" ]
+component_modules = [
+  "gauge",
+  "checkbox",
+  "rating",
+  "waterflow",
+]
 component_modules_libs = []
 
 foreach(module, component_modules) {
@@ -270,7 +275,6 @@ foreach(module, component_modules) {
     deps = [ "$ace_root/frameworks/core/components_ng/pattern/${module}:ace_core_components_${module}_pattern_ng_ios" ]
 
     deps += [ libace_target ]
-    exported_symbols_list = "empty_ios_symbol.txt"
 
     part_name = ace_engine_part
     subsystem_name = ace_engine_subsystem
