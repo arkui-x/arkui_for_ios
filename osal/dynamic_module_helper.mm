@@ -30,12 +30,16 @@ const std::string DYNAMIC_MODULE_LIB_PREFIX = "libarkui_";
 static NSString* DYNAMIC_MODULE_LIB_POSTFIX = @".dylib";
 static NSString* FRAMEWORK_TYPE = @"framework";
 const std::unordered_map<std::string, std::string> soMap = {
+    {"Marquee", "marquee"},
+    {"Stepper", "stepper" },
+    {"StepperItem", "stepper" },
+    {"Slider", "slider" },
     {"Checkbox", "checkbox"},
     {"CheckboxGroup", "checkbox"},
     {"Gauge", "gauge"},
     {"Rating", "rating"},
-    {"FlowItem", "waterflow" },
-    {"WaterFlow", "waterflow" },
+    {"FlowItem", "waterflow"},
+    {"WaterFlow", "waterflow"},
 };
 } // namespace
 DynamicModuleHelper& DynamicModuleHelper::GetInstance()
