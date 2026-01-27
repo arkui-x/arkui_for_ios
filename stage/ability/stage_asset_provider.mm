@@ -62,20 +62,110 @@ NSString * GetOCstring(const std::string& c_string)
 std::vector<uint8_t> StageAssetProvider::GetPkgJsonBuffer(const std::string& moduleName)
 {
     std::lock_guard<std::mutex> lock(providerLock_);
+    std::vector<uint8_t> buffer;
     NSString *oc_moduleName = GetOCstring(moduleName);
     NSArray *pkgJsonFileList = [[StageAssetManager assetManager] getpkgJsonFileList];
+    NSLog(@"GetPkgJsonBuffer oc_moduleName:%@", oc_moduleName);
+    if (!pkgJsonFileList.count || moduleIsUpdates_[moduleName]) {
+        std::string pkgContextInfoJson = "pkgContextInfo.json";
+        auto path = GetAppDataModuleDir() + "/" + moduleName;
+        std::vector<std::string> fileFullPaths;
+        GetAppDataModuleAssetList(path, fileFullPaths, false);
+        for (auto& path : fileFullPaths) {
+            if (path.find("/" + moduleName + "/") != std::string::npos && path.find(pkgContextInfoJson) != std::string::npos) {
+                NSString *oc_dataAppPath = GetOCstring(path);
+                NSLog(@"GetPkgJsonBuffer path:%@", oc_dataAppPath);
+                NSData *oc_dataAppPathData = [NSData dataWithContentsOfFile:oc_dataAppPath];
+                buffer = GetVectorFromNSData(oc_dataAppPathData);
+                return buffer;
+            }
+        }
+    }
     for (NSString *pkgJsonPath in pkgJsonFileList) {
         if ([pkgJsonPath containsString:[NSString stringWithFormat:@"/%@/", oc_moduleName]]) {
+            NSLog(@"GetPkgJsonBuffer pkgJsonPath:%@", pkgJsonPath);
             NSData *pathData = [NSData dataWithContentsOfFile:pkgJsonPath];
             if (!pathData) {
                 NSLog(@"pathData is null");
                 break;
             }
-            auto buffer =  GetVectorFromNSData(pathData);
+            auto buffer = GetVectorFromNSData(pathData);
             return buffer;
         }
     }
-    return {};
+    return buffer;
+}
+
+std::pair<std::string, std::vector<uint8_t>> StageAssetProvider::GetPkgPairByAppDataPath(const std::string& moduleName)
+{
+    std::pair<std::string, std::vector<uint8_t>> result = {"", {}};
+    auto appDataRootDir = GetAppDataModuleDir();
+    if (appDataRootDir.empty()) {
+        return result;
+    }
+
+    auto pkgJsonPath = appDataRootDir + "/" + moduleName + "/" + "pkgContextInfo.json";
+    NSString *oc_pkgJsonPath = GetOCstring(pkgJsonPath);
+    NSData *pkgJsonData = [NSData dataWithContentsOfFile:oc_pkgJsonPath];
+    auto pkgJsonBuffer = GetVectorFromNSData(pkgJsonData);
+    if (pkgJsonBuffer.empty()) {
+        LOGE("pkgJsonBuffer is empty");
+        return result;
+    }
+
+    auto moduleJsonPath = appDataRootDir + "/" + moduleName + "/" + "module.json";
+    NSString *oc_moduleJsonPath = GetOCstring(moduleJsonPath);
+    NSData *moduleJsonData = [NSData dataWithContentsOfFile:oc_moduleJsonPath];
+    auto moduleJsonBuffer = GetVectorFromNSData(moduleJsonData);
+    if (moduleJsonBuffer.empty()) {
+        LOGE("The moduleJsonPath is not exist");
+        return result;
+    }
+    moduleJsonBuffer.push_back('\0');
+    std::string packageName;
+    if (!ParseSharedModulePackageName(moduleName, moduleJsonBuffer, packageName)) {
+        return result;
+    }
+
+    result.first = packageName;
+    result.second = std::move(pkgJsonBuffer);
+    return result;
+}
+
+bool StageAssetProvider::ParseSharedModulePackageName(
+    const std::string& moduleName, const std::vector<uint8_t>& moduleJsonBuffer, std::string& packageName)
+{
+    packageName.clear();
+    if (moduleName.empty() || moduleJsonBuffer.empty()) {
+        return false;
+    }
+
+    nlohmann::json moduleJson = nlohmann::json::parse(moduleJsonBuffer.data(), nullptr, false);
+    if (moduleJson.is_discarded()) {
+        return false;
+    }
+
+    auto it = versionCodes_.find(moduleName);
+    if (it != versionCodes_.end()) {
+        int32_t versionCode = 0;
+        if (moduleJson.contains("app") && moduleJson["app"].contains("versionCode")) {
+            versionCode = moduleJson["app"]["versionCode"].get<int>();
+        }
+        if (versionCode < it->second) {
+            return false;
+        }
+    }
+
+    if (moduleJson.contains("module") && moduleJson["module"].contains("type")) {
+        if (moduleJson["module"]["type"].get<std::string>() != "shared") {
+            return false;
+        }
+    }
+
+    if (moduleJson.contains("module") && moduleJson["module"].contains("packageName")) {
+        packageName = moduleJson["module"]["packageName"].get<std::string>();
+    }
+    return !packageName.empty();
 }
 
 std::string ExtractConfigurationFileName(const nlohmann::json& moduleJson)
