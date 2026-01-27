@@ -36,6 +36,11 @@ const std::unordered_map<std::string, std::string> soMap = {
     {"Rating", "rating"},
     {"FlowItem", "waterflow" },
     {"WaterFlow", "waterflow" },
+    {"Counter", "counter"},
+    {"Sidebar", "sidebar"},
+    {"ColumnSplit", "linearsplit"},
+    {"RowSplit", "linearsplit"},
+    {"Radio", "radio"},
 };
 } // namespace
 DynamicModuleHelper& DynamicModuleHelper::GetInstance()
