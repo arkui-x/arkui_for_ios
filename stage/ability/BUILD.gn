@@ -64,6 +64,7 @@ template("stage_ios_standard_source_set") {
     cflags_objcc = cflags_objc
 
     sources = [
+      "AbilityLoader.mm",
       "InstanceIdGenerator.mm",
       "StageApplication.mm",
       "StageAssetManager.mm",
