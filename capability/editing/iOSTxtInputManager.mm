@@ -839,7 +839,8 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
     UIWindow *keyWindow = nil;
     if (@available(iOS 13.0, *)) {
         for (UIWindowScene *windowScene in sharedApplication.connectedScenes) {
-            if (windowScene.activationState == UISceneActivationStateForegroundActive && [windowScene isKindOfClass:UIWindowScene.class]) {
+            if (windowScene.activationState == UISceneActivationStateForegroundActive
+                && [windowScene isKindOfClass:UIWindowScene.class]) {
                 keyWindow = windowScene.windows.firstObject;
                 break;
             }
@@ -847,9 +848,6 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
     } else {
         keyWindow = sharedApplication.keyWindow;
     }
-    NSAssert(keyWindow != nullptr,
-            @"The application must have a key window since the keyboard client "
-            @"must be part of the responder chain to function");
     return keyWindow;
 }
 
@@ -858,11 +856,13 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
         [inputView removeFromSuperview];
     }
     [_inputHider addSubview:inputView];
-    
     UIView* parentView = self.keyWindow;
+    if (parentView == nil) {
+        return;
+    }
     if ([_inputHider isDescendantOfView:parentView]) {
         [_inputHider removeFromSuperview];
-      }
+    }
     [parentView addSubview:_inputHider];
 }
 
@@ -880,25 +880,21 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
     } else {
         _activeView = _view;
     }
-    
     NSString* inputTypeName = inputType[@"name"];
     UIKeyboardType keyboardType = [KeyboardTypeMapper toUIKeyboardType:inputTypeName];
     if (keyboardType == UIKeyboardTypeNumberPad) {
-        if ([inputType[@"signed"] boolValue]){
+        if ([inputType[@"signed"] boolValue]) {
             keyboardType = UIKeyboardTypeNumbersAndPunctuation;
         }
-        if ([inputType[@"decimal"] boolValue]){
+        if ([inputType[@"decimal"] boolValue]) {
             keyboardType = UIKeyboardTypeDecimalPad;
         }   
     }
     _activeView.keyboardType = keyboardType;
-
     NSString* inputActionName = configuration[@"inputAction"];
     _activeView.returnKeyType = [KeyboardTypeMapper toUIReturnKeyType:inputActionName];
-
     NSString* textCapitalizationName = configuration[@"textCapitalization"];
     _activeView.autocapitalizationType = [KeyboardTypeMapper toUITextAutoCapitalizationType:textCapitalizationName];
-
     if ([keyboardAppearance isEqualToString:@"Brightness.dark"]) {
         _activeView.keyboardAppearance = UIKeyboardAppearanceDark;
     } else if ([keyboardAppearance isEqualToString:@"Brightness.light"]) {
