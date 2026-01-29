@@ -229,7 +229,6 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
     _stageContainerView.notifyDelegate = self;
     self.view.backgroundColor = UIColor.whiteColor;
     NSLog(@"StageVC->%@ viewDidLoad call.", self);
-    [self initColorMode];
     [self initWindowView];
     [self initPlatformPlugin];
     [self initArkUIXPlugin];
@@ -268,6 +267,7 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
     [super viewWillAppear:animated];
 
     NSLog(@"StageVC->%@ viewWillAppear call.", self);
+    [self initColorMode];
     if (_needOnForeground) {
         AppMain::GetInstance()->DispatchOnForeground(_cInstanceName);
     }

@@ -106,7 +106,7 @@ RefPtr<ResourceAdapter> ResourceAdapter::CreateNewResourceAdapter(
     CHECK_NULL_RETURN(aceContainer, nullptr);
     
     RefPtr<ResourceAdapter> newResourceAdapter = nullptr;
-    auto context = aceContainer->GetAbilityContext();
+    auto context = aceContainer->GetAbilityContextByModule(bundleName, moduleName);
     if (context) {
         auto resourceManager = context->GetResourceManager();
         newResourceAdapter = AceType::MakeRefPtr<ResourceAdapterImplV2>(resourceManager);
@@ -214,7 +214,12 @@ RefPtr<ThemeStyle> ResourceAdapterImplV2::GetTheme(int32_t themeId)
     for (uint64_t i = 0; i < sizeof(PATTERN_MAP) / sizeof(PATTERN_MAP[0]); i++) {
         ResourceThemeStyle::RawAttrMap attrMap;
         std::string patternTag = PATTERN_MAP[i];
-        std::string patternName = OHFlag + PATTERN_MAP[i];
+        std::string patternName = "";
+        if (patternTag == THEME_PATTERN_SHADOW) {
+            patternName = patternTag;
+        } else {
+            patternName = OHFlag + patternTag;
+        }
         ret = resourceManager_->GetPatternByName(patternName.c_str(), attrMap);
         LOGI("theme pattern[%{public}s, %{public}s], attr size=%{public}zu", patternTag.c_str(), patternName.c_str(),
             attrMap.size());
