@@ -87,8 +87,6 @@ AccessibilityNodeInfo* SetAccessibilityNodeInfo(
     descriptionInfo = [descriptionInfo stringByReplacingOccurrencesOfString:@" " withString:@""];
     NSString* componentType = [NSString stringWithCString:info.GetComponentType().c_str()
                                                  encoding:NSUTF8StringEncoding];
-    NSString* inspectorKey = [NSString stringWithCString:info.GetInspectorKey().c_str()
-                                                    encoding:NSUTF8StringEncoding];
     int32_t left = info.GetRectInScreen().GetLeftTopXScreenPostion();
     int32_t top = info.GetRectInScreen().GetLeftTopYScreenPostion();
     int32_t width =
@@ -113,7 +111,6 @@ AccessibilityNodeInfo* SetAccessibilityNodeInfo(
     aiModel.pageId = info.GetPageId();
     aiModel.childIds = childIdArray;
     aiModel.elementId = info.GetAccessibilityId();
-    aiModel.inspectorKey = inspectorKey;
     aiModel.actionType = GetAccessibilityElementActionTypes(info);
     return aiModel;
 }
