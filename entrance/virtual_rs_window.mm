@@ -657,11 +657,11 @@ WMError Window::MoveWindowTo(int32_t x, int32_t y)
     if (scale == 0) {
         scale = 2;
     }
+    rect_.posX_ = x;
+    rect_.posY_ = y;
     x = x < 0 ? 0 : x / scale;
     y = y < 0 ? 0 : y / scale;
     windowView_.frame = CGRectMake(x, y, windowView_.frame.size.width, windowView_.frame.size.height);
-    rect_.posX_ = x;
-    rect_.posY_ = y;
     return WMError::WM_OK;
 }
 
@@ -968,6 +968,32 @@ void Window::NotifySafeAreaChanged()
     }
 }
 
+void Window::NotifyAfterForeground(bool needNotifyListeners, bool needNotifyUiContent)
+{
+    if (needNotifyUiContent) {
+        if (uiContent_ != nullptr) {
+            uiContent_->Foreground();
+        }
+    }
+    if (needNotifyListeners) {
+        auto lifecycleListeners = GetListeners<IWindowLifeCycle>();
+        CALL_LIFECYCLE_LISTENER(AfterForeground, lifecycleListeners);
+    }
+}
+
+void Window::NotifyAfterBackground(bool needNotifyListeners, bool needNotifyUiContent)
+{
+    if (needNotifyUiContent) {
+        if (uiContent_ != nullptr) {
+            uiContent_->Background();
+        }
+    }
+    if (needNotifyListeners) {
+        auto lifecycleListeners = GetListeners<IWindowLifeCycle>();
+        CALL_LIFECYCLE_LISTENER(AfterBackground, lifecycleListeners);
+    }
+}
+
 void Window::UpdateAvoidArea(const std::shared_ptr<Rosen::AvoidArea>& avoidArea, AvoidAreaType type)
 {
     if (!avoidArea) {
@@ -1139,12 +1165,10 @@ WMError Window::SetUIContent(const std::string& contentInfo,
 
     // make uiContent available after Initialize/Restore
     uiContent_ = std::move(uiContent);
-
-    DelayNotifyUIContentIfNeeded();
-    NSLog(@"applicationState is %ld", (long)[UIApplication sharedApplication].applicationState);
-    if ([UIApplication sharedApplication].applicationState != UIApplicationStateBackground) {
+    if(isWindowShow_ && ([UIApplication sharedApplication].applicationState != UIApplicationStateBackground)) {
         uiContent_->Foreground();
     }
+    DelayNotifyUIContentIfNeeded();
     LOGI("Window::SetUIContent : End!!!");
     return WMError::WM_OK;
 }
@@ -1234,12 +1258,7 @@ void Window::WindowFocusChanged(bool hasWindowFocus)
 
 void Window::Foreground()
 {
-    if (!uiContent_) {
-        LOGW("Window::Foreground uiContent_ is nullptr");
-        return;
-    }
     LOGI("Window: notify uiContent Foreground");
-    uiContent_->Foreground();
     NotifyAfterForeground();
     isWindowShow_ = true;
     UpdateWindowStatus();
@@ -1247,13 +1266,8 @@ void Window::Foreground()
 
 void Window::Background()
 {
-    if (!uiContent_) {
-        LOGW("Window::Background uiContent_ is nullptr");
-        return;
-    }
     LOGI("Window: notify uiContent Background");
     isWindowShow_ = false;
-    uiContent_->Background();
     NotifyAfterBackground();
     UpdateWindowStatus();
 }

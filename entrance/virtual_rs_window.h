@@ -448,22 +448,10 @@ private:
         return windowStatusChangeListeners;
     }
 
-    inline void NotifyAfterForeground(bool needNotifyListeners = true, bool needNotifyUiContent = true)
-    {
-        if (needNotifyListeners) {
-            auto lifecycleListeners = GetListeners<IWindowLifeCycle>();
-            CALL_LIFECYCLE_LISTENER(AfterForeground, lifecycleListeners);
-        }
-    }
+    void NotifyAfterForeground(bool needNotifyListeners = true, bool needNotifyUiContent = true);
 
-    inline void NotifyAfterBackground(bool needNotifyListeners = true, bool needNotifyUiContent = true)
-    {
-        if (needNotifyListeners) {
-            auto lifecycleListeners = GetListeners<IWindowLifeCycle>();
-            CALL_LIFECYCLE_LISTENER(AfterBackground, lifecycleListeners);
-        }
-    }
-  
+    void NotifyAfterBackground(bool needNotifyListeners = true, bool needNotifyUiContent = true);
+
     inline void NotifyAfterActive()
     {
         auto lifecycleListeners = GetListeners<IWindowLifeCycle>();
