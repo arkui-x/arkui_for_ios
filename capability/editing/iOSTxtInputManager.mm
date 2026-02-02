@@ -251,18 +251,43 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
 }
 
 - (NSString*)textInRange:(UITextRange*)range {
+    if (range == nil || ![range isKindOfClass:[iOSTextRange class]] || self.text == nil) {
+        NSLog(@"[iOSTxtInputManager] textInRange: invalid input (range=%@, class=%@, textIsNil=%@)",
+              range,
+              range ? NSStringFromClass([range class]) : @"(null)",
+              self.text ? @"NO" : @"YES");
+        return @"";
+    }
     NSRange textRange = ((iOSTextRange*)range).range;
-    if (textRange.location < 0) {
-        textRange.location = 0;
+    if (textRange.location == NSNotFound) {
+        NSLog(@"[iOSTxtInputManager] textInRange: invalid textRange (location=NSNotFound)");
+        return @"";
     }
-    if (textRange.length > self.text.length) {
-        textRange.length = 0;
+    NSUInteger availableLength = self.text.length;
+    if (self.maxLength > 0) {
+        availableLength = MIN(availableLength, self.maxLength);
     }
-    if (textRange.location > self.maxLength) {
-        textRange.location = 0;
-        textRange.length = self.maxLength;
+    NSString* availableText = self.text;
+    if (availableLength < self.text.length) {
+        availableText = [self.text substringWithRange:NSMakeRange(0, availableLength)];
     }
-    return [self.text substringWithRange:textRange];
+    NSRange clampedRange = [self clampSelection:textRange forText:availableText];
+    if (clampedRange.location == NSNotFound || clampedRange.location > availableText.length) {
+        NSLog(@"[iOSTxtInputManager] textInRange: invalid clampedRange (loc=%lu len=%lu, availableLen=%lu)",
+              (unsigned long)clampedRange.location,
+              (unsigned long)clampedRange.length,
+              (unsigned long)availableText.length);
+        return @"";
+    }
+    NSRange composedRange = [availableText rangeOfComposedCharacterSequencesForRange:clampedRange];
+    if (composedRange.location == NSNotFound || composedRange.location + composedRange.length > availableText.length) {
+        NSLog(@"[iOSTxtInputManager] textInRange: invalid composedRange (loc=%lu len=%lu, availableLen=%lu)",
+              (unsigned long)composedRange.location,
+              (unsigned long)composedRange.length,
+              (unsigned long)availableText.length);
+        return @"";
+    }
+    return [availableText substringWithRange:composedRange];
 }
 
 - (void)replaceRange:(UITextRange*)range withText:(NSString*)text {
@@ -291,9 +316,7 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
         self.markedTextRange = [iOSTextRange rangeWithNSRange:replaceRange];
     } else {
         [self.appendText setString:text];
-        if (![self.text isEqualToString:text]) {
-            self.markedTextRange = replaceRange.length > 0 ? [iOSTextRange rangeWithNSRange:replaceRange] : nil;
-        }
+        self.markedTextRange = replaceRange.length > 0 ? [iOSTextRange rangeWithNSRange:replaceRange] : nil;
         if ((self.markedText.length == 0) && (self.text.length >= self.maxLength)) {
             NSRange range =  NSMakeRange(self.markedTextLocation, self.maxLength);
             if (range.location + range.length < self.text.length) {
