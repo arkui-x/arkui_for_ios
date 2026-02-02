@@ -117,6 +117,7 @@ foreach(module, common_napi_libs) {
     ]
     deps = [ "$ace_root/interfaces/napi/kits/${module_path}:${module_name_ext}_static_ios" ]
     deps += [ ":arkui_ios" ]
+    exported_symbols_list = "empty_ios_symbol.txt"
     subsystem_name = "arkui"
     part_name = "arkui-x"
   }
@@ -153,6 +154,11 @@ foreach(module, common_plugin_libs) {
       "UIKit.framework",
       "WebKit.framework",
     ]
+    if (module == "data/datasharepredicates") {
+      exported_symbols_list = "data_datasharepredicates.txt"
+    } else {
+      exported_symbols_list = "empty_ios_symbol.txt"
+    }
 
     # relative_install_dir = "module"
     subsystem_name = "arkui"
@@ -217,6 +223,7 @@ foreach(module, arkui_x_components) {
       "//plugins/component/${module}:arkui_x_components_${module}_source_ios",
     ]
     deps += [ ":arkui_ios" ]
+    exported_symbols_list = "empty_ios_symbol.txt"
     frameworks = [
       "AVFoundation.framework",
       "Foundation.framework",
