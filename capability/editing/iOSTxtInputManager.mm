@@ -837,10 +837,7 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
     } else {
         keyWindow = sharedApplication.keyWindow;
     }
-  NSAssert(keyWindow != nullptr,
-           @"The application must have a key window since the keyboard client "
-           @"must be part of the responder chain to function");
-  return keyWindow;
+    return keyWindow;
 }
 
 - (void)addToInputParentViewIfNeeded:(iOSTextInputView*)inputView {
@@ -849,6 +846,9 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
     }
     [_inputHider addSubview:inputView];
     UIView* parentView = self.keyWindow;
+    if (parentView == nil) {
+        return;
+    }
     if ([_inputHider isDescendantOfView:parentView]) {
          [_inputHider removeFromSuperview];
       }
