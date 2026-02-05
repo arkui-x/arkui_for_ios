@@ -408,6 +408,7 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
     }
     [self applyScaleToTargetView:targetView];
     [self applyTranslateToTargetView:targetView];
+    [self applyRotateToTargetView:targetView];
     [self applyTransformMatrixToTargetView:targetView];
 }
 
