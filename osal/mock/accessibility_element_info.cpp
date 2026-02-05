@@ -259,6 +259,11 @@ void AccessibilityElementInfo::SetInspectorKey(const std::string& key)
     inspectorKey_ = key;
 }
 
+const std::string& AccessibilityElementInfo::GetInspectorKey() const
+{
+    return inspectorKey_;
+}
+
 void AccessibilityElementInfo::SetPagePath(const std::string& path)
 {
     pagePath_ = path;

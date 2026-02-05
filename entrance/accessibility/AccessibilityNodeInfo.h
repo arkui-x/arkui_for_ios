@@ -26,6 +26,7 @@
 @property(nonatomic, strong) NSString* descriptionInfo;
 @property(nonatomic, strong) NSString* componentType;
 @property(nonatomic, strong) NSString* accessibilityLevel;
+@property(nonatomic, strong) NSString* inspectorKey;
 @property(nonatomic, strong) NSMutableArray<NSString*>* childIds;
 @property(nonatomic, strong) NSMutableDictionary<NSString*, AccessibilityElement*>* elements_;
 @property(nonatomic, assign) float nodeX;

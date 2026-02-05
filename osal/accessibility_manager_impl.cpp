@@ -887,7 +887,7 @@ void AccessibilityManagerImpl::InitializeCallback()
     auto pipelineContext = GetPipelineContext().Upgrade();
     CHECK_NULL_VOID(pipelineContext);
     windowId_ = pipelineContext->GetWindowId();
-    bool isEnabled = false;
+    bool isEnabled = true;
     auto container = Container::Current();
     if (!container) {
         LOGE("container is null");
