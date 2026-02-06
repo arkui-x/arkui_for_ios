@@ -29,4 +29,8 @@ bool DisplayManagerIos::ConvertScreenIdToRsScreenId(uint64_t screenId, uint64_t&
     return true;
 }
 
+FoldDisplayMode DisplayManagerIos::GetFoldDisplayMode()
+{
+    return FoldDisplayMode::UNKNOWN;
+}
 } // namespace OHOS::Ace
