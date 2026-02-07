@@ -50,6 +50,7 @@
     BOOL _needCreateSurfaceNode;
     BOOL _needNotifyForground;
     BOOL _needNotifyFocus;
+    BOOL _needNotifySafeAreaChanged;
     std::map<int64_t, int32_t> _deviceMap;
     std::map<int64_t, int32_t> _pointerMap;
     int32_t _deviceId;
@@ -76,6 +77,7 @@
         self.multipleTouchEnabled = YES;
         _needNotifySurfaceChangedWithWidth = NO;
         _needCreateSurfaceNode = NO;
+        _needNotifySafeAreaChanged = NO;
         _focusable = YES;
         _isFocused = NO;
         _firstTouchFlag = NO;
@@ -259,6 +261,10 @@
     if (_needNotifyFocus) {
         _needNotifyFocus = NO;
         [self notifyFocusChanged:_isFocused];
+    }
+    if (_needNotifySafeAreaChanged) {
+        _needNotifySafeAreaChanged = NO;
+        [self notifySafeAreaChanged];
     }
 }
 
@@ -575,6 +581,8 @@ static int32_t GetModifierKeys(UIKeyModifierFlags modifierFlags) {
 - (void)notifySafeAreaChanged {
     if (_windowDelegate.lock() != nullptr) {
         _windowDelegate.lock()->NotifySafeAreaChanged();
+    } else {
+        _needNotifySafeAreaChanged = YES;
     }
 }
 - (void)setupNotificationCenterObservers {
