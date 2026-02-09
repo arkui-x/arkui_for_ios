@@ -258,18 +258,19 @@ void ClipboardImpl::GetData(const std::function<void(const std::string&)>& callb
     }
 }
 
-void ClipboardImpl::HasData(const std::function<void(bool hasData)>& callback)
+void ClipboardImpl::HasData(const std::function<void(bool hasData, bool isAutoFill)>& callback)
 {
     if (callback) {
         UIPasteboard *pasteboard = [UIPasteboard generalPasteboard];
         if (pasteboard) {
             bool hasCustomData = [pasteboard containsPasteboardTypes:@[CUSTOM_SPAN_TYPE] inItemSet:nil];
-            callback(pasteboard.hasStrings || hasCustomData);
+            callback(pasteboard.hasStrings || hasCustomData, false);
         }
     }
 }
 
-void ClipboardImpl::HasDataType(const std::function<void(bool hasData)>& callback, const std::vector<std::string>& mimeTypes)
+void ClipboardImpl::HasDataType(const std::function<void(bool hasData, bool isAutoFill)>& callback,
+    const std::vector<std::string>& mimeTypes)
 {
     HasData(callback);
 }
