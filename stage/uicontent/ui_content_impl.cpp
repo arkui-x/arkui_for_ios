@@ -477,17 +477,6 @@ void UIContentImpl::InitializeSafeArea(const RefPtr<Platform::AceContainerSG>& c
     if (pipeline && pipeline->GetMinPlatformVersion() >= PLATFORM_VERSION_TEN) {
         avoidAreaChangedListener_ = new AvoidAreaChangedListener(instanceId_);
         window_->RegisterAvoidAreaChangeListener(avoidAreaChangedListener_);
-        static const std::vector<Rosen::AvoidAreaType> types = {
-            OHOS::Rosen::AvoidAreaType::TYPE_SYSTEM,
-            OHOS::Rosen::AvoidAreaType::TYPE_CUTOUT,
-        };
-        for (const auto& type : types) {
-            Rosen::AvoidArea avoidArea;
-            Rosen::WMError ret = window_->GetAvoidAreaByType(type, avoidArea);
-            if (ret == Rosen::WMError::WM_OK) {
-                avoidAreaChangedListener_->OnAvoidAreaChanged(avoidArea, type);
-            }
-        }
     }
 }
 
