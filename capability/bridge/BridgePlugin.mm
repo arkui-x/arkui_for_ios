@@ -220,4 +220,5 @@
     return self.bridgeManagerInner;
 }
 
+- (void)onPeerReady {}
 @end
