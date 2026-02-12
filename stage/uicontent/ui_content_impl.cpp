@@ -465,8 +465,6 @@ void UIContentImpl::CommonInitialize(OHOS::Rosen::Window* window, const std::str
                 reinterpret_cast<NativeReference*>(ref), context->GetBindingObject()->Get<NativeReference>());
         }
     }
-
-    InitializeSafeArea(container);
 }
 
 
