@@ -23,7 +23,7 @@ typedef void (^executeActionMethod)(const int64_t elementId, const int32_t actio
 typedef void (^requestUpdateMethod)(const int64_t elementId);
 typedef void (^ScribeStateBlock)(bool state);
 
-#define ELEMENTID_DEFAULT (-1)
+#define ElEMENTID_DEFAULT -1
 #define LEVEL_AUTO @"auto"
 #define LEVEL_YES @"yes"
 #define LEVEL_NO @"no"
@@ -56,8 +56,8 @@ typedef enum {
     self = [super init];
     if (self) {
         self.isCreateElements = [[NSMutableDictionary alloc] init];
-        _focusElementId = ELEMENTID_DEFAULT;
-        _clearFocusElementId = ELEMENTID_DEFAULT;
+        _focusElementId = ElEMENTID_DEFAULT;
+        _clearFocusElementId = ElEMENTID_DEFAULT;
         _focusElementMidY = 0;
     }
     return self;
@@ -160,7 +160,6 @@ typedef enum {
     element.accessibilityFrame = rect;
     element.accessibilityLabel = node.nodeLabel;
     element.accessibilityHint = node.descriptionInfo;
-    element.accessibilityIdentifier = node.inspectorKey;
     element.accessibilityLevel = node.accessibilityLevel;
     element.componentType = node.componentType;
     element.isScrollable = node.isScrollable;
@@ -245,11 +244,7 @@ typedef enum {
 
 - (void)setElementIsAccessibility
 {
-    for (int i = 0; i < self.isCreateElements.count; i++) {
-        AccessibilityElement* element = self.isCreateElements.allValues[i];
-        if (element == nil) {
-            continue;
-        }
+    for (AccessibilityElement* element in self.isCreateElements.allValues) {
         element.accessibilityLevel = [self getAccessibilityLevel:element];
         if ([element.componentType isEqualToString:@"Navigation"]) {
             [self setNavigationIsAccessibility:element showElement:nil];
@@ -431,13 +426,12 @@ typedef enum {
     }
     NSString* defaultElementId = [NSString stringWithFormat:@"%lld", _focusElementId];
     AccessibilityElement* defaultObject = [self.isCreateElements objectForKey:defaultElementId];
-    if (_focusElementId == ELEMENTID_DEFAULT || defaultObject == nil || !defaultObject.isAccessibility ||
+    if (_focusElementId == ElEMENTID_DEFAULT || defaultObject == nil || !defaultObject.isAccessibility ||
         [self IsViewOffscreenTopOrBottom:_focusElementId] != ACCESSIBILITY_SCROLL_DEFAULT) {
-        for (int i = 0; i < self.isCreateElements.count; i++) {
-            AccessibilityElement* element = self.isCreateElements.allValues[i];
-            if (element != nil && [self IsViewOffscreenTopOrBottom:element.elementId] == ACCESSIBILITY_SCROLL_DEFAULT &&
-                element.isAccessibility) {
-                defaultObject = [self GetMidYElement:element defaultElement:defaultObject];
+        for (AccessibilityElement* object in self.isCreateElements.allValues) {
+            if (object != nil && [self IsViewOffscreenTopOrBottom:object.elementId] == ACCESSIBILITY_SCROLL_DEFAULT &&
+                object.isAccessibility) {
+                defaultObject = [self GetMidYElement:object defaultElement:defaultObject];
             }
         }
         UIAccessibilityPostNotification(UIAccessibilityScreenChangedNotification, defaultObject);
@@ -591,10 +585,10 @@ typedef enum {
         _focusElementMidY = CGRectGetMidY(objcElement.accessibilityFrame);
     }
 
-    if (_clearFocusElementId != ELEMENTID_DEFAULT && _clearFocusElementId != elementId) {
+    if (_clearFocusElementId != ElEMENTID_DEFAULT && _clearFocusElementId != elementId) {
         self.executeActionCallBack(
             _clearFocusElementId, OHOS::Accessibility::ActionType::ACCESSIBILITY_ACTION_CLEAR_ACCESSIBILITY_FOCUS, nil);
-        _clearFocusElementId = ELEMENTID_DEFAULT;
+        _clearFocusElementId = ElEMENTID_DEFAULT;
     }
     self.executeActionCallBack(
         elementId, OHOS::Accessibility::ActionType::ACCESSIBILITY_ACTION_ACCESSIBILITY_FOCUS, nil);
