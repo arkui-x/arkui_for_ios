@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 #import "BridgeTaskQueue.h"
+#include "base/log/log.h"
 
 @interface BridgeTaskQueue()
 @property (nonatomic, strong) NSOperationQueue* queue;
@@ -37,7 +38,7 @@
 }
 
 - (void)dealloc {
-    NSLog(@"[Bridge Queue] dealloc");
+    LOGI("[Bridge Queue] dealloc");
 }
 
 - (void)dispatch:(dispatch_block_t)block {
@@ -51,19 +52,20 @@
 
 - (void)printQueueLog {
     if (!_queue) {
-        NSLog(@"queue is null");
+        LOGE("queue is null");
         return;
     }
-    NSLog(@"----------[Bridge Queue] dump:----------");
-    NSLog(@"[Bridge Queue] name: %@",  _queue.name);
-    // NSLog(@"[Bridge Queue] Max Concurrent Operations: %ld", _queue.maxConcurrentOperationCount);
-    // NSLog(@"[Bridge Queue] Operation Count: %ld", _queue.operationCount);
-    // NSLog(@"[Bridge Queue] Suspended: %@", _queue.isSuspended ? @"YES" : @"NO");
-    NSLog(@"[Bridge Queue] TreadInfo: %@", [NSThread currentThread]);
+    LOGI("----------[Bridge Queue] dump:----------");
+    LOGI("[Bridge Queue] name: %{public}s", _queue.name.UTF8String);
+    // LOGI("[Bridge Queue] Max Concurrent Operations: %{public}ld", _queue.maxConcurrentOperationCount);
+    // LOGI("[Bridge Queue] Operation Count: %{public}ld", _queue.operationCount);
+    // LOGI("[Bridge Queue] Suspended: %{public}s", _queue.isSuspended ? "YES" : "NO");
+    // to do
+    LOGI("[Bridge Queue] TreadInfo:");
 
     // NSArray<NSOperation*>* operations = [_queue operations];
     // for (NSOperation* operation in operations) {
-    //     NSLog(@"[Bridge Queue] Operation Queue Priority: %ld", operation.queuePriority);
+    //     LOGI("[Bridge Queue] Operation Queue Priority: %{public}ld", operation.queuePriority);
     // }
 }
 

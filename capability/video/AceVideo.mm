@@ -21,6 +21,7 @@
 #import "AceSurfaceView.h"
 #import "StageAssetManager.h"
 #import "AceTextureHolder.h"
+#include "base/log/log.h"
 
 #define VIDEO_FLAG      @"video@"
 #define PARAM_AND       @"#HWJS-&-#"
@@ -83,7 +84,7 @@ typedef enum : NSUInteger {
     abilityInstanceId:(int32_t)abilityInstanceId
 {
     if (self = [super init]) {
-        NSLog(@"AceVideo: init moudleName: %@  incId: %lld",moudleName,incId);
+        LOGI("AceVideo: init moudleName: %{public}s  incId: %{public}lld", moudleName.UTF8String, incId);
         self.incId = incId;
         self.instanceId = abilityInstanceId;
         self.onEvent = callback;
@@ -102,17 +103,17 @@ typedef enum : NSUInteger {
 
 - (void)initEventCallback
 {
-    NSLog(@"AceVideo: initEventCallback");
+    LOGI("AceVideo: initEventCallback");
     __weak __typeof(self)weakSelf = self;
     //init callback
     NSString *init_method_hash = [self method_hashFormat:@"init"];
     IAceOnCallSyncResourceMethod init_callback = ^NSString *(NSDictionary * param){
-        NSLog(@"AceVideo: init");
+        LOGI("AceVideo: init");
         __strong __typeof(weakSelf)strongSelf = weakSelf;
         if (strongSelf) {
             return [strongSelf initMediaPlayer:param] ? SUCCESS : FAIL;
         } else {
-            NSLog(@"AceVideo: init fail");
+            LOGE("AceVideo: init fail");
             return FAIL;
         }
     };
@@ -120,13 +121,13 @@ typedef enum : NSUInteger {
 
     // start callback
     IAceOnCallSyncResourceMethod start_callback = ^NSString *(NSDictionary * param){
-        NSLog(@"AceVideo: startPlay");
+        LOGI("AceVideo: startPlay");
         __strong __typeof(weakSelf)strongSelf = weakSelf;
         if (strongSelf) {
             [strongSelf startPlay];
             return SUCCESS;
         } else {
-            NSLog(@"AceVideo: startPlay fail");
+            LOGE("AceVideo: startPlay fail");
             return FAIL;
         }
     };
@@ -137,13 +138,13 @@ typedef enum : NSUInteger {
     // pause callback 
     NSString *pause_method_hash = [self method_hashFormat:@"pause"];
     IAceOnCallSyncResourceMethod pause_callback = ^NSString *(NSDictionary * param){
-        NSLog(@"AceVideo: pause");
+        LOGI("AceVideo: pause");
         __strong __typeof(weakSelf)strongSelf = weakSelf;
         if (strongSelf) {
             [strongSelf pause];
             return SUCCESS;
         } else {
-            NSLog(@"AceVideo: pause fail");
+            LOGE("AceVideo: pause fail");
             return FAIL;
         }
     };
@@ -151,13 +152,13 @@ typedef enum : NSUInteger {
     // stop callback
     NSString *stop_method_hash =  [self method_hashFormat:@"stop"];
     IAceOnCallSyncResourceMethod stop_callback = ^NSString *(NSDictionary * param){
-        NSLog(@"AceVideo: stop");
+        LOGI("AceVideo: stop");
         __strong __typeof(weakSelf)strongSelf = weakSelf;
         if (strongSelf) {
             [strongSelf stop];
             return SUCCESS;
         } else {
-            NSLog(@"AceVideo: stop fail");
+            LOGE("AceVideo: stop fail");
             return FAIL;
         }
     };
@@ -166,7 +167,7 @@ typedef enum : NSUInteger {
     // getposition callback 
     NSString *getposition_method_hash = [self method_hashFormat:@"getposition"];
     IAceOnCallSyncResourceMethod getposition_callback = ^NSString *(NSDictionary * param){
-        NSLog(@"AceVideo: currentpos");
+        LOGI("AceVideo: currentpos");
         __strong __typeof(weakSelf)strongSelf = weakSelf;
         if (strongSelf) {
             int64_t position = [strongSelf getPosition];
@@ -174,7 +175,7 @@ typedef enum : NSUInteger {
                 params:[NSString stringWithFormat:@"currentpos=%lld", position]];
             return [NSString stringWithFormat:@"%@%lld",@"currentpos=", position];
         } else {
-            NSLog(@"AceVideo: currentpos fail");
+            LOGE("AceVideo: currentpos fail");
             return FAIL;
         }
     };
@@ -183,7 +184,7 @@ typedef enum : NSUInteger {
     // seekto callback 
     NSString *seekto_method_hash = [self method_hashFormat:@"seekto"];
     IAceOnCallSyncResourceMethod seekto_callback = ^NSString *(NSDictionary * param){
-        NSLog(@"AceVideo: seekto");
+        LOGI("AceVideo: seekto");
         __strong __typeof(weakSelf)strongSelf = weakSelf;
         if (strongSelf) {
             if (!param) {
@@ -194,7 +195,7 @@ typedef enum : NSUInteger {
             [strongSelf seekTo:time];
             return SUCCESS;
         } else {
-            NSLog(@"AceVideo: seekto fail");
+            LOGE("AceVideo: seekto fail");
             return FAIL;
         }
     };
@@ -203,18 +204,18 @@ typedef enum : NSUInteger {
     // setvolume callback 
     NSString *setvolume_method_hash = [self method_hashFormat:@"setvolume"];
     IAceOnCallSyncResourceMethod setvolume_callback = ^NSString *(NSDictionary * param){
-        NSLog(@"AceVideo: setVolume");
+        LOGI("AceVideo: setVolume");
         __strong __typeof(weakSelf)strongSelf = weakSelf;
         if (strongSelf) {
             if (!param) {
                 return FAIL;
             }
-            NSLog(@"%@",[param objectForKey:KEY_VALUE]);
+            LOGI("%{public}s", [[param objectForKey:KEY_VALUE] description].UTF8String);
             float volumn = [[param objectForKey:KEY_VALUE] floatValue];
             [strongSelf setVolume:volumn];
             return SUCCESS;
         } else {
-            NSLog(@"AceVideo: setVolume fail");
+            LOGE("AceVideo: setVolume fail");
             return FAIL;
         }
     };
@@ -223,7 +224,7 @@ typedef enum : NSUInteger {
     // enablelooping callback
     NSString *enablelooping_method_hash = [self method_hashFormat:@"enablelooping"];
     IAceOnCallSyncResourceMethod enablelooping_callback = ^NSString *(NSDictionary * param){
-        NSLog(@"AceVideo: enablelooping");
+        LOGI("AceVideo: enablelooping");
         __strong __typeof(weakSelf)strongSelf = weakSelf;
         if (strongSelf) {
             if (!param) {
@@ -233,7 +234,7 @@ typedef enum : NSUInteger {
             [strongSelf enableLooping:loop];
             return SUCCESS;
         } else {
-            NSLog(@"AceVideo: enablelooping fail");
+            LOGE("AceVideo: enablelooping fail");
             return FAIL;
         }
     };
@@ -242,7 +243,7 @@ typedef enum : NSUInteger {
     // setspeed callback  
     NSString *setspeed_method_hash = [self method_hashFormat:@"setspeed"];
     IAceOnCallSyncResourceMethod setspeed_callback = ^NSString *(NSDictionary * param){
-        NSLog(@"AceVideo: player_ setspeed %@",param);
+        LOGI("AceVideo: player_ setspeed");
         __strong __typeof(weakSelf)strongSelf = weakSelf;
         if (strongSelf) {
             if (!param) {
@@ -252,7 +253,7 @@ typedef enum : NSUInteger {
             [strongSelf updateSpeed:speed];
             return SUCCESS;
         } else {
-            NSLog(@"AceVideo: setspeed fail");
+            LOGE("AceVideo: setspeed fail");
             return FAIL;
         }
     };
@@ -275,12 +276,12 @@ typedef enum : NSUInteger {
     // setLayer callback 
     NSString *setsurface_method_hash = [self method_hashFormat:@"setsurface"];
     IAceOnCallSyncResourceMethod setsurface_callback = ^NSString *(NSDictionary * param){
-        NSLog(@"AceVideo: setsurface");
+        LOGI("AceVideo: setsurface");
         __strong __typeof(weakSelf)strongSelf = weakSelf;
         if (strongSelf) {
             return [strongSelf setSuerface:param];
         } else {
-            NSLog(@"AceVideo: setsurface fail");
+            LOGE("AceVideo: setsurface fail");
             return FAIL;
         }
     };
@@ -289,12 +290,12 @@ typedef enum : NSUInteger {
     // setupdateResource callback 
     NSString *updateResource_method_hash = [self method_hashFormat:@"updateresource"];
     IAceOnCallSyncResourceMethod setupdateResource_callback = ^NSString *(NSDictionary * param){
-        NSLog(@"AceVideo: updateresource");
+        LOGI("AceVideo: updateresource");
         __strong __typeof(weakSelf)strongSelf = weakSelf;
         if (strongSelf) {
              return [strongSelf setUpdateResource:param];
         } else {
-            NSLog(@"AceVideo: updateresource fail");
+            LOGE("AceVideo: updateresource fail");
             return FAIL;
         }
     };
@@ -303,12 +304,12 @@ typedef enum : NSUInteger {
     // setfullscreen callback
     NSString *fullscreen_method_hash = [self method_hashFormat:@"fullscreen"];
     IAceOnCallSyncResourceMethod setfullscreen_callback = ^NSString *(NSDictionary * param){
-        NSLog(@"AceVideo: fullscreen");
+        LOGI("AceVideo: fullscreen");
         __strong __typeof(weakSelf)strongSelf = weakSelf;
         if (strongSelf) {
              return [strongSelf setFullscreen:param];
         } else {
-            NSLog(@"AceVideo: fullscreen fail");
+            LOGE("AceVideo: fullscreen fail");
             return FAIL;
         }
     };
@@ -323,7 +324,7 @@ typedef enum : NSUInteger {
 
 - (void)startPlay
 {
-    NSLog(@"AceVideo: player_ startPlay");
+    LOGI("AceVideo: player_ startPlay");
     if (self.player_) {
         if (self.state == STOPPED) {
             [self updatePalyerItem];
@@ -416,10 +417,10 @@ typedef enum : NSUInteger {
     if (self.player_) {
         AVPlayerTimeControlStatus status = self.player_.timeControlStatus;
         if (status == AVPlayerTimeControlStatusPlaying || self.isAutoPlay || self.state == STARTED) {
-             NSLog(@"AceVideo: setspeed %f",speed);
+             LOGI("AceVideo: setspeed %{public}f", speed);
             [self.player_ setRate:speed];
         } else {
-            NSLog(@"AceVideo: If the speed is greater than 0, the video will start playing.  setspeed");
+            LOGI("AceVideo: If the speed is greater than 0, the video will start playing.  setspeed");
         }
     }
 }
@@ -437,34 +438,34 @@ typedef enum : NSUInteger {
 - (NSString *)setSuerface:(NSDictionary *)params
 {
     if (!params) {
-        NSLog(@"AceVideo: setSurface failed: params is null");
+        LOGE("AceVideo: setSurface failed: params is null");
         return FAIL;
     }
     if (!params[KEY_VALUE]) {
-        NSLog(@"AceVideo: setSurface failed: value is illegal");
+        LOGE("AceVideo: setSurface failed: value is illegal");
         return FAIL;
     }
     @try {
         self.surfaceId = [params[KEY_VALUE] longLongValue];
         if ([params[KEY_ISTEXTURE] boolValue]){
             self.isTexture = YES;
-            NSLog(@"AceVideo:isTexture Ture");
+            LOGI("AceVideo:isTexture Ture");
             AceTexture *texture = (AceTexture*)[AceTextureHolder getTextureWithId:self.surfaceId
                 inceId:self.instanceId];
             self.renderTexture = texture;
         } else{
-            NSLog(@"AceVideo: setSurface id:%ld", self.surfaceId);
+            LOGI("AceVideo: setSurface id:%{public}ld", self.surfaceId);
             AceSurfaceView * surfaceView = (AceSurfaceView *)[AceSurfaceHolder getLayerWithId:self.surfaceId
                 inceId:self.instanceId].delegate;
             if (surfaceView && self.player_) {
-                NSLog(@"AceVideo: MediaPlayer SetSurface");
+                LOGI("AceVideo: MediaPlayer SetSurface");
                 AVPlayerLayer * playerLayer = (AVPlayerLayer *)surfaceView.layer;
                 playerLayer.player = self.player_;
             }
         }
 
     } @catch (NSException *exception) {
-        NSLog(@"AceVideo: IOException, setSuerface failed");
+        LOGE("AceVideo: IOException, setSuerface failed");
         return FAIL;
     }
     return SUCCESS;
@@ -489,9 +490,9 @@ typedef enum : NSUInteger {
 
 - (NSString *)setUpdateResource:(NSDictionary *)params
 {
-    NSLog(@"AceVideo: setUpdateResource");
+    LOGI("AceVideo: setUpdateResource");
     if (!params) {
-        NSLog(@"AceVideo: updateResource failed: params is null");
+        LOGE("AceVideo: updateResource failed: params is null");
         return FAIL;
     }
     @try {
@@ -503,7 +504,7 @@ typedef enum : NSUInteger {
 
         NSString *src = [params objectForKey:KEY_SOURCE];
         if (![src isKindOfClass:[NSString class]] || src.length == 0 || [src isKindOfClass:[NSNull class]]) {
-            NSLog(@"AceVideo: src param is null");
+            LOGE("AceVideo: src param is null");
             return FAIL;
         }
         if(![self setDataSource:src]) {
@@ -516,7 +517,7 @@ typedef enum : NSUInteger {
 
         [self updatePalyerItem];
     } @catch (NSException *exception) {
-        NSLog(@"AceVideo: IOException, setSuerface failed");
+        LOGE("AceVideo: IOException, setSuerface failed");
         return FAIL;
     }
     return SUCCESS;
@@ -524,7 +525,7 @@ typedef enum : NSUInteger {
 
 - (BOOL)setDataSource:(NSString *)param
 {
-    NSLog(@"AceVideo: setDataSource param:%@",param);
+    LOGI("AceVideo: setDataSource param:%{public}s",param.UTF8String);
     @try {
         param = [param
             stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]];
@@ -536,18 +537,18 @@ typedef enum : NSUInteger {
 
         NSString * bundlePath = [[StageAssetManager assetManager] getBundlePath];
         if (!bundlePath) {
-            NSLog(@"AceVideo: setDataSource null assetManager");
+            LOGE("AceVideo: setDataSource null assetManager");
             return false;
         }
         @try {
             NSURL * filePath = [NSURL fileURLWithPathComponents:@[bundlePath,self.moudleName,@"ets",param]];
-            NSLog(@"AceVideo: setDataSourc file hapPath:%@",filePath.absoluteString);
+            LOGI("AceVideo: setDataSourc file hapPath:%{public}s",filePath.absoluteString.UTF8String);
             self.url = filePath;
         } @catch (NSException *exception) {
-            NSLog(@"AceVideo: not found asset in instance path, now begin to search asset in share path");
+            LOGE("AceVideo: not found asset in instance path, now begin to search asset in share path");
         }
     } @catch (NSException *exception) {
-        NSLog(@"AceVideo: IOException, setDataSource failed");
+        LOGE("AceVideo: IOException, setDataSource failed");
         return false;
     }
 
@@ -556,9 +557,9 @@ typedef enum : NSUInteger {
 
 - (NSString *)setFullscreen:(NSDictionary *)param
 {
-    NSLog(@"AceVideo: setFullscreen param: %@",param);
+    LOGI("AceVideo: setFullscreen");
     if (!param[KEY_VALUE]) {
-        NSLog(@"AceVideo: setFullscreen failed: value is illegal");
+        LOGE("AceVideo: setFullscreen failed: value is illegal");
         return FAIL;
     }
     if (self.surfaceId == 0) {
@@ -577,14 +578,14 @@ typedef enum : NSUInteger {
 
 - (BOOL)initMediaPlayer:(NSDictionary *)param
 {
-    NSLog(@"AceVideo: initMediaPlayer param: %@",param);
+    LOGI("AceVideo: initMediaPlayer");
     if (!param[KEY_SOURCE]) {
         return NO;
     }
 
     NSString *src = [param objectForKey:KEY_SOURCE];
     if (![src isKindOfClass:[NSString class]] || src.length == 0 || [src isKindOfClass:[NSNull class]]) {
-        NSLog(@"AceVideo: src param is null");
+        LOGE("AceVideo: src param is null");
         return NO;
     }
     if(![self setDataSource:src]) {
@@ -630,7 +631,7 @@ typedef enum : NSUInteger {
 
         return playerItem;
     } @catch (NSException *exception) {
-        NSLog(@"AceVideo: playerItem create failed");
+        LOGE("AceVideo: playerItem create failed");
     }
 
 }
@@ -682,7 +683,7 @@ typedef enum : NSUInteger {
         AVPlayerItemStatus status = playerItem.status;
         switch (status) {
             case AVPlayerItemStatusFailed:{
-                NSLog(@"AceVideo: AVPlayerItemStatusFailed");
+                LOGE("AceVideo: AVPlayerItemStatusFailed");
                 [self fireCallback:@"error" params:@""];
             } break;
             case AVPlayerItemStatusReadyToPlay:
@@ -774,12 +775,12 @@ typedef enum : NSUInteger {
 
 - (void)dealloc
 {
-    NSLog(@"AceVideo->%@ dealloc", self);
+    LOGI("AceVideo dealloc");
 }
 
 - (void)releaseObject
 {
-    NSLog(@"AceVideo releaseObject");
+    LOGI("AceVideo releaseObject");
     if (self.player_.currentItem && _isAddedLisenten) {
         @try {
             _isAddedLisenten = false;

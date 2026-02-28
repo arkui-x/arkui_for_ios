@@ -65,7 +65,7 @@ std::vector<uint8_t> StageAssetProvider::GetPkgJsonBuffer(const std::string& mod
     std::vector<uint8_t> buffer;
     NSString *oc_moduleName = GetOCstring(moduleName);
     NSArray *pkgJsonFileList = [[StageAssetManager assetManager] getpkgJsonFileList];
-    NSLog(@"GetPkgJsonBuffer oc_moduleName:%@", oc_moduleName);
+    LOGI("GetPkgJsonBuffer oc_moduleName:%{public}s", [oc_moduleName UTF8String]);
     if (!pkgJsonFileList.count || moduleIsUpdates_[moduleName]) {
         std::string pkgContextInfoJson = "pkgContextInfo.json";
         auto path = GetAppDataModuleDir() + "/" + moduleName;
@@ -74,7 +74,7 @@ std::vector<uint8_t> StageAssetProvider::GetPkgJsonBuffer(const std::string& mod
         for (auto& path : fileFullPaths) {
             if (path.find("/" + moduleName + "/") != std::string::npos && path.find(pkgContextInfoJson) != std::string::npos) {
                 NSString *oc_dataAppPath = GetOCstring(path);
-                NSLog(@"GetPkgJsonBuffer path:%@", oc_dataAppPath);
+                LOGI("GetPkgJsonBuffer path:%{public}s", [oc_dataAppPath UTF8String]);
                 NSData *oc_dataAppPathData = [NSData dataWithContentsOfFile:oc_dataAppPath];
                 buffer = GetVectorFromNSData(oc_dataAppPathData);
                 return buffer;
@@ -83,10 +83,10 @@ std::vector<uint8_t> StageAssetProvider::GetPkgJsonBuffer(const std::string& mod
     }
     for (NSString *pkgJsonPath in pkgJsonFileList) {
         if ([pkgJsonPath containsString:[NSString stringWithFormat:@"/%@/", oc_moduleName]]) {
-            NSLog(@"GetPkgJsonBuffer pkgJsonPath:%@", pkgJsonPath);
+            LOGI("GetPkgJsonBuffer pkgJsonPath:%{public}s", [pkgJsonPath UTF8String]);
             NSData *pathData = [NSData dataWithContentsOfFile:pkgJsonPath];
             if (!pathData) {
-                NSLog(@"pathData is null");
+                LOGE("pathData is null");
                 break;
             }
             auto buffer = GetVectorFromNSData(pathData);
@@ -230,7 +230,7 @@ std::vector<uint8_t> StageAssetProvider::GetFontConfigJsonBuffer(const std::stri
         if ([pkgJsonPath containsString:[NSString stringWithFormat:@"/%@", oc_moduleName]]) {
             NSData *pathData = [NSData dataWithContentsOfFile:pkgJsonPath];
             if (!pathData) {
-                NSLog(@"pathData is null");
+                LOGE("pathData is null");
                 break;
             }
             auto buffer =  GetVectorFromNSData(pathData);

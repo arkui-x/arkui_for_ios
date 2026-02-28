@@ -27,6 +27,7 @@
 #import "WindowView.h"
 #import "StageViewController.h"
 #import "RenderViewXcomponent.h"
+#include "base/log/log.h"
 
 #define TEXTURE_FLAG    @"texture@"
 #define PARAM_EQUALS    @"#HWJS-=-#"
@@ -148,7 +149,7 @@ typedef NS_ENUM(NSUInteger, RefreshFrequency) {
         if (weakSelf) {
             return [weakSelf setSurfaceBounds:param];
         } else {
-            NSLog(@"AceSurfaceView: setSurfaceBounds fail");
+            LOGE("AceSurfaceView: setSurfaceBounds fail");
             return FAIL;
         }
     };
@@ -158,7 +159,7 @@ typedef NS_ENUM(NSUInteger, RefreshFrequency) {
         if (weakSelf) {
             return [weakSelf setAttachNativeWindow:param];
         } else {
-            NSLog(@"AceSurfaceView: callAttachNativeWindow fail");
+            LOGE("AceSurfaceView: callAttachNativeWindow fail");
             return FAIL;
         }
     };
@@ -168,7 +169,7 @@ typedef NS_ENUM(NSUInteger, RefreshFrequency) {
         if (weakSelf) {
             return [weakSelf setAttachTextureIsVideo:param];
         } else {
-            NSLog(@"AceSurfaceView: callAttachNativeWindow fail");
+            LOGE("AceSurfaceView: callAttachNativeWindow fail");
             return FAIL;
         }
     };
@@ -257,16 +258,16 @@ typedef NS_ENUM(NSUInteger, RefreshFrequency) {
 - (NSString *)setAttachNativeWindow:(NSDictionary *)params
 {
     if (!self.surfaceDelegate) {
-        NSLog(@"AceSurfaceView IAceSurface is null");
+        LOGE("AceSurfaceView IAceSurface is null");
         return FAIL;
     }
     if (![self.surfaceDelegate respondsToSelector:@selector(attachNaitveSurface:)]) {
-        NSLog(@"AceSurfaceView IAceSurface attachNaitveSurface null");
+        LOGE("AceSurfaceView IAceSurface attachNaitveSurface null");
         return FAIL;
     }
     uintptr_t nativeWindow = [self.surfaceDelegate attachNaitveSurface:_embeddedView.layer];
     if (nativeWindow == 0) {
-        NSLog(@"AceSurfaceView Surface nativeWindow: null");
+        LOGE("AceSurfaceView Surface nativeWindow: null");
         return FAIL;
     }
     NSDictionary *param = @{@"nativeWindow": [NSString stringWithFormat:@"%lu", (unsigned long)nativeWindow]};
@@ -294,7 +295,7 @@ typedef NS_ENUM(NSUInteger, RefreshFrequency) {
             sublayer.frame = surfaceRect;
         }
     } @catch (NSException* exception) {
-        NSLog(@"AceSurfaceView NumberFormatException, setSurfaceSize failed");
+        LOGE("AceSurfaceView NumberFormatException, setSurfaceSize failed");
         return FAIL;
     }
     return SUCCESS;
@@ -343,11 +344,11 @@ typedef NS_ENUM(NSUInteger, RefreshFrequency) {
     dispatch_main_async_safe(^{
         __strong __typeof(weakSelf) strongSelf = weakSelf;
         if (!strongSelf) {
-            NSLog(@"error: textureAttach strongSelf is nil");
+            LOGE("error: textureAttach strongSelf is nil");
             return;
         }
         if (strongSelf->_eglContextPtr == nullptr) {
-            NSLog(@"error: textureAttach _eglContextPtr is null");
+            LOGE("error: textureAttach _eglContextPtr is null");
             return;
         }
         [strongSelf->_renderView setEAGLContext:(__bridge EAGLContext*)strongSelf->_eglContextPtr];
@@ -481,7 +482,7 @@ typedef NS_ENUM(NSUInteger, RefreshFrequency) {
 }
 
 - (void)releaseObject {
-    NSLog(@"AceSurfaceView releaseObject isMainThread: %ld", [NSThread isMainThread]);
+    LOGI("AceSurfaceView releaseObject isMainThread: %{public}ld", [NSThread isMainThread]);
     [self stopObservingEmbeddedLayer];
 
     if (_player && _player.currentItem && self.renderTexture && self.renderTexture.videoOutput) {

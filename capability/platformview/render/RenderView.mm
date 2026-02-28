@@ -17,6 +17,7 @@
 #import "RenderProgram.h"
 
 #include <mutex>
+#include "base/log/log.h"
 
 #define COLOR_NUMBER 8
 #define DATA_SIZE 4
@@ -141,7 +142,7 @@ static GLfloat texArray[] = {
     if (self.program && self.program != nil) {
         [self.program use];
     } else {
-        NSLog(@"%s error: program wrong!", __func__);
+        LOGE("%{public}s error: program wrong!", __func__);
         return;
     }
 
@@ -213,7 +214,7 @@ static GLfloat texArray[] = {
     glBindTexture(GL_TEXTURE_2D, _texture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _renderWidth, _renderHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, imageData);
     if (glGetError() != GL_NO_ERROR) {
-        NSLog(@"%s error: glTexImage2D failed!", __func__);
+        LOGE("%{public}s error: glTexImage2D failed!", __func__);
         return false;
     }
     return true;
@@ -243,7 +244,7 @@ static GLfloat texArray[] = {
 
 - (bool)startRender:(UIView *)view {
     if (!view) {
-        NSLog(@"error: view no found");
+        LOGE("error: view no found");
         return false;
     }
 

@@ -17,6 +17,7 @@
 #include <sys/_types/_int32_t.h>
 #include "StageViewController.h"
 #include <vector>
+#include "base/log/log.h"
 
 #import "AcePlatformView.h"
 #import "AceTextureHolder.h"
@@ -114,7 +115,7 @@ const static size_t QueueSize = 3;
             [strongSelf registerPlatformView:param];
             return SUCCESS;
         } else {
-            NSLog(@"AcePlatformView: registerPlatformView fail");
+            LOGE("AcePlatformView: registerPlatformView fail");
             return FAIL;
         }
     };
@@ -128,7 +129,7 @@ const static size_t QueueSize = 3;
         if (strongSelf) {
             return [strongSelf updatelayout:param];
         } else {
-            NSLog(@"AcePlatformView: updatelayout fail");
+            LOGE("AcePlatformView: updatelayout fail");
             return FAIL;
         }
     };
@@ -141,7 +142,7 @@ const static size_t QueueSize = 3;
         if (strongSelf) {
             return [strongSelf exchangeBind:param];
         } else {
-            NSLog(@"AcePlatformView: exchangeBind fail");
+            LOGE("AcePlatformView: exchangeBind fail");
             return FAIL;
         }
     };
@@ -154,7 +155,7 @@ const static size_t QueueSize = 3;
         if (strongSelf) {
             return [strongSelf platformViewType:param];
         } else {
-            NSLog(@"AcePlatformView: platformViewType fail");
+            LOGE("AcePlatformView: platformViewType fail");
             return FAIL;
         }
     };
@@ -166,7 +167,7 @@ const static size_t QueueSize = 3;
     self.curPlatformView = platformView;
     NSObject<IPlatformView>* embeddedView = self.curPlatformView;
     if (!embeddedView) {
-        NSLog(@"AcePlatformView: setPlatformView failed: platformView is null");
+        LOGE("AcePlatformView: setPlatformView failed: platformView is null");
         return ;
     }
     UIView* pv = [embeddedView view];
@@ -216,7 +217,7 @@ const static size_t QueueSize = 3;
 - (NSString *)registerPlatformView:(NSDictionary *)params
 {
     if (!params) {
-        NSLog(@"AcePlatformView: registerPlatformView failed: params is null");
+        LOGE("AcePlatformView: registerPlatformView failed: params is null");
         return FAIL;
     }
     [self initPlatformView];
@@ -227,7 +228,7 @@ const static size_t QueueSize = 3;
     }
     NSObject<IPlatformView>* embeddedView = self.curPlatformView;
     if (!embeddedView) {
-        NSLog(@"AcePlatformView: registerPlatformView failed: platformView is null");
+        LOGE("AcePlatformView: registerPlatformView failed: platformView is null");
         return FAIL;
     }
 
@@ -261,7 +262,7 @@ const static size_t QueueSize = 3;
     dispatch_main_async_safe(^{
         NSObject<IPlatformView>* embeddedView = self.curPlatformView;
         if (!embeddedView) {
-            NSLog(@"AcePlatformView: registerPlatformView failed: platformView is null");
+            LOGE("AcePlatformView: registerPlatformView failed: platformView is null");
             return;
         }
         [_renderView setTextureName:textureName];
@@ -277,7 +278,7 @@ const static size_t QueueSize = 3;
     if (self.onEvent) {
         NSString *prepared_method_hash = [NSString stringWithFormat:@"%@%lld%@%@%@%@",
                 PLATFORMVIEW_FLAG, self.id, EVENT, PARAM_EQUALS, @"platformViewReady", PARAM_BEGIN];
-        NSLog(@"[PlatformView] platformViewReady");
+        LOGI("[PlatformView] platformViewReady");
         self.onEvent(prepared_method_hash, @"");
     }
 }
@@ -285,14 +286,14 @@ const static size_t QueueSize = 3;
 - (NSString *)updatelayout:(NSDictionary *)params
 {
     if (!params) {
-        NSLog(@"AcePlatformView: setSurface failed: params is null");
+        LOGE("AcePlatformView: setSurface failed: params is null");
         return FAIL;
     }
 
     @try {
         NSObject<IPlatformView>* embeddedView = self.curPlatformView;
         if (!embeddedView) {
-            NSLog(@"AcePlatformView: register failed: platformView is null");
+            LOGE("AcePlatformView: register failed: platformView is null");
             return FAIL;
         }
         UIView* platformView = [embeddedView view];
@@ -321,7 +322,7 @@ const static size_t QueueSize = 3;
             platformView.frame = tempFrame;
         }
     } @catch (NSException *exception) {
-        NSLog(@"AcePlatformView: IOException, updatelayout failed");
+        LOGE("AcePlatformView: IOException, updatelayout failed");
         return FAIL;
     }
     return SUCCESS;
@@ -363,7 +364,7 @@ const static size_t QueueSize = 3;
 
     NSObject<IPlatformView>* embeddedView = self.curPlatformView;
     if (!embeddedView) {
-        NSLog(@"AcePlatformView: register failed: platformView is null");
+        LOGE("AcePlatformView: register failed: platformView is null");
         return;
     }
     UIView* platformView = [embeddedView view];
@@ -426,7 +427,7 @@ const static size_t QueueSize = 3;
     self.attachCallbackHandler = nil;
     NSObject<IPlatformView>* embeddedView = self.curPlatformView;
     if (!embeddedView) {
-        NSLog(@"AcePlatformView: releaseObject failed: platformView is null");
+        LOGE("AcePlatformView: releaseObject failed: platformView is null");
         return;
     }
 
@@ -457,7 +458,7 @@ const static size_t QueueSize = 3;
 {
     if (self.displayLink) {
         self.displayLink.paused = NO;
-        NSLog(@"AcePlatformView displayLink resume.");
+        LOGI("AcePlatformView displayLink resume.");
     }
 }
 
@@ -465,7 +466,7 @@ const static size_t QueueSize = 3;
 {
     if (self.displayLink) {
         self.displayLink.paused = YES;
-        NSLog(@"AcePlatformView displayLink paused.");
+        LOGI("AcePlatformView displayLink paused.");
     }
 }
 

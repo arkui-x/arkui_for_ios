@@ -15,6 +15,7 @@
 
 #import "BridgeBinaryCodec.h"
 #import "BridgeSerializer.h"
+#include "base/log/log.h"
 
 @implementation BridgeBinaryCodec {
     BridgeSerializer* _serializer;
@@ -43,20 +44,20 @@
 
 - (id _Nullable)decode:(NSData* _Nullable)message {
     if ([message length] == 0) {
-        NSLog(@"BridgeBinaryCodec:: %s meesage nil", __func__);
+        LOGE("BridgeBinaryCodec:: %{public}s meesage nil", __func__);
         return nil;
     }
     BridgeStreamReader* reader = [_serializer readerWithData:message];
     id value = [reader readValue];
     if (![reader isNoMoreData]) {
-        NSLog(@"no have more message");
+        LOGE("no have more message");
     }
     return value;
 }
 
 - (NSData* _Nullable)encode:(id _Nullable)message {
     if (message == nil) {
-        NSLog(@"BridgeBinaryCodec:: %s meesage nil", __func__);
+        LOGE("BridgeBinaryCodec:: %{public}s meesage nil", __func__);
         return nil;
     }
     NSMutableData* data = [NSMutableData dataWithCapacity:32];

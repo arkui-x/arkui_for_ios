@@ -26,6 +26,7 @@
 #include "adapter/ios/entrance/ace_resource_register.h"
 #include "adapter/ios/entrance/ace_platform_plugin.h"
 #include "core/common/container_scope.h"
+#include "base/log/log.h"
 
 @interface AcePlatformPlugin()<IAceOnCallEvent, IAceSurface, AceTextureDelegate, AcePlatformViewDelegate>
 {
@@ -130,19 +131,19 @@
 - (void)registerSurfaceWithInstanceId:(int32_t)instanceId textureId:(int64_t)textureId
     textureObject:(void*)textureObject
 {
-    NSLog(@"AceTextureDelegate registerSurface");
+    LOGI("AceTextureDelegate registerSurface");
     OHOS::Ace::Platform::AcePlatformPlugin::RegisterSurface(instanceId, textureId,textureObject);
 }
 
 - (void)unregisterSurfaceWithInstanceId:(int32_t)instanceId textureId:(int64_t)textureId
 {
-    NSLog(@"AceTextureDelegate unregisterSurface");
+    LOGI("AceTextureDelegate unregisterSurface");
     OHOS::Ace::Platform::AcePlatformPlugin::UnregisterSurface(instanceId,textureId);
 }
 
 - (void*)getNativeWindowWithInstanceId:(int32_t)instanceId textureId:(int64_t)textureId
 {
-    NSLog(@"AceTextureDelegate getNativeWindow");
+    LOGI("AceTextureDelegate getNativeWindow");
     return OHOS::Ace::Platform::AcePlatformPlugin::GetNativeWindow(instanceId,textureId);
 }
 
@@ -187,7 +188,7 @@
 
 - (void)dealloc
 {
-    NSLog(@"AcePlatformPlugin dealloc");
+    LOGI("AcePlatformPlugin dealloc");
     [super dealloc];
 }
 @end

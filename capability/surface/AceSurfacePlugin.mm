@@ -15,6 +15,7 @@
 
 #import "AceSurfaceView.h"
 #import "AceSurfacePlugin.h"
+#include "base/log/log.h"
 
 @interface AceSurfacePlugin()
 @property (nonatomic, strong) NSMutableDictionary<NSString*, AceSurfaceView*> *objectMap;
@@ -53,7 +54,7 @@
 - (int64_t)create:(NSDictionary<NSString *, NSString *> *)param
 {
     int64_t incId = [self getAtomicId];
-    NSLog(@"AceSurfacePlugin create incId %lld",incId);
+    LOGI("AceSurfacePlugin create incId %{public}lld", incId);
     IAceOnResourceEvent callback = [self getEventCallback];
     if (!callback) {
          return -1L;
@@ -97,7 +98,7 @@
 
 - (void)releaseObject
 {
-    NSLog(@"AceSurfacePlugin %s",__func__);
+    LOGI("AceSurfacePlugin %{public}s", __func__);
     if (self.objectMap) { 
         [self.objectMap enumerateKeysAndObjectsUsingBlock:^(NSString * _Nonnull key, 
         AceSurfaceView *_Nonnull aceSurface, BOOL * _Nonnull stop) {
@@ -106,7 +107,7 @@
                 [aceSurface removeFromSuperview];
                 aceSurface = nil;
             } else {
-                NSLog(@"AceSurfacePlugin releaseObject fail aceSurface is null"); 
+                LOGE("AceSurfacePlugin releaseObject fail aceSurface is null"); 
             }
         }];
         [self.objectMap removeAllObjects];
@@ -117,7 +118,8 @@
 
 - (void)dealloc
 {
-    NSLog(@"AceSurfacePlugin->%@ dealloc", self);
+// to do
+    LOGI("AceSurfacePlugin dealloc");
 }
 
 @end

@@ -14,6 +14,7 @@
  */
 
 #import "DownloadManager.h"
+#include "base/log/log.h"
 #include <vector>
 #include <utility>
 
@@ -35,7 +36,7 @@
 
 - (NSData *)download:(NSString*)urlStr
 {
-    NSLog(@"DownloadStart:%@",urlStr);
+    LOGI("DownloadStart:%{public}s", urlStr ? [urlStr UTF8String] : "");
     NSURL *url = [NSURL URLWithString:urlStr];
     NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:url];
     [request setValue:@"plain/text;charset=UTF-8" forHTTPHeaderField:@"Content-Type"];
@@ -55,7 +56,8 @@
         if (!error && code == 200) {
             newData = [[NSData alloc] initWithBytes:data.bytes length:data.length];
         } else {
-            NSLog(@"DownloadError:%@",error);
+            // to do
+            LOGE("DownloadError");
         }
         dispatch_semaphore_signal(semaphore);
     }];

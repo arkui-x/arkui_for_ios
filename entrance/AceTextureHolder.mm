@@ -14,6 +14,7 @@
  */
 
 #import "AceTextureHolder.h"
+#include "base/log/log.h"
 
 @implementation AceTextureHolder
 
@@ -21,7 +22,7 @@ static NSMutableDictionary<NSString *, id> *textureMap = nil;
 
 + (void)initialize
 {
-    NSLog(@"AceTextureHolder initialize");
+    LOGI("AceTextureHolder initialize");
     textureMap = [[NSMutableDictionary alloc] init];
 }
 
@@ -44,7 +45,8 @@ static NSMutableDictionary<NSString *, id> *textureMap = nil;
     if (![self isValidId:textureId] || !texture) {
         return;
     }
-    NSLog(@"AceTextureHolder addTexture:%@  id:%ld", texture, textureId);
+    // to do
+    LOGI("AceTextureHolder addTexture id:%{public}ld", textureId);
 
     @synchronized (self) {
         if ([textureMap objectForKey:[self formatKeyId:textureId inceId:inceId]]) {

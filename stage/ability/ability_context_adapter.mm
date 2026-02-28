@@ -66,7 +66,7 @@ std::shared_ptr<AbilityContextAdapter> AbilityContextAdapter::GetInstance()
 
 void AbilityContextAdapter::print(const std::string& message) {
     NSString * msg = [NSString stringWithCString:message.c_str() encoding:[NSString defaultCStringEncoding]];
-    NSLog(@"AbilityContextAdapter print, msg : %@", msg);
+    LOGI("AbilityContextAdapter print, msg : %{public}s", [msg UTF8String]);
     StageApplication *application = [StageApplication new];
     [application print:msg];
 }
@@ -135,8 +135,8 @@ int32_t AbilityContextAdapter::StartAbility(const std::string& instanceName, con
         });
     } else {
         if (bundleName.length == 0 || moduleName.length == 0 || abilityName.length == 0) {
-            NSLog(@"startAbility failed, bundleName : %@, moduleName : %@, abilityName : %@",
-                bundleName, moduleName, abilityName);
+            LOGE("startAbility failed, bundleName : %{public}s, moduleName : %{public}s, abilityName : %{public}s",
+                [bundleName UTF8String], [moduleName UTF8String], [abilityName UTF8String]);
             return AAFwk::RESOLVE_ABILITY_ERR;
         }
 
@@ -157,7 +157,7 @@ int32_t AbilityContextAdapter::StartAbility(const std::string& instanceName, con
                 [[UIApplication sharedApplication] openURL:appUrl options: @{} completionHandler: ^(BOOL success) {}];	
             });	
         } else {	
-            NSLog(@"startAbility failed, can't open app");	
+            LOGE("startAbility failed, can't open app");	
             return AAFwk::RESOLVE_ABILITY_ERR;	
         }
     }
@@ -231,14 +231,14 @@ void AbilityContextAdapter::TerminateSelf(const std::string& instanceName)
 
         int size = topVC.navigationController.viewControllers.count;
         if (size == 0) {
-            NSLog(@"%s, viewControllers count zero", __func__);
+            LOGI("%{public}s, viewControllers count zero", __func__);
         }
         if (size == 1) {
-            NSLog(@"%s, exit", __func__);
+            LOGI("%{public}s, exit", __func__);
             OHOS::AbilityRuntime::Platform::AppMain::GetInstance()->DispatchOnDestroy(instanceName);
         }
         if ([topVC respondsToSelector:@selector(instanceName)]&&[topVC.instanceName isEqualToString:targetName]) {
-            NSLog(@"%s, pop", __func__);
+            LOGI("%{public}s, pop", __func__);
             [topVC.navigationController popViewControllerAnimated:YES];
             return;
         }
@@ -252,7 +252,7 @@ void AbilityContextAdapter::TerminateSelf(const std::string& instanceName)
                 return;
             }
         }
-        NSLog(@"%s, failed", __func__);
+        LOGE("%{public}s, failed", __func__);
     });
 }
 

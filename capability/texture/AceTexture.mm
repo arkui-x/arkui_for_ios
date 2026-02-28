@@ -14,6 +14,7 @@
  */
 
 #import "AceTexture.h"
+#include "base/log/log.h"
 
 #define TEXTURE_FLAG    @"texture@"
 #define PARAM_AND       @"#HWJS-&-#"
@@ -54,7 +55,7 @@
             if (weakSelf) {
                 return [weakSelf setSurfaceBounds:param];
             } else {
-                 NSLog(@"AceSurfaceView: setSurfaceBounds fail");
+                 LOGE("AceSurfaceView: setSurfaceBounds fail");
                  return FAIL;
             }
         };
@@ -64,7 +65,7 @@
             if (weakSelf) {
                 return [weakSelf attachToGLContext:param];
             } else {
-                 NSLog(@"AceSurfaceView: attachToGLContext fail");
+                 LOGE("AceSurfaceView: attachToGLContext fail");
                  return FAIL;
             }
         };
@@ -92,7 +93,7 @@
 - (NSString*)attachToGLContext:(NSDictionary*)params
 {
     if (!params) {
-        NSLog(@"AceTexture: attachToGLContext failed: params is null");
+        LOGE("AceTexture: attachToGLContext failed: params is null");
         return FAIL;
     }
     self.textureName = [params[@"textureId"] longLongValue];
@@ -104,7 +105,7 @@
 
 - (void)releaseObject
 {
-    NSLog(@"AceTextureReleaseObject");
+    LOGI("AceTextureReleaseObject");
     if (self.videoOutput) {
         self.videoOutput = nil;
     }
@@ -121,7 +122,8 @@
 
 - (void)dealloc
 {
-    NSLog(@"AceTexture->%@ dealloc", self);
+// to do
+    LOGI("AceTexture dealloc");
 }
 
 - (void)markTextureAvailable

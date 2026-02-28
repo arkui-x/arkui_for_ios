@@ -23,6 +23,7 @@
 #import "BridgePluginManager+internal.h"
 #import "BridgeManagerHolder.h"
 #import "ResultValue.h"
+#include "base/log/log.h"
 
 @interface BridgePlugin () {
     BridgeType _bridgeType;
@@ -83,7 +84,7 @@
 
 - (void)callMethod:(MethodData*)method {
     if (!_isAvailable) {
-        NSLog(@"bridgePlugin is available!");
+        LOGE("bridgePlugin is available!");
         return;
     }
 
@@ -130,7 +131,7 @@
             @throw exception;
         }
     } @catch (NSException* exception) {
-        NSLog(@"bridge callMethodSyncInner catch");
+        LOGE("bridge callMethodSyncInner catch");
         [exception raise];
     }
     return resultValue.result;
@@ -167,7 +168,7 @@
 
 - (void)sendMessage:(id)data {
     if (!_isAvailable) {
-        NSLog(@"bridgePlugin is available!");
+        LOGE("bridgePlugin is available!");
         return;
     }
     if (self.type == JSON_TYPE) {
@@ -220,4 +221,5 @@
     return self.bridgeManagerInner;
 }
 
+- (void)onPeerReady {}
 @end
