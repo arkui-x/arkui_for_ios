@@ -91,8 +91,8 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
     if (self) {
         _instanceId = InstanceIdGenerator.getAndIncrement;
         self.instanceName = [NSString stringWithFormat:@"%@:%d", instanceName, _instanceId];
-        NSLog(@"StageVC->%@ init, instanceName is : %@", self, self.instanceName);
-        _cInstanceName = [self getCPPString:self.instanceName];
+        //to do
+        LOGI("StageVC init, instanceName is : %{public}s", [self.instanceName UTF8String]);
         NSArray * nameArray = [self.instanceName componentsSeparatedByString:@":"];
         if (nameArray.count >= 3) {
             self.bundleName = nameArray[0];
@@ -209,7 +209,8 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
     _stageContainerView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     _stageContainerView.notifyDelegate = self;
     self.view.backgroundColor = UIColor.whiteColor;
-    NSLog(@"StageVC->%@ viewDidLoad call.", self);
+    //to do
+    LOGI("StageVC viewDidLoad call.");
     [self initWindowView];
     [self initPlatformPlugin];
     [self initArkUIXPlugin];
@@ -221,7 +222,7 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 }
 
 - (void)saveDumpFile:(NSArray<NSString *> *)dumpParams {
-    NSLog(@"saveDumpFile enter");
+    LOGI("saveDumpFile enter");
 
     std::vector<std::string> dumpParamsVector;
     for (NSString *dumpParam in dumpParams) {
@@ -229,7 +230,7 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
     }
 
     OHOS::Ace::Platform::DumpHelper::Dump(_instanceId, dumpParamsVector);
-    NSLog(@"saveDumpFile finished");
+    LOGI("saveDumpFile finished");
 }
 
 - (BOOL)supportWindowPrivacyMode {
@@ -238,7 +239,8 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 
 - (void)viewDidAppear:(BOOL)animated {
     [super viewDidAppear:animated];
-    NSLog(@"StageVC->%@ viewDidAppear call.", self);
+    //to do
+    LOGI("StageVC viewDidAppear call.");
     if (_platformPlugin) {
         [_platformPlugin notifyLifecycleChanged:false];
     }
@@ -247,7 +249,8 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 - (void)viewWillAppear:(BOOL)animated {
     [super viewWillAppear:animated];
 
-    NSLog(@"StageVC->%@ viewWillAppear call.", self);
+    //to do
+    LOGI("StageVC viewWillAppear call.");
     [self initColorMode];
     if (_needOnForeground) {
         AppMain::GetInstance()->DispatchOnForeground(_cInstanceName);
@@ -260,7 +263,8 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 - (void)viewDidDisappear:(BOOL)animated {
     [super viewDidDisappear:animated];
 
-    NSLog(@"StageVC->%@ viewDidDisappear call.", self);
+    //to do
+    LOGI("StageVC viewDidDisappear call.");
     AppMain::GetInstance()->DispatchOnBackground(_cInstanceName);
     if (_platformPlugin) {
         [_platformPlugin notifyLifecycleChanged:true];
@@ -271,7 +275,8 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 
 - (void)didReceiveMemoryWarning {
     [super didReceiveMemoryWarning];
-    NSLog(@"StageVC->%@ didReceiveMemoryWarning call.", self);
+    //to do
+    LOGI("StageVC didReceiveMemoryWarning call.");
     if (!self.view) {
     // Ability::OnWindowStageDestroy
     }
@@ -279,7 +284,8 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 
 - (void)destroyData {
     if ([UIDevice currentDevice].systemVersion.floatValue >= 18.0) {
-        NSLog(@"iOS 18 StageVC->%@ dealloc destroyData", self);
+        //to do
+        LOGI("iOS 18 StageVC dealloc destroyData");
         [_platformPlugin platformRelease];
         _platformPlugin = nil;
         [_windowView notifySurfaceDestroyed];
@@ -294,7 +300,8 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 }
 
 - (void)dealloc {
-    NSLog(@"StageVC->%@ dealloc", self);
+    //to do
+    LOGI("StageVC dealloc");
     [_windowView notifySurfaceDestroyed];
     [_windowView notifyWindowDestroyed];
     _windowView = nil;
@@ -337,9 +344,10 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 
 - (void)addPlugin:(NSString *)pluginName {
     if (pluginName == nil) {
-        NSLog(@"StageVC->%@ plugin name is nil!", self);
+        //to do
+        LOGI("StageVC plugin name is nil!");
     } else {
-        NSLog(@"StageVC->%@ add plugin: %@", self, pluginName);
+        LOGI("StageVC add plugin: %{public}s", [pluginName UTF8String]);
         [_pluginList addObject:pluginName];
     }
 }

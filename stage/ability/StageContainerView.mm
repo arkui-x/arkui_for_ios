@@ -16,6 +16,7 @@
 #import "StageContainerView.h"
 #import <set>
 #include "StageApplication.h"
+#include "base/log/log.h"
 
 @implementation StageContainerView
 /*
@@ -32,8 +33,8 @@
     return self;
 }
 - (void)showWindow:(WindowView *)window {
-    NSLog(@"showWindow");
-   UIView* aboveView = nullptr;
+    LOGI("%{public}s", "showWindow");
+    UIView* aboveView = nullptr;
     for (UIView* view in self.subviews.reverseObjectEnumerator) {
         if (window.zOrder < ((WindowView *)view).zOrder) {
             aboveView = view;
@@ -118,7 +119,7 @@
 
 - (void)applicationDidEnterBackground:(NSNotification *)notification {
     if (self.notifyDelegate == [StageApplication getApplicationTopViewController]) {
-        NSLog(@"StageContainerView TopViewController applicationDidEnterBackground");
+        LOGI("{public}StageContainerView TopViewController applicationDidEnterBackground");
         [self notifyBackground];
     }
    
@@ -129,7 +130,7 @@
 
 - (void)applicationWillEnterForeground:(NSNotification *)notification {
     if (self.notifyDelegate == [StageApplication getApplicationTopViewController]) {
-        NSLog(@"StageContainerView TopViewController applicationWillEnterForeground");
+        LOGI("{public}StageContainerView TopViewController applicationWillEnterForeground");
         [self notifyForeground];
     }
     if ([self.notifyDelegate respondsToSelector:@selector(notifyApplicationWillEnterForeground)]) {
@@ -209,7 +210,7 @@
 }
 
 - (void)dealloc {
-    NSLog(@"StageContainerView->%@ dealloc",self);
+    LOGI("{public}StageContainerView dealloc");
     self.notifyDelegate = nil;
     [[NSNotificationCenter defaultCenter] removeObserver:self];
 }

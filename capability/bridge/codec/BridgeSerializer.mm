@@ -15,6 +15,7 @@
 #import "BridgeSerializer.h"
 #import "BridgeArray.h"
 #import "BridgeCodecUtil.h"
+#include "base/log/log.h"
 
 uint8_t GetSizeForBridgeType(BridgeArrayType type) {
     switch (type) {
@@ -151,8 +152,9 @@ static bool WriteValueOfType(CFTypeRef writer,
             WriteValueOfNSDictionary(writer, data, value);
             return true;
         case BridgeCodecObjectTypeUnknown:{
-            id objc_value = (__bridge id)value;
-            NSLog(@"BridgeStreamWriter::Unsupported value: %@ of type %@", objc_value, [objc_value class]);
+            // to do: objc_value 可能不是字符串，避免打印对象本身
+            LOGE("BridgeStreamWriter::Unsupported value of type %{public}s",
+                 NSStringFromClass([(__bridge id)value class]).UTF8String);
             return false;
         }
         default:
@@ -175,8 +177,9 @@ static bool WriteValueOfNumber(CFMutableDataRef data, CFTypeRef value) {
         CFNumberRef number = (CFNumberRef)CFArrayGetValueAtIndex(array, i);
         success = BridgeCodecUtilWriteNumberWithSize(data, number, byteSize);
         if (!success) {
-            NSLog(@"BridgeStreamWriter::codec Unsupported value: %@ of number type %ld",
-                value, CFNumberGetType(number));
+            // to do: value 可能不是字符串，避免打印对象本身
+            LOGE("BridgeStreamWriter::codec Unsupported value of number type %{public}ld",
+                 (long)CFNumberGetType(number));
             break;
         }
     }
@@ -202,8 +205,9 @@ static bool WriteValueOfBoolList(CFMutableDataRef data, CFTypeRef value) {
         CFNumberRef number = (CFNumberRef)CFArrayGetValueAtIndex(array, i);
         success = BridgeCodecUtilWriteNumber(data, number);
         if (!success) {
-            NSLog(@"BridgeStreamWriter::codec Unsupported value: %@ of number type %ld",
-                    value, CFNumberGetType(number));
+            // to do: value 可能不是字符串，避免打印对象本身
+            LOGE("BridgeStreamWriter::codec Unsupported value of number type %{public}ld",
+                    (long)CFNumberGetType(number));
             break;
         }
     }
@@ -249,7 +253,7 @@ static void RecursivelyWriteValueOfType(CFTypeRef writer, CFMutableDataRef data,
     if (type != BridgeCodecObjectTypeUnknown) {
         WriteValueOfType(writer, data, type, value);
     } else {
-        NSLog(@"BridgeStreamWriter::List Unsupported value: %u", type);
+        LOGE("BridgeStreamWriter::List Unsupported value: %{public}u", (unsigned)type);
     }
 }
 

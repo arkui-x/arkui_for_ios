@@ -16,6 +16,7 @@
 #import "AceWebResourcePlugin.h"
 #import "AceWeb.h"
 #import "StageViewController.h"
+#include "base/log/log.h"
 
 #define URL_SRC @"src"
 #define PAGE_URL @"pageUrl"
@@ -46,7 +47,7 @@ static NSMutableDictionary<NSString*, AceWeb*> *objectMap;
 
 - (void)addResource:(int64_t)incId web:(AceWeb *)web{
     if (!objectMap) {
-        NSLog(@"AceWebResourcePlugin addResource objectMap is empty");
+        LOGE("AceWebResourcePlugin addResource objectMap is empty");
         objectMap = [[NSMutableDictionary alloc] init];
     }
     [objectMap setObject:web forKey:[NSString stringWithFormat:@"%lld", incId]];
@@ -89,7 +90,7 @@ static NSMutableDictionary<NSString*, AceWeb*> *objectMap;
 }
 
 - (BOOL)release:(NSString *)incId{
-    NSLog(@"AceWebResourcePlugin %s release inceId: %@",__func__,incId);
+    LOGI("AceWebResourcePlugin %{public}s release inceId: %{public}s", __func__, incId.UTF8String);
     AceWeb *web = [objectMap objectForKey:incId];
     if (web) {
         [self unregisterSyncCallMethod:[web getSyncCallMethod]];
@@ -102,7 +103,7 @@ static NSMutableDictionary<NSString*, AceWeb*> *objectMap;
 }
 
 - (void)releaseObject{
-    NSLog(@"AceWebResourcePlugin %s",__func__);
+    LOGI("AceWebResourcePlugin %{public}s", __func__);
     if (objectMap) {
         [objectMap enumerateKeysAndObjectsUsingBlock:^(NSString * _Nonnull key, AceWeb * _Nonnull web, BOOL * _Nonnull stop) {
             if (web) {
@@ -110,10 +111,10 @@ static NSMutableDictionary<NSString*, AceWeb*> *objectMap;
                     [web releaseObject];
                     web = nil;
                 } @catch (NSException *exception) {
-                    NSLog(@"AceWebResourcePlugin releaseObject releaseObject fail");
+                    LOGE("AceWebResourcePlugin releaseObject releaseObject fail");
                 }
-            }else {
-                NSLog(@"AceWebResourcePlugin releaseObject fail web is null");
+            } else {
+                LOGE("AceWebResourcePlugin releaseObject fail web is null");
             }
         }];
         [objectMap removeAllObjects];
@@ -124,6 +125,7 @@ static NSMutableDictionary<NSString*, AceWeb*> *objectMap;
 
 - (void)dealloc
 {
-    NSLog(@"AceWebResourcePlugin->%@ dealloc", self);
+    // to do (self 不是 NSString，移除 %@)
+    LOGI("AceWebResourcePlugin dealloc");
 }
 @end

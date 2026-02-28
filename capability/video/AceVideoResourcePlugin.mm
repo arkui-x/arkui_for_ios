@@ -16,6 +16,7 @@
 #import "AceVideoResourcePlugin.h"
 #import "AceVideo.h"
 #import "AceTexture.h"
+#include "base/log/log.h"
 
 #define KEY_TEXTURE @"texture"
 
@@ -94,7 +95,7 @@
 
 - (BOOL)release:(NSString *)incId
 {
-    NSLog(@"AceVideoResourcePlugin %s release inceId: %@",__func__,incId);
+    LOGI("AceVideoResourcePlugin %{public}s release inceId: %{public}s", __func__, incId.UTF8String);
     AceVideo *video = [self.objectMap objectForKey:incId];
     if (video) {
         [self unregisterSyncCallMethod:[video getSyncCallMethod]];
@@ -108,7 +109,7 @@
 
 - (void)releaseObject
 {
-    NSLog(@"AceVideoResourcePluginReleaseObject %s",__func__);
+    LOGI("AceVideoResourcePluginReleaseObject %{public}s", __func__);
     if (self.objectMap) {
         [self.objectMap enumerateKeysAndObjectsUsingBlock:^(NSString * _Nonnull key,
             AceVideo * _Nonnull video, BOOL * _Nonnull stop) {
@@ -117,10 +118,10 @@
                     [video releaseObject];
                     video = nil;
                 } @catch (NSException *exception) {
-                    NSLog(@"AceVideoResourcePlugin releaseObject releaseObject fail");
+                    LOGE("AceVideoResourcePlugin releaseObject releaseObject fail");
                 }
             } else {
-                NSLog(@"AceVideoResourcePlugin releaseObject fail video is null");
+                LOGE("AceVideoResourcePlugin releaseObject fail video is null");
             }
         }];
         [self.objectMap removeAllObjects];
@@ -130,6 +131,7 @@
 
 - (void)dealloc
 {
-    NSLog(@"AceVideoResourcePlugin->%@ dealloc", self);
+    //to do
+    LOGI("AceVideoResourcePlugin dealloc");
 }
 @end

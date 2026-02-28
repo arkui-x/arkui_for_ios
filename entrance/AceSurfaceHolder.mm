@@ -14,6 +14,7 @@
  */
 
 #import "AceSurfaceHolder.h"
+#include "base/log/log.h"
 
 @implementation AceSurfaceHolder
 
@@ -21,7 +22,7 @@ static NSMutableDictionary<NSString *, CALayer *> *surfaceMap = nil;
 
 + (void)initialize
 {
-    NSLog(@"AceSurfaceHolder initialize");
+    LOGI("AceSurfaceHolder initialize");
     surfaceMap = [[NSMutableDictionary alloc] init];
 }
 
@@ -44,7 +45,8 @@ static NSMutableDictionary<NSString *, CALayer *> *surfaceMap = nil;
     if (![self isValidId:layerId] || !layer) {
         return;
     }
-    NSLog(@"AceSurfaceHolder addLayer:%@  id:%ld", layer, layerId);
+    // to do
+    LOGI("AceSurfaceHolder addLayer id:%{public}ld", layerId);
     
     @synchronized (self) {
         if ([surfaceMap objectForKey:[self formatKeyId:layerId inceId:inceId]]) {

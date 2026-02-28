@@ -555,7 +555,7 @@ void Window::RegisterWillTerminateListener(const NotifyWillTerminateFunc& func)
 
 void Window::NotifyApplicationForeground(bool applicationForeground)
 {
-    NSLog(@"NotifyApplicationForeground: %d", applicationForeground);
+    LOGI("NotifyApplicationForeground: %{public}d", applicationForeground);
     applicationForeground_ = applicationForeground;
 }
 

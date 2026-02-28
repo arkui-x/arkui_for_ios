@@ -70,7 +70,7 @@
 
 - (instancetype)init {
     if (self = [super init]) {
-        NSLog(@"windowView init%@", self);
+        LOGI("windowView init"); // to do (removed non-string %@ self)
         _width = 0;
         _height = 0;
         self.multipleTouchEnabled = YES;
@@ -565,7 +565,7 @@ static int32_t GetModifierKeys(UIKeyModifierFlags modifierFlags) {
         _windowDelegate.lock()->Destroy();
     }
     if (self.displayLinkTouch) {
-        NSLog(@"WindowView notifyWindowDestroyed in");
+        LOGI("WindowView notifyWindowDestroyed in");
         [self stopPausedTimer];
         [self.displayLinkTouch invalidate];
         self.displayLinkTouch = nil;
@@ -665,7 +665,7 @@ static int32_t GetModifierKeys(UIKeyModifierFlags modifierFlags) {
 }
 
 - (void)dealloc {
-    NSLog(@"WindowView->%@ dealloc",self);
+    LOGI("WindowView dealloc"); // to do (removed non-string %@ self)
     [[NSNotificationCenter defaultCenter] removeObserver:self];
     [super dealloc];
 }
@@ -690,7 +690,7 @@ static int32_t GetModifierKeys(UIKeyModifierFlags modifierFlags) {
     self.displayLinkTouch.paused = YES;
     if (@available(iOS 15.0,*)) {
         float maxFrameRate = fmax(mainMaxFrameRate, 60);
-        NSLog(@"startBaseDisplayLink maxFrameRate = %f",maxFrameRate);
+        LOGI("startBaseDisplayLink maxFrameRate = %{public}f", maxFrameRate);
         self.displayLinkTouch.preferredFrameRateRange = CAFrameRateRangeMake(maxFrameRate, maxFrameRate, maxFrameRate);
     } else {
         self.displayLinkTouch.preferredFramesPerSecond = mainMaxFrameRate;

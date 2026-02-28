@@ -55,8 +55,7 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
     static StageConfigurationManager *_configurationManager = nil;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
-        NSLog(@"StageConfigurationManager share instance");
-        _configurationManager = [[StageConfigurationManager alloc] init];
+        LOGI("StageConfigurationManager share instance");
         NSNotificationCenter* center = [NSNotificationCenter defaultCenter];
         [center addObserver:_configurationManager
                    selector:@selector(onfontSizeScale:)
@@ -67,7 +66,7 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
 }
 
 - (void)registConfiguration {
-    NSLog(@"initConfiguration called");
+    LOGI("initConfiguration called");
     UIInterfaceOrientation currentOrientation = [UIApplication sharedApplication].statusBarOrientation;
     [self setDirection:currentOrientation];
     UIUserInterfaceIdiom deviceType = [UIDevice currentDevice].userInterfaceIdiom;
@@ -91,7 +90,7 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
 }
 
 - (void)directionUpdate:(UIInterfaceOrientation)direction {
-    NSLog(@"directionUpdate called");
+    LOGI("directionUpdate called");
     [self setDirection:direction];
     std::string json = [self getJsonString:self.configuration];
     if (json.empty()) {
@@ -101,7 +100,7 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
 }
 
 - (void)colorModeUpdate:(UIUserInterfaceStyle)colorMode {
-    NSLog(@"colorModeUpdate called");
+    LOGI("colorModeUpdate called");
     [self setColorMode:colorMode];
     std::string json = [self getJsonString:self.configuration];
     if (json.empty()) {
@@ -111,7 +110,7 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
 }
 
 - (void)fontSizeScaleUpdate:(CGFloat)fontSizeScale {
-    NSLog(@"fontSizeScaleUpdate called");
+    LOGI("fontSizeScaleUpdate called");
     [self setfontSizeScale:fontSizeScale];
     std::string json = [self getJsonString:self.configuration];
     if (json.empty()) {
@@ -123,7 +122,7 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
 }
 
 - (void)setDirection:(UIInterfaceOrientation)direction {
-    NSLog(@"setDirection, %d", direction);
+    LOGI("setDirection, %{public}d", direction);
     switch (direction) {
         case UIInterfaceOrientationPortrait:
             [self.configuration setObject:DIRECTION_VERTICAL forKey:APPLICATION_DIRECTION];
@@ -213,7 +212,8 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
                                                        options:kNilOptions
                                                          error:&parseError];
     if (parseError) {
-        NSLog(@"parsing failed, code: %ld, message: %@", (long)parseError.code, parseError.userInfo);
+        //to do
+        LOGE("parsing failed, code: %{public}ld", (long)parseError.code);
         return EMPTY_JSON;
     }
     NSString *jsonString = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];

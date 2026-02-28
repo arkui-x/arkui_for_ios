@@ -14,6 +14,7 @@
  */
 
 #import "RenderProgram.h"
+#include "base/log/log.h"
 
 @implementation RenderProgram
 
@@ -34,7 +35,7 @@
         glValidateProgram(filterProgram);
         glGetProgramiv(filterProgram, GL_LINK_STATUS, &status);
         if (status == GL_FALSE) {
-            NSLog(@"link program fail %d",status);
+            LOGE("link program fail %{public}d",status);
             return nil;
         }
     }
@@ -43,14 +44,14 @@
 
 - (BOOL)compileShader:(GLenum)type sString:(NSString*)sString shader:(GLuint*)shaderRet {
     if (sString.length == 0) {
-        NSLog(@"shader is nil");
+        LOGE("shader is nil");
         return NO;
     }
 
     const GLchar *sources = (GLchar*)[sString UTF8String];
     GLuint shader = glCreateShader(type);
     if (shader == 0 || shader == GL_INVALID_ENUM) {
-        NSLog(@"glCreateShader fail");
+        LOGE("glCreateShader fail");
         return NO;
     }
 
@@ -59,7 +60,7 @@
     GLint status;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
     if (status == GL_FALSE) {
-        NSLog(@"compile fail:%d", status);
+        LOGE("compile fail:%{public}d", status);
         return NO;
     }
     *shaderRet = shader;

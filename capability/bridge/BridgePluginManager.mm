@@ -15,6 +15,7 @@
 
 #import "BridgePluginManager.h"
 #import "BridgePluginManager+internal.h"
+#include "base/log/log.h"
 
 @implementation BridgePluginManager
 
@@ -28,7 +29,7 @@
 }
 
 - (void)dealloc {
-    NSLog(@"BridgePluginManager dealloc");
+    LOGI("BridgePluginManager dealloc");
 }
 
 @end

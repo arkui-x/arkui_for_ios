@@ -14,6 +14,7 @@
  */
 
 #import "WantParams.h"
+#include "base/log/log.h"
 
 @implementation WantParams
 
@@ -69,7 +70,7 @@ typedef enum {
         [self.arrWantParams addObject:dic];
         return;
     } else {
-        NSLog(@"WantParams type error");
+        LOGE("WantParams type error");
         return;
     }
     NSDictionary* dic = @{ @"key" : key, @"type" : @(valueType), @"value" : value };
