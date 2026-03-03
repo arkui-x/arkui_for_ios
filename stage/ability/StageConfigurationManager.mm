@@ -56,6 +56,7 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
         LOGI("StageConfigurationManager share instance");
+        _configurationManager = [[StageConfigurationManager alloc] init];
         NSNotificationCenter* center = [NSNotificationCenter defaultCenter];
         [center addObserver:_configurationManager
                    selector:@selector(onfontSizeScale:)

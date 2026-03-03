@@ -93,6 +93,7 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
         self.instanceName = [NSString stringWithFormat:@"%@:%d", instanceName, _instanceId];
         //to do
         LOGI("StageVC init, instanceName is : %{public}s", [self.instanceName UTF8String]);
+        _cInstanceName = [self getCPPString:self.instanceName];
         NSArray * nameArray = [self.instanceName componentsSeparatedByString:@":"];
         if (nameArray.count >= 3) {
             self.bundleName = nameArray[0];
