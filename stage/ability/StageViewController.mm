@@ -212,6 +212,7 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
     self.view.backgroundColor = UIColor.whiteColor;
     //to do
     LOGI("StageVC viewDidLoad call.");
+    [self initColorMode];
     [self initWindowView];
     [self initPlatformPlugin];
     [self initArkUIXPlugin];
@@ -252,7 +253,6 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 
     //to do
     LOGI("StageVC viewWillAppear call.");
-    [self initColorMode];
     if (_needOnForeground) {
         AppMain::GetInstance()->DispatchOnForeground(_cInstanceName);
     }
