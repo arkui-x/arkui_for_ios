@@ -15,7 +15,6 @@
 
 #import <Foundation/Foundation.h>
 #import "AccessibilityWindowView.h"
-#import "AccessibilityDateParse.h"
 
 #include "adapter/ios/osal/mock/accessibility_element_info.h"
 #include "core/accessibility/accessibility_utils.h"
@@ -155,10 +154,6 @@ typedef enum {
         node.nodeWidth, node.nodeHeight);
     if ([node.componentType isEqualToString:COMPONENTTYPE_ROOT]) {
         element.rootId = node.elementId;
-    }
-    NSDate *dateLabel = [AccessibilityDateParse parseDateIfPossible:node.nodeLable];
-    if (dateLabel) {
-        node.nodeLable = [[AccessibilityDateParse sharedOutputFormatter] stringFromDate:dateLabel];
     }
     element.accessibilityDelegate_ = self;
     element.elementId = node.elementId;

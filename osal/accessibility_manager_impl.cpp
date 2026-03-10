@@ -1480,7 +1480,7 @@ void AccessibilityManagerImpl::SendEventToAccessibilityWithNodeInner(
     if ((!frameNode->IsActive()) || frameNode->CheckAccessibilityLevelNo()) {
         return;
     }
-    ProcessAccessibilityEvent(accessibilityEvent, false, static_cast<size_t>(accessibilityEvent.type));
+    ProcessAccessibilityEvent(accessibilityEvent, true, static_cast<size_t>(accessibilityEvent.type));
 }
 
 int64_t AccessibilityManagerImpl::GetDelayTimeBeforeSendEvent(
