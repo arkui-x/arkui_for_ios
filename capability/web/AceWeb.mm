@@ -337,7 +337,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
 -(void)loadUrl:(NSString*)url header:(NSDictionary*) httpHeaders
 {
     if(url == nil){
-        NSLog(@"Error:AceWeb: url is nill");
+        LOGE("Error:AceWeb: url is nill");
         return;
     }
     if ([url hasSuffix:@".html"] && ![url hasPrefix:@"file://"] && ![url hasPrefix:@"http"]) {
@@ -348,10 +348,10 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
         if ([self isJavascriptUrl:url]) {
             NSString *js = [url substringFromIndex:kJavaScriptURLPrefix.length];
             if (js.length > 0) {
-                NSLog(@"AceWeb: load javascript url");
+                LOGI("AceWeb: load javascript url");
                 [self evaluateJavaScript:js callback:nil];
             } else {
-                NSLog(@"Error:AceWeb: javascript url is empty");
+                LOGE("Error:AceWeb: javascript url is empty");
             }
         } else {
             [self.webView loadRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:url]]];
@@ -403,7 +403,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
 
 - (void)evaluateJavaScript:(NSString*)script callback:(void (^)(id _Nullable obj, NSError* _Nullable error))callback
 {
-    NSLog(@"AceWeb: ExecuteJavaScript called");
+    LOGI("AceWeb: ExecuteJavaScript called");
     [self.webView evaluateJavaScript:script
                 completionHandler:^(id _Nullable obj, NSError* _Nullable error) {
                     callback(obj, error);
@@ -438,14 +438,14 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
 - (void)refresh {
     switch (self.lastLoadType) {
         case WebViewLoadTypeURL:
-            NSLog(@"AceWeb refresh WebViewLoadTypeURL");
+            LOGI("AceWeb refresh WebViewLoadTypeURL");
             [self.webView reload];
             break;
             
         case WebViewLoadTypeData:
-            NSLog(@"AceWeb refresh WebViewLoadTypeData");
+            LOGI("AceWeb refresh WebViewLoadTypeData");
             if (self.lastData) {
-                NSLog(@"AceWeb refresh loadData");
+                LOGI("AceWeb refresh loadData");
                 [self loadData:self.lastData
                       mimeType:self.lastMimeType
                       encoding:self.lastEncoding
@@ -454,7 +454,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
             }
             break;
         default:
-            NSLog(@"AceWeb refresh default");
+            LOGI("AceWeb refresh default");
             [self.webView reload];
             break;
     }
@@ -553,7 +553,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
                        username:(NSString*)username
                        password:(NSString*)password
 {
-    NSLog(@"AceWeb: saveHttpAuthCredentials called");
+    LOGI("AceWeb: saveHttpAuthCredentials called");
     if (host == nil || realm == nil || username == nil || password == nil) {
         return false;
     }
@@ -589,7 +589,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
 
 + (bool)existHttpAuthCredentials
 {
-    NSLog(@"AceWeb: existHttpAuthCredentials called");
+    LOGI("AceWeb: existHttpAuthCredentials called");
     NSURLCredentialStorage* store = [NSURLCredentialStorage sharedCredentialStorage];
     if ([[store allCredentials] count] > 0) {
         return true;
@@ -599,7 +599,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
 
 + (bool)deleteHttpAuthCredentials
 {
-    NSLog(@"AceWeb: deleteHttpAuthCredentials called");
+    LOGI("AceWeb: deleteHttpAuthCredentials called");
     NSURLCredentialStorage* store = [NSURLCredentialStorage sharedCredentialStorage];
     if (store == nil) {
         return false;
@@ -713,12 +713,12 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
 
 - (void)postUrl:(NSString*)url postData:(NSData *)postData {
     if (!url) {
-        NSLog(@"Error:AceWeb: url is NULL");
+        LOGE("Error:AceWeb: url is NULL");
         return;
     }
     NSURL *nsUrl = [NSURL URLWithString:url];
     if (!nsUrl) {
-        NSLog(@"Error:AceWeb: nsUrl is NULL");
+        LOGE("Error:AceWeb: nsUrl is NULL");
         return;
     }
     NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:nsUrl];
@@ -925,7 +925,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
                           objName:(NSString*)objName
 {
     if ((syncMethodList == nil && asyncMethodList == nil) || objName == nil) {
-        NSLog(@"Error: AceWeb: registerJavaScriptMethods parameters are nil");
+        LOGE("Error: AceWeb: registerJavaScriptMethods parameters are nil");
         return;
     }
     for (NSString* method in syncMethodList) {
@@ -959,7 +959,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
                 asyncMethodList:(NSArray*)asyncMethodList
                        callback:(id (^)(NSString* objName, NSString* methodName, NSArray* args))callback
 {
-    NSLog(@"registerJavaScriptProxy objName is : %@", objName);
+    LOGI("registerJavaScriptProxy objName is : %{public}s", objName.UTF8String);
     if (!self.jsReady) {
         self.syncMethodList = syncMethodList;
         self.asyncMethodList = asyncMethodList;
@@ -971,7 +971,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
 
 - (void)deleteJavaScriptRegister:(NSString*)objName
 {
-    NSLog(@"deleteJavaScriptRegister objName is : %@", objName);
+    LOGI("deleteJavaScriptRegister objName is : %{public}s", objName.UTF8String);
     NSString* js = [NSString stringWithFormat:@"delete window.%@;", objName];
     [self.webView evaluateJavaScript:js completionHandler:^(id result, NSError* error) {}];
     self.syncMethodList = nil;
@@ -1101,10 +1101,10 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
           } else if (self.viewControllerExitFull && [self.viewControllerExitFull respondsToSelector:NSSelectorFromString(@"doneButtonTapped:")]) {
             [self.viewControllerExitFull performSelector:NSSelectorFromString(@"doneButtonTapped:")];
           } else {
-            NSLog(@"Error: exit button not found");
+            LOGE("Error: exit button not found");
           }
       } @catch (NSException* exception) {
-          NSLog(@"Error: ExitScreen call failed, reason: %@", exception.reason);
+          LOGE("Error: ExitScreen call failed, reason: %{public}s", exception.reason.UTF8String);
       }
     };
     obj->SetFullEnterRequestExitCallback(fullEnterRequestExit_callback);
@@ -1150,7 +1150,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
         }
 
         if ([viewTemp isKindOfClass:NSClassFromString(@"AVMobileChromelessDisplayModeControlsView")]) {
-            NSLog(@"find success");
+            LOGI("find success");
             self.viewExitFullScreen = viewTemp;
             return;
         }
@@ -1174,7 +1174,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
         __strong __typeof(weakSelf)strongSelf = weakSelf;
         if (strongSelf) {
             if(self.allowZoom == isZoomEnable) {
-                NSLog(@"AceWeb: isZoomEnable same");
+                LOGI("AceWeb: isZoomEnable same");
                 return SUCCESS;
             }
             self.allowZoom = isZoomEnable;
@@ -1213,7 +1213,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
         if (strongSelf) {
             bool isJavaScriptEnable = [[param objectForKey:NTC_JAVASCRIPT_ACCESS] boolValue];
             if(self.javascriptAccessSwitch == isJavaScriptEnable) {
-                NSLog(@"AceWeb: javaScriptEnabled same");
+                LOGI("AceWeb: javaScriptEnabled same");
                 return SUCCESS;
             }
             BOOL jsWillOpen = isJavaScriptEnable ? YES : NO;
@@ -1228,7 +1228,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
 
             return SUCCESS;
         } else {
-            NSLog(@"AceWeb: javaScriptAccess fail");
+            LOGE("AceWeb: javaScriptAccess fail");
             return FAIL;
         }
     };
@@ -1250,7 +1250,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
             [strongSelf loadData:data mimeType:type encoding:encodingName baseUrl:@"" historyUrl:@""];
             return SUCCESS;
         } else {
-            NSLog(@"AceWeb: set richText fail");
+            LOGE("AceWeb: set richText fail");
             return FAIL;
         }
     };
@@ -1262,13 +1262,13 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
     __weak __typeof(self) weakSelf = self;
     NSString *layout_method_hash = [self method_hashFormat:@"updateLayout"];
     IAceOnCallSyncResourceMethod layout_callback = ^NSString *(NSDictionary * param){
-        NSLog(@"AceWeb: updateLayout called");
+        LOGI("AceWeb: updateLayout called");
         __strong __typeof(weakSelf)strongSelf = weakSelf;
         if (strongSelf) {
             [strongSelf updateWebLayout:param];
             return SUCCESS;
         } else {
-            NSLog(@"AceWeb: updateLayout fail");
+            LOGE("AceWeb: updateLayout fail");
             return FAIL;
         }
     };
@@ -1287,7 +1287,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
             self.webView.configuration.preferences.minimumFontSize = (minFontSize / 96) * 72;
             return SUCCESS;
         } else {
-            NSLog(@"AceWeb: minFontSize fail");
+            LOGE("AceWeb: minFontSize fail");
             return FAIL;
         }
     };
@@ -1310,7 +1310,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
             }
             return SUCCESS;
         } else {
-            NSLog(@"AceWeb: horizontalScrollBar fail");
+            LOGE("AceWeb: horizontalScrollBar fail");
             return FAIL;
         }
     };
@@ -1334,7 +1334,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
             }
             return SUCCESS;
         } else {
-            NSLog(@"AceWeb: horizontalScrollBar fail");
+            LOGE("AceWeb: horizontalScrollBar fail");
             return FAIL;
         }
     };
@@ -1368,7 +1368,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
             self.webView.scrollView.backgroundColor = [self hexToColor:backgroundColor];
             return SUCCESS;
         } else {
-            NSLog(@"AceWeb: backgroundColor fail");
+            LOGE("AceWeb: backgroundColor fail");
             return FAIL;
         }
     };
@@ -1384,7 +1384,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
             // [strongSelf processCurrentTouchEvent];
             return SUCCESS;
         } else {
-            NSLog(@"AceWeb: updateLayout fail");
+            LOGE("AceWeb: updateLayout fail");
             return FAIL;
         }
     };
@@ -1400,7 +1400,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
             // [strongSelf processCurrentTouchEvent];
             return SUCCESS;
         } else {
-            NSLog(@"AceWeb: touchMove fail");
+            LOGE("AceWeb: touchMove fail");
             return FAIL;
         }
     };
@@ -1416,7 +1416,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
             // [strongSelf processCurrentTouchEvent];
             return SUCCESS;
         } else {
-            NSLog(@"AceWeb: touchUp fail");
+            LOGE("AceWeb: touchUp fail");
             return FAIL;
         }
     };
@@ -1438,7 +1438,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
             }
             return SUCCESS;
         } else {
-            NSLog(@"AceWeb: textZoomRatio fail");
+            LOGE("AceWeb: textZoomRatio fail");
             return FAIL;
         }
     };
@@ -1453,7 +1453,8 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
         textZoomRatio];
     [self.webView evaluateJavaScript:js completionHandler:^(id result, NSError* error) {
         if (error) {
-            NSLog(@"AceWeb: updateTextZoomRatio evaluateJavaScript error: %@", error.localizedDescription);
+            NSString* desc = error.localizedDescription ?: @"";
+            LOGE("AceWeb: updateTextZoomRatio evaluateJavaScript error: %{public}s", desc.UTF8String);
         }
     }];
 }
@@ -1476,7 +1477,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
     NSString*  height =   [paramMap objectForKey:WEBVIEW_HEIGHT];
     
      if(self.webView == nil){
-        NSLog(@"Error:webView is NULL");
+        LOGE("Error:webView is NULL");
         return FAIL;
     }
     
@@ -1491,7 +1492,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
 
 - (void)releaseObject
 {
-    NSLog(@"AceWeb releaseObject");
+    LOGI("AceWeb releaseObject");
     [self.webView removeObserver:self forKeyPath:ESTIMATEDPROGRESS];
     [self.webView removeObserver:self forKeyPath:TITLE];
     [self.webView.configuration.userContentController removeScriptMessageHandlerForName:CONSOLELOG];
@@ -1537,7 +1538,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
 
 - (void)webView:(WKWebView *)webView didFailNavigation:(WKNavigation *)navigation withError:(NSError *)error
 {
-    NSLog(@"didFailNavigation === ");
+    LOGE("didFailNavigation === ");
 }
 
 - (void)webView:(WKWebView *)webView didCommitNavigation:(WKNavigation *)navigation
@@ -1663,7 +1664,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
 - (void)handleAceWebResponse:(id<WKURLSchemeTask>)urlSchemeTask {
     const auto& AceWebResponse = AceWebObjectGetResponse();
     if (!AceWebResponse) {
-        NSLog(@"AceWeb: onInterceptRequest fail");
+        LOGE("AceWeb: onInterceptRequest fail");
         NSError *error = [NSError errorWithDomain:@"onInterceptRequest fail" code:HTTP_STATUS_GATEWAY_TIMEOUT userInfo:nil];
         [urlSchemeTask didFailWithError:error];
         return;
@@ -1672,7 +1673,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
     [self startGCDTimer:^(bool timeout) {
         __strong __typeof(weakSelf)strongSelf = weakSelf;
         if (!strongSelf) {
-            NSLog(@"AceWeb: onInterceptRequest fail");
+            LOGE("AceWeb: onInterceptRequest fail");
             NSError *error = [NSError errorWithDomain:@"onInterceptRequest fail" code:HTTP_STATUS_GATEWAY_TIMEOUT userInfo:nil];
             [urlSchemeTask didFailWithError:error];
             return;
@@ -1970,7 +1971,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
 }
 
 - (void)scrollViewDidEndScrolling:(UIScrollView *)scrollView {
-    NSLog(@"AceWeb: scrollViewDidEndScrolling called");
+    LOGI("AceWeb: scrollViewDidEndScrolling called");
     float x = scrollView.contentOffset.x;
     float y = scrollView.contentOffset.y;
     AceWebOnScrollObject* obj = new AceWebOnScrollObject(x, y);
@@ -2049,7 +2050,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
             NSArray* array = [NSJSONSerialization JSONObjectWithData:jsonData
                                 options:NSJSONReadingMutableContainers error:&error];
             if (!array) {
-                NSLog(@"Failed to parse JSON:: %@", error);
+                LOGE("Failed to parse JSON errorCode: %{public}ld", (long)error.code);
             } else {
                 params = array;
             }
@@ -2083,7 +2084,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
           }
           completionHandler();
       } @catch (NSException* exception) {
-          NSLog(@"Error: alert dialog completionHandler call failed");
+          LOGE("Error: alert dialog completionHandler call failed");
       }
     };
     AceWebDialogObject* obj =
@@ -2093,7 +2094,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
         @try {
             completionHandler();
         } @catch (NSException* exception) {
-            NSLog(@"Error: alert dialog completionHandler call failed");
+            LOGE("Error: alert dialog completionHandler call failed");
         }
     }
 }
@@ -2115,7 +2116,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
           }
           completionHandler(false);
       } @catch (NSException* exception) {
-          NSLog(@"Error: confirm dialog completionHandler call failed");
+          LOGE("Error: confirm dialog completionHandler call failed");
       }
     };
     AceWebDialogObject* obj =
@@ -2126,7 +2127,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
         @try {
             completionHandler(false);
         } @catch (NSException* exception) {
-            NSLog(@"Error: confirm dialog completionHandler call failed");
+            LOGE("Error: confirm dialog completionHandler call failed");
         }
     }
 }
@@ -2151,7 +2152,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
           }
           completionHandler(nil);
       } @catch (NSException* exception) {
-          NSLog(@"Error: prompt dialog completionHandler call failed");
+          LOGE("Error: prompt dialog completionHandler call failed");
       }
     };
     AceWebDialogObject* obj = new AceWebDialogObject(
@@ -2161,7 +2162,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
         @try {
             completionHandler(nil);
         } @catch (NSException* exception) {
-            NSLog(@"Error: prompt dialog completionHandler call failed");
+            LOGE("Error: prompt dialog completionHandler call failed");
         }
     }
 }
@@ -2199,7 +2200,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
           }
           decisionHandler(WKPermissionDecisionPrompt);
       } @catch (NSException* exception) {
-          NSLog(@"Error: request permission completionHandler call failed");
+          LOGE("Error: request permission completionHandler call failed");
       }
     };
     AceWebPermissionRequestObject* obj =
@@ -2210,7 +2211,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
         @try {
             decisionHandler(WKPermissionDecisionPrompt);
         } @catch (NSException* exception) {
-            NSLog(@"Error: request permission completionHandler call failed");
+            LOGE("Error: request permission completionHandler call failed");
         }
     }
 }
@@ -2253,7 +2254,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
           completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, nil);
           return false;
       } @catch (NSException* exception) {
-          NSLog(@"Error: Http auth request completionHandler call failed");
+          LOGE("Error: Http auth request completionHandler call failed");
           return false;
       }
     };
@@ -2265,7 +2266,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
         @try {
             completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, nil);
         } @catch (NSException* exception) {
-            NSLog(@"Error: Http auth request completionHandler call failed");
+            LOGE("Error: Http auth request completionHandler call failed");
         }
     }
 }
@@ -2351,7 +2352,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
             completionHandler(NSURLSessionAuthChallengeUseCredential, credential);
         } @catch (NSException* exception) {
             completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, nil);
-            NSLog(@"AceWeb error: alert dialog confirm call failed");
+            LOGE("AceWeb error: alert dialog confirm call failed");
         }
     };
     SslErrorEventCancelMethod sslErrorEventCancel_callBack = ^void(bool abortLoading) {
@@ -2359,7 +2360,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
             completionHandler(NSURLSessionAuthChallengeRejectProtectionSpace, nil);
         } @catch (NSException* exception) {
             completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, nil);
-            NSLog(@"AceWeb error: alert dialog cancel call failed");
+            LOGE("AceWeb error: alert dialog cancel call failed");
         }
     };
     NSArray *certificateChain = [self getCertificateChainFromTrust:serverTrust];
@@ -2382,7 +2383,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
             @try {
                 completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, nil);
             } @catch (NSException* exception) {
-                NSLog(@"AceWeb error: ssl error event completionHandler call failed");
+                LOGE("AceWeb error: ssl error event completionHandler call failed");
             }
         }
     }
@@ -2402,7 +2403,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
             }
         } @catch (NSException* exception) {
             completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, nil);
-            NSLog(@"AceWeb error: alert dialog completionHandler call failed");
+            LOGE("AceWeb error: alert dialog completionHandler call failed");
         }
     };
     AceWebOnSslErrorEventReceiveEventObject *obj = new AceWebOnSslErrorEventReceiveEventObject(errorCode, certChainData);
@@ -2416,7 +2417,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
         @try {
             completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, nil);
         } @catch (NSException* exception) {
-            NSLog(@"AceWeb error: ssl error event completionHandler call failed");
+            LOGE("AceWeb error: ssl error event completionHandler call failed");
         }
     }
 }
@@ -2434,7 +2435,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
 std::string certificateToDerString(SecCertificateRef cert) {
     CFDataRef derData = SecCertificateCopyData(cert);
     if (!derData) {
-        NSLog(@"AceWeb error: SecCertificateCopyData failed");
+        LOGE("AceWeb error: SecCertificateCopyData failed");
         return "";
     }
     const UInt8 *bytes = CFDataGetBytePtr(derData);

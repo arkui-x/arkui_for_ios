@@ -17,6 +17,7 @@
 #include <sys/_types/_int32_t.h>
 #include "StageViewController.h"
 #include <vector>
+#include "base/log/log.h"
 
 #import "AcePlatformView.h"
 #import "AceTextureHolder.h"
@@ -192,7 +193,7 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
                 return [strongSelf registerPlatformView:param];
             });
         } else {
-            NSLog(@"AcePlatformView: registerPlatformView fail");
+            LOGE("AcePlatformView: registerPlatformView fail");
             return FAIL;
         }
     };
@@ -211,7 +212,7 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
                 return [strongSelf updatelayout:param];
             });
         } else {
-            NSLog(@"AcePlatformView: updatelayout fail");
+            LOGE("AcePlatformView: updatelayout fail");
             return FAIL;
         }
     };
@@ -229,7 +230,7 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
                 return [strongSelf exchangeBind:param];
             });
         } else {
-            NSLog(@"AcePlatformView: exchangeBind fail");
+            LOGE("AcePlatformView: exchangeBind fail");
             return FAIL;
         }
     };
@@ -247,7 +248,7 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
                 return [strongSelf platformViewType:param];
             });
         } else {
-            NSLog(@"AcePlatformView: platformViewType fail");
+            LOGE("AcePlatformView: platformViewType fail");
             return FAIL;
         }
     };
@@ -265,7 +266,7 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
                 return [strongSelf setRotation:param];
             });
         } else {
-            NSLog(@"AcePlatformView: exchangeBind fail");
+            LOGE("AcePlatformView: SetRotation fail");
             return FAIL;
         }
     };
@@ -376,7 +377,7 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
     for (int i = 0; i < 16; i++) {
         NSString *key = [NSString stringWithFormat:@"m%d", i];
         if (!self.pendingTransformMatrixParams[key]) {
-            NSLog(@"AcePlatformView: Transform matrix parameter m%d missing", i);
+            LOGE("AcePlatformView: Transform matrix parameter %{public}d missing", i);
             return;
         }
     }
@@ -512,7 +513,7 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
    }
     NSObject<IPlatformView>* embeddedView = self.curPlatformView;
     if (!embeddedView) {
-        NSLog(@"AcePlatformView: setPlatformView failed: platformView is null");
+        LOGE("AcePlatformView: setPlatformView failed: platformView is null");
         return ;
     }
     UIView* pv = [embeddedView view];
@@ -562,7 +563,7 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
 - (NSString *)registerPlatformView:(NSDictionary *)params
 {
     if (!params) {
-        NSLog(@"AcePlatformView: registerPlatformView failed: params is null");
+        LOGE("AcePlatformView: registerPlatformView failed: params is null");
         return FAIL;
     }
     UIView* platformView = [self getPlatformView];
@@ -604,7 +605,7 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
     dispatch_main_async_safe(^{
         NSObject<IPlatformView>* embeddedView = self.curPlatformView;
         if (!embeddedView) {
-            NSLog(@"AcePlatformView: registerPlatformView failed: platformView is null");
+            LOGE("AcePlatformView: registerPlatformView failed: platformView is null");
             return;
         }
         [_renderView setTextureName:textureName];
@@ -620,7 +621,7 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
     if (self.onEvent) {
         NSString *prepared_method_hash = [NSString stringWithFormat:@"%@%lld%@%@%@%@",
                 PLATFORMVIEW_FLAG, self.id, EVENT, PARAM_EQUALS, @"platformViewReady", PARAM_BEGIN];
-        NSLog(@"[PlatformView] platformViewReady");
+        LOGI("[PlatformView] platformViewReady");
         self.onEvent(prepared_method_hash, @"");
     }
 }
@@ -628,7 +629,7 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
 - (NSString *)updatelayout:(NSDictionary *)params
 {
     if (!params) {
-        NSLog(@"AcePlatformView: setSurface failed: params is null");
+        LOGE("AcePlatformView: setSurface failed: params is null");
         return FAIL;
     }
 
@@ -656,7 +657,7 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
         }
         [self applyPendingTransformations:platformView];
     } @catch (NSException *exception) {
-        NSLog(@"AcePlatformView: IOException, updatelayout failed");
+        LOGE("AcePlatformView: IOException, updatelayout failed");
         return FAIL;
     }
     return SUCCESS;
@@ -698,7 +699,7 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
 
     NSObject<IPlatformView>* embeddedView = self.curPlatformView;
     if (!embeddedView) {
-        NSLog(@"AcePlatformView: register failed: platformView is null");
+        LOGE("AcePlatformView: register failed: platformView is null");
         return;
     }
     UIView* platformView = [embeddedView view];
@@ -771,7 +772,7 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
     self.attachCallbackHandler = nil;
     NSObject<IPlatformView>* embeddedView = self.curPlatformView;
     if (!embeddedView) {
-        NSLog(@"AcePlatformView: releaseObject failed: platformView is null");
+        LOGE("AcePlatformView: releaseObject failed: platformView is null");
         return;
     }
 
@@ -802,7 +803,7 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
 {
     if (self.displayLink) {
         self.displayLink.paused = NO;
-        NSLog(@"AcePlatformView displayLink resume.");
+        LOGI("AcePlatformView displayLink resume.");
     }
 }
 
@@ -810,7 +811,7 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
 {
     if (self.displayLink) {
         self.displayLink.paused = YES;
-        NSLog(@"AcePlatformView displayLink paused.");
+        LOGI("AcePlatformView displayLink paused.");
     }
 }
 

@@ -19,7 +19,7 @@
 
 + (id)objectWithJSONString:(NSString*)jsonString {
     if (!jsonString.length) {
-        NSLog(@"no jsonString");
+        LOGE("no jsonString");
         return nil;
     }
     NSData* jsonData = [jsonString dataUsingEncoding:NSUTF8StringEncoding];
@@ -28,7 +28,7 @@
                                                 options:kNilOptions
                                                 error:&error];
     if (error) {
-        NSLog(@"json -> objct faild, error : %@", error);
+        LOGE("json -> objct failed: %{public}d" ,error.code);
         return nil;
     }
     
@@ -38,19 +38,18 @@
 + (NSString*)jsonStringWithObject:(id)object {
 
     if (![NSJSONSerialization isValidJSONObject:object]) {
-        NSLog(@"objct -> json faild, object is not valid");
+        LOGE("objct -> json failed, object is not valid");
         return nil;
     }
 
     NSError* error;
     NSData* jsonData = [NSJSONSerialization dataWithJSONObject:object
-                                                        options:kNilOptions
-                                                        error:&error];
-
+                                                       options:kNilOptions
+                                                         error:&error];
     NSString* json = [[NSString alloc] initWithData:jsonData
-                                            encoding:NSUTF8StringEncoding];
+                                           encoding:NSUTF8StringEncoding];
     if (error) {
-        NSLog(@"objc -> json faild, error: %@", error);
+        LOGE("objc -> json failed: %{public}d" ,error.code);
         return nil;
     }
     return json;

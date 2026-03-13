@@ -20,6 +20,7 @@
 
 #import "RenderProgram.h"
 #include "securec.h"
+#include "base/log/log.h"
 
 #define COLOR_NUMBER 8
 #define DATA_SIZE 4
@@ -120,14 +121,14 @@ static GLfloat texArray[] = {
     }
     void* bufferData = malloc(space);
     if (bufferData == NULL) {
-        NSLog(@"%s error: malloc bufferData failed", __func__);
+        LOGE("%{public}s error: malloc bufferData failed", __func__);
         return;
     }
     errno_t result = memset_s(bufferData, space, 0x00, space);
     if (result != 0) {
         free(bufferData);
         bufferData = NULL;
-        NSLog(@"%s error: memset_s failed", __func__);
+        LOGE("%{public}s error: memset_s failed", __func__);
         return;
     }
     if ([EAGLContext currentContext] != _context) {
@@ -196,7 +197,7 @@ static GLfloat texArray[] = {
     if (self.program && self.program != nil) {
         [self.program use];
     } else {
-        NSLog(@"%s error: program wrong!", __func__);
+        LOGE("%{public}s error: program wrong!", __func__);
         return;
     }
     GLuint positionAttrib = [self.program attribLocationForName:@"position"];
@@ -229,12 +230,12 @@ static GLfloat texArray[] = {
     if (imageDatas[index] == NULL) {
         imageDatas[index] = malloc(space);
         if (imageDatas[index] == NULL) {
-            NSLog(@"%s error: malloc imageDatas failed", __func__);
+            LOGE("%{public}s error: malloc imageDatas failed", __func__);
             return false;
         }
         errno_t result = memset_s(imageDatas[index], space, 0x00, space);
         if (result != 0) {
-            NSLog(@"%s error: memset_s failed", __func__);
+            LOGE("%{public}s error: memset_s failed", __func__);
         }
     }
     CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
@@ -251,12 +252,12 @@ static GLfloat texArray[] = {
 - (void)startRenderXComponent:(UIView*)view
 {
     if (!view || !renderQueue) {
-        NSLog(@"error: view no found");
+        LOGE("error: view no found");
         return;
     }
     if (!tContexts[currentBufferIndex]) {
         if (![self createContext:currentBufferIndex]) {
-            NSLog(@"error: create context Failed");
+            LOGE("error: create context Failed");
             return;
         }
     }
@@ -265,7 +266,7 @@ static GLfloat texArray[] = {
                                    afterScreenUpdates:NO];
     UIGraphicsPopContext();
     if (!isDrawFinish) {
-        NSLog(@"error: drawViewHierarchyInRect Failed");
+        LOGE("error: drawViewHierarchyInRect Failed");
         return;
     }
     int updateindex = currentBufferIndex;

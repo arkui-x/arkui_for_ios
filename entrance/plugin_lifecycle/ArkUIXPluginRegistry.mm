@@ -15,6 +15,7 @@
 
 #import "ArkUIXPluginRegistry.h"
 #import "PluginContext.h"
+#include "base/log/log.h"
 
 @interface ArkUIXPluginRegistry () {
     PluginContext *_pluginContext;
@@ -34,22 +35,22 @@
 }
 
 - (void)registryPlugin:(NSString *)name {
-    NSLog(@"ArkUIXPluginRegistry->%@ registry plugin: %@", self, name);
+    LOGI("ArkUIXPluginRegistry registry plugin: %{public}s", [name UTF8String]);
     Class PluginClass = NSClassFromString(name);
     if (PluginClass == Nil) {
-        NSLog(@"ArkUIXPluginRegistry->%@ pluginClass do not found", self);
+        LOGE("ArkUIXPluginRegistry pluginClass do not found");
         return;
     } 
     id<IArkUIXPlugin> plugin = (id<IArkUIXPlugin>)[[PluginClass alloc] init];
     if (plugin == nil) {
-        NSLog(@"ArkUIXPluginRegistry->%@ plugin do not exist", self);
+        LOGE("ArkUIXPluginRegistry plugin do not exist");
     } else if (![plugin conformsToProtocol:@protocol(IArkUIXPlugin)]) {
-        NSLog(@"ArkUIXPluginRegistry->%@ plugin not follow IArkUIXPlugin Protocal", self);
+        LOGE("ArkUIXPluginRegistry plugin not follow IArkUIXPlugin Protocal");
     } else {
         if ([self hasPlugin:name]) {
-            NSLog(@"ArkUIXPluginRegistry->%@ plugin: %@ already registered", self, name);
+            LOGI("ArkUIXPluginRegistry plugin: %{public}s already registered", [name UTF8String]);
         } else {
-            NSLog(@"ArkUIXPluginRegistry->%@ plugin: %@ is successfully registered", self, name);
+            LOGI("ArkUIXPluginRegistry plugin: %{public}s is successfully registered", [name UTF8String]);
             @synchronized (self) {
                 [self.pluginDictionary setObject:plugin forKey:name];
             }
@@ -67,7 +68,7 @@
 - (void)unRegistryPlugin:(NSString *)name {
     id<IArkUIXPlugin> plugin = self.pluginDictionary[name];
     if (plugin != nil) {
-        NSLog(@"ArkUIXPluginRegistry->%@ unRegistry Plugin %@", self, name);
+        LOGI("ArkUIXPluginRegistry unRegistry Plugin %{public}s", [name UTF8String]);
         [plugin onUnRegistry:_pluginContext];
         @synchronized (self) {
             [self.pluginDictionary removeObjectForKey:name];
@@ -98,7 +99,7 @@
     if ([self hasPlugin:name]) {
         return self.pluginDictionary[name];
     }
-    NSLog(@"ArkUIXPluginRegistry->%@ get plugin: %@ failed!", self, name);
+    LOGE("ArkUIXPluginRegistry get plugin: %{public}s failed!", [name UTF8String]);
     return nil;
 }
 
@@ -112,6 +113,6 @@
 }
 
 - (void)dealloc {
-    NSLog(@"ArkUIXPluginRegistry->%@ dealloc", self);
+    LOGI("ArkUIXPluginRegistry dealloc");
 }
 @end

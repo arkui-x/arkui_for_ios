@@ -22,6 +22,8 @@
 #import "AceSurfaceHolder.h"
 #import "WindowView.h"
 #import "StageViewController.h"
+#include "base/log/log.h"
+
 @interface AceSurfaceView (){
     BOOL _viewAdded;
     BOOL _isLock;
@@ -64,7 +66,7 @@
     delegate:(id<IAceSurface>)delegate
 {
     if (self = [super init]) {
-        NSLog(@"AceSurfaceView: init initParam: %@  incId: %lld",initParam,incId);
+        LOGI("AceSurfaceView: init instanceId: %{public}lld  incId: %{public}lld", abilityInstanceId,incId);
         self.incId = incId;
         self.instanceId = abilityInstanceId;
         self.callback = callback;
@@ -80,7 +82,7 @@
             if (weakSelf) {
                 return [weakSelf setSurfaceBounds:param];
             } else {
-                 NSLog(@"AceSurfaceView: setSurfaceBounds fail");
+                 LOGE("AceSurfaceView: setSurfaceBounds fail");
                  return FAIL;
             }
            
@@ -91,7 +93,7 @@
             if (weakSelf) {
                 return [weakSelf setAttachNativeWindow:param];
             } else {
-                 NSLog(@"AceSurfaceView: callAttachNativeWindow fail");
+                 LOGE("AceSurfaceView: callAttachNativeWindow fail");
                  return FAIL;
             }
         };
@@ -101,7 +103,7 @@
             if (weakSelf) {
                 return [weakSelf setSurfaceRotation:param];
             } else {
-                 NSLog(@"AceSurfaceView: callSetSurfaceRotation fail");
+                 LOGE("AceSurfaceView: callSetSurfaceRotation fail");
                  return FAIL;
             }
         };
@@ -111,7 +113,7 @@
             if (weakSelf) {
                 return [weakSelf setSurfaceRect:param];
             } else {
-                 NSLog(@"AceSurfaceView: callsetSurfaceRect fail");
+                 LOGE("AceSurfaceView: callsetSurfaceRect fail");
                  return FAIL;
             }
         };
@@ -178,7 +180,7 @@
             
         }
     } @catch (NSException* exception) {
-        NSLog(@"AceSurfaceView NumberFormatException, setSurfaceSize failed");
+        LOGE("AceSurfaceView NumberFormatException, setSurfaceSize failed");
         return FAIL;
     }
     return SUCCESS;
@@ -187,16 +189,16 @@
 - (NSString*)setAttachNativeWindow:(NSDictionary*)params
 {
     if (!self.surfeceDelegate) {
-        NSLog(@"AceSurfaceView IAceSurface is null");
+        LOGE("AceSurfaceView IAceSurface is null");
         return FAIL;
     }
     if (![self.surfeceDelegate respondsToSelector:@selector(attachNaitveSurface:)]) {
-        NSLog(@"AceSurfaceView IAceSurface attachNaitveSurface null");
+        LOGE("AceSurfaceView IAceSurface attachNaitveSurface null");
         return FAIL;
     }
     uintptr_t nativeWindow = [self.surfeceDelegate attachNaitveSurface:self.layer];
     if (nativeWindow == 0) {
-        NSLog(@"AceSurfaceView Surface nativeWindow: null");
+        LOGE("AceSurfaceView Surface nativeWindow: null");
         return FAIL;
     }
     NSDictionary * param = @{@"nativeWindow": [NSString stringWithFormat:@"%ld",(long)nativeWindow]};
@@ -231,7 +233,7 @@
             sublayer.frame = surfaceRect;
         }
     } @catch (NSException* exception) {
-        NSLog(@"AceSurfaceView NumberFormatException, setSurfaceSize failed");
+        LOGE("AceSurfaceView NumberFormatException, setSurfaceSize failed");
         return FAIL;
     }
     return SUCCESS;
@@ -350,7 +352,7 @@
 - (void)releaseObject
 {
     @try {
-        NSLog(@"AceSurfaceView releaseObject");
+        LOGI("AceSurfaceView releaseObject");
         if (_viewAdded) {
             _viewAdded = false;
         }
@@ -369,13 +371,13 @@
         self.callback = nil;
         
     } @catch (NSException* exception) {
-        NSLog(@"AceSurfaceView releaseObject failed");
+        LOGE("AceSurfaceView releaseObject failed");
     }
 }
 
 - (void)dealloc
 {
-    NSLog(@"AceSurfaceView->%@ dealloc", self);
+    LOGI("AceSurfaceView dealloc instanceId: %{public}lld", self.instanceId);
 }
 
 @end

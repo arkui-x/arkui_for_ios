@@ -32,18 +32,18 @@ static bool g_isOnBackground = false;
 
 #pragma mark - publice
 + (void)configModuleWithBundleDirectory:(NSString *_Nonnull)bundleDirectory {
-    NSLog(@"%s bundleDirectory : %@", __func__, bundleDirectory);
+    LOGI("%{public}s bundleDirectory : %{public}s", __func__, [bundleDirectory UTF8String]);
     [[StageAssetManager assetManager] moduleFilesWithbundleDirectory:bundleDirectory];
     OHOS::AbilityRuntime::Platform::AppMain::GetInstance()->SetResourceFilePrefixPath();
 }
 
 + (void)launchApplication {
-    NSLog(@"%s", __FUNCTION__);
+    LOGI("%{public}s", __FUNCTION__);
     [self initApplication:YES];
 }
 
 + (void)launchApplicationWithoutUI {
-    NSLog(@"%s", __FUNCTION__);
+    LOGI("%{public}s", __FUNCTION__);
     [self initApplication:NO];
 }
 
@@ -92,13 +92,13 @@ static bool g_isOnBackground = false;
                 std::string timeoutString = [timeout UTF8String];
                 AppMain::GetInstance()->PrepareAbilityDelegator(bundleNameString, moduleNameString, unittestString, timeoutString);
             } else {
-                NSLog(@"%s, No need to start creating abilityDelegate", __FUNCTION__);
+                LOGI("%{public}s, No need to start creating abilityDelegate", __FUNCTION__);
             }
         }
     } @catch (NSException *exception) {
-        NSLog(@"NSException %@",exception);
+        LOGE("NSException name: %{public}s", [exception.name UTF8String]);
     } @finally {
-        NSLog(@"%s, failed . arguments is %@", __FUNCTION__, arguments);
+        LOGE("%{public}s, failed .arraySize=%{public}lu", __FUNCTION__, (unsigned long)arguments.count);
     }
 }
 
@@ -129,7 +129,7 @@ static bool g_isOnBackground = false;
 + (void)setPidAndUid {
     int pid = [[NSProcessInfo processInfo] processIdentifier];
     int32_t uid = 0;
-    NSLog(@"%s pid : %d", __func__, pid);
+    LOGI("%{public}s pid : %{public}d", __func__, pid);
     OHOS::AbilityRuntime::Platform::AppMain::GetInstance()->SetPidAndUid(pid, uid);
 }
 
@@ -170,7 +170,7 @@ static bool g_isOnBackground = false;
         country = [array[2] UTF8String];
         script = [array[1] UTF8String];
     }
-    NSLog(@"%s, language : %s, country : %s script : %s",
+    LOGI("%{public}s, language : %{public}s, country : %{public}s script : %{public}s",
         __FUNCTION__, language.c_str(), country.c_str(), script.c_str());
     OHOS::AbilityRuntime::Platform::StageApplicationInfoAdapter::GetInstance()->SetLocale(language, country, script);
 }
@@ -199,7 +199,7 @@ static bool g_isOnBackground = false;
     g_isOnBackground = false;
     StageViewController *topVC = [self getApplicationTopViewController];
     if (![topVC isKindOfClass:[StageViewController class]]) {
-        NSLog(@"callCurrentAbilityOnForeground is Not StageVC");
+        LOGI("callCurrentAbilityOnForeground is Not StageVC");
         return;
     }
     NSString *instanceName = topVC.instanceName;
@@ -207,7 +207,7 @@ static bool g_isOnBackground = false;
         std::string cppInstanceName = [instanceName UTF8String];
         AppMain::GetInstance()->DispatchOnForeground(cppInstanceName);
     }
-    NSLog(@"%s, instanceName : %@", __FUNCTION__, instanceName);
+    LOGI("%{public}s, instanceName : %{public}s", __FUNCTION__, [instanceName UTF8String]);
 }
 
 + (void)callCurrentAbilityOnBackground {
@@ -217,7 +217,7 @@ static bool g_isOnBackground = false;
     g_isOnBackground = true;
     StageViewController *topVC = [self getApplicationTopViewController];
     if (![topVC isKindOfClass:[StageViewController class]]) {
-        NSLog(@"callCurrentAbilityOnBackground is Not StageVC");
+        LOGI("callCurrentAbilityOnBackground is Not StageVC");
         return;
     }
     NSString *instanceName = topVC.instanceName;
@@ -225,7 +225,7 @@ static bool g_isOnBackground = false;
         std::string cppInstanceName = [instanceName UTF8String];
         AppMain::GetInstance()->DispatchOnBackground(cppInstanceName);
     }
-    NSLog(@"%s, instanceName : %@", __FUNCTION__, instanceName);
+    LOGI("%{public}s, instanceName : %{public}s", __FUNCTION__, [instanceName UTF8String]);
 }
 
 + (BOOL)handleSingleton:(NSString *)bundleName moduleName:(NSString *)moduleName abilityName:(NSString *)abilityName {
@@ -234,10 +234,10 @@ static bool g_isOnBackground = false;
         return NO;
     }
     NSString *singleName = [NSString stringWithFormat:@"%@:%@:%@", bundleName, moduleName, abilityName];
-    NSLog(@"%s, singleName is %@", __func__, singleName);
+    LOGI("%{public}s, singleName is %{public}s", __func__, [singleName UTF8String]);
     StageViewController *topVC = [self getApplicationTopViewController];
     if (![topVC isKindOfClass:[StageViewController class]]) {
-        NSLog(@"handleSingleton is Not StageVC");
+        LOGI("handleSingleton is Not StageVC");
         return NO;
     }
     if ([topVC.instanceName containsString:singleName]) {
@@ -267,14 +267,14 @@ static bool g_isOnBackground = false;
 + (void)releaseViewControllers {
     StageViewController *topVC = [StageApplication getApplicationTopViewController];
     if (![topVC isKindOfClass:[StageViewController class]]) {
-        NSLog(@"releaseViewControllers is Not StageVC");
+        LOGI("releaseViewControllers is Not StageVC");
         return;
     }
     NSMutableArray *controllerArr = [[NSMutableArray alloc] initWithArray:topVC.navigationController.viewControllers];
     int size = controllerArr.count;
     NSString *instanceName = topVC.instanceName;
     if (instanceName.length) {
-        NSLog(@"%s, instanceName : %@", __FUNCTION__, instanceName);
+        LOGI("%{public}s, instanceName : %{public}s", __FUNCTION__, [instanceName UTF8String]);
         for (int i = size - 1; i >= 0; i--) {
             UIViewController *viewController = controllerArr[i];
             if ([viewController isKindOfClass:[StageViewController class]]) {
@@ -302,7 +302,7 @@ static bool g_isOnBackground = false;
             UITabBarController *tab = (UITabBarController *)topViewController;
             topViewController = tab.selectedViewController;
         } else if (topViewController.childViewControllers.count > 0) {
-            NSLog(@"topViewController has childViewControllers");
+            LOGI("topViewController has childViewControllers");
             UIViewController *foundChild = nil;
             for (UIViewController *childVC in topViewController.childViewControllers.reverseObjectEnumerator) {
                 if (childVC.isViewLoaded && childVC.view.window) {
@@ -311,10 +311,10 @@ static bool g_isOnBackground = false;
                 }
             }
             if (foundChild) {
-                NSLog(@"topViewController is a child view controller, class: %@", foundChild.class);
+                LOGI("topViewController is a child view controller");
                 topViewController = foundChild;
             } else {
-                NSLog(@"topViewController is a container view controller, class: %@", topViewController.class);
+                LOGI("topViewController is a container view controller");
                 break;
             }
         } else {
@@ -385,27 +385,27 @@ static bool g_isOnBackground = false;
 
 - (void)print:(NSString *)msg {
     if (msg.length >= 1000) {
-        NSLog(@"print: The total length of the message exceed 1000 characters.");
+        LOGI("print: The total length of the message exceed 1000 characters.");
     } else {
-        NSLog(@"print: %@",msg);
+        LOGI("print: %{public}s", [msg UTF8String]);
     }
 }
 
 - (void)printSync:(NSString *)msg {
     if (msg.length >= 1000) {
-        NSLog(@"printSync: The total length of the message exceed 1000 characters.");
+        LOGI("printSync: The total length of the message exceed 1000 characters.");
     } else {
-        NSLog(@"printSync: %@",msg);
+        LOGI("printSync: %{public}s", [msg UTF8String]);
     }
 }
 
 - (int)finishTest {
-    NSLog(@"TestFinished-ResultMsg: your test finished!!!");
+    LOGI("TestFinished-ResultMsg: your test finished!!!");
     int error = 0;
     @try {
        exit(0);
     } @catch (NSException *exception) {
-        NSLog(@"TestFinished-ResultMsg: %@",exception);
+        LOGE("TestFinished-ResultMsg exceptionName=%{public}s", [exception.name UTF8String]);
         error = 1;
     } @finally {
         return error;
@@ -415,11 +415,11 @@ static bool g_isOnBackground = false;
 + (void)preloadEtsModule:(NSString *)moduleName country:(NSString *)abilityName
 {
     if (moduleName == nil || moduleName.length == 0) {
-        NSLog(@"moduleName is null");
+        LOGE("moduleName is null");
         return;
     }
     if (abilityName == nil || abilityName.length == 0) {
-        NSLog(@"abilityName is null");
+        LOGE("abilityName is null");
         return;
     }
     AppMain::GetInstance()->PreloadModule([moduleName UTF8String], [abilityName UTF8String]);
@@ -427,23 +427,23 @@ static bool g_isOnBackground = false;
 
 + (void)loadModule:(NSString *)moduleName entryFile:(NSString *)entryFile {
     if (moduleName == nil || moduleName.length == 0) {
-        NSLog(@"load module error: moduleName is null.");
+        LOGE("load module error: moduleName is null.");
         return;
     }
     if (entryFile == nil || entryFile.length == 0) {
-        NSLog(@"load module error: path is null.");
+        LOGE("load module error: path is null.");
         return;
     }
     NSError *error = nil;
     NSRegularExpression *regex = [NSRegularExpression
                                     regularExpressionWithPattern:kEtsPathRegexPattern options:0 error:&error];
     if (error) {
-        NSLog(@"load module error: %@", error.localizedDescription);
+        LOGE("load module error: %{public}s", [error.localizedDescription UTF8String]);
         return;
     }
     NSUInteger matches = [regex numberOfMatchesInString:entryFile options:0 range:NSMakeRange(0, entryFile.length)];
     if (matches == 0) {
-        NSLog(@"load module error: path is invalid.");
+        LOGE("load module error: path is invalid.");
         return;
     }
     AppMain::GetInstance()->LoadModule([moduleName UTF8String], [entryFile UTF8String]);

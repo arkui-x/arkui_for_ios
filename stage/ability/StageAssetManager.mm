@@ -47,7 +47,7 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
     static StageAssetManager *_assetManager = nil;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
-        NSLog(@"StageManager share instance");
+        LOGI("StageManager share instance");
         _assetManager = [[StageAssetManager alloc] init];
     });
     return _assetManager;
@@ -57,7 +57,7 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
     NSError *error = nil;
     NSMutableArray *files = [[NSMutableArray alloc] init];
     NSString *bundlePath = [NSString stringWithFormat:@"%@/%@", [NSBundle mainBundle].bundlePath, bundleDirectory];
-    NSLog(@"%s, \n bundlePath is : %@", __func__, bundlePath);
+    LOGI("%{public}s, \n bundlePath is : %{public}s", __func__, [bundlePath UTF8String]);
     self.bundlePath = bundlePath;
     NSArray *moduleArray = [[NSFileManager defaultManager] subpathsOfDirectoryAtPath:bundlePath error:&error];
     if (!error && moduleArray.count > 0) {
@@ -78,7 +78,7 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
             }
         }
     }
-    NSLog(@"%s, all files count : %lu", __func__, (unsigned long)files.count);
+    LOGI("%{public}s, all files count : %{public}lu", __func__, (unsigned long)files.count);
     @synchronized (self) {
         [self.allModuleFilePathArray addObjectsFromArray:files.copy];
         NSOrderedSet *orderedSetAll = [NSOrderedSet orderedSetWithArray:self.allModuleFilePathArray];
@@ -91,7 +91,7 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
 
     BOOL isCreatFiles = [self createDocumentSubDirectoryAtPath:DOCUMENTS_SUBDIR_FILES];
     BOOL isCreatDatabase = [self createDocumentSubDirectoryAtPath:DOCUMENTS_SUBDIR_DATABASE];
-    NSLog(@"isCreatFiles : %d, isCreatDatabase : %d", isCreatFiles, isCreatDatabase);
+    LOGI("isCreatFiles : %{public}d, isCreatDatabase : %{public}d", isCreatFiles, isCreatDatabase);
 }
 
 - (NSData *)updateModuleNameWithJsonData:(NSData *)data moduleJsonPath:(NSString *)moduleJsonPath
@@ -127,7 +127,7 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
 }
 
 - (void)launchAbility:(BOOL)isLoadArkUI {
-    NSLog(@"%s", __func__);
+    LOGI("%{public}s", __func__);
     AppMain::GetInstance()->LaunchApplication(true, isLoadArkUI);
 }
 
@@ -139,13 +139,13 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
 }
 
 - (NSString *_Nullable)getBundlePath {
-    NSLog(@"%s", __func__);
+    LOGI("%{public}s", __func__);
     return self.bundlePath;
 }
 
 - (NSArray *_Nullable)getAssetAllFilePathList {
     @synchronized (self) {
-        NSLog(@"%s, \n all asset file list size: %ld", __func__, self.allModuleFilePathArray.count);
+        LOGI("%{public}s, \n all asset file list size: %{public}ld", __func__, self.allModuleFilePathArray.count);
         return self.allModuleFilePathArray.copy;
     }
 }
@@ -158,7 +158,7 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
 
 - (NSArray *_Nullable)getModuleJsonFileList {
     @synchronized (self) {
-        NSLog(@"%s, \n modulejson file list : %@", __func__, self.moduleJsonFileArray);
+        LOGI("%{public}s, \n modulejson file list", __func__);
         return self.moduleJsonFileArray.copy;
     }
 }
@@ -166,12 +166,12 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
 - (NSString *_Nullable)getAbilityStageABCWithModuleName:(NSString *)moduleName
                                              modulePath:(NSString **)modulePath 
                                                esmodule:(BOOL)esmodule {
-    NSLog(@"%s, moduleName : %@", __func__, moduleName);
+    LOGI("%{public}s, moduleName : %{public}s", __func__, [moduleName UTF8String]);
     if (!moduleName.length) {
         return nil;
     }
     if (!self.allModuleFilePathArray.count) {
-        NSLog(@"%s, allModuleFilePathArray null", __func__);
+        LOGI("%{public}s, allModuleFilePathArray null", __func__);
         return nil;
     }
 
@@ -180,7 +180,8 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
     for (NSString *path in array) {
         if ([path containsString:[NSString stringWithFormat:@"/%@/", moduleName]]
             && [path containsString:moduleString]) {
-            NSLog(@"%s, moduleName : %@, \n AbilityStage.abc  : %@", __func__, moduleName, path);
+            LOGI("%{public}s, moduleName : %{public}s, \n AbilityStage.abc  : %{public}s",
+                __func__, [moduleName UTF8String], [path UTF8String]);
             *modulePath = path;
             return path;
         }
@@ -192,12 +193,13 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
                                              abilityName:(NSString *)abilityName
                                               modulePath:(NSString **)modulePath
                                                 esmodule:(BOOL)esmodule {
-    NSLog(@"%s, moduleName : %@, abilityName : %@", __func__, moduleName, abilityName);
+    LOGI("%{public}s, moduleName : %{public}s, abilityName : %{public}s",
+        __func__, [moduleName UTF8String], [abilityName UTF8String]);
     if (!moduleName.length || !abilityName.length) {
         return nil;
     }
     if (!self.allModuleFilePathArray.count) {
-        NSLog(@"%s, allModuleFilePathArray null", __func__);
+        LOGI("%{public}s, allModuleFilePathArray null", __func__);
         return nil;
     }
 
@@ -207,7 +209,8 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
             if ([path containsString:[NSString stringWithFormat:@"/%@/", moduleName]]
                 && [path containsString:abilityName]
                 && [path containsString:FILTER_FILE_MODULE_ABC]) {
-                NSLog(@"%s, moduleName : %@, abilityName : %@, \n path : %@", __func__, moduleName, abilityName, path);
+                LOGI("%{public}s, moduleName : %{public}s, abilityName : %{public}s, \n path : %{public}s",
+                    __func__, [moduleName UTF8String], [abilityName UTF8String], [path UTF8String]);
                 *modulePath = path;
                 return path;
             }
@@ -216,7 +219,8 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
         for (NSString *path in array) {
         if ([path containsString:[NSString stringWithFormat:@"/%@/", moduleName]]
                 && [path containsString:MODULE_STAGE_ABC_NAME]) {
-                NSLog(@"%s, moduleName : %@, abilityName : %@, \n path : %@", __func__, moduleName, abilityName, path);
+                LOGI("%{public}s, moduleName : %{public}s, abilityName : %{public}s, \n path : %{public}s",
+                    __func__, [moduleName UTF8String], [abilityName UTF8String], [path UTF8String]);
                 *modulePath = path;
                 return path;
             }
@@ -228,12 +232,12 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
 - (void)getModuleResourcesWithModuleName:(NSString *)moduleName
                          appResIndexPath:(NSString **)appResIndexPath
                          sysResIndexPath:(NSString **)sysResIndexPath {
-    NSLog(@"%s, moduleName : %@", __func__, moduleName);
+    LOGI("%{public}s, moduleName : %{public}s", __func__, [moduleName UTF8String]);
     if (!moduleName.length) {
         return;
     }
     if (!self.allModuleFilePathArray.count) {
-        NSLog(@"%s, allModuleFilePathArray null", __func__);
+        LOGI("%{public}s, allModuleFilePathArray null", __func__);
         return;
     }
 
@@ -242,12 +246,14 @@ using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
        if ([path containsString:[NSString stringWithFormat:@"/%@/",moduleName]]
             && [path containsString:FILTER_FILE_RESOURCES_INDEX]) {
                 *appResIndexPath = path;
-                NSLog(@"%s, moduleName : %@, \n appResIndexPath : %@", __func__, moduleName, path);
+                LOGI("%{public}s, moduleName : %{public}s, \n appResIndexPath : %{public}s",
+                    __func__, [moduleName UTF8String], [path UTF8String]);
                 continue;
         }
         if ([path containsString:FILTER_FILE_RESOURCES_INDEX]
             && [path containsString:FILTER_FILE_SYSTEM_RESOURCES_INDEX]) {
-                NSLog(@"%s, moduleName : %@, \n sysResIndexPath : %@", __func__, moduleName, path);
+                LOGI("%{public}s, moduleName : %{public}s, \n sysResIndexPath : %{public}s",
+                    __func__, [moduleName UTF8String], [path UTF8String]);
                 *sysResIndexPath = path;
                 continue;
             }

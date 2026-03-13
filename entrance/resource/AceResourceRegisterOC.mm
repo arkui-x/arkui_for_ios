@@ -14,6 +14,7 @@
  */
 
 #import "AceResourceRegisterOC.h"
+#include "base/log/log.h"
 
 #define PARAM_AND @"#HWJS-&-#"
 #define PARMA_EQUALS @"#HWJS-=-#"
@@ -49,10 +50,10 @@
                 callMethod:(IAceOnCallSyncResourceMethod)callMethod
 {
     if (callMethod != nil) {
-        NSLog(@"registerSyncCallMethod:%@ key:%@",callMethod,methodId);
+        LOGI("registerSyncCallMethod key:%{public}s", [methodId UTF8String]);
         [self.callSyncMethodMap setObject:callMethod forKey:methodId];
     }else {
-        NSLog(@"registerSyncCallMethod fail methodId:%@",methodId);
+        LOGI("registerSyncCallMethod fail methodId:%{public}s", [methodId UTF8String]);
     }
 }
 
@@ -189,6 +190,6 @@
 
 - (void)dealloc
 {
-    NSLog(@"AceResourceRegisterOC dealloc");
+    LOGI("AceResourceRegisterOC dealloc");
 }
 @end

@@ -15,6 +15,7 @@
 
 #import "AcePlatformViewPlugin.h"
 #import "AcePlatformView.h"
+#include "base/log/log.h"
 
 #define KEY_VIEWTAG @"viewTag"
 #define KEY_DATATAG @"dataTag"
@@ -57,7 +58,7 @@ static NSMutableDictionary<NSString*, AcePlatformView*> *objectMap;
     }
     [self registerSyncCallMethod:safeMethodMap];
     if (!platformView) {
-        NSLog(@"AcePlatformViewPlugin: platformView is null.");
+        LOGE("AcePlatformViewPlugin: platformView is null.");
         return;
     }
 }
@@ -67,7 +68,7 @@ static NSMutableDictionary<NSString*, AcePlatformView*> *objectMap;
     NSString* viewTag = [param valueForKey:KEY_VIEWTAG];
     NSString* dataTag = [param valueForKey:KEY_DATATAG];
     if (!viewTag) {
-        NSLog(@"AcePlatformViewPlugin: -1.");
+        LOGE("AcePlatformViewPlugin: -1.");
         return -1;
     }
     int64_t incId = [self getAtomicId];
@@ -136,10 +137,10 @@ static NSMutableDictionary<NSString*, AcePlatformView*> *objectMap;
                     [view releaseObject];
                     view = nil;
                 } @catch (NSException *exception) {
-                    NSLog(@"AcePlatformViewPlugin releaseObject releaseObject fail");
+                    LOGE("AcePlatformViewPlugin releaseObject releaseObject fail");
                 }
             } else {
-                NSLog(@"AcePlatformViewPlugin releaseObject fail platformView is null");
+                LOGE("AcePlatformViewPlugin releaseObject fail platformView is null");
             }
         }];
         [objectMap removeAllObjects];
@@ -149,7 +150,7 @@ static NSMutableDictionary<NSString*, AcePlatformView*> *objectMap;
 
 - (void)dealloc
 {
-    NSLog(@"AcePlatformViewPlugin->%@ dealloc", self);
+    LOGI("AcePlatformViewPlugin dealloc, instanceId=%{public}ld", static_cast<long>(self.instanceId));
 }
 
 - (void)registerPlatformViewFactory:(NSObject<PlatformViewFactory> *)platformViewFactory{

@@ -15,6 +15,7 @@
 
 #import <WebKit/WebKit.h>
 #import "AceWebInfoManager.h"
+#include "base/log/log.h"
 
 #define ARKUI_X_USER_AGENT @"ArkUIXDefaultUserAgent"
 #define ARKUI_X_USER_AGENT_LAST_SYSTEM_VERSION @"ArkUIXUserAgentLastSystemVersion"
@@ -89,7 +90,8 @@
         [self.webView evaluateJavaScript:@"navigator.userAgent" 
             completionHandler:^(id _Nullable result, NSError * _Nullable error) {
             if (error) {
-                NSLog(@"Error fetching UserAgent: %@", error.localizedDescription);
+                NSString* desc = error.localizedDescription ?: @"";
+                LOGE("Error fetching UserAgent: %{public}s", desc.UTF8String);
             } else {
                 if ([result isKindOfClass:[NSString class]]) {
                     [self setUserAgent:[NSString stringWithFormat:@"%@", result]];

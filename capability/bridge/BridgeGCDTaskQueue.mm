@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 #import "BridgeGCDTaskQueue.h"
+#include "base/log/log.h"
 
 static const char* BRIDGE_TASK_QUEUE_NAME = "com.example.bridgeGCDTaskQueue";
 
@@ -45,7 +46,7 @@ static const char* BRIDGE_TASK_QUEUE_NAME = "com.example.bridgeGCDTaskQueue";
 - (void)gcdDispatchAsync:(dispatch_block_t)block
 {
     if (!block) {
-        NSLog(@"[BridgeGCDTaskQueue] skip enqueue nil block");
+        LOGI("[BridgeGCDTaskQueue] skip enqueue nil block");
         return;
     }
     dispatch_queue_t queue = [self gcdQueue];
