@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2025 Huawei Device Co., Ltd.
+ * Copyright (c) 2023-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -17,7 +17,9 @@
 #include "hilog.h"
 
 #include <__nullptr>
+#include <atomic>
 #include <cstddef>
+#include <map>
 #include <memory>
 #include <vector>
 #include "base/utils/time_util.h"
@@ -27,6 +29,7 @@
 #include "virtual_rs_window.h"
 #include "UINavigationController+StatusBar.h"
 #include "core/event/key_event.h"
+#import <Foundation/Foundation.h>
 #import "AceWebResourcePlugin.h"
 #import "AcePlatformViewPlugin.h"
 #import "AceWeb.h"
@@ -38,6 +41,11 @@
 
 static bool g_isPointInsideWebForceResult = false;
 static bool g_isPointInsideWebForceEnable = false;
+static const uint64_t KEY_REPEAT_INITIAL_DELAY_MS = 500;
+static const uint64_t KEY_REPEAT_INTERVAL_MS = 100;
+static const uint64_t KEY_REPEAT_LEEWAY_MS = 5;
+static const int64_t MILLISECONDS_PER_SECOND = 1000;
+static const char* KEY_REPEAT_QUEUE_NAME = "com.ohos.ace.keyrepeat";
 extern "C" void SetIsPointInsideWebForceResult(bool enable, bool result)
 {
     g_isPointInsideWebForceEnable = enable;
@@ -68,6 +76,14 @@ extern "C" void SetIsPointInsideWebForceResult(bool enable, bool result)
     std::vector<CGRect> hotAreas_;
     float _oldBrightness;
     NSTimer *_autoPausedTimer;
+
+    dispatch_source_t _keyRepeatTimer;
+    dispatch_queue_t _keyRepeatQueue;
+    int32_t _currentKeyCode;
+    int32_t _currentModifierKeys;
+    int32_t _keyRepeatCount;
+    BOOL _isInitialDelay;
+    std::atomic<uint64_t> _keyRepeatGeneration;
 }
 
 +(Class)layerClass{
@@ -97,6 +113,12 @@ extern "C" void SetIsPointInsideWebForceResult(bool enable, bool result)
         _pointerId = 0;
         _oldBrightness = - 1;
         _brightness = [UIScreen mainScreen].brightness;
+
+        _keyRepeatQueue = dispatch_queue_create(KEY_REPEAT_QUEUE_NAME, DISPATCH_QUEUE_SERIAL);
+        _keyRepeatTimer = NULL;
+        _keyRepeatCount = 0;
+        _isInitialDelay = NO;
+        _keyRepeatGeneration = 0;
     }
     return self;
 }
@@ -158,6 +180,7 @@ extern "C" void SetIsPointInsideWebForceResult(bool enable, bool result)
 }
 
 - (BOOL)hide {
+    [self stopKeyRepeatTimer];
     if (self.superview && [self.superview isKindOfClass:[StageContainerView class]]) {
         [((StageContainerView*)self.superview) hiddenWindow:self];
         return YES;
@@ -404,7 +427,7 @@ static OHOS::Ace::Platform::AcePointerData::ToolType DeviceKindFromTouchType(UIT
     int32_t deviceId;
     auto iter = _deviceMap.find(device);
     if (iter == _deviceMap.end()) {
-        if (phase == UIPressPhaseBegan) {
+        if (phase == UITouchPhaseBegan) {
             _deviceMap[device] = _deviceId;
             deviceId = _deviceId;
             _deviceId++;
@@ -430,7 +453,7 @@ static OHOS::Ace::Platform::AcePointerData::ToolType DeviceKindFromTouchType(UIT
     int32_t pointerId;
     auto iter = _pointerMap.find(pointer);
     if (iter == _pointerMap.end()) {
-        if (phase == UIPressPhaseBegan) {
+        if (phase == UITouchPhaseBegan) {
             _pointerMap[pointer] = _pointerId;
             pointerId = _pointerId;
             _pointerId++;
@@ -528,19 +551,120 @@ static int32_t GetModifierKeys(UIKeyModifierFlags modifierFlags) {
     return ctrlKeysBit;
 }
 
+- (void)stopKeyRepeatTimer {
+    _keyRepeatGeneration.fetch_add(1, std::memory_order_relaxed);
+    if (_keyRepeatTimer) {
+        dispatch_source_cancel(_keyRepeatTimer);
+        dispatch_release(_keyRepeatTimer);
+        _keyRepeatTimer = NULL;
+    }
+    _keyRepeatCount = 0;
+    _isInitialDelay = NO;
+}
+
+- (void)handleKeyRepeatForGeneration:(uint64_t)generation {
+    if (_keyRepeatGeneration.load(std::memory_order_relaxed) != generation) {
+        return;
+    }
+
+    int32_t repeatCount = ++_keyRepeatCount;
+    int32_t keyCode = _currentKeyCode;
+    int32_t modifierKeys = _currentModifierKeys;
+    int64_t timestamp =
+        static_cast<int64_t>([[NSDate date] timeIntervalSince1970] * MILLISECONDS_PER_SECOND);
+
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if (self->_keyRepeatGeneration.load(std::memory_order_relaxed) != generation) {
+            return;
+        }
+        auto window = self->_windowDelegate.lock();
+        if (window != nullptr) {
+            window->ProcessKeyEvent(
+                keyCode,
+                static_cast<int32_t>(OHOS::Ace::KeyAction::DOWN),
+                repeatCount,
+                timestamp,
+                timestamp,
+                modifierKeys);
+        }
+    });
+
+    if (_keyRepeatGeneration.load(std::memory_order_relaxed) != generation) {
+        return;
+    }
+    if (_isInitialDelay) {
+        _isInitialDelay = NO;
+        [self stopKeyRepeatTimer];
+        [self startKeyRepeatTimerWithInterval:KEY_REPEAT_INTERVAL_MS];
+    }
+}
+
+- (void)startKeyRepeatTimerWithInterval:(uint64_t)intervalMs {
+    if (_keyRepeatTimer) {
+        [self stopKeyRepeatTimer];
+    }
+
+    _keyRepeatTimer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, _keyRepeatQueue);
+    if (!_keyRepeatTimer) {
+        return;
+    }
+
+    uint64_t intervalNs = intervalMs * NSEC_PER_MSEC;
+    dispatch_source_set_timer(_keyRepeatTimer,
+                              dispatch_time(DISPATCH_TIME_NOW, intervalNs),
+                              intervalNs,
+                              KEY_REPEAT_LEEWAY_MS * NSEC_PER_MSEC);
+
+    uint64_t generation = _keyRepeatGeneration.load(std::memory_order_relaxed);
+    __weak WindowView *weakSelf = self;
+    dispatch_source_set_event_handler(_keyRepeatTimer, ^{
+        WindowView *strongSelf = weakSelf;
+        if (strongSelf) {
+            [strongSelf handleKeyRepeatForGeneration:generation];
+        }
+    });
+
+    dispatch_resume(_keyRepeatTimer);
+}
+
 - (void)dispatchKeys:(NSSet<UIPress *> *)presses {
     for (UIPress *press in presses) {
         UIKey *pressKey = press.key;
+        if (!pressKey) {
+            continue;
+        }
+
         UIKeyboardHIDUsage pressKeyCode = [pressKey keyCode];
         OHOS::Ace::KeyAction keyAction = KeyActionChangeFromUIPressPhase(press.phase);
         UIKeyModifierFlags modifierFlags = [pressKey modifierFlags];
         int32_t modifierKeys = GetModifierKeys(modifierFlags);
-        int32_t repeatTime = 0;
-        // trans NSTimeInterval(double) to int64_t
-        int64_t timestamp = static_cast<int64_t>(press.timestamp * 1000);
-        if (_windowDelegate.lock() != nullptr) {
-            _windowDelegate.lock()->ProcessKeyEvent(
-                static_cast<int32_t>(pressKeyCode), static_cast<int32_t>(keyAction), repeatTime, timestamp, timestamp, modifierKeys);
+
+        int32_t keyCode = static_cast<int32_t>(pressKeyCode);
+        int64_t timestamp = static_cast<int64_t>(press.timestamp * MILLISECONDS_PER_SECOND);
+
+        auto window = _windowDelegate.lock();
+        if (press.phase == UIPressPhaseBegan) {
+            [self stopKeyRepeatTimer];
+            if (window != nullptr) {
+                window->ProcessKeyEvent(
+                    keyCode, static_cast<int32_t>(keyAction), 0, timestamp, timestamp, modifierKeys);
+            }
+            _currentKeyCode = keyCode;
+            _currentModifierKeys = modifierKeys;
+            _keyRepeatCount = 0;
+            _isInitialDelay = YES;
+            [self startKeyRepeatTimerWithInterval:KEY_REPEAT_INITIAL_DELAY_MS];
+        } else if (press.phase == UIPressPhaseChanged) {
+            if (window != nullptr) {
+                window->ProcessKeyEvent(
+                    keyCode, static_cast<int32_t>(keyAction), 0, timestamp, timestamp, modifierKeys);
+            }
+        } else if (press.phase == UIPressPhaseEnded || press.phase == UIPressPhaseCancelled) {
+            [self stopKeyRepeatTimer];
+            if (window != nullptr) {
+                window->ProcessKeyEvent(
+                    keyCode, static_cast<int32_t>(keyAction), 0, timestamp, timestamp, modifierKeys);
+            }
         }
     }
 }
@@ -677,6 +801,11 @@ static int32_t GetModifierKeys(UIKeyModifierFlags modifierFlags) {
 - (void)dealloc {
     NSLog(@"WindowView->%@ dealloc",self);
     [[NSNotificationCenter defaultCenter] removeObserver:self];
+    [self stopKeyRepeatTimer];
+    if (_keyRepeatQueue) {
+        dispatch_release(_keyRepeatQueue);
+        _keyRepeatQueue = NULL;
+    }
     [super dealloc];
 }
 
