@@ -20,6 +20,7 @@
 #import "AceTextureDelegate.h"
 #import "AcePlatformViewDelegate.h"
 #import "IAceSurface.h"
+#include "base/log/log.h"
 
 @class UIViewController;
 
@@ -69,7 +70,6 @@ static const NSInteger TEXTURETYPE_XCOMPONENT = 1;
 
 - (int64_t)create:(NSDictionary<NSString *, NSString *> *)param
 {
-    NSLog(@"AceTextureCreate %@", param);
     int64_t textureId = [self getAtomicId];
     IAceOnResourceEvent callback = [self getEventCallback];
     if (!callback) {
@@ -79,6 +79,7 @@ static const NSInteger TEXTURETYPE_XCOMPONENT = 1;
     if (param && param[@"type"]) {
         type = [param[@"type"] integerValue];
     }
+    LOGI("AceTextureCreate type: %{public}ld, paramSize: %{public}lu", type, (unsigned long)param.allKeys.count);
     AceTexture *texture = [[AceTexture alloc] initWithEvents:callback textureId:textureId
     abilityInstanceId:self.instanceId];
     [self addResource:textureId texture:texture type:type];
@@ -100,7 +101,7 @@ static const NSInteger TEXTURETYPE_XCOMPONENT = 1;
 
 - (BOOL)release:(NSString *)incId
 {
-    NSLog(@"AceTextResourcePlugin %s release inceId: %@", __func__,incId);
+    LOGI("AceTextResourcePlugin %{public}s release inceId: %{public}s", __func__, [incId UTF8String]);
     AceTexture *texture = [self.objectMap objectForKey:incId];
     AceXcomponentTextureView *textureView = [self.textureViewMap objectForKey:incId];
     if (textureView) {
@@ -123,7 +124,7 @@ static const NSInteger TEXTURETYPE_XCOMPONENT = 1;
 
 - (void)releaseObject
 {
-    NSLog(@"AceTextResourcePlugin releaseObjectStart"); 
+    LOGI("AceTextResourcePlugin releaseObjectStart");
     if (self.objectMap) {
         [self.objectMap enumerateKeysAndObjectsUsingBlock:^(NSString * _Nonnull key,
             AceTexture *_Nonnull texture, BOOL * _Nonnull stop) {
@@ -131,7 +132,7 @@ static const NSInteger TEXTURETYPE_XCOMPONENT = 1;
                 [texture releaseObject];
                 texture = nil;
             } else {
-                NSLog(@"AceSurfacePlugin releaseObject fail aceSurface is null");
+                LOGE("AceSurfacePlugin releaseObject fail aceSurface is null");
             }
         }];
         [self.objectMap removeAllObjects];
@@ -144,7 +145,7 @@ static const NSInteger TEXTURETYPE_XCOMPONENT = 1;
                 [textureView releaseObject];
                 textureView = nil;
             } else {
-                NSLog(@"AceSurfacePlugin releaseObject fail aceSurfaceView is null");
+                LOGE("AceSurfacePlugin releaseObject fail aceSurfaceView is null");
             }
         }];
         [self.textureViewMap removeAllObjects];
@@ -154,6 +155,6 @@ static const NSInteger TEXTURETYPE_XCOMPONENT = 1;
 
 - (void)dealloc
 {
-    NSLog(@"AceTextureResourcePlugin->%@ dealloc", self);
+    LOGI("AceTextureResourcePlugin dealloc instanceId=%{public}lld", static_cast<long long>(self.instanceId));
 }
 @end

@@ -24,15 +24,15 @@
 + (void)loadAbility:(NSString *)bundleName moduleName:(NSString *)moduleName
             abilityName:(NSString *)abilityName params:(NSString *)params {
     if (bundleName == NULL || bundleName.length == 0) {
-        NSLog(@"load ability error: bundleName is invalid.");
+        LOGE("load ability error: bundleName is invalid.");
         return;
     }
     if (moduleName == NULL || moduleName.length == 0) {
-        NSLog(@"load ability error: moduleName is invalid.");
+        LOGE("load ability error: moduleName is invalid.");
         return;
     }
     if (abilityName == NULL || abilityName.length == 0) {
-        NSLog(@"load ability error: abilityName is invalid.");
+        LOGE("load ability error: abilityName is invalid.");
         return;
     }
     NSString* instanceName = [NSString stringWithFormat:@"%@:%@:%@:%@", bundleName, moduleName, abilityName, ABILITY_LOADER_INSTANCE_ID];
@@ -45,15 +45,15 @@
 + (void)unloadAbility:(NSString *)bundleName moduleName:(NSString *)moduleName
             abilityName:(NSString *)abilityName {
     if (bundleName == NULL || bundleName.length == 0) {
-        NSLog(@"unload ability error: bundleName is invalid.");
+        LOGE("unload ability error: bundleName is invalid.");
         return;
     }
     if (moduleName == NULL || moduleName.length == 0) {
-        NSLog(@"unload ability error: moduleName is invalid.");
+        LOGE("unload ability error: moduleName is invalid.");
         return;
     }
     if (abilityName == NULL || abilityName.length == 0) {
-        NSLog(@"unload ability error: abilityName is invalid.");
+        LOGE("unload ability error: abilityName is invalid.");
         return;
     }
     NSString* instanceName = [NSString stringWithFormat:@"%@:%@:%@:%@", bundleName, moduleName, abilityName, ABILITY_LOADER_INSTANCE_ID];

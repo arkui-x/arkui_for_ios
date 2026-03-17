@@ -15,6 +15,7 @@
 
 #import "iOSTxtInputManager.h"
 #import "KeyboardTypeMapper.h"
+#import "base/log/log.h"
 
 #include <Foundation/Foundation.h>
 #include <UIKit/UIKit.h>
@@ -252,15 +253,14 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
 
 - (NSString*)textInRange:(UITextRange*)range {
     if (range == nil || ![range isKindOfClass:[iOSTextRange class]] || self.text == nil) {
-        NSLog(@"[iOSTxtInputManager] textInRange: invalid input (range=%@, class=%@, textIsNil=%@)",
-              range,
-              range ? NSStringFromClass([range class]) : @"(null)",
-              self.text ? @"NO" : @"YES");
+        LOGE("[iOSTxtInputManager] textInRange: invalid input (class=%{public}s, textIsNil=%{public}s)",
+              range ? NSStringFromClass([range class]).UTF8String : "(null)",
+              self.text ? "NO" : "YES");
         return @"";
     }
     NSRange textRange = ((iOSTextRange*)range).range;
     if (textRange.location == NSNotFound) {
-        NSLog(@"[iOSTxtInputManager] textInRange: invalid textRange (location=NSNotFound)");
+        LOGE("[iOSTxtInputManager] textInRange: invalid textRange (location=NSNotFound)");
         return @"";
     }
     NSUInteger availableLength = self.text.length;
@@ -273,7 +273,7 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
     }
     NSRange clampedRange = [self clampSelection:textRange forText:availableText];
     if (clampedRange.location == NSNotFound || clampedRange.location > availableText.length) {
-        NSLog(@"[iOSTxtInputManager] textInRange: invalid clampedRange (loc=%lu len=%lu, availableLen=%lu)",
+        LOGE("[iOSTxtInputManager] textInRange: invalid clampedRange (loc=%{public}lu len=%{public}lu, availableLen=%{public}lu)",
               (unsigned long)clampedRange.location,
               (unsigned long)clampedRange.length,
               (unsigned long)availableText.length);
@@ -281,7 +281,7 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
     }
     NSRange composedRange = [availableText rangeOfComposedCharacterSequencesForRange:clampedRange];
     if (composedRange.location == NSNotFound || composedRange.location + composedRange.length > availableText.length) {
-        NSLog(@"[iOSTxtInputManager] textInRange: invalid composedRange (loc=%lu len=%lu, availableLen=%lu)",
+        LOGE("[iOSTxtInputManager] textInRange: invalid composedRange (loc=%{public}lu len=%{public}lu, availableLen=%{public}lu)",
               (unsigned long)composedRange.location,
               (unsigned long)composedRange.length,
               (unsigned long)availableText.length);

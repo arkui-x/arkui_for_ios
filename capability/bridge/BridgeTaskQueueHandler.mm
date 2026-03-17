@@ -16,6 +16,7 @@
 #import "BridgeTaskQueueHandler.h"
 
 #import "BridgeTaskQueue.h"
+#include "base/log/log.h"
 
 static const NSString* BRIDGE_TASK_QUEUE_NAME = @"BridgeTaskQueue";
 
@@ -23,7 +24,7 @@ static const NSString* BRIDGE_TASK_QUEUE_NAME = @"BridgeTaskQueue";
 
 - (void)dispatchTaskInfo:(BridgeTaskInfo*)taskInfo {
     if (!taskInfo) {
-        NSLog(@"BridgeTaskQueueHandler taskInfo is null");
+        LOGE("BridgeTaskQueueHandler taskInfo is null");
         return;
     }
     BridgeTaskHandler handler = taskInfo.handler;

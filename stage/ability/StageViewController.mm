@@ -92,7 +92,7 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
     if (self) {
         _instanceId = InstanceIdGenerator.getAndIncrement;
         self.instanceName = [NSString stringWithFormat:@"%@:%d", instanceName, _instanceId];
-        NSLog(@"StageVC->%@ init, instanceName is : %@", self, self.instanceName);
+        LOGI("StageVC init, instanceName is : %{public}s", [self.instanceName UTF8String]);
         NSArray * nameArray = [self.instanceName componentsSeparatedByString:@":"];
         if (nameArray.count >= 3) {
             self.bundleName = nameArray[0];
@@ -228,7 +228,7 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
     _stageContainerView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     _stageContainerView.notifyDelegate = self;
     self.view.backgroundColor = UIColor.whiteColor;
-    NSLog(@"StageVC->%@ viewDidLoad call.", self);
+    LOGI("StageVC viewDidLoad call.instanceName: %{public}s", [self.instanceName UTF8String]);
     [self initColorMode];
     [self initWindowView];
     [self initPlatformPlugin];
@@ -241,7 +241,7 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 }
 
 - (void)saveDumpFile:(NSArray<NSString *> *)dumpParams {
-    NSLog(@"saveDumpFile enter");
+    LOGI("saveDumpFile enter");
 
     std::vector<std::string> dumpParamsVector;
     for (NSString *dumpParam in dumpParams) {
@@ -249,7 +249,7 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
     }
 
     OHOS::Ace::Platform::DumpHelper::Dump(_instanceId, dumpParamsVector);
-    NSLog(@"saveDumpFile finished");
+    LOGI("saveDumpFile finished");
 }
 
 - (BOOL)supportWindowPrivacyMode {
@@ -258,7 +258,7 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 
 - (void)viewDidAppear:(BOOL)animated {
     [super viewDidAppear:animated];
-    NSLog(@"StageVC->%@ viewDidAppear call.", self);
+    LOGI("StageVC viewDidAppear call.instanceName: %{public}s", [self.instanceName UTF8String]);
     if (_platformPlugin) {
         [_platformPlugin notifyLifecycleChanged:false];
     }
@@ -267,7 +267,7 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 - (void)viewWillAppear:(BOOL)animated {
     [super viewWillAppear:animated];
 
-    NSLog(@"StageVC->%@ viewWillAppear call.", self);
+    LOGI("StageVC viewWillAppear call.instanceName: %{public}s", [self.instanceName UTF8String]);
     if (_needOnForeground) {
         AppMain::GetInstance()->DispatchOnForeground(_cInstanceName);
     }
@@ -279,7 +279,7 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 - (void)viewDidDisappear:(BOOL)animated {
     [super viewDidDisappear:animated];
 
-    NSLog(@"StageVC->%@ viewDidDisappear call.", self);
+    LOGI("StageVC viewDidDisappear call.instanceName: %{public}s", [self.instanceName UTF8String]);
     AppMain::GetInstance()->DispatchOnBackground(_cInstanceName);
     if (_platformPlugin) {
         [_platformPlugin notifyLifecycleChanged:true];
@@ -290,7 +290,7 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 
 - (void)didReceiveMemoryWarning {
     [super didReceiveMemoryWarning];
-    NSLog(@"StageVC->%@ didReceiveMemoryWarning call.", self);
+    LOGI("StageVC didReceiveMemoryWarning call.instanceName: %{public}s", [self.instanceName UTF8String]);
     if (!self.view) {
     // Ability::OnWindowStageDestroy
     }
@@ -298,7 +298,7 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 
 - (void)destroyData {
     if ([UIDevice currentDevice].systemVersion.floatValue >= 18.0) {
-        NSLog(@"iOS 18 StageVC->%@ dealloc destroyData", self);
+        LOGI("iOS 18 StageVC dealloc destroyData, instanceName: %{public}s", [self.instanceName UTF8String]);
         [_platformPlugin platformRelease];
         _platformPlugin = nil;
         [_windowView notifySurfaceDestroyed];
@@ -313,7 +313,7 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 }
 
 - (void)dealloc {
-    NSLog(@"StageVC->%@ dealloc", self);
+    LOGI("StageVC dealloc instanceName: %{public}s", [self.instanceName UTF8String]);
     [_windowView notifySurfaceDestroyed];
     [_windowView notifyWindowDestroyed];
     _windowView = nil;
@@ -356,9 +356,10 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
 
 - (void)addPlugin:(NSString *)pluginName {
     if (pluginName == nil) {
-        NSLog(@"StageVC->%@ plugin name is nil!", self);
+        LOGI("StageVC plugin name is nil! instanceName: %{public}s", [self.instanceName UTF8String]);
     } else {
-        NSLog(@"StageVC->%@ add plugin: %@", self, pluginName);
+        LOGI("StageVC instanceName: %{public}s add plugin: %{public}s", [self.instanceName UTF8String],
+            [pluginName UTF8String]);
         [_pluginList addObject:pluginName];
     }
 }

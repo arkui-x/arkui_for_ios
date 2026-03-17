@@ -21,6 +21,7 @@
 
 #import <Foundation/Foundation.h>
 #import "DownloadManager.h"
+#include "base/log/log.h"
 
 namespace OHOS::Ace::Platform {
 bool AceDownloadBridge::download(const std::string& url, std::vector<uint8_t>& dataOut)
@@ -28,11 +29,11 @@ bool AceDownloadBridge::download(const std::string& url, std::vector<uint8_t>& d
     NSString *urlstr = [NSString stringWithCString:url.c_str() encoding:NSUTF8StringEncoding];
     NSData *data = [[DownloadManager sharedManager] download:urlstr];
     if (![data isKindOfClass:[NSData class]]) {
-        NSLog(@"DownloadManager data class error");
+        LOGE("DownloadManager data class error");
         return false;
     }
     if (!data || data.length == 0) {
-        NSLog(@"DownloadManager no data");
+        LOGE("DownloadManager no data");
         return false;
     }
     int32_t size = (int32_t)data.length;

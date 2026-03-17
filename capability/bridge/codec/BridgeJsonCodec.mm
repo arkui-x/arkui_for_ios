@@ -14,6 +14,7 @@
  */
 
 #import "BridgeJsonCodec.h"
+#include "base/log/log.h"
 
 NSString* const ResponseErrorCode = @"errorCode";
 NSString* const ResponseErrorMessage = @"errorMessage";
@@ -22,7 +23,7 @@ NSString* const ResponseResult = @"result";
 @implementation JsonHelper
 + (id)objectWithJSONString:(NSString*)jsonString {
     if (!jsonString.length) {
-        NSLog(@"no jsonString");
+        LOGE("no jsonString");
         return nil;
     }
     NSData* jsonData = [jsonString dataUsingEncoding:NSUTF8StringEncoding];
@@ -31,7 +32,7 @@ NSString* const ResponseResult = @"result";
                                                  options:NSJSONReadingMutableContainers
                                                    error:&error];
     if (error) {
-        NSLog(@"json -> objct faild, error : %@", error);
+        LOGE("json -> objct failed: %{public}d", error.code);
         return nil;
     }
 
@@ -40,7 +41,7 @@ NSString* const ResponseResult = @"result";
 
 + (NSString*)jsonStringWithObject:(id)object {
     if (![NSJSONSerialization isValidJSONObject:object]) {
-        NSLog(@"objct -> json faild, object is not valid");
+        LOGE("objct -> json failed, object is not valid");
         return nil;
     }
 
@@ -52,7 +53,7 @@ NSString* const ResponseResult = @"result";
     NSString* json = [[NSString alloc] initWithData:jsonData
                                            encoding:NSUTF8StringEncoding];
     if (error) {
-        NSLog(@"objc -> json faild, error: %@", error);
+        LOGE("objc -> json faild %{public}d", error.code);
         return nil;
     }
     return json;

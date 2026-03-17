@@ -20,6 +20,7 @@
 #import <Foundation/Foundation.h>
 
 #include "scheme_handler/scheme_handler.h"
+#include "base/log/log.h"
 #import "AceWebResourcePlugin.h"
 #import "AceWebControllerBridge.h"
 #import "AceWebInfoManager.h"
@@ -111,7 +112,7 @@ void zoomOC(int id, float factor){
 void zoomInOC(int id) {
     AceWeb *web = [AceWebResourcePlugin.getObjectMap objectForKey:[NSString stringWithFormat:@"%d", id]];
     if (!web) {
-        NSLog(@"Error:AceWebControllerBridge web is NULL");
+        LOGE("Error:AceWebControllerBridge web is NULL");
         return;
     }
     [web zoomIn];
@@ -120,7 +121,7 @@ void zoomInOC(int id) {
 void zoomOutOC(int id) {
     AceWeb *web = [AceWebResourcePlugin.getObjectMap objectForKey:[NSString stringWithFormat:@"%d", id]];
     if (!web) {
-        NSLog(@"Error:AceWebControllerBridge web is NULL");
+        LOGE("Error:AceWebControllerBridge web is NULL");
         return;
     }
     [web zoomOut];
@@ -129,7 +130,7 @@ void zoomOutOC(int id) {
 bool isZoomAccessOC(int id) {
     AceWeb *web = [AceWebResourcePlugin.getObjectMap objectForKey:[NSString stringWithFormat:@"%d", id]];
     if (!web) {
-        NSLog(@"Error:AceWebControllerBridge web is NULL");
+        LOGE("Error:AceWebControllerBridge web is NULL");
         return false;
     }
     return [web isZoomAccess];
@@ -145,7 +146,7 @@ void stopOC(int id){
 std::string getOriginalUrlOC(int id) {
     AceWeb* web = [AceWebResourcePlugin.getObjectMap objectForKey:[NSString stringWithFormat:@"%d", id]];
     if (!web) {
-        NSLog(@"Error:AceWebControllerBridge web is NULL");
+        LOGE("Error:AceWebControllerBridge web is NULL");
         return "";
     }
     return [[web getOriginalUrl] UTF8String];
@@ -155,7 +156,7 @@ void pageUpOC(int id, bool value)
 {
     AceWeb* web = [AceWebResourcePlugin.getObjectMap objectForKey:[NSString stringWithFormat:@"%d", id]];
     if (!web) {
-        NSLog(@"Error:AceWebControllerBridge web is NULL");
+        LOGE("Error:AceWebControllerBridge web is NULL");
         return;
     }
     [web pageUp:value];
@@ -536,7 +537,7 @@ void onMessageEventExtOC(int webId, const std::string& portHandle,
     [web onMessageEventExt:^(id _Nullable ocResult) {
         auto webMessageExtImpl = std::make_shared<AceWebMessageExtImpl>();
         if (webMessageExtImpl == nullptr) {
-            NSLog(@"new WebMessageExt failed.");
+            LOGE("new WebMessageExt failed.");
             return;
         }
         if ([ocResult isKindOfClass:[NSString class]]) {
@@ -637,7 +638,7 @@ void pageDownOC(int id, bool value)
 {
     AceWeb* web = [AceWebResourcePlugin.getObjectMap objectForKey:[NSString stringWithFormat:@"%d", id]];
     if (!web) {
-        NSLog(@"Error:AceWebControllerBridge web is NULL");
+        LOGE("Error:AceWebControllerBridge web is NULL");
         return;
     }
     [web pageDown:value];
@@ -647,7 +648,7 @@ void postUrlOC(int id, const std::string& url, const std::vector<uint8_t>& postD
 {
     AceWeb *web = [AceWebResourcePlugin.getObjectMap objectForKey:[NSString stringWithFormat:@"%d", id]];
     if (!web) {
-        NSLog(@"Error:AceWebControllerBridge web is NULL");
+        LOGE("Error:AceWebControllerBridge web is NULL");
         return;
     }
     NSData *data = [NSData dataWithBytes:postData.data() length:postData.size()];
@@ -809,12 +810,12 @@ void webDownloadItemResumeOC(int webId, const std::string& guid)
 void DealNumberType(NSNumber* numArg, std::shared_ptr<OHOS::Ace::WebJSValue>& argument)
 {
     if (numArg == nil) {
-        NSLog(@"DealNumberType param is nil");
+        LOGE("DealNumberType param is nil");
         return;
     }
 
     if (argument == nullptr) {
-        NSLog(@"DealNumberType argument is nil");
+        LOGE("DealNumberType argument is nil");
         return;
     }
     
@@ -828,19 +829,19 @@ void DealNumberType(NSNumber* numArg, std::shared_ptr<OHOS::Ace::WebJSValue>& ar
         argument->SetType(OHOS::Ace::WebJSValue::Type::INTEGER);
         argument->SetInt([numArg intValue]);
     }  else {
-        NSLog(@"DealNumberType undefined type");
+        LOGE("DealNumberType undefined type");
     }
 }
 
 void DealStringType(NSString* stringArg, std::shared_ptr<OHOS::Ace::WebJSValue>& argument)
 {
     if (stringArg == nil) {
-        NSLog(@"DealStringType paramStrting nil");
+        LOGE("DealStringType paramStrting nil");
         return;
     }
 
     if (argument == nullptr) {
-        NSLog(@"DealStringType argument is nil");
+        LOGE("DealStringType argument is nil");
         return;
     }
 
@@ -851,7 +852,7 @@ void DealStringType(NSString* stringArg, std::shared_ptr<OHOS::Ace::WebJSValue>&
 void DealArrayType(NSArray* arrayArg, std::shared_ptr<OHOS::Ace::WebJSValue>& argument, int currentDepth = 0)
 {
     if (currentDepth >= MAX_DEPTH) {
-        NSLog(@"Exceeded maximum depth for array, setting value to null");
+        LOGE("Exceeded maximum depth for array, setting value to null");
         argument->SetType(OHOS::Ace::WebJSValue::Type::NONE);
         return;
     }
@@ -860,11 +861,11 @@ void DealArrayType(NSArray* arrayArg, std::shared_ptr<OHOS::Ace::WebJSValue>& ar
         std::shared_ptr<OHOS::Ace::WebJSValue> subargument =
                     std::make_shared<OHOS::Ace::WebJSValue>(OHOS::Ace::WebJSValue::Type::NONE);
         if (subargument == nullptr) {
-            NSLog(@"subargument is nullptr");
+            LOGE("subargument is nullptr");
             return;
         }
         if (subArg == nil) {
-            NSLog(@"subarray arg is nil");
+            LOGE("subarray arg is nil");
             return;
         }
         if ([subArg isKindOfClass:[NSArray class]]) {
@@ -886,7 +887,7 @@ void DealArrayType(NSArray* arrayArg, std::shared_ptr<OHOS::Ace::WebJSValue>& ar
             DealStringType(stringArg, subargument);
             argument->AddListValue(*subargument);
         } else {
-            NSLog(@"subarray arg is of unknown type: %@", subArg);
+            LOGE("subarray arg is of unknown type");
             subargument->SetType(OHOS::Ace::WebJSValue::Type::NONE);
             argument->AddListValue(*subargument);
         }
@@ -896,7 +897,7 @@ void DealArrayType(NSArray* arrayArg, std::shared_ptr<OHOS::Ace::WebJSValue>& ar
 void DealDictionaryType(NSDictionary* dicArg, std::shared_ptr<OHOS::Ace::WebJSValue>& argument, int currentDepth = 0)
 {
     if (currentDepth >= MAX_DEPTH) {
-        NSLog(@"Exceeded maximum depth for dictionary, setting value to null");
+        LOGE("Exceeded maximum depth for dictionary, setting value to null");
         argument->SetType(OHOS::Ace::WebJSValue::Type::NONE);
         return;
     }
@@ -904,11 +905,11 @@ void DealDictionaryType(NSDictionary* dicArg, std::shared_ptr<OHOS::Ace::WebJSVa
         std::shared_ptr<OHOS::Ace::WebJSValue> subArgument =
                     std::make_shared<OHOS::Ace::WebJSValue>(OHOS::Ace::WebJSValue::Type::NONE);
         if (subArgument == nullptr) {
-            NSLog(@"subArgument is nullptr");
+            LOGE("subArgument is nullptr");
             return;
         }
         if (key == nil) {
-            NSLog(@"subdictionary arg key is nil");
+            LOGE("subdictionary arg key is nil");
             return;
         }
         id value = dicArg[key];
@@ -927,7 +928,7 @@ void DealDictionaryType(NSDictionary* dicArg, std::shared_ptr<OHOS::Ace::WebJSVa
             DealStringType((NSString*)value, subArgument);
             argument->AddDictionaryValue([key UTF8String], *subArgument);
         } else {
-            NSLog(@"subdictionary arg is of unknown type: %@", value);
+            LOGE("subdictionary arg is of unknown type");
             subArgument->SetType(OHOS::Ace::WebJSValue::Type::NONE);
             argument->AddDictionaryValue([key UTF8String], *subArgument);
         }
@@ -948,7 +949,7 @@ id ConvertWebJSValueToNSObject(OHOS::Ace::WebJSValue& item)
     case OHOS::Ace::WebJSValue::Type::LIST: {
         auto sharedItem = std::make_shared<OHOS::Ace::WebJSValue>(item);
         if (sharedItem == nullptr) {
-            NSLog(@"ConvertWebJSValueToNSObject List sharedItem is nullptr");
+            LOGE("ConvertWebJSValueToNSObject List sharedItem is nullptr");
             return nil;
         }
         return ConvertListToNSArray(sharedItem);
@@ -956,13 +957,13 @@ id ConvertWebJSValueToNSObject(OHOS::Ace::WebJSValue& item)
     case OHOS::Ace::WebJSValue::Type::DICTIONARY: {
         auto sharedItem = std::make_shared<OHOS::Ace::WebJSValue>(item);
         if (sharedItem == nullptr) {
-            NSLog(@"ConvertWebJSValueToNSObject DICTIONARY sharedItem is nullptr");
+            LOGE("ConvertWebJSValueToNSObject DICTIONARY sharedItem is nullptr");
             return nil;
         }
         return ConvertDictionaryToNSDictionary(sharedItem);
     }
     default:
-        NSLog(@"ConvertWebJSValueToNSObject Unsupported type in WebJSValue");
+        LOGE("ConvertWebJSValueToNSObject Unsupported type in WebJSValue");
         return nil;
     }
 }
@@ -970,7 +971,7 @@ id ConvertWebJSValueToNSObject(OHOS::Ace::WebJSValue& item)
 NSMutableArray* ConvertListToNSArray(const std::shared_ptr<OHOS::Ace::WebJSValue>& listValue)
 {
     if (listValue == nullptr) {
-        NSLog(@"listValue is nullptr");
+        LOGE("listValue is nullptr");
         return nil;
     }
     NSMutableArray* array = [NSMutableArray array];
@@ -981,7 +982,7 @@ NSMutableArray* ConvertListToNSArray(const std::shared_ptr<OHOS::Ace::WebJSValue
         if (convertedItem != nil) {
             [array addObject:convertedItem];
         } else {
-            NSLog(@"Unsupported type in nested list, adding NSNull");
+            LOGE("Unsupported type in nested list, adding NSNull");
             [array addObject:[NSNull null]];
         }
     }
@@ -999,7 +1000,7 @@ NSMutableDictionary* ConvertDictionaryToNSDictionary(const std::shared_ptr<OHOS:
 
     for (auto& item: dict) {
         if (item.first.empty()) {
-            NSLog(@"Key is empty, skipping");
+            LOGE("Key is empty, skipping");
             continue;
         }
         NSString* key = [NSString stringWithUTF8String:item.first.c_str()];
@@ -1007,7 +1008,7 @@ NSMutableDictionary* ConvertDictionaryToNSDictionary(const std::shared_ptr<OHOS:
         if (convertedValue != nil) {
             [dictionary setObject:convertedValue forKey:key];
         } else {
-            NSLog(@"Unsupported type for key: %@, adding NSNull", key);
+            LOGE("Unsupported type for key: %{public}s, adding NSNull", key.UTF8String);
             [dictionary setObject:[NSNull null] forKey:key];
         }
     }
@@ -1018,7 +1019,7 @@ NSMutableDictionary* ConvertDictionaryToNSDictionary(const std::shared_ptr<OHOS:
 id ConvertResultToObjectiveC(const std::shared_ptr<OHOS::Ace::WebJSValue>& result)
 {
     if (result == nullptr) {
-        NSLog(@"ConvertResultToObjectiveC result is nullptr");
+        LOGE("ConvertResultToObjectiveC result is nullptr");
         return nil;
     }
 
@@ -1072,7 +1073,7 @@ void registerJavaScriptProxyOC(int webId, const std::string& objName,
                 std::shared_ptr<OHOS::Ace::WebJSValue> argument =
                     std::make_shared<OHOS::Ace::WebJSValue>(OHOS::Ace::WebJSValue::Type::NONE);
                 if (argument == nullptr) {
-                    NSLog(@"argument is nullptr");
+                    LOGE("argument is nullptr");
                     break;
                 }
                 if ([arg isKindOfClass:[NSNumber class]]) {

@@ -21,6 +21,7 @@
 #import "BridgePlugin+jsMessage.h"
 #import "BridgePluginManager+internal.h"
 #import "ResultValue.h"
+#include "base/log/log.h"
 
 @implementation BridgePlugin (jsMessage)
 
@@ -51,12 +52,14 @@
             } @catch (NSException* exception) {
                 errorCode = BRIDGE_METHOD_UNIMPL;
                 errorMessage = BRIDGE_METHOD_UNIMPL_MESSAGE;
-                NSLog(@"catch exception name : %@, reason : %@", [exception name], [exception reason]);
+                LOGE("catch exception name : %{public}s, reason : %{public}s",
+                     [exception.name ?: @"" UTF8String],
+                     [exception.reason ?: @"" UTF8String]);
             }
         } else {
             errorCode = BRIDGE_METHOD_UNIMPL;
             errorMessage = BRIDGE_METHOD_UNIMPL_MESSAGE;
-            NSLog(@"method error, message : %@", errorMessage);
+            LOGE("method error, message : %{public}s", (errorMessage ?: @"").UTF8String);
         }
     }
 
@@ -98,7 +101,7 @@
     if (callMethod.methodName.length == 0) {
         errorCode = BRIDGE_METHOD_UNIMPL;
         errorMessage = BRIDGE_METHOD_UNIMPL_MESSAGE;
-        NSLog(@"method error, message : %@", errorMessage);
+        LOGE("method error, message : %{public}s", (errorMessage ?: @"").UTF8String);
         return [self createResultJson:errorCode errorMessage:errorMessage result:result];
     }
     @try {
@@ -116,7 +119,9 @@
     } @catch (NSException* exception) {
         errorCode = BRIDGE_METHOD_UNIMPL;
         errorMessage = BRIDGE_METHOD_UNIMPL_MESSAGE;
-        NSLog(@"catch exception name : %@, reason : %@", [exception name], [exception reason]);
+        LOGE("catch exception name : %{public}s, reason : %{public}s",
+             [exception.name ?: @"" UTF8String],
+             [exception.reason ?: @"" UTF8String]);
     }
     return [self createResultJson:errorCode errorMessage:errorMessage result:result];
 }
@@ -274,12 +279,12 @@ BOOL isNumberTypeMatch(id argument, const char *argumentType) {
                 params:(NSArray*)params {
     int signatureDefaultArgsNum = 2;
     if (!signature || selector == nullptr) {
-        NSLog(@"signature nil");
+        LOGE("signature nil");
         return @{@"errorCode": @(BRIDGE_METHOD_UNIMPL), @"errorMessage": BRIDGE_METHOD_UNIMPL_MESSAGE};
     }
     NSInteger paramsCount = signature.numberOfArguments - signatureDefaultArgsNum;
     if (paramsCount != params.count) {
-        NSLog(@"params count error");
+        LOGE("params count error");
         return @{@"errorCode": @(BRIDGE_METHOD_PARAM_ERROR), @"errorMessage": BRIDGE_METHOD_PARAM_ERROR_MESSAGE};
     }
 
@@ -304,7 +309,7 @@ BOOL isNumberTypeMatch(id argument, const char *argumentType) {
     if (signature.methodReturnLength) {
         return [self handleReturnValue:signature invocation:invocation];
     }
-    NSLog(@"no returnValue");
+    LOGE("no returnValue");
     return nil;
 }
 
@@ -362,7 +367,7 @@ BOOL isNumberTypeMatch(id argument, const char *argumentType) {
             invocation:(NSInvocation*)invocation {
     const char* returnType = signature.methodReturnType;
     if (!strcmp(returnType, @encode(void))) {
-        NSLog(@"no returnValue");
+        LOGE("no returnValue");
         return nil;
     } else if (!strcmp(returnType, @encode(id))) {
         void* returnValue;

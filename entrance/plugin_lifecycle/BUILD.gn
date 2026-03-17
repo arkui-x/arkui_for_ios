@@ -31,4 +31,7 @@ ohos_source_set("plugin_lifecycle") {
     "ArkUIXPluginRegistry.mm",
     "PluginContext.mm",
   ]
+    configs = [
+    "$ace_root:ace_config",
+  ]
 }

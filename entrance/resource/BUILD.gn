@@ -37,4 +37,7 @@ ohos_source_set("resource") {
     "UIKit.framework",
     "WebKit.framework",
   ]
+  configs = [
+    "$ace_root:ace_config",
+  ]
 }

@@ -121,12 +121,12 @@ static char kBridgeQueueMapKey;
 - (BOOL)innerRegisterBridgePlugin:(NSString*)bridgeName
                 bridgePlugin:(BridgePlugin*)bridgePlugin {
     if (!bridgeName.length || !bridgePlugin) {
-        NSLog(@"register failed, bridgename : %@, plugin : %@", bridgeName, bridgePlugin);
+        LOGE("register failed, bridgename : %{public}s", bridgeName.UTF8String);
         return NO;
     }
     if ([self.bridgeMap.allKeys containsObject:bridgeName]) {
         if ([self innerUnRegisterBridgePlugin:bridgeName]) {
-             NSLog(@"%@ Duplicate registration, delete previously registered bridge", bridgeName);
+            LOGI("%{public}s Duplicate registration, delete previously registered bridge", bridgeName.UTF8String);
         }
     }
     [self.bridgeMap setObject:bridgePlugin forKey:bridgeName];
@@ -524,7 +524,7 @@ static char kBridgeQueueMapKey;
 
 - (void)platformSendMessageInner:(NSString*)bridgeName data:(id)data {
     if (!bridgeName.length) {
-        NSLog(@"bridgeName is null");
+        LOGE("bridgeName is null");
         return;
     }
     RawValue* rawValue = [RawValue rawValueResult:data errorCode:0];
@@ -540,7 +540,7 @@ static char kBridgeQueueMapKey;
 
 - (void)platformSendMessageResponseInner:(NSString*)bridgeName data:(id)data {
     if (!bridgeName.length) {
-        NSLog(@"bridgeName is null");
+        LOGE("bridgeName is null");
         return;
     }
     RawValue* rawValue = [RawValue rawValueResult:data errorCode:0];
@@ -556,7 +556,7 @@ static char kBridgeQueueMapKey;
 
 - (void)platformSendMethodResultInner:(NSString*)bridgeName methodName:(NSString*)methodName result:(NSString*)result {
     if (!bridgeName.length) {
-        NSLog(@"bridgeName is null");
+        LOGE("bridgeName is null");
         return;
     }
     std::string c_bridgeName = [bridgeName UTF8String];
@@ -638,7 +638,7 @@ static char kBridgeQueueMapKey;
                             errorMessage:(NSString*)errorMessage
                             result:(id)result {
     if (!bridgeName.length) {
-        NSLog(@"bridgeName is null");
+        LOGE("bridgeName is null");
         return;
     }
 
@@ -657,7 +657,7 @@ static char kBridgeQueueMapKey;
 
 - (void)platformSendMessageBinaryInner:(NSString*)bridgeName data:(id)data {
     if (!bridgeName.length) {
-        NSLog(@"bridgeName is null");
+        LOGE("bridgeName is null");
         return;
     }
 
@@ -780,11 +780,11 @@ ErrorCode SafeIntToErrorCode(int value) {
                     result:(id)result {
     BridgePlugin* bridgePlugin = (BridgePlugin*)[self getPluginWithBridgeName:bridgeName];
     if (!bridgePlugin) {
-        NSLog(@"bridgePlugin is null");
+        LOGE("bridgePlugin is null");
         return;
     }
     if (bridgePlugin.type != BINARY_TYPE) {
-        NSLog(@"bridgePlugin type not BINARY_TYPE");
+        LOGE("bridgePlugin type not BINARY_TYPE");
         return;
     }
     id oc_resultValue = [[BridgeBinaryCodec sharedInstance] decode:(NSData*)result];
@@ -799,7 +799,7 @@ ErrorCode SafeIntToErrorCode(int value) {
 
 - (BridgePlugin* _Nullable)getPluginWithBridgeName:(NSString*)bridgeName {
     if (!bridgeName.length) {
-        NSLog(@"bridgeName is null");
+        LOGE("bridgeName is null");
         return nil;
     }
     @synchronized(self) {
@@ -814,7 +814,7 @@ ErrorCode SafeIntToErrorCode(int value) {
     }
     NSString* bridgeName = taskInfo.bridgeName;
     if (!bridgeName || bridgeName.length == 0) {
-        NSLog(@"no register bridge handler, %@", bridgeName);
+        LOGE("no register bridge handler, %{public}s", bridgeName.UTF8String);
         return;
     }
     BridgeTaskQueueHandler* handler = (BridgeTaskQueueHandler*)[self.bridgeQueueMap objectForKey: bridgeName];
