@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2022-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -62,6 +62,7 @@ typedef enum : NSUInteger {
 @property (nonatomic, assign) BOOL isLoop;
 @property (nonatomic, assign) float speed;
 @property (nonatomic, strong) NSURL *url;
+@property (nonatomic, copy) NSString *rawSrc;
 
 @property (nonatomic, copy) NSString *moudleName;
 @property (nonatomic, strong) NSMutableDictionary<NSString *, IAceOnCallSyncResourceMethod> *callSyncMethodMap;
@@ -74,6 +75,9 @@ typedef enum : NSUInteger {
 @property (nonatomic, assign) BOOL isTexture;
 @property (nonatomic, assign) BOOL backgroundPause;
 @property (nonatomic, assign) PlayState state;
+@property (nonatomic, assign) BOOL showFirstFrame;
+@property (nonatomic, assign) BOOL pendingPlayAfterPrepare;
+@property (nonatomic, assign) BOOL seekedAfterPrepare;
 @end
 
 @implementation AceVideo
@@ -94,6 +98,7 @@ typedef enum : NSUInteger {
         self.isMute = false;
         self.isAutoPlay = false;
         self.isLoop = false;
+        self.pendingPlayAfterPrepare = false;
 
         _callSyncMethodMap = [[NSMutableDictionary alloc] init];
         [self initEventCallback];
@@ -171,8 +176,10 @@ typedef enum : NSUInteger {
         __strong __typeof(weakSelf)strongSelf = weakSelf;
         if (strongSelf) {
             int64_t position = [strongSelf getPosition];
-            [strongSelf fireCallback:@"ongetcurrenttime"
-                params:[NSString stringWithFormat:@"currentpos=%lld", position]];
+            if (strongSelf.state == STARTED) {
+                [strongSelf fireCallback:@"ongetcurrenttime"
+                    params:[NSString stringWithFormat:@"currentpos=%lld", position]];
+            }
             return [NSString stringWithFormat:@"%@%lld",@"currentpos=", position];
         } else {
             LOGE("AceVideo: currentpos fail");
@@ -315,6 +322,18 @@ typedef enum : NSUInteger {
     };
     [self.callSyncMethodMap setObject:[setfullscreen_callback copy] forKey:fullscreen_method_hash];
 
+    NSString *setRenderFirstFrameMethodHash = [self method_hashFormat:@"setRenderFirstFrame"];
+    IAceOnCallSyncResourceMethod setRenderFirstFrameCallback = ^NSString *(NSDictionary * param){
+        LOGE(@"AceVideo: setRenderFirstFrame");
+        __strong __typeof(weakSelf)strongSelf = weakSelf;
+        if (strongSelf) {
+            return [strongSelf setRenderFirstFrame:param];
+        } else {
+            LOGE(@"AceVideo: setRenderFirstFrame fail");
+            return FAIL;
+        }
+    };
+    [self.callSyncMethodMap setObject:[setRenderFirstFrameCallback copy] forKey:setRenderFirstFrameMethodHash];
 }
 
 - (NSDictionary<NSString *, IAceOnCallSyncResourceMethod> *)getSyncCallMethod
@@ -326,12 +345,53 @@ typedef enum : NSUInteger {
 {
     LOGI("AceVideo: player_ startPlay");
     if (self.player_) {
-        if (self.state == STOPPED) {
-            [self updatePalyerItem];
+        if (self.state == STOPPED || self.state == PLAYBACK_COMPLETE) {
+            CMTime time = CMTimeMake(0, 1);
+            __weak __typeof(self)weakSelf = self;
+            [self.player_
+            seekToTime:time toleranceBefore:kCMTimeZero toleranceAfter:kCMTimeZero completionHandler:^(BOOL finished) {
+                __strong __typeof(weakSelf)strongSelf = weakSelf;
+                if (finished && strongSelf) {
+                    strongSelf.state = STARTED;
+                    [strongSelf fireCallback:@"ongetcurrenttime" params:@"currentpos=0"];
+                    [strongSelf firePreparedEventWithCurrentItem:strongSelf.player_.currentItem isPlaying:1];
+                    [strongSelf showAvPlayerlayer];
+                    [strongSelf.player_ play];
+                    if (strongSelf.player_.rate != strongSelf.speed) {
+                        [strongSelf updateSpeed:strongSelf.speed];
+                    }
+                }
+            }];
+            return;
+        } else if (self.state == PREPARED) {
+            if (self.seekedAfterPrepare) {
+                self.state = STARTED;
+                [self showAvPlayerlayer];
+                [self.player_ play];
+                if (self.player_.rate != self.speed) {
+                    [self updateSpeed:self.speed];
+                }
+            } else {
+                CMTime time = CMTimeMake(0, 1);
+                __weak __typeof(self)weakSelf = self;
+                [self.player_ seekToTime:time
+                toleranceBefore:kCMTimeZero toleranceAfter:kCMTimeZero completionHandler:^(BOOL finished) {
+                    __strong __typeof(weakSelf)strongSelf = weakSelf;
+                    if (finished && strongSelf) {
+                        strongSelf.state = STARTED;
+                        [strongSelf showAvPlayerlayer];
+                        [strongSelf.player_ play];
+                        if (strongSelf.player_.rate != strongSelf.speed) {
+                            [strongSelf updateSpeed:strongSelf.speed];
+                        }
+                    }
+                }];
+            }
+            return;
         } else {
             CMTime currentTime = self.player_.currentTime;
             int64_t duration = [self getMediaDuration] / 1000;
-            if (currentTime.value / currentTime.timescale == duration || self.state == PLAYBACK_COMPLETE) {
+            if (currentTime.timescale > 0 && currentTime.value / currentTime.timescale == duration) {
                 CMTime time = CMTimeMake(0, currentTime.timescale);
                 [self seekTo:time];
             }
@@ -368,6 +428,7 @@ typedef enum : NSUInteger {
     if (self.player_) {
         [self.player_ pause];
         self.state = STOPPED;
+        [self fireCallback:@"stop" params:@""];
     }
 }
 
@@ -377,10 +438,27 @@ typedef enum : NSUInteger {
         if (self.state == STOPPED) {
             return;
         }
+        if (self.state == PREPARED) {
+            self.seekedAfterPrepare = YES;
+        }
         __weak __typeof(self)weakSelf = self;
         [self.player_ seekToTime:time toleranceBefore:kCMTimeZero toleranceAfter:kCMTimeZero completionHandler:^(BOOL finished) {
             __strong __typeof(weakSelf)strongSelf = weakSelf;
             if (finished && strongSelf) {
+                if (strongSelf.state != STARTED) {
+                    if (strongSelf.isTexture && strongSelf.renderTexture) {
+                        [strongSelf.renderTexture refreshPixelBuffer];
+                    } else {
+                        [strongSelf showAvPlayerlayer];
+                    }
+                }
+                int64_t posInSec = 0;
+                if (time.timescale > 0) {
+                    posInSec = time.value / time.timescale;
+                }
+                NSString *timeParam = [NSString stringWithFormat:@"currentpos=%lld", posInSec];
+                [strongSelf fireCallback:@"ongetcurrenttime" params:timeParam];
+
                 NSString *param = [NSString stringWithFormat:@"currentpos=%f", (float)time.value];
                 [strongSelf fireCallback:@"seekcomplete" params:param];
             }
@@ -425,6 +503,59 @@ typedef enum : NSUInteger {
     }
 }
 
+- (void)firePreparedEventWithCurrentItem:(AVPlayerItem *)playerItem isPlaying:(int)isPlaying
+{
+    if (!playerItem) {
+        return;
+    }
+    CGSize size = playerItem.presentationSize;
+    int64_t duration = [self getMediaDuration];
+    NSString *param = [NSString stringWithFormat:
+        @"width=%f&height=%f&duration=%lld&isplaying=%d&needRefreshForce=%d",
+        size.width, size.height, duration, isPlaying, 1];
+    [self fireCallback:@"prepared" params:param];
+}
+
+- (void)firePlayStatusEvent:(int)isPlaying
+{
+    NSString *param = [NSString stringWithFormat:@"isplaying=%d", isPlaying];
+    [self fireCallback:@"onplaystatus" params:param];
+}
+
+- (void)handleSameSourceReset
+{
+    if (!self.player_ || !self.player_.currentItem) {
+        return;
+    }
+
+    BOOL wasStopped = (self.state == STOPPED);
+    [self.player_ pause];
+
+    if (!wasStopped) {
+        [self fireCallback:@"ongetcurrenttime" params:@"currentpos=0"];
+    }
+
+    self.state = PREPARED;
+    self.seekedAfterPrepare = NO;
+
+    if (!self.showFirstFrame) {
+        [self firePreparedEventWithCurrentItem:self.player_.currentItem isPlaying:0];
+        return;
+    }
+
+    CMTime time = CMTimeMake(0, 1);
+    __weak __typeof(self)weakSelf = self;
+    [self.player_ seekToTime:time
+    toleranceBefore:kCMTimeZero toleranceAfter:kCMTimeZero completionHandler:^(BOOL finished) {
+        __strong __typeof(weakSelf)strongSelf = weakSelf;
+        if (!finished || !strongSelf) {
+            return;
+        }
+        [strongSelf updateFirstFrameVisibility];
+        [strongSelf firePreparedEventWithCurrentItem:strongSelf.player_.currentItem isPlaying:0];
+    }];
+}
+
 - (void)setReset
 {
     [self resetPlayerToPrepare:self.player_.currentItem withIsSetAutoPlay:false];
@@ -462,6 +593,7 @@ typedef enum : NSUInteger {
                 AVPlayerLayer * playerLayer = (AVPlayerLayer *)surfaceView.layer;
                 playerLayer.player = self.player_;
             }
+            [self updateFirstFrameVisibility];
         }
 
     } @catch (NSException *exception) {
@@ -500,13 +632,19 @@ typedef enum : NSUInteger {
             return FAIL;
         }
 
-        [self pause];
-
         NSString *src = [params objectForKey:KEY_SOURCE];
         if (![src isKindOfClass:[NSString class]] || src.length == 0 || [src isKindOfClass:[NSNull class]]) {
             LOGE("AceVideo: src param is null");
             return FAIL;
         }
+
+        NSString *oldRawSrc = self.rawSrc;
+        BOOL isSameSource = (oldRawSrc && [src isEqualToString:oldRawSrc]);
+        if (isSameSource && self.player_.currentItem) {
+            [self handleSameSourceReset];
+            return SUCCESS;
+        }
+
         if(![self setDataSource:src]) {
             return FAIL;
         }
@@ -515,6 +653,7 @@ typedef enum : NSUInteger {
             return FAIL;
         }
 
+        [self pause];
         [self updatePalyerItem];
     } @catch (NSException *exception) {
         LOGE("AceVideo: IOException, setSuerface failed");
@@ -526,6 +665,7 @@ typedef enum : NSUInteger {
 - (BOOL)setDataSource:(NSString *)param
 {
     LOGI("AceVideo: setDataSource");
+    self.rawSrc = param;
     @try {
         param = [param
             stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]];
@@ -573,6 +713,20 @@ typedef enum : NSUInteger {
             [surfaceView bringSubviewToFront];
         }
     }
+    return SUCCESS;
+}
+
+- (NSString *)setRenderFirstFrame:(NSDictionary *)param
+{
+    if (![param isKindOfClass:[NSDictionary class]]) {
+        return FAIL;
+    }
+    NSNumber *showFirstFrameValue = [param valueForKey:@"showFirstFrame"];
+    if (!showFirstFrameValue) {
+        return FAIL;
+    }
+    self.showFirstFrame = [showFirstFrameValue boolValue];
+    [self updateFirstFrameVisibility];
     return SUCCESS;
 }
 
@@ -746,17 +900,45 @@ typedef enum : NSUInteger {
         if (_isTexture && self.renderTexture) {
             AVPlayerItem* item = (AVPlayerItem*)object;
             [item addOutput:self.renderTexture.videoOutput];
-            [self.renderTexture refreshPixelBuffer];
             [self.displayLink addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSRunLoopCommonModes];
         }
-        if (self.isAutoPlay && setAutoPlay) {
+        [self updateFirstFrameVisibility];
+
+        BOOL shouldAutoPlay = (self.isAutoPlay && setAutoPlay) || self.pendingPlayAfterPrepare;
+        if (shouldAutoPlay) {
+            self.pendingPlayAfterPrepare = false;
             [self startPlay];
         }
-
-        int isPlaying = (self.player_.timeControlStatus == AVPlayerTimeControlStatusPlaying || self.isAutoPlay) ? 1 : 0;
-        NSString *param = [NSString stringWithFormat:@"width=%f&height=%f&duration=%lld&isplaying=%d&needRefreshForce=%d", width, height, duration, isPlaying, 1];
+        int isPlaying = (self.player_.timeControlStatus == AVPlayerTimeControlStatusPlaying ||
+                        self.isAutoPlay ||
+                        shouldAutoPlay) ? 1 : 0;
+        NSString *param = [NSString stringWithFormat:
+        @"width=%f&height=%f&duration=%lld&isplaying=%d&needRefreshForce=%d", width, height, duration, isPlaying, 1];
         [self fireCallback:@"prepared" params:param];
     }
+}
+
+- (void)updateFirstFrameVisibility
+{
+    if (self.state != PREPARED) {
+        return;
+    }
+    if (self.isTexture) {
+        if (self.showFirstFrame && self.renderTexture) {
+            [self.renderTexture refreshPixelBuffer];
+        }
+        return;
+    }
+    if (self.surfaceId == 0) {
+        return;
+    }
+    AceSurfaceView * surfaceView = (AceSurfaceView *)[AceSurfaceHolder getLayerWithId:self.surfaceId
+        inceId:self.instanceId].delegate;
+    if (!surfaceView) {
+        return;
+    }
+    AVPlayerLayer * playerLayer = (AVPlayerLayer *)surfaceView.layer;
+    playerLayer.hidden = !self.showFirstFrame;
 }
 
 - (NSString *)method_hashFormat:(NSString *)method
@@ -799,6 +981,7 @@ typedef enum : NSUInteger {
     }
     self.renderTexture = nil;
     self.url = nil;
+    self.rawSrc = nil;
     if (self.callSyncMethodMap) {
         for (id key in self.callSyncMethodMap) {
             IAceOnCallSyncResourceMethod block = [self.callSyncMethodMap objectForKey:key];
