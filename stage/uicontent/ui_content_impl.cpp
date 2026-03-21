@@ -561,7 +561,7 @@ void UIContentImpl::InitAceInfoFromResConfig()
     Rosen::DisplayInfo info;
     float density = info.GetScaledDensity();
     LOGI("UIContent set GetScreenDensity density=%{public}f", density);
-    SystemProperties::SetResolution(nowDensity);
+    SystemProperties::SetResolution(density);
 }
 
 void UIContentImpl::Foreground()
