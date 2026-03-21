@@ -25,6 +25,7 @@
 
 #include "adapter/ios/entrance/ace_application_info_impl.h"
 #include "adapter/ios/entrance/utils.h"
+#include "adapter/ios/entrance/display_info.h"
 #include "adapter/ios/osal/accessibility_manager_impl.h"
 #include "adapter/ios/osal/file_asset_provider.h"
 #include "adapter/ios/osal/navigation_route_ios.h"
@@ -538,7 +539,6 @@ void UIContentImpl::InitAceInfoFromResConfig()
     auto config = context->GetConfiguration();
     if (config) {
         auto direction = config->GetItem(OHOS::AbilityRuntime::Platform::ConfigurationInner::APPLICATION_DIRECTION);
-        auto densityDpi = config->GetItem(OHOS::AbilityRuntime::Platform::ConfigurationInner::APPLICATION_DENSITYDPI);
         auto systemFont = config->GetItem(OHOS::AbilityRuntime::Platform::ConfigurationInner::APP_FONT_SIZE_SCALE);
         auto maxFontScale = config->GetItem(OHOS::AbilityRuntime::Platform::ConfigurationInner::APP_FONT_MAX_SCALE);
         auto fontScale = config->GetItem(OHOS::AbilityRuntime::Platform::ConfigurationInner::SYSTEM_FONT_SIZE_SCALE);
@@ -550,11 +550,6 @@ void UIContentImpl::InitAceInfoFromResConfig()
             }
             SystemProperties::SetFontScale(fontScaleValue);
         }
-        LOGI("UIContent set GetScreenDensity dpi=%{public}s", densityDpi.c_str());
-        if (!densityDpi.empty()) {
-            double density = std::stoi(densityDpi) / DPI_BASE;
-            SystemProperties::SetResolution(density);
-        }
         if (direction == OHOS::AbilityRuntime::Platform::ConfigurationInner::DIRECTION_VERTICAL) {
             SystemProperties::SetDeviceOrientation(ORIENTATION_PORTRAIT);
         } else if (direction == OHOS::AbilityRuntime::Platform::ConfigurationInner::DIRECTION_HORIZONTAL) {
@@ -563,6 +558,10 @@ void UIContentImpl::InitAceInfoFromResConfig()
             LOGI("UIContent Direction get fail");
         }
     }
+    Rosen::DisplayInfo info;
+    float density = info.GetScaledDensity();
+    LOGI("UIContent set GetScreenDensity density=%{public}f", density);
+    SystemProperties::SetResolution(nowDensity);
 }
 
 void UIContentImpl::Foreground()
