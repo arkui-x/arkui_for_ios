@@ -38,6 +38,8 @@ template("ace_uicontent_ios_source_set") {
       "//foundation/arkui/napi",
       "//third_party/flutter/engine",
       "//foundation/appframework/arkui/uicontent",
+      "//foundation/appframework/window_manager/interfaces/innerkits/dm",
+      "//foundation/appframework/window_manager/utils/include",
     ]
 
     if (is_arkui_x) {
