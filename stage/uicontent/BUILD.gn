@@ -37,6 +37,8 @@ template("ace_uicontent_ios_source_set") {
       "//base/global/resource_management/interfaces/inner_api/include",
       "//foundation/arkui/napi",
       "//foundation/appframework/arkui/uicontent",
+      "//foundation/appframework/window_manager/interfaces/innerkits/dm",
+      "//foundation/appframework/window_manager/utils/include",
     ]
 
     if (is_arkui_x) {
