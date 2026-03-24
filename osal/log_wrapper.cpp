@@ -30,6 +30,7 @@
 
 #import <os/log.h>
 #include "LogInterfaceBridge.h"
+#include "vsnprintf_s_p.h"
 
 namespace OHOS::Ace {
 namespace {
@@ -100,24 +101,22 @@ void LogWrapper::PrintLog(LogDomain domain, LogLevel level, AceLogTag tag, const
     if (!OHOS::Ace::LogWrapper::JudgeLevel(level)) {
         return;
     }
-    std::string newFmt(fmt);
-    StripFormatString("{public}", newFmt);
-    StripFormatString("{private}", newFmt);
 
-    char buf[MAX_BUFFER_SIZE];
-    if (vsnprintf_s(buf, sizeof(buf), sizeof(buf) - 1, newFmt.c_str(), args) < 0 && errno == EINVAL) {
+    char buffer[MAX_BUFFER_SIZE] = {0};
+    int charsOut = vsnprintfp_s(buffer, MAX_BUFFER_SIZE, MAX_BUFFER_SIZE - 1, 1, fmt, args);
+    if (charsOut < 0) {
         return;
     }
 
     if (HasDelegateMethod() && level >= GetCurrentLogLevel()) {
-        std::string logInfo(buf);
+        std::string logInfo(buffer);
         PassLogMessageOC(LOG_TAGS[static_cast<uint32_t>(domain)], static_cast<int>(level), logInfo);
         return;
     }
 
     os_log_type_t logType = LOG_TYPE[static_cast<int>(level)];
     os_log_t log = os_log_create(LOG_TAGS[static_cast<uint32_t>(domain)], GetNameForLogLevel(level));
-    os_log(log, "[%{public}s] %{public}s", GetNameForLogLevel(level), buf);
+    os_log(log, "[%{public}s] %{public}s", GetNameForLogLevel(level), buffer);
 }
 
 #ifdef ACE_INSTANCE_LOG
