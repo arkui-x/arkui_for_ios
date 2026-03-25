@@ -324,12 +324,12 @@ typedef enum : NSUInteger {
 
     NSString *setRenderFirstFrameMethodHash = [self method_hashFormat:@"setRenderFirstFrame"];
     IAceOnCallSyncResourceMethod setRenderFirstFrameCallback = ^NSString *(NSDictionary * param){
-        LOGE(@"AceVideo: setRenderFirstFrame");
+        LOGI("AceVideo: setRenderFirstFrame");
         __strong __typeof(weakSelf)strongSelf = weakSelf;
         if (strongSelf) {
             return [strongSelf setRenderFirstFrame:param];
         } else {
-            LOGE(@"AceVideo: setRenderFirstFrame fail");
+            LOGE("AceVideo: setRenderFirstFrame fail");
             return FAIL;
         }
     };
