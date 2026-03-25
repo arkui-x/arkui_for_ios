@@ -185,3 +185,17 @@ void SendAccessibilityEventOC(const int64_t elementId, const int windowId, const
     AccessibilityWindowView* windowView = window->GetWindowView();
     [windowView SendAccessibilityEvent:elementId eventType:eventType];
 }
+
+void AnnounceForAccessibilityOC(const std::string& text)
+{
+    NSString* announceText = [NSString stringWithCString:text.c_str() encoding:NSUTF8StringEncoding];
+    dispatch_async(dispatch_get_main_queue(), ^{
+        UIAccessibilityPostNotification(UIAccessibilityLayoutChangedNotification, nil);
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(200 * NSEC_PER_MSEC)), dispatch_get_main_queue(), ^{
+            NSDictionary *attributes = @{UIAccessibilitySpeechAttributeQueueAnnouncement: @(YES)};
+            NSAttributedString *announcement =
+                [[NSAttributedString alloc] initWithString:announceText attributes:attributes];
+            UIAccessibilityPostNotification(UIAccessibilityAnnouncementNotification, announcement);
+        });
+    });
+}

@@ -29,5 +29,6 @@ bool SubscribeState(
     const int windowId, const std::shared_ptr<AccessibilityManagerImpl::AccessibilityStateObserver>& stateObserver);
 void UnSubscribeState(const int windowId);
 int32_t GetAccessibilityElementActionTypes(const OHOS::Accessibility::AccessibilityElementInfo& info);
+void AnnounceForAccessibilityOC(const std::string& text);
 
 #endif // FOUNDATION_ACE_ADAPTER_IOS_ENTRANCE_ACCESSIBILITY_ACCESSIBILITYBRIDGE_H
