@@ -55,7 +55,7 @@
     } else if ([self.componentType isEqualToString:@"Text"]) {
         traits |= UIAccessibilityTraitStaticText;
     } else if ([self.componentType isEqualToString:@"TextInput"]) {
-        traits |= UIAccessibilityTraitKeyboardKey;
+        traits |= UIAccessibilityTraitSearchField;
     } else if ([self.componentType isEqualToString:@"Image"]) {
         traits |= UIAccessibilityTraitImage;
     } else if ([self.componentType isEqualToString:@"TabBar"]) {

@@ -329,7 +329,7 @@ typedef enum : NSUInteger {
         if (strongSelf) {
             return [strongSelf setRenderFirstFrame:param];
         } else {
-            LOGE("AceVideo: setRenderFirstFrame fail");
+            LOGE("AceVideo: strongSelf is nil");
             return FAIL;
         }
     };
