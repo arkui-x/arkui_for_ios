@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Huawei Device Co., Ltd.
+ * Copyright (c) 2025-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -25,6 +25,7 @@
 #import <AVFoundation/AVFoundation.h>
 #import <AVKit/AVKit.h>
 #import "AceWebPatternOCBridge.h"
+#import "adapter/ios/capability/vibrator/haptic_vibrator.h"
 #include "core/components_ng/pattern/scrollable/scrollable_properties.h"
 #include "scheme_handler/resource_request.h"
 #include "ace_engine_types.h"
@@ -95,6 +96,8 @@
 #define NTC_ONCLIENTAUTHENTICATIONREQUEST @"onClientAuthenticationRequest"
 #define WEBVIEW_PAGE_HALF                 2
 #define NTC_TEXT_ZOOM_RATIO               @"textZoomRatio"
+#define NTC_ENABLE_HAPTIC_FEEDBACK        @"enableHapticFeedback"
+#define SELECTION_DRAG_THRESHOLD          2.0
 
 typedef NS_ENUM(NSInteger, NestedScrollMode) {
     SELF_ONLY,
@@ -149,6 +152,7 @@ typedef id (^onJavaScriptFunction)(NSString* objName, NSString* methodName, NSAr
 @property (nonatomic, assign) bool allowZoom;
 @property (nonatomic, assign) bool isLoadRichText;
 @property (nonatomic, assign) BOOL javascriptAccessSwitch;
+@property (nonatomic, assign) BOOL enableHapticFeedbackSwitch;
 @property (nonatomic, copy) IAceOnResourceEvent onEvent;
 @property (nonatomic, strong) NSURLSession* session;
 @property (nonatomic, strong) WebMessageChannel* webMessageChannel;
@@ -182,6 +186,11 @@ typedef id (^onJavaScriptFunction)(NSString* objName, NSString* methodName, NSAr
 @property (nonatomic, strong) NestedScrollOptionsExt *nestedOpt;
 @property (nonatomic, assign) CGPoint dragStartPoint;
 @property (nonatomic, assign) BOOL hasCalledOnScrollStart;
+@property (nonatomic, strong) NSHashTable<UIGestureRecognizer*> *selectionGestureRecognizers;
+@property (nonatomic, assign) BOOL isSelectionDragArmed;
+@property (nonatomic, assign) BOOL hasTriggeredDragHaptic;
+@property (nonatomic, assign) BOOL isSelectionLongPressActive;
+@property (nonatomic, assign) CGPoint selectionDragStartPoint;
 @property (nonatomic, assign) WebViewLoadType lastLoadType;
 @property (nonatomic, copy) NSString *lastData;
 @property (nonatomic, copy) NSString *lastMimeType;
@@ -217,6 +226,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
     self.incId = incId;
     self.target = target;
     self.javascriptAccessSwitch = YES;
+    self.enableHapticFeedbackSwitch = YES;
     self.allowIncognitoMode = incognitoMode;
     self.allowZoom = true;
     self.oldScale = 100.0f;
@@ -249,6 +259,21 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
     [self initConsole:CONSOLEWARN controller:userContentController];
     [userContentController addScriptMessageHandler:self name:@"onWebMessagePortMessage"];
     [userContentController addScriptMessageHandler:self name:@"AceWebHandler"];
+    [userContentController addScriptMessageHandler:self name:@"onTextSelectionChanged"];
+
+    NSString *selectionJS =
+        @"(function(){"
+        "var h=window.webkit.messageHandlers.onTextSelectionChanged;"
+        "function txt(){ try{ var s=window.getSelection?window.getSelection():null;return s?String(s):''; }"
+        "catch(e){ return ''; } }"
+        "document.addEventListener('selectionchange',function(){"
+        "var t=txt();h.postMessage({ type:'selectionchange', text:t });"
+        "},true);"
+        "})();";
+    WKUserScript *selectionScript = [[WKUserScript alloc] initWithSource:selectionJS
+        injectionTime:WKUserScriptInjectionTimeAtDocumentEnd forMainFrameOnly:NO];
+    [userContentController addUserScript:selectionScript];
+
     NSString *htmlFBody = @"var vSrc = e.target.currentSrc;window.webkit.messageHandlers.videoPlayed.postMessage(vSrc);";
     NSString *htmlFunc = [NSString stringWithFormat:@"function(e) {if (e.target.tagName === 'VIDEO') {%@}}", htmlFBody];
     NSString *htmlJS = [NSString stringWithFormat:@"document.addEventListener('play', %@, true);", htmlFunc];
@@ -274,6 +299,10 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
     [self.webView addObserver:self forKeyPath:ESTIMATEDPROGRESS options:NSKeyValueObservingOptionNew context:nil];
     [self.webView addObserver:self forKeyPath:TITLE options:NSKeyValueObservingOptionNew context:nil];
     self.hasCalledOnScrollStart = YES;
+    self.selectionGestureRecognizers = [NSHashTable weakObjectsHashTable];
+    self.isSelectionDragArmed = NO;
+    self.hasTriggeredDragHaptic = NO;
+    [self registerSelectionGestures];
 }
 
 - (void)incognitoModeWithConfig:(WKWebViewConfiguration*) config
@@ -1027,6 +1056,8 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
     [self setZoomAccessCallback];
     // javaScriptAccess callback
     [self setJavaScriptAccessCallback];
+    // enableHapticFeedback callback
+    [self setEnableHapticFeedbackCallback];
     // minFontSize callback
     [self setMinFontSizeCallback];
     // horizontalScrollBarAccess callback
@@ -1233,6 +1264,25 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
         }
     };
     [self.callSyncMethodMap setObject:[javascriptAccess_callback copy] forKey:javascriptAccess_method_hash];
+}
+
+- (void)setEnableHapticFeedbackCallback
+{
+    __weak __typeof(self) weakSelf = self;
+    NSString *enableHapticFeedback_method_hash = [self method_hashFormat:NTC_ENABLE_HAPTIC_FEEDBACK];
+    IAceOnCallSyncResourceMethod enableHapticFeedback_callback =
+    ^NSString *(NSDictionary * param){
+        __strong __typeof(weakSelf)strongSelf = weakSelf;
+        if (strongSelf) {
+            bool isEnableHapticFeedback = [[param objectForKey:NTC_ENABLE_HAPTIC_FEEDBACK] boolValue];
+            strongSelf.enableHapticFeedbackSwitch = isEnableHapticFeedback ? YES : NO;
+            return SUCCESS;
+        } else {
+            LOGE("AceWeb: enableHapticFeedback fail");
+            return FAIL;
+        }
+    };
+    [self.callSyncMethodMap setObject:[enableHapticFeedback_callback copy] forKey:enableHapticFeedback_method_hash];
 }
 
 - (void)setRichText
@@ -1495,6 +1545,10 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
     LOGI("AceWeb releaseObject");
     [self.webView removeObserver:self forKeyPath:ESTIMATEDPROGRESS];
     [self.webView removeObserver:self forKeyPath:TITLE];
+    for (UIGestureRecognizer *gestureRecognizer in self.selectionGestureRecognizers) {
+        [gestureRecognizer removeTarget:self action:@selector(onSelectionLongPress:)];
+    }
+    [self.selectionGestureRecognizers removeAllObjects];
     [self.webView.configuration.userContentController removeScriptMessageHandlerForName:CONSOLELOG];
     [self.webView.configuration.userContentController removeScriptMessageHandlerForName:CONSOLEINFO];
     [self.webView.configuration.userContentController removeScriptMessageHandlerForName:CONSOLEERROR];
@@ -1558,6 +1612,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
             asyncMethodList:self.asyncMethodList objName:self.objName];
     }
     self.jsReady = true;
+    [self registerSelectionGestures];
     [self updateTextZoomRatio:self.textZoomRatio];
     NSString *param = [NSString stringWithFormat:@"%@",webView.URL];
     if (self.isLoadRichText) {
@@ -1933,6 +1988,103 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
 }
 
 #pragma mark - UIScrollViewDelegate
+- (void)registerSelectionGestures
+{
+    if (!self.webView) {
+        return;
+    }
+    [self addSelectionGesturesForView:self.webView];
+}
+
+- (void)addSelectionGesturesForView:(UIView *)view
+{
+    for (UIGestureRecognizer *gestureRecognizer in view.gestureRecognizers) {
+        if ([self.selectionGestureRecognizers containsObject:gestureRecognizer]) {
+            continue;
+        }
+        if ([gestureRecognizer isKindOfClass:[UILongPressGestureRecognizer class]]) {
+            [gestureRecognizer addTarget:self action:@selector(onSelectionLongPress:)];
+            [self.selectionGestureRecognizers addObject:gestureRecognizer];
+        }
+    }
+    for (UIView *subview in view.subviews) {
+        [self addSelectionGesturesForView:subview];
+    }
+}
+
+- (void)resetSelectionDragState
+{
+    self.isSelectionDragArmed = NO;
+    self.hasTriggeredDragHaptic = NO;
+    self.selectionDragStartPoint = CGPointZero;
+}
+
+- (UIView *)findFirstResponderInView:(UIView *)view
+{
+    if (view.isFirstResponder) {
+        return view;
+    }
+    for (UIView *subview in view.subviews) {
+        UIView *firstResponder = [self findFirstResponderInView:subview];
+        if (firstResponder) {
+            return firstResponder;
+        }
+    }
+    return nil;
+}
+
+- (BOOL)hasNativeTextSelection
+{
+    UIView *firstResponder = [self findFirstResponderInView:self.webView];
+    if (!firstResponder) {
+        return NO;
+    }
+    return [firstResponder canPerformAction:@selector(copy:) withSender:nil];
+}
+
+- (void)triggerDragHapticIfNeeded:(UIGestureRecognizer *)gestureRecognizer
+{
+    if (!self.enableHapticFeedbackSwitch || !self.isSelectionDragArmed ||
+        self.hasTriggeredDragHaptic || ![self hasNativeTextSelection]) {
+        return;
+    }
+    CGPoint currentPoint = [gestureRecognizer locationInView:gestureRecognizer.view];
+    CGFloat deltaX = currentPoint.x - self.selectionDragStartPoint.x;
+    CGFloat deltaY = currentPoint.y - self.selectionDragStartPoint.y;
+    if (fabs(deltaX) < SELECTION_DRAG_THRESHOLD && fabs(deltaY) < SELECTION_DRAG_THRESHOLD) {
+        return;
+    }
+    OHOS::Ace::Platform::HapticVibrator::StartVibraFeedback("haptic.slide");
+    self.hasTriggeredDragHaptic = YES;
+}
+
+- (void)onSelectionLongPress:(UILongPressGestureRecognizer *)gestureRecognizer
+{
+    switch (gestureRecognizer.state) {
+        case UIGestureRecognizerStateBegan:
+            self.isSelectionLongPressActive = YES;
+            if ([self hasNativeTextSelection]) {
+                self.isSelectionDragArmed = YES;
+                self.hasTriggeredDragHaptic = NO;
+                self.selectionDragStartPoint = [gestureRecognizer locationInView:gestureRecognizer.view];
+            } else {
+                [self resetSelectionDragState];
+            }
+            break;
+        case UIGestureRecognizerStateChanged:
+            [self triggerDragHapticIfNeeded:gestureRecognizer];
+            break;
+        case UIGestureRecognizerStateEnded:
+        case UIGestureRecognizerStateCancelled:
+        case UIGestureRecognizerStateFailed:
+            self.isSelectionLongPressActive = NO;
+            [self resetSelectionDragState];
+            break;
+        default:
+            break;
+    }
+}
+
 - (void)scrollViewWillBeginDragging:(UIScrollView *)scrollView {
     AceWebOnScrollObject* obj = new AceWebOnScrollObject(scrollView.contentOffset.x, scrollView.contentOffset.y);
     AceWebObject([[self event_hashFormat:NTC_ONWILL_SCROLLSTART] UTF8String], [NTC_ONWILL_SCROLLSTART UTF8String], obj);
@@ -2032,39 +2184,59 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
             self.messageCallBackExt(message.body);
         }
         return;
+    } else if ([message.name isEqualToString:@"onTextSelectionChanged"]) {
+        [self handleTextSelectionChangedMessage:message];
+        return;
     } else if ([message.name isEqualToString:@"videoPlayed"]) {
         NSString *videoSrc = message.body;
         self.videoSrc = videoSrc;
         return;
     } else if ([message.name isEqualToString:@"AceWebHandler"] && self.onJavaScriptFunctionCallBack) {
-        NSDictionary* messageBody = (NSDictionary *)message.body;
-        NSString* className = messageBody[@"class"];
-        NSString* methodName = messageBody[@"method"];
-        NSArray* params = [NSArray array];
-        if ([messageBody[@"params"] isKindOfClass:NSArray.class]) {
-            params = [NSArray arrayWithArray:messageBody[@"params"]];
-        } else {
-            NSString* jsonString = [NSString stringWithFormat:@"%@", messageBody[@"params"]];
-            NSData* jsonData = [jsonString dataUsingEncoding:NSUTF8StringEncoding];
-            NSError* error;
-            NSArray* array = [NSJSONSerialization JSONObjectWithData:jsonData
-                                options:NSJSONReadingMutableContainers error:&error];
-            if (!array) {
-                LOGE("Failed to parse JSON errorCode: %{public}ld", (long)error.code);
-            } else {
-                params = array;
-            }
-        }
-        id result = self.onJavaScriptFunctionCallBack(className, methodName, params);
-        if (result != nil && ![result isEqual:@""]) {
-            NSString* js = [self generateJavaScriptForResult:result className:className methodName:methodName];
-            [self.webView evaluateJavaScript:js completionHandler:nil];
-        }
+        [self handleAceWebHandlerMessage:message];
         return;
     }
     AceWebOnConsoleObject* obj = new AceWebOnConsoleObject(std::string([messageBody UTF8String]), messageLevel);
     AceWebObjectWithBoolReturn(
         [[self event_hashFormat:NTC_ONCONSOLEMESSAGE] UTF8String], [NTC_ONCONSOLEMESSAGE UTF8String], obj);
+}
+
+- (void)handleTextSelectionChangedMessage:(WKScriptMessage*)message
+{
+    NSDictionary* selectionInfo = (NSDictionary *)message.body;
+    NSString* selectedText = [selectionInfo[@"text"] isKindOfClass:[NSString class]] ? selectionInfo[@"text"] : @"";
+    if (selectedText.length == 0) {
+        return;
+    }
+    if (self.enableHapticFeedbackSwitch && !self.isSelectionLongPressActive) {
+        OHOS::Ace::Platform::HapticVibrator::StartVibraFeedback("haptic.slide");
+    }
+}
+
+- (void)handleAceWebHandlerMessage:(WKScriptMessage*)message
+{
+    NSDictionary* messageBody = (NSDictionary *)message.body;
+    NSString* className = messageBody[@"class"];
+    NSString* methodName = messageBody[@"method"];
+    NSArray* params = [NSArray array];
+    if ([messageBody[@"params"] isKindOfClass:NSArray.class]) {
+        params = [NSArray arrayWithArray:messageBody[@"params"]];
+    } else {
+        NSString* jsonString = [NSString stringWithFormat:@"%@", messageBody[@"params"]];
+        NSData* jsonData = [jsonString dataUsingEncoding:NSUTF8StringEncoding];
+        NSError* error;
+        NSArray* array = [NSJSONSerialization JSONObjectWithData:jsonData
+                            options:NSJSONReadingMutableContainers error:&error];
+        if (!array) {
+            LOGE("Failed to parse JSON errorCode: %{public}ld", (long)error.code);
+        } else {
+            params = array;
+        }
+    }
+    id result = self.onJavaScriptFunctionCallBack(className, methodName, params);
+    if (result != nil && ![result isEqual:@""]) {
+        NSString* js = [self generateJavaScriptForResult:result className:className methodName:methodName];
+        [self.webView evaluateJavaScript:js completionHandler:nil];
+    }
 }
 
 - (void)webView:(WKWebView*)webView
