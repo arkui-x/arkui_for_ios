@@ -81,6 +81,45 @@ typedef enum : NSUInteger {
 @end
 
 @implementation AceVideo
+- (CGSize)getDisplaySizeForPlayerItem:(AVPlayerItem *)playerItem
+{
+    if (!playerItem) {
+        return CGSizeZero;
+    }
+
+    CGSize size = playerItem.presentationSize;
+    if (size.width > 0.0 && size.height > 0.0) {
+        return size;
+    }
+
+    NSArray<AVAssetTrack *> *videoTracks = [playerItem.asset tracksWithMediaType:AVMediaTypeVideo];
+    AVAssetTrack *videoTrack = videoTracks.firstObject;
+    if (!videoTrack) {
+        return CGSizeZero;
+    }
+
+    CGSize naturalSize = videoTrack.naturalSize;
+    if (naturalSize.width <= 0.0 || naturalSize.height <= 0.0) {
+        return CGSizeZero;
+    }
+    CGAffineTransform transform = videoTrack.preferredTransform;
+    CGRect displayRect = CGRectApplyAffineTransform(
+        CGRectMake(0.0, 0.0, naturalSize.width, naturalSize.height), transform);
+    return CGSizeMake(fabs(CGRectGetWidth(displayRect)), fabs(CGRectGetHeight(displayRect)));
+}
+
+- (void)updateFirstFrameVisibilityAfterPrepared
+{
+    __weak __typeof(self) weakSelf = self;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        __strong __typeof(weakSelf) strongSelf = weakSelf;
+        if (!strongSelf) {
+            return;
+        }
+        [strongSelf updateFirstFrameVisibility];
+    });
+}
+
 - (instancetype)init:(int64_t)incId
     moudleName:(NSString*)moudleName
     onEvent:(IAceOnResourceEvent)callback
@@ -442,7 +481,8 @@ typedef enum : NSUInteger {
             self.seekedAfterPrepare = YES;
         }
         __weak __typeof(self)weakSelf = self;
-        [self.player_ seekToTime:time toleranceBefore:kCMTimeZero toleranceAfter:kCMTimeZero completionHandler:^(BOOL finished) {
+        [self.player_ seekToTime:time
+            toleranceBefore:kCMTimeZero toleranceAfter:kCMTimeZero completionHandler:^(BOOL finished) {
             __strong __typeof(weakSelf)strongSelf = weakSelf;
             if (finished && strongSelf) {
                 if (strongSelf.state != STARTED) {
@@ -508,7 +548,7 @@ typedef enum : NSUInteger {
     if (!playerItem) {
         return;
     }
-    CGSize size = playerItem.presentationSize;
+    CGSize size = [self getDisplaySizeForPlayerItem:playerItem];
     int64_t duration = [self getMediaDuration];
     NSString *param = [NSString stringWithFormat:
         @"width=%f&height=%f&duration=%lld&isplaying=%d&needRefreshForce=%d",
@@ -540,6 +580,7 @@ typedef enum : NSUInteger {
 
     if (!self.showFirstFrame) {
         [self firePreparedEventWithCurrentItem:self.player_.currentItem isPlaying:0];
+        [self updateFirstFrameVisibilityAfterPrepared];
         return;
     }
 
@@ -551,8 +592,8 @@ typedef enum : NSUInteger {
         if (!finished || !strongSelf) {
             return;
         }
-        [strongSelf updateFirstFrameVisibility];
         [strongSelf firePreparedEventWithCurrentItem:strongSelf.player_.currentItem isPlaying:0];
+        [strongSelf updateFirstFrameVisibilityAfterPrepared];
     }];
 }
 
@@ -886,7 +927,7 @@ typedef enum : NSUInteger {
 {
     if (self.player_ && self.player_.currentItem) {
         self.state = PREPARED;
-        CGSize size = self.player_.currentItem.presentationSize;
+        CGSize size = [self getDisplaySizeForPlayerItem:self.player_.currentItem];
         float width = size.width;
         float height = size.height;
         
@@ -902,19 +943,19 @@ typedef enum : NSUInteger {
             [item addOutput:self.renderTexture.videoOutput];
             [self.displayLink addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSRunLoopCommonModes];
         }
-        [self updateFirstFrameVisibility];
-
         BOOL shouldAutoPlay = (self.isAutoPlay && setAutoPlay) || self.pendingPlayAfterPrepare;
-        if (shouldAutoPlay) {
-            self.pendingPlayAfterPrepare = false;
-            [self startPlay];
-        }
         int isPlaying = (self.player_.timeControlStatus == AVPlayerTimeControlStatusPlaying ||
                         self.isAutoPlay ||
                         shouldAutoPlay) ? 1 : 0;
         NSString *param = [NSString stringWithFormat:
         @"width=%f&height=%f&duration=%lld&isplaying=%d&needRefreshForce=%d", width, height, duration, isPlaying, 1];
         [self fireCallback:@"prepared" params:param];
+        [self updateFirstFrameVisibilityAfterPrepared];
+
+        if (shouldAutoPlay) {
+            self.pendingPlayAfterPrepare = false;
+            [self startPlay];
+        }
     }
 }
 
