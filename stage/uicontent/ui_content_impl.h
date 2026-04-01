@@ -98,6 +98,7 @@ private:
 
     void InitializeSubWindow();
     void DestroyCallback() const;
+    void ProcessWindowSizeLayoutBreakPointChange();
 
     void InitOnceAceInfo();
     void InitAceInfoFromResConfig();
