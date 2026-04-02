@@ -18,6 +18,7 @@
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <vector>
 #include "base/log/log.h"
 #include "base/utils/utils.h"
 #include "ace_download_bridge.h"

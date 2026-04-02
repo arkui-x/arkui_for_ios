@@ -17,6 +17,7 @@
 #import "StageAssetManager.h"
 
 #include "stage_asset_provider.h"
+#include "base/log/log_wrapper.h"
 #include "base/utils/string_utils.h"
 #include "nlohmann/json.hpp"
 
