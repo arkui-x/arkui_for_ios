@@ -125,24 +125,21 @@
 
 - (void)callSurfaceChange:(CGRect)surfaceRect
 {
-    UIScreen *screen = [UIScreen mainScreen];
-    CGFloat scale = screen.scale;
-
+    if (!self.layer || CGRectEqualToRect(_currentFrame, surfaceRect)) {
+        return;
+    }
+    CGFloat scale = [UIScreen mainScreen].scale;
     CGRect newRect = CGRectMake(surfaceRect.origin.x/scale,
         surfaceRect.origin.y/scale, surfaceRect.size.width/scale, surfaceRect.size.height/scale);
     self.frame = newRect;
-    if (self.layer) {
-        if (_currentFrame.origin.x != surfaceRect.origin.x
-            || _currentFrame.origin.y != surfaceRect.origin.y
-            || _currentFrame.size.width != surfaceRect.size.width
-            || _currentFrame.size.height != surfaceRect.size.height){
-            self.frame = newRect;
-            _currentFrame = surfaceRect;
-            NSString * param = [NSString stringWithFormat:@"surfaceWidth=%f&surfaceHeight=%f",
-                surfaceRect.size.width, surfaceRect.size.height];
-            [self fireCallback:@"onChanged" params:param];
-        }
+    BOOL sizeChanged = !CGSizeEqualToSize(_currentFrame.size, surfaceRect.size);
+    _currentFrame = surfaceRect;
+    if (!sizeChanged) {
+        return;
     }
+    NSString *param = [NSString stringWithFormat:@"surfaceWidth=%f&surfaceHeight=%f",
+        surfaceRect.size.width, surfaceRect.size.height];
+    [self fireCallback:@"onChanged" params:param];
 }
 
 - (void)layerCreate
@@ -178,7 +175,6 @@
             self.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
             [self callSurfaceChange:surfaceRect];
             [self bringSubviewToFront];
-            
         }
     } @catch (NSException* exception) {
         LOGE("AceSurfaceView NumberFormatException, setSurfaceSize failed");
