@@ -15,12 +15,12 @@
 
 #import "RenderViewXcomponent.h"
 
-#include <Foundation/Foundation.h>
-#include <mutex>
+#import <CoreGraphics/CGGeometry.h>
+#import <Foundation/Foundation.h>
 
 #import "RenderProgram.h"
-#include "securec.h"
-#include "base/log/log.h"
+#import "securec.h"
+#import "base/log/log.h"
 
 #define COLOR_NUMBER 8
 #define DATA_SIZE 4
@@ -79,7 +79,10 @@ static GLfloat texArray[] = {
     void* imageDatas[BUFFERS_SIZE];
     dispatch_queue_t renderQueue;
     UIPanGestureRecognizer* panGesture;
-    int currentBufferIndex;
+    NSInteger currentBufferIndex;
+    UIGraphicsImageRenderer *_snapshotRenderer;
+    CGSize _snapshotRendererSize;
+    CGFloat _snapshotRendererScale;
 }
 
 @property (strong, nonatomic) RenderProgram* program;
@@ -97,6 +100,9 @@ static GLfloat texArray[] = {
     if (self) {
         self.backgroundColor = [UIColor whiteColor];
         _texture = -1;
+        _snapshotRenderer = nil;
+        _snapshotRendererSize = CGSizeZero;
+        _snapshotRendererScale = 0;
     }
     return self;
 }
@@ -261,10 +267,44 @@ static GLfloat texArray[] = {
             return;
         }
     }
-    UIGraphicsPushContext(tContexts[currentBufferIndex]);
-    BOOL isDrawFinish = [view drawViewHierarchyInRect:CGRectMake(0, 0, _renderWidth, _renderHeight)
-                                   afterScreenUpdates:NO];
-    UIGraphicsPopContext();
+    BOOL isDrawFinish = NO;
+    CGSize renderSize = view.bounds.size;
+    if (renderSize.width <= 0 || renderSize.height <= 0) {
+        NSLog(@"error: view size is invalid");
+        return;
+    }
+    CGFloat renderScale = RENDER_SCALE;
+    if (renderSize.width > 0) {
+        renderScale = (CGFloat)_renderWidth / renderSize.width;
+    }
+    if (renderScale <= 0) {
+        renderScale = RENDER_SCALE;
+    }
+    BOOL needRecreateRenderer = (_snapshotRenderer == nil)
+        || !CGSizeEqualToSize(_snapshotRendererSize, renderSize)
+        || fabs(_snapshotRendererScale - renderScale) > 0.001;
+    if (needRecreateRenderer) {
+        UIGraphicsImageRendererFormat *format = [UIGraphicsImageRendererFormat preferredFormat];
+        format.scale = renderScale;
+        format.opaque = NO;
+        _snapshotRenderer = [[UIGraphicsImageRenderer alloc] initWithSize:renderSize format:format];
+        _snapshotRendererSize = renderSize;
+        _snapshotRendererScale = renderScale;
+    }
+
+    UIImage *snapshotImage = [_snapshotRenderer imageWithActions:^(UIGraphicsImageRendererContext * _Nonnull context) {
+        [view drawViewHierarchyInRect:view.bounds afterScreenUpdates:NO];
+    }];
+    if (snapshotImage != nil) {
+        CGContextRef targetContext = tContexts[currentBufferIndex];
+        if (targetContext != nil) {
+            CGRect targetRect = CGRectMake(0, 0, _renderWidth, _renderHeight);
+            UIGraphicsPushContext(targetContext);
+            [snapshotImage drawInRect:targetRect blendMode:kCGBlendModeCopy alpha:1.0];
+            UIGraphicsPopContext();
+            isDrawFinish = YES;
+        }
+    }
     if (!isDrawFinish) {
         LOGE("error: drawViewHierarchyInRect Failed");
         return;
@@ -323,6 +363,9 @@ static GLfloat texArray[] = {
     if (_context) {
         _context = nil;
     }
+    _snapshotRenderer = nil;
+    _snapshotRendererSize = CGSizeZero;
+    _snapshotRendererScale = 0;
     for (int i = 0; i < BUFFERS_SIZE; i++) {
         if (tContexts[i]) {
             CGContextRelease(tContexts[i]);

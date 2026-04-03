@@ -16,7 +16,7 @@
 #import "AceXcomponentTextureView.h"
 
 #import <AVFoundation/AVFoundation.h>
-#include <CoreFoundation/CoreFoundation.h>
+#import <CoreFoundation/CoreFoundation.h>
 #import <OpenGLES/ES3/gl.h>
 #import <OpenGLES/ES3/glext.h>
 #import <QuartzCore/QuartzCore.h>
@@ -27,7 +27,7 @@
 #import "WindowView.h"
 #import "StageViewController.h"
 #import "RenderViewXcomponent.h"
-#include "base/log/log.h"
+#import "base/log/log.h"
 
 #define TEXTURE_FLAG    @"texture@"
 #define PARAM_EQUALS    @"#HWJS-=-#"
@@ -396,12 +396,14 @@ typedef NS_ENUM(NSUInteger, RefreshFrequency) {
     if (_isVideo && _player) {
         [self refreshPixelBuffer];
     } else {
-        __weak AceXcomponentTextureView *weakSelf = self;
-        dispatch_async(dispatch_get_main_queue(), ^{
-            if (weakSelf == nil) {
+        __weak __typeof(self) weakSelf = self;
+        dispatch_main_async_safe(^{
+            __strong __typeof(weakSelf) strongSelf = weakSelf;
+            if (!strongSelf) {
+                LOGE("error: displayLinkDidrefresh strongSelf is nil");
                 return;
             }
-            [weakSelf refreshRenderTexture];
+            [strongSelf refreshRenderTexture];
         });
     }
 }
