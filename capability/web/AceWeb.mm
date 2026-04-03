@@ -261,6 +261,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
     config.preferences = preference;
     config.userContentController = userContentController;
     config.allowsInlineMediaPlayback = YES;
+    config.mediaTypesRequiringUserActionForPlayback = WKAudiovisualMediaTypeNone;
     [config setURLSchemeHandler:self forURLScheme:CUSTOM_SCHEME];
     [config setURLSchemeHandler:self forURLScheme:CUSTOM_SCHEME_HANDLER];
     [self incognitoModeWithConfig:config];
