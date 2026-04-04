@@ -202,3 +202,11 @@ void AnnounceForAccessibilityOC(const std::string& text)
         });
     });
 }
+
+bool IsUITestingEnabled(const uint32_t windowId) {
+    std::shared_ptr<OHOS::Rosen::Window> window = OHOS::Rosen::Window::FindWindow(windowId);
+    CHECK_NULL_RETURN(window, false);
+    AccessibilityWindowView* windowView = window->GetWindowView();
+    CHECK_NULL_RETURN(windowView, false);
+    return [windowView IsUITestingEnabled];
+}

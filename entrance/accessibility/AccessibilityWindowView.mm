@@ -619,4 +619,11 @@ typedef enum {
         parentElement.accessibilityLabel = nodeInfo.nodeLabel;
     }
 }
+
+- (bool)IsUITestingEnabled
+{
+    bool isUITestingEnabled =
+        NSProcessInfo.processInfo.environment[@"XCTestConfigurationFilePath"] != nil;
+    return isUITestingEnabled;
+}
 @end
