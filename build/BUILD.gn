@@ -62,6 +62,7 @@ ohos_shared_library("arkui_ios") {
     "$ace_root/interfaces/inner_api/ace_kit:ace_kit",
     "$ace_root/interfaces/native:ace_static_ndk",
     "//foundation/appframework:appframework_napis",
+    "//foundation/arkui/ace_engine/frameworks/core/components_ng/pattern/menu:ace_core_components_menu_pattern_ng_ios",
     "//plugins/interfaces/native:ace_plugin_util_inner_ios",
   ]
   if (defined(ark_engine)) {
@@ -276,7 +277,6 @@ component_modules = [
   "symbol",
   "rich_editor",
   "search",
-  "menu",
   "text_clock",
 ]
 component_modules_libs = []

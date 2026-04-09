@@ -24,12 +24,43 @@
 #include "base/utils/utils.h"
 #include "compatible/components/component_loader.h"
 #include "interfaces/inner_api/ace/utils.h"
+#include "core/common/dynamic_module.h"
+#include "core/components_ng/pattern/menu/bridge/menu/menu_dynamic_module.h"
+#include "core/components_ng/pattern/menu/bridge/menu_item/menu_item_dynamic_module.h"
+#include "core/components_ng/pattern/menu/bridge/menu_item_group/menu_item_group_dynamic_module.h"
+
+// Forward declarations for static module creation functions
+extern "C" void* OHOS_ACE_DynamicModule_Create_Menu();
+extern "C" void* OHOS_ACE_DynamicModule_Create_MenuItem();
+extern "C" void* OHOS_ACE_DynamicModule_Create_MenuItemGroup();
 
 namespace OHOS::Ace {
 namespace {
 const std::string DYNAMIC_MODULE_LIB_PREFIX = "libarkui_";
 static NSString* DYNAMIC_MODULE_LIB_POSTFIX = @".dylib";
 static NSString* FRAMEWORK_TYPE = @"framework";
+
+// Static module instances for components bundled into libarkui_ios
+static std::unique_ptr<DynamicModule> g_menuModule = nullptr;
+static std::unique_ptr<DynamicModule> g_menuItemModule = nullptr;
+static std::unique_ptr<DynamicModule> g_menuItemGroupModule = nullptr;
+
+// Initialize static modules
+void InitializeStaticModules()
+{
+    static bool initialized = false;
+    if (initialized) {
+        return;
+    }
+
+    g_menuModule.reset(reinterpret_cast<DynamicModule*>(OHOS_ACE_DynamicModule_Create_Menu()));
+    g_menuItemModule.reset(reinterpret_cast<DynamicModule*>(OHOS_ACE_DynamicModule_Create_MenuItem()));
+    g_menuItemGroupModule.reset(reinterpret_cast<DynamicModule*>(OHOS_ACE_DynamicModule_Create_MenuItemGroup()));
+
+    LOGI("InitializeStaticModules finished");
+    initialized = true;
+}
+
 const std::unordered_map<std::string, std::string> soMap = {
     {"Marquee", "marquee"},
     {"Stepper", "stepper" },
@@ -58,9 +89,7 @@ const std::unordered_map<std::string, std::string> soMap = {
     {"DataPanel", "datapanel"},
     {"Richeditor", "richeditor"},
     {"Search", "search"},
-    {"Menu", "menu"},
-    {"MenuItem", "menu"},
-    {"MenuItemGroup", "menu"},
+    // Menu components are now statically linked, handled in GetDynamicModule
     {"TextClock", "textclock"},
 };
 } // namespace
@@ -77,6 +106,20 @@ std::unique_ptr<ComponentLoader> DynamicModuleHelper::GetLoaderByName(const char
 
 DynamicModule* DynamicModuleHelper::GetDynamicModule(const std::string& name)
 {
+    // Initialize static modules (Menu, MenuItem, MenuItemGroup)
+    InitializeStaticModules();
+
+    // Check for statically linked modules first
+    if (name == "Menu") {
+        return g_menuModule.get();
+    }
+    if (name == "MenuItem") {
+        return g_menuItemModule.get();
+    }
+    if (name == "MenuItemGroup") {
+        return g_menuItemGroupModule.get();
+    }
+
     // Double-checked locking pattern for better performance
     {
         std::lock_guard<std::mutex> lock(moduleMapMutex_);
