@@ -334,6 +334,16 @@ static bool g_isOnBackground = false;
     [[Logger sharedInstance] NativeSetLogLevel:logLevel];
 }
 
++ (void)setLogger:(id)logger level:(int)logLevel
+{
+    if (logger == nil) {
+        NSLog(@"setLogger: logger is nil");
+        return;
+    }
+    [[Logger sharedInstance] NativeSetLogger:logger];
+    [[Logger sharedInstance] NativeSetLogLevel:logLevel];
+}
+
 - (NSString *)getTopAbility {
     StageViewController *topViewController = [StageApplication getApplicationTopViewController];
     NSMutableArray *viewControllers = [NSMutableArray arrayWithArray:topViewController.navigationController.viewControllers];
