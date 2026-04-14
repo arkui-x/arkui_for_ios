@@ -20,6 +20,7 @@
 #include "adapter/ios/entrance/ace_application_info_impl.h"
 #include "adapter/ios/entrance/ace_platform_plugin.h"
 #include "adapter/ios/osal/file_asset_provider.h"
+#include "adapter/ios/osal/high_contrast_observer.h"
 #include "adapter/ios/stage/uicontent/ace_view_sg.h"
 #include "base/log/ace_trace.h"
 #include "base/log/event_report.h"
@@ -113,6 +114,7 @@ AceContainerSG::AceContainerSG(int32_t instanceId, FrontendType type,
     }
 
     platformEventCallback_ = std::move(callback);
+    SubscribeHighContrastChange();
 }
 
 void AceContainerSG::Initialize()
@@ -129,6 +131,7 @@ void AceContainerSG::Destroy()
     LOGI("AceContainerSG: destroy");
 
     ContainerScope scope(instanceId_);
+    UnsubscribeHighContrastChange();
     ReleaseResourceAdapter();
     if (pipelineContext_ && taskExecutor_) {
         // 1. Destroy Pipeline on UI thread.
@@ -1468,5 +1471,25 @@ void AceContainerSG::FireAccessibilityEventCallback(uint32_t eventId, int64_t pa
     auto accessibilityManager = ngPipeline->GetAccessibilityManager();
     CHECK_NULL_VOID(accessibilityManager);
     accessibilityManager->FireAccessibilityEventCallback(eventId, parameter);
+}
+
+void AceContainerSG::SubscribeHighContrastChange()
+{
+    HighContrastObserver::GetInstance().SubscribeHighContrastChange(instanceId_, [weak = WeakClaim(this)]() {
+        auto container = weak.Upgrade();
+        if (container == nullptr) {
+            return;
+        }
+        auto pipelineContext = container->GetPipelineContext();
+        auto fontManager = pipelineContext == nullptr ? nullptr : pipelineContext->GetFontManager();
+        if (fontManager != nullptr) {
+            fontManager->UpdateHybridRenderNodes();
+        }
+    });
+}
+
+void AceContainerSG::UnsubscribeHighContrastChange()
+{
+    HighContrastObserver::GetInstance().UnsubscribeHighContrastChange(instanceId_);
 }
 } // namespace OHOS::Ace::Platform

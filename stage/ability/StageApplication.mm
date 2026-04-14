@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2025 Huawei Device Co., Ltd.
+ * Copyright (c) 2023-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -22,6 +22,7 @@
 #import "Logger.h"
 #include <string>
 #include "app_main.h"
+#include "foundation/arkui/ace_engine/adapter/ios/osal/high_contrast_observer.h"
 #include "stage_application_info_adapter.h"
 
 using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
@@ -55,6 +56,8 @@ static bool g_isOnBackground = false;
     [[StageConfigurationManager configurationManager] registConfiguration];
     [[AceWebInfoManager sharedManager] updateUserAgentIfNeeded];
     [self startAbilityDelegator];
+    bool enabled = UIAccessibilityDarkerSystemColorsEnabled();
+    OHOS::Ace::Platform::HighContrastObserver::GetInstance().OnHighContrastChange(enabled);
 }
 
 + (void)startAbilityDelegator {
@@ -114,6 +117,10 @@ static bool g_isOnBackground = false;
                selector:@selector(DispatchApplicationOnForeground:)
                    name:UIApplicationWillEnterForegroundNotification
                  object:nil];
+    [center addObserver:self
+               selector:@selector(HighContrastStatusChanged:)
+                   name:UIAccessibilityDarkerSystemColorsStatusDidChangeNotification
+                 object:nil];
 }
 
 + (void)DispatchApplicationOnForeground:(NSNotification *)notification {
@@ -124,6 +131,13 @@ static bool g_isOnBackground = false;
 + (void)DispatchApplicationOnBackground:(NSNotification *)notification {
     AppMain::GetInstance()->NotifyApplicationBackground();
     [self callCurrentAbilityOnBackground];
+}
+
++ (void)HighContrastStatusChanged:(NSNotification *)notification
+{
+    (void)notification;
+    bool enabled = UIAccessibilityDarkerSystemColorsEnabled();
+    OHOS::Ace::Platform::HighContrastObserver::GetInstance().OnHighContrastChange(enabled);
 }
 
 + (void)setPidAndUid {
