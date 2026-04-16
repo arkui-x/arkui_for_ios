@@ -15,8 +15,10 @@
 
 #import "AceVideo.h"
 #import <AVFoundation/AVFoundation.h>
+#include <cmath>
 #import <UIKit/UIKit.h>
 #import <GLKit/GLKit.h>
+
 #import "AceSurfaceHolder.h"
 #import "AceSurfaceView.h"
 #import "StageAssetManager.h"
@@ -47,6 +49,12 @@ typedef enum : NSUInteger {
     STOPPED,
     PLAYBACK_COMPLETE
 } PlayState;
+
+// Supported playback speeds defined by AVPlayer or system standards
+static const float DEFAULT_SPEED = 1.0f;
+static const float SPEED_COMPARE_EPSILON = 0.00001f;
+static const float SUPPORTED_SPEEDS[] = {
+    0.125f, 0.25f, 0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 1.75f, 2.0f, 3.0f };
 
 @interface AceVideo()
 {
@@ -133,7 +141,7 @@ typedef enum : NSUInteger {
         self.onEvent = callback;
         self.state = IDLE;
         self.moudleName = moudleName;
-        self.speed = 1.0f;
+        self.speed = DEFAULT_SPEED;
         self.isMute = false;
         self.isAutoPlay = false;
         self.isLoop = false;
@@ -529,14 +537,26 @@ typedef enum : NSUInteger {
     }
 }
 
+- (float)normalizeSpeed:(float)speed
+{
+    for (float supportedSpeed : SUPPORTED_SPEEDS) {
+        if (std::fabs(supportedSpeed - speed) <= SPEED_COMPARE_EPSILON) {
+            return supportedSpeed;
+        }
+    }
+    LOGW("AceVideo: Unsupported speed %{public}f, fallback to default speed.", speed);
+    return DEFAULT_SPEED;
+}
+
 - (void)updateSpeed:(float)speed
 {
-    self.speed = speed;
+    float normalizedSpeed = [self normalizeSpeed:speed];
+    self.speed = normalizedSpeed;
     if (self.player_) {
         AVPlayerTimeControlStatus status = self.player_.timeControlStatus;
         if (status == AVPlayerTimeControlStatusPlaying || self.isAutoPlay || self.state == STARTED) {
-             LOGI("AceVideo: setspeed %{public}f", speed);
-            [self.player_ setRate:speed];
+            LOGI("AceVideo: setspeed %{public}f", normalizedSpeed);
+            [self.player_ setRate:normalizedSpeed];
         } else {
             LOGI("AceVideo: If the speed is greater than 0, the video will start playing.  setspeed");
         }
