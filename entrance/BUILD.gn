@@ -73,6 +73,7 @@ template("ace_ios_standard_source_set") {
       "picker/picker_haptic_factory.cpp",
       "picker/picker_haptic_impl.cpp",
       "report/reporter_impl.cpp",
+      "setting_data_manager_impl.cpp",
       "touch_event.cpp",
       "touch_event_convertor.cpp",
       "udmf/udmf_impl.cpp",
