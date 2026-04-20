@@ -175,29 +175,31 @@ static char kBridgeQueueMapKey;
 }
 
 - (NSString*)jsCallMethodSync:(NSString*)bridgeName methodName:(NSString*)methodName param:(NSString*)param {
-    BridgePlugin* bridgePlugin = (BridgePlugin*)[self getPluginWithBridgeName:bridgeName];
-    if (!bridgePlugin || bridgePlugin.type != JSON_TYPE) {
-        NSNumber* numberErrorCode = [NSNumber numberWithInt:BRIDGE_INVALID];
-        NSString* strErrorMessage = BRIDGE_INVALID_MESSAGE;
-        NSString* strResult = @"";
-        NSDictionary* dict = @{ @"errorCode" : numberErrorCode, @"errorMessage" : strErrorMessage, @"result" : strResult };
-        NSData* jsonData = [NSJSONSerialization dataWithJSONObject:dict options:NSJSONWritingPrettyPrinted error:nil];
-        NSString* resultJson = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-        return resultJson;
-    }
-    NSMutableArray* mArray = [NSMutableArray array];
-    if (param) {
-        id methodParam = [JsonHelper objectWithJSONString:param];
-        if (methodParam && [methodParam isKindOfClass:NSDictionary.class]) {
-            NSDictionary* methodDic = (NSDictionary*)methodParam;
-            for (int i = 0; i < methodDic.allKeys.count; i++) {
-                id argument = [methodDic objectForKey:[NSString stringWithFormat:@"%d", i]];
-                [mArray addObject:argument];
+    @autoreleasepool {
+        BridgePlugin* bridgePlugin = static_cast<BridgePlugin*>([self getPluginWithBridgeName:bridgeName]);
+        if (!bridgePlugin || bridgePlugin.type != JSON_TYPE) {
+            NSNumber* numberErrorCode = [NSNumber numberWithInt:BRIDGE_INVALID];
+            NSString* strErrorMessage = BRIDGE_INVALID_MESSAGE;
+            NSString* strResult = @"";
+            NSDictionary* dict = @{ @"errorCode" : numberErrorCode, @"errorMessage" : strErrorMessage, @"result" : strResult };
+            NSData* jsonData = [NSJSONSerialization dataWithJSONObject:dict options:0 error:nil];
+            NSString* resultJson = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+            return resultJson;
+        }
+        NSMutableArray* mArray = [NSMutableArray array];
+        if (param) {
+            id methodParam = [JsonHelper objectWithJSONString:param];
+            if (methodParam && [methodParam isKindOfClass:NSDictionary.class]) {
+                NSDictionary* methodDic = (NSDictionary*)methodParam;
+                for (int i = 0; i < methodDic.allKeys.count; i++) {
+                    id argument = [methodDic objectForKey:[NSString stringWithFormat:@"%d", i]];
+                    [mArray addObject:argument];
+                }
             }
         }
+        MethodData* methodData = [[MethodData alloc] initMethodWithName:methodName parameter:mArray];
+        return [bridgePlugin jsCallMethodSync:methodData];
     }
-    MethodData* methodData = [[MethodData alloc] initMethodWithName:methodName parameter:mArray.copy];
-    return [bridgePlugin jsCallMethodSync:methodData];
 }
 
 - (void)jsSendMethodResult:(NSString*)bridgeName methodName:(NSString*)methodName result:(id)result {
@@ -219,12 +221,14 @@ static char kBridgeQueueMapKey;
 }
 
 - (void)jsSendMessageResponse:(NSString*)bridgeName data:(NSString*)data {
-    __weak BridgePluginManager* weakSelf = self;
-    BridgeTaskInfo* taskInfo = [BridgeTaskInfo bridgeTaskInfoFactory:bridgeName
+    @autoreleasepool {
+        __weak BridgePluginManager* weakSelf = self;
+        BridgeTaskInfo* taskInfo = [BridgeTaskInfo bridgeTaskInfoFactory:bridgeName
                                         queueInOutType:INPUT handler:^{
-        [weakSelf jsSendMessageResponseInner:bridgeName data:data];
-    }];
-    [self dispatchTaskInQueueHandlerWithTaskInfo:taskInfo];
+            [weakSelf jsSendMessageResponseInner:bridgeName data:data];
+        }];
+        [self dispatchTaskInQueueHandlerWithTaskInfo:taskInfo];
+    }
 }
 
 - (void)jsCancelMethod:(NSString*)bridgeName methodName:(NSString*)methodName {
@@ -370,30 +374,32 @@ static char kBridgeQueueMapKey;
 
 #pragma mark - private method
 - (void)jsCallMethodInner:(NSString*)bridgeName methodName:(NSString*)methodName param:(NSString*)param {
-    BridgePlugin* bridgePlugin = (BridgePlugin*)[self getPluginWithBridgeName:bridgeName];
-    if (!bridgePlugin) {
-        [self platformSendMethodResultErrorInfo:bridgeName methodName:methodName errorCode:BRIDGE_INVALID];
-        return;
-    }
-    if (bridgePlugin.type != JSON_TYPE) {
-        [self platformSendMethodResultErrorInfo:bridgeName methodName:methodName
+    @autoreleasepool {
+        BridgePlugin* bridgePlugin = static_cast<BridgePlugin*>([self getPluginWithBridgeName:bridgeName]);
+        if (!bridgePlugin) {
+            [self platformSendMethodResultErrorInfo:bridgeName methodName:methodName errorCode:BRIDGE_INVALID];
+            return;
+        }
+        if (bridgePlugin.type != JSON_TYPE) {
+            [self platformSendMethodResultErrorInfo:bridgeName methodName:methodName
                                                     errorCode:BRIDGE_CODEC_TYPE_MISMATCH];
-        return;
-    }
-    NSMutableArray* mArray = [NSMutableArray array];
-    if (param) {
-        id methodParam = [JsonHelper objectWithJSONString:param];
-        if (methodParam && [methodParam isKindOfClass:NSDictionary.class]) {
-            NSDictionary* methodDic = (NSDictionary*)methodParam;
-            for (int i = 0; i < methodDic.allKeys.count; i++) {
-                id argument = [methodDic objectForKey:[NSString stringWithFormat:@"%d", i]];
-                [mArray addObject:argument];
+            return;
+        }
+        NSMutableArray* mArray = [NSMutableArray array];
+        if (param) {
+            id methodParam = [JsonHelper objectWithJSONString:param];
+            if (methodParam && [methodParam isKindOfClass:NSDictionary.class]) {
+                NSDictionary* methodDic = (NSDictionary*)methodParam;
+                for (int i = 0; i < methodDic.allKeys.count; i++) {
+                    id argument = [methodDic objectForKey:[NSString stringWithFormat:@"%d", i]];
+                    [mArray addObject:argument];
+                }
             }
         }
-    }
-    MethodData* methodData = [[MethodData alloc] initMethodWithName:methodName
+        MethodData* methodData = [[MethodData alloc] initMethodWithName:methodName
                                                     parameter:mArray.copy];
-    [bridgePlugin jsCallMethod:methodData];
+        [bridgePlugin jsCallMethod:methodData];
+    }
 }
 
 - (void)jsSendMethodResultInner:(NSString*)bridgeName methodName:(NSString*)methodName result:(id)result {
@@ -433,12 +439,14 @@ static char kBridgeQueueMapKey;
 }
 
 - (void)jsSendMessageResponseInner:(NSString*)bridgeName data:(NSString*)data {
-    BridgePlugin* bridgePlugin = (BridgePlugin*)[self getPluginWithBridgeName:bridgeName];
-    if (!bridgePlugin) {
-        return;
+    @autoreleasepool {
+        BridgePlugin* bridgePlugin = static_cast<BridgePlugin*>([self getPluginWithBridgeName:bridgeName]);
+        if (!bridgePlugin) {
+            return;
+        }
+        RawValue* rawValue = [[BridgeJsonCodec sharedInstance] decode:data];
+        [bridgePlugin jsSendMessageResponse:rawValue.result];
     }
-    RawValue* rawValue = [[BridgeJsonCodec sharedInstance] decode:data];
-    [bridgePlugin jsSendMessageResponse:rawValue.result];
 }
 
 - (void)jsCancelMethodInner:(NSString*)bridgeName methodName:(NSString*)methodName {
