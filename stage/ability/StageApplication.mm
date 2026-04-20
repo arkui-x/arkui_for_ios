@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2025 Huawei Device Co., Ltd.
+ * Copyright (c) 2023-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -67,22 +67,27 @@ static bool g_isOnBackground = false;
                 NSString *moduleName = [NSString new];
                 NSString *unittest = [NSString new];
                 NSString *timeout = [NSString new];
+                NSString *socket = [NSString new];
                 for (int i = 1; i < arguments.count; i++) {
                     if ([arguments[i] isEqualToString:@"bundleName"]) {
-                        if (arguments.count >= i+1) {
+                        if (arguments.count > i+1) {
                             bundleName = arguments[i+1];
                         }
                     } else if ([arguments[i] isEqualToString:@"moduleName"]) {
-                        if (arguments.count >= i+1) {
+                        if (arguments.count > i+1) {
                             moduleName = arguments[i+1];
                         }
                     } else if ([arguments[i] isEqualToString:@"unittest"]) {
-                        if (arguments.count >= i+1) {
+                        if (arguments.count > i+1) {
                             unittest = arguments[i+1];
                         }
                     } else if ([arguments[i] isEqualToString:@"timeout"]) {
-                        if (arguments.count >= i+1) {
+                        if (arguments.count > i+1) {
                             timeout = arguments[i+1];
+                        }
+                    } else if ([arguments[i] isEqualToString:@"socket"]) {
+                        if (arguments.count > i+1) {
+                            socket = arguments[i+1];
                         }
                     }
                 }
@@ -90,7 +95,9 @@ static bool g_isOnBackground = false;
                 std::string moduleNameString = [moduleName UTF8String];
                 std::string unittestString = [unittest UTF8String];
                 std::string timeoutString = [timeout UTF8String];
-                AppMain::GetInstance()->PrepareAbilityDelegator(bundleNameString, moduleNameString, unittestString, timeoutString);
+                std::string socketString = [socket UTF8String];
+                AppMain::GetInstance()->PrepareAbilityDelegator(
+                    bundleNameString, moduleNameString, unittestString, timeoutString, socketString);
             } else {
                 LOGI("%{public}s, No need to start creating abilityDelegate", __FUNCTION__);
             }
