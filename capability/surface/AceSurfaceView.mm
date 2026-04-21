@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2025 Huawei Device Co., Ltd.
+ * Copyright (c) 2023-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -19,6 +19,7 @@
 #import <OpenGLES/ES3/gl.h>
 #import <OpenGLES/ES3/glext.h>
 
+#import "AceSurfaceCaptureHelper.h"
 #import "AceSurfaceHolder.h"
 #import "WindowView.h"
 #import "StageViewController.h"
@@ -29,6 +30,7 @@
     BOOL _isLock;
     CGRect _currentFrame;
     UIInterfaceOrientation  _initialOrientation;
+    AceSurfaceCaptureHelper* _surfaceCaptureHelper;
 
 }
 @property (nonatomic, assign) int64_t incId;
@@ -36,7 +38,7 @@
 @property (nonatomic, copy) IAceOnResourceEvent callback;
 @property (nonatomic, strong) NSMutableDictionary<NSString*, IAceOnCallSyncResourceMethod>* callMethodMap;
 @property (nonatomic, weak) UIViewController* target;
-@property (nonatomic, weak) id<IAceSurface> surfeceDelegate;
+@property (nonatomic, weak) id<IAceSurface> surfaceDelegate;
 @end
 
 @implementation AceSurfaceView
@@ -72,54 +74,93 @@
         self.callback = callback;
         self.callMethodMap = [[NSMutableDictionary alloc] init];
         self.target = target;
-        self.surfeceDelegate = delegate;
+        self.surfaceDelegate = delegate;
         self.autoresizesSubviews = YES;
+        __weak AceSurfaceView* weakSelf = self;
+        AceSurfaceCaptureConfig* captureConfig = [[AceSurfaceCaptureConfig alloc]
+            initWithWidthKey:SURFACE_WIDTH_KEY
+            heightKey:SURFACE_HEIGHT_KEY
+            logTag:"AceSurfaceView"
+            hostLayerBlock:^CALayer* {
+                __strong __typeof(weakSelf) strongSelf = weakSelf;
+                return strongSelf ? strongSelf.layer : nil;
+            }
+            drawFallbackBlock:^(CGRect bounds) {
+                __strong __typeof(weakSelf) strongSelf = weakSelf;
+                if (strongSelf) {
+                    [strongSelf drawViewHierarchyInRect:bounds afterScreenUpdates:NO];
+                }
+            }];
+        _surfaceCaptureHelper = [[AceSurfaceCaptureHelper alloc] initWithConfig:captureConfig];
 
         [self layerCreate];
-
-        __weak AceSurfaceView* weakSelf = self;
-        IAceOnCallSyncResourceMethod callSetSurfaceSize = ^NSString*(NSDictionary* param) {
-            if (weakSelf) {
-                return [weakSelf setSurfaceBounds:param];
-            } else {
-                 LOGE("AceSurfaceView: setSurfaceBounds fail");
-                 return FAIL;
-            }
-           
-        };
-        [self.callMethodMap setObject:[callSetSurfaceSize copy] forKey:[self method_hashFormat:@"setSurfaceBounds"]];
-
-        IAceOnCallSyncResourceMethod callAttachNativeWindow = ^NSString*(NSDictionary* param) {
-            if (weakSelf) {
-                return [weakSelf setAttachNativeWindow:param];
-            } else {
-                 LOGE("AceSurfaceView: callAttachNativeWindow fail");
-                 return FAIL;
-            }
-        };
-        [self.callMethodMap setObject:[callAttachNativeWindow copy] forKey:[self method_hashFormat:@"attachNativeWindow"]];
-
-        IAceOnCallSyncResourceMethod callSetSurfaceRotation = ^NSString*(NSDictionary* param) {
-            if (weakSelf) {
-                return [weakSelf setSurfaceRotation:param];
-            } else {
-                 LOGE("AceSurfaceView: callSetSurfaceRotation fail");
-                 return FAIL;
-            }
-        };
-        [self.callMethodMap setObject:[callSetSurfaceRotation copy] forKey:[self method_hashFormat:@"setSurfaceRotation"]];
-
-        IAceOnCallSyncResourceMethod callsetSurfaceRect = ^NSString*(NSDictionary* param) {
-            if (weakSelf) {
-                return [weakSelf setSurfaceRect:param];
-            } else {
-                 LOGE("AceSurfaceView: callsetSurfaceRect fail");
-                 return FAIL;
-            }
-        };
-        [self.callMethodMap setObject:[callsetSurfaceRect copy] forKey:[self method_hashFormat:@"setSurfaceRect"]];
+        [self initEventCallback];
     }
     return self;
+}
+
+- (void)initEventCallback
+{
+    __weak AceSurfaceView* weakSelf = self;
+    IAceOnCallSyncResourceMethod callSetSurfaceSize = ^NSString*(NSDictionary* param) {
+        if (weakSelf) {
+            return [weakSelf setSurfaceBounds:param];
+        } else {
+            LOGE("AceSurfaceView: setSurfaceBounds fail");
+            return FAIL;
+        }
+    };
+    [self.callMethodMap setObject:[callSetSurfaceSize copy]
+                           forKey:[self method_hashFormat:@"setSurfaceBounds"]];
+
+    IAceOnCallSyncResourceMethod callAttachNativeWindow = ^NSString*(NSDictionary* param) {
+        if (weakSelf) {
+            return [weakSelf setAttachNativeWindow:param];
+        } else {
+            LOGE("AceSurfaceView: callAttachNativeWindow fail");
+            return FAIL;
+        }
+    };
+    [self.callMethodMap setObject:[callAttachNativeWindow copy]
+                           forKey:[self method_hashFormat:@"attachNativeWindow"]];
+
+    IAceOnCallSyncResourceMethod callSetSurfaceRotation = ^NSString*(NSDictionary* param) {
+        if (weakSelf) {
+            return [weakSelf setSurfaceRotation:param];
+        } else {
+            LOGE("AceSurfaceView: callSetSurfaceRotation fail");
+            return FAIL;
+        }
+    };
+    [self.callMethodMap setObject:[callSetSurfaceRotation copy]
+                           forKey:[self method_hashFormat:@"setSurfaceRotation"]];
+
+    IAceOnCallSyncResourceMethod callsetSurfaceRect = ^NSString*(NSDictionary* param) {
+        if (weakSelf) {
+            return [weakSelf setSurfaceRect:param];
+        } else {
+            LOGE("AceSurfaceView: callsetSurfaceRect fail");
+            return FAIL;
+        }
+    };
+    [self.callMethodMap setObject:[callsetSurfaceRect copy]
+                           forKey:[self method_hashFormat:@"setSurfaceRect"]];
+
+    IAceOnCallSyncResourceMethod callSurfaceCapture = ^NSString*(NSDictionary* param) {
+        if (weakSelf) {
+            return [weakSelf surfaceCapture:param];
+        } else {
+            LOGE("AceSurfaceView: callSurfaceCapture fail");
+            return FAIL;
+        }
+    };
+    [self.callMethodMap setObject:[callSurfaceCapture copy]
+                           forKey:[self method_hashFormat:@"surfaceCapture"]];
+}
+
+- (NSString*)surfaceCapture:(NSDictionary*)params
+{
+    return _surfaceCaptureHelper ? [_surfaceCaptureHelper captureSurface:params bounds:self.bounds] : FAIL;
 }
 
 - (void)callSurfaceChange:(CGRect)surfaceRect
@@ -184,15 +225,15 @@
 
 - (NSString*)setAttachNativeWindow:(NSDictionary*)params
 {
-    if (!self.surfeceDelegate) {
+    if (!self.surfaceDelegate) {
         LOGE("AceSurfaceView IAceSurface is null");
         return FAIL;
     }
-    if (![self.surfeceDelegate respondsToSelector:@selector(attachNaitveSurface:)]) {
+    if (![self.surfaceDelegate respondsToSelector:@selector(attachNaitveSurface:)]) {
         LOGE("AceSurfaceView IAceSurface attachNaitveSurface null");
         return FAIL;
     }
-    uintptr_t nativeWindow = [self.surfeceDelegate attachNaitveSurface:self.layer];
+    uintptr_t nativeWindow = [self.surfaceDelegate attachNaitveSurface:self.layer];
     if (nativeWindow == 0) {
         LOGE("AceSurfaceView Surface nativeWindow: null");
         return FAIL;
@@ -365,6 +406,7 @@
             self.callMethodMap = nil;
         }
         self.callback = nil;
+        _surfaceCaptureHelper = nil;
         
     } @catch (NSException* exception) {
         LOGE("AceSurfaceView releaseObject failed");

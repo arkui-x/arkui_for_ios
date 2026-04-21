@@ -22,6 +22,7 @@ config("capability_config") {
     "$ace_root",
     "$ace_root/adapter/ios/entrance",
     "$ace_root/adapter/ios/entrance/resource",
+    "$ace_root/adapter/ios/capability/common",
     "$ace_root/adapter/ios/capability/texture",
     "$ace_root/adapter/ios/capability/video",
     "$ace_root/adapter/ios/capability/platformview",
@@ -170,6 +171,9 @@ template("ace_capability_ios_source_set") {
       "$ace_root/adapter/ios/capability/font/font_platform_impl.cpp",
       "$ace_root/adapter/ios/capability/font/font_platform_proxy_impl.cpp",
       "$ace_root/adapter/ios/capability/font/system_font_manager.mm",
+
+      # common
+      "$ace_root/adapter/ios/capability/common/AceSurfaceCaptureHelper.mm",
     ]
 
     deps = [ ":text_input" ]
