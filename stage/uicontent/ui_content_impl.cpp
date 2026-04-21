@@ -821,7 +821,7 @@ bool IsNeedAvoidWindowMode(OHOS::Rosen::Window* rsWindow)
                SystemProperties::GetDeviceType() == DeviceType::TABLET);
 }
 
-void UIContentImpl::ProcessWindowSizeLayoutBreakPointChange()
+void UIContentImpl::ProcessWindowSizeLayoutBreakPointChange(double density)
 {
     auto container = Platform::AceContainerSG::GetContainer(instanceId_);
     CHECK_NULL_VOID(container);
@@ -830,7 +830,7 @@ void UIContentImpl::ProcessWindowSizeLayoutBreakPointChange()
 
     auto uiTaskRunner = SingleTaskExecutor::Make(taskExecutor, TaskExecutor::TaskType::UI);
 
-    auto task = [instanceId = instanceId_]() {
+    auto task = [instanceId = instanceId_, density]() {
         auto container = Platform::AceContainerSG::GetContainer(instanceId);
         CHECK_NULL_VOID(container);
 
@@ -839,6 +839,7 @@ void UIContentImpl::ProcessWindowSizeLayoutBreakPointChange()
         auto pipelineContext = container->GetPipelineContext();
         CHECK_NULL_VOID(pipelineContext);
         auto window = pipelineContext->GetWindow();
+        window->SetDensity(density);
         CHECK_NULL_VOID(window);
 
         window->NotifyBreakpointChangeIfNeeded(instanceId, layoutWidthBreakpoints, layoutHeightBreakpoints);
@@ -855,7 +856,7 @@ void UIContentImpl::ProcessWindowSizeLayoutBreakPointChange()
 void UIContentImpl::UpdateViewportConfig(const ViewportConfig& config, OHOS::Rosen::WindowSizeChangeReason reason)
 {
     LOGI("UIContentImpl: UpdateViewportConfig %{public}s", config.ToString().c_str());
-    ProcessWindowSizeLayoutBreakPointChange();
+    ProcessWindowSizeLayoutBreakPointChange(config.Density());
     auto orientation = config.Height() >= config.Width() ? ORIENTATION_PORTRAIT : ORIENTATION_LANDSCAPE;
     SystemProperties::InitDeviceInfo(config.Width(), config.Height(), orientation, config.Density(), false);
     SystemProperties::SetResolution(config.Density());
