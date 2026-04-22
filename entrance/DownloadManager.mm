@@ -39,7 +39,6 @@
     LOGI("DownloadStart:%{public}s", urlStr ? [urlStr UTF8String] : "");
     NSURL *url = [NSURL URLWithString:urlStr];
     NSMutableURLRequest *request = [[NSMutableURLRequest alloc] initWithURL:url];
-    [request setValue:@"plain/text;charset=UTF-8" forHTTPHeaderField:@"Content-Type"];
     [request setValue:@"Ace" forHTTPHeaderField:@"User-Agent"];
     request.HTTPMethod = @"GET";
     request.timeoutInterval = 5000.0;
