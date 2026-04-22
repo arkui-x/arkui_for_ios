@@ -143,7 +143,7 @@ void PickerHapticController::ThreadLoop()
 
 void PickerHapticController::Play(size_t speed)
 {
-    if (playThread_ != nullptr) {
+    if (playThread_ == nullptr) {
         InitPlayThread();
     }
     bool needNotify = !IsThreadPlaying() && !IsThreadPlayOnce();

@@ -40,6 +40,9 @@ NSURL* ToFileUrl(NSString* path)
 } // namespace
 
 @interface iOSAudioHapticPlayer ()
+{
+    dispatch_queue_t _hapticsQueue;
+}
 @property (nonatomic, strong) UIImpactFeedbackGenerator* impactLightGenerator;
 @property (nonatomic, strong) UIImpactFeedbackGenerator* impactMediumGenerator;
 @property (nonatomic, strong) UISelectionFeedbackGenerator* selectionGenerator;
@@ -49,7 +52,6 @@ NSURL* ToFileUrl(NSString* path)
 @property (atomic, strong, nullable) CHHapticEngine* hapticEngine;
 @property (atomic, assign) BOOL isSupportsCoreHaptics;
 @property (atomic, assign) BOOL isHapticEngineRunning;
-@property (nonatomic, assign) dispatch_queue_t hapticsQueue;
 @property (nonatomic, assign) SystemSoundID soundId;
 @end
 
@@ -77,6 +79,12 @@ NSURL* ToFileUrl(NSString* path)
 {
     [[NSNotificationCenter defaultCenter] removeObserver:self];
     [self releaseResources];
+#if !OS_OBJECT_USE_OBJC
+    if (_hapticsQueue != nil) {
+        dispatch_release(_hapticsQueue);
+        _hapticsQueue = nil;
+    }
+#endif
 }
 
 - (void)appWillEnterForeground:(NSNotification*)notification
@@ -147,6 +155,7 @@ NSURL* ToFileUrl(NSString* path)
     SystemSoundID newSoundId = 0;
     OSStatus status = AudioServicesCreateSystemSoundID((__bridge CFURLRef)self.effectiveUri, &newSoundId);
     if (status != kAudioServicesNoError || newSoundId == 0) {
+        self.soundId = 0;
         return;
     }
 
@@ -269,8 +278,14 @@ NSURL* ToFileUrl(NSString* path)
     }
     if (@available(iOS 13.0, *) && self.isSupportsCoreHaptics) {
         const NSTimeInterval durationS = (NSTimeInterval)durationMs / millisecondsPerSecond;
-        dispatch_async(self.hapticsQueue, ^{
-            if (self.hapticEngine == nil || !self.isHapticEngineRunning) {
+        dispatch_queue_t hapticsQueue = _hapticsQueue;
+        if (hapticsQueue == nil) {
+            return;
+        }
+        __weak __typeof(self) weakSelf = self;
+        dispatch_async(hapticsQueue, ^{
+            __strong __typeof(weakSelf) strongSelf = weakSelf;
+            if (!strongSelf || strongSelf.hapticEngine == nil || !strongSelf.isHapticEngineRunning) {
                 return;
             }
             NSError* error = nil;
@@ -285,7 +300,7 @@ NSURL* ToFileUrl(NSString* path)
             if (error || !pattern) {
                 return;
             }
-            id<CHHapticPatternPlayer> player = [self.hapticEngine createPlayerWithPattern:pattern error:&error];
+            id<CHHapticPatternPlayer> player = [strongSelf.hapticEngine createPlayerWithPattern:pattern error:&error];
             if (error != nil || player == nil) {
                 return;
             }
@@ -305,9 +320,18 @@ NSURL* ToFileUrl(NSString* path)
         }
     }
 
-    dispatch_async(self.hapticsQueue, ^{
-        if (self.soundId != 0) {
-            AudioServicesPlaySystemSound(self.soundId);
+    dispatch_queue_t hapticsQueue = _hapticsQueue;
+    if (hapticsQueue == nil) {
+        return;
+    }
+    __weak __typeof(self) weakSelf = self;
+    dispatch_async(hapticsQueue, ^{
+        __strong __typeof(weakSelf) strongSelf = weakSelf;
+        if (!strongSelf) {
+            return;
+        }
+        if (strongSelf.soundId != 0) {
+            AudioServicesPlaySystemSound(strongSelf.soundId);
         }
     });
 }
