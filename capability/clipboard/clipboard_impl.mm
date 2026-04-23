@@ -15,6 +15,7 @@
 
 #include "adapter/ios/capability/clipboard/clipboard_impl.h"
 
+#include "base/image/pixel_map.h"
 #include "frameworks/base/utils/utils.h"
 #include "multiType_record_impl.h"
 #include "pasteData_impl.h"
