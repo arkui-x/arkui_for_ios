@@ -134,12 +134,14 @@ void BridgeManager::jsOnRegisterResult(const std::string& bridgeName, bool avail
 
 void BridgeManager::JSCallMethod(const std::string& bridgeName,
                 const std::string& methodName, const std::string& parameter) {
-    NSString* oc_bridgeName = getOCstring(bridgeName);
-    NSString* oc_methodName = getOCstring(methodName);
-    NSString* oc_parameter = getOCstring(parameter);
-    BridgePluginManager* bridgePluginManager = getBridgePluginManager();
-    if (bridgePluginManager) {
-        [bridgePluginManager jsCallMethod:oc_bridgeName methodName:oc_methodName param:oc_parameter];
+    @autoreleasepool {
+        NSString* oc_bridgeName = getOCstring(bridgeName);
+        NSString* oc_methodName = getOCstring(methodName);
+        NSString* oc_parameter = getOCstring(parameter);
+        BridgePluginManager* bridgePluginManager = getBridgePluginManager();
+        if (bridgePluginManager) {
+            [bridgePluginManager jsCallMethod:oc_bridgeName methodName:oc_methodName param:oc_parameter];
+        }
     }
 }
 
@@ -179,11 +181,13 @@ void BridgeManager::JSSendMessage(const std::string& bridgeName, const std::stri
 }
 
 void BridgeManager::JSSendMessageResponse(const std::string& bridgeName, const std::string& data) {
-    NSString* oc_bridgeName = getOCstring(bridgeName);
-    NSString* oc_data = getOCstring(data);
-    BridgePluginManager* bridgePluginManager = getBridgePluginManager();
-    if (bridgePluginManager) {
-        [bridgePluginManager jsSendMessageResponse:oc_bridgeName data:oc_data];
+    @autoreleasepool {
+        NSString* oc_bridgeName = getOCstring(bridgeName);
+        NSString* oc_data = getOCstring(data);
+        BridgePluginManager* bridgePluginManager = getBridgePluginManager();
+        if (bridgePluginManager) {
+            [bridgePluginManager jsSendMessageResponse:oc_bridgeName data:oc_data];
+        }
     }
 }
 
