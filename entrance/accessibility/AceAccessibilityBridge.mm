@@ -131,6 +131,8 @@ AccessibilityNodeInfo* SetAccessibilityNodePermission(
     aiModel.isClickable = info.IsClickable();
     aiModel.isLongClickable = info.IsLongClickable();
     aiModel.isScrollable = info.IsScrollable();
+    aiModel.isChecked = info.IsChecked();
+    aiModel.isSelected = info.IsSelected();
     aiModel.hasAccessibilityFocus = info.HasAccessibilityFocus();
     return aiModel;
 }

@@ -66,6 +66,12 @@
     if (self.isScrollable) {
         traits |= UIAccessibilityTraitAllowsDirectInteraction;
     }
+    if (!self.isEnabled) {
+        traits |= UIAccessibilityTraitNotEnabled;
+    }
+    if (self.isSelected || self.isChecked) {
+        traits |= UIAccessibilityTraitSelected;
+    }
     return traits;
 }
 

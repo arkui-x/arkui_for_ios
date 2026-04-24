@@ -43,6 +43,8 @@
 @property(nonatomic, assign) bool isClickable;
 @property(nonatomic, assign) bool isLongClickable;
 @property(nonatomic, assign) bool isScrollable;
+@property(nonatomic, assign) bool isChecked;
+@property(nonatomic, assign) bool isSelected;
 @property(nonatomic, assign) bool hasAccessibilityFocus;
 @property(nonatomic, assign) int32_t actionType;
 
