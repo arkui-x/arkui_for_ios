@@ -16,6 +16,7 @@
 #ifndef FOUNDATION_ACE_ACE_ENGINE_ADAPTER_PREVIEW_ENTRANCE_MULTITYPE_RECORD_IMPL_H
 #define FOUNDATION_ACE_ACE_ENGINE_ADAPTER_PREVIEW_ENTRANCE_MULTITYPE_RECORD_IMPL_H
 
+#include <vector>
 #include "core/common/clipboard/clipboard_interface.h"
 
 namespace OHOS::Ace {
