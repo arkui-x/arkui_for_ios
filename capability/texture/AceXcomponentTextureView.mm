@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Huawei Device Co., Ltd.
+ * Copyright (c) 2025-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -22,6 +22,7 @@
 #import <QuartzCore/QuartzCore.h>
 
 #import "AceTextureHolder.h"
+#import "AceSurfaceCaptureHelper.h"
 #import "AceSurfaceHolder.h"
 #import "StageApplication.h"
 #import "WindowView.h"
@@ -85,6 +86,7 @@ typedef NS_ENUM(NSUInteger, RefreshFrequency) {
     BOOL _viewAdded;
     BOOL _isVideo;
     BOOL _observingSublayers;
+    AceSurfaceCaptureHelper* _surfaceCaptureHelper;
 }
 
 @property (nonatomic, assign) int64_t textureId;
@@ -128,6 +130,22 @@ typedef NS_ENUM(NSUInteger, RefreshFrequency) {
         _embeddedView = [[UIView alloc] initWithFrame:CGRectZero];
         _embeddedView.backgroundColor = [UIColor whiteColor];
         _embeddedView.autoresizesSubviews = YES;
+        __weak __typeof(self) weakSelf = self;
+        AceSurfaceCaptureConfig* captureConfig = [[AceSurfaceCaptureConfig alloc]
+            initWithWidthKey:TEXTURE_WIDTH_KEY
+            heightKey:TEXTURE_HEIGHT_KEY
+            logTag:"AceXcomponentTextureView"
+            hostLayerBlock:^CALayer* {
+                __strong __typeof(weakSelf) strongSelf = weakSelf;
+                return strongSelf ? strongSelf->_embeddedView.layer : nil;
+            }
+            drawFallbackBlock:^(CGRect bounds) {
+                __strong __typeof(weakSelf) strongSelf = weakSelf;
+                if (strongSelf && strongSelf->_embeddedView) {
+                    [strongSelf->_embeddedView drawViewHierarchyInRect:bounds afterScreenUpdates:NO];
+                }
+            }];
+        _surfaceCaptureHelper = [[AceSurfaceCaptureHelper alloc] initWithConfig:captureConfig];
 
         [self layerCreate];
         [self startObservingEmbeddedLayer];
@@ -149,7 +167,7 @@ typedef NS_ENUM(NSUInteger, RefreshFrequency) {
         if (weakSelf) {
             return [weakSelf setSurfaceBounds:param];
         } else {
-            LOGE("AceSurfaceView: setSurfaceBounds fail");
+            LOGE("AceXcomponentTextureView: setSurfaceBounds fail");
             return FAIL;
         }
     };
@@ -159,7 +177,7 @@ typedef NS_ENUM(NSUInteger, RefreshFrequency) {
         if (weakSelf) {
             return [weakSelf setAttachNativeWindow:param];
         } else {
-            LOGE("AceSurfaceView: callAttachNativeWindow fail");
+            LOGE("AceXcomponentTextureView: callAttachNativeWindow fail");
             return FAIL;
         }
     };
@@ -169,11 +187,27 @@ typedef NS_ENUM(NSUInteger, RefreshFrequency) {
         if (weakSelf) {
             return [weakSelf setAttachTextureIsVideo:param];
         } else {
-            LOGE("AceSurfaceView: callAttachNativeWindow fail");
+            LOGE("AceXcomponentTextureView: callAttachTextureIsVideo fail");
             return FAIL;
         }
     };
     [self.callMethodMap setObject:[callAttachTextureIsVideo copy] forKey:[self method_hashFormat:@"textureIsVideo"]];
+
+    IAceOnCallSyncResourceMethod callSurfaceCapture = ^NSString*(NSDictionary* param) {
+            if (weakSelf) {
+                return [weakSelf surfaceCapture:param];
+            } else {
+                 LOGE("AceXcomponentTextureView: callSurfaceCapture fail");
+                 return FAIL;
+            }
+        };
+    [self.callMethodMap setObject:[callSurfaceCapture copy] forKey:[self method_hashFormat:@"surfaceCapture"]];
+}
+
+- (NSString*)surfaceCapture:(NSDictionary*)params
+{
+    CGRect bounds = _embeddedView ? _embeddedView.bounds : CGRectZero;
+    return _surfaceCaptureHelper ? [_surfaceCaptureHelper captureSurface:params bounds:bounds] : FAIL;
 }
 
 - (void)startObservingEmbeddedLayer
@@ -258,16 +292,16 @@ typedef NS_ENUM(NSUInteger, RefreshFrequency) {
 - (NSString *)setAttachNativeWindow:(NSDictionary *)params
 {
     if (!self.surfaceDelegate) {
-        LOGE("AceSurfaceView IAceSurface is null");
+        LOGE("AceXcomponentTextureView IAceSurface is null");
         return FAIL;
     }
     if (![self.surfaceDelegate respondsToSelector:@selector(attachNaitveSurface:)]) {
-        LOGE("AceSurfaceView IAceSurface attachNaitveSurface null");
+        LOGE("AceXcomponentTextureView IAceSurface attachNaitveSurface null");
         return FAIL;
     }
     uintptr_t nativeWindow = [self.surfaceDelegate attachNaitveSurface:_embeddedView.layer];
     if (nativeWindow == 0) {
-        LOGE("AceSurfaceView Surface nativeWindow: null");
+        LOGE("AceXcomponentTextureView Surface nativeWindow: null");
         return FAIL;
     }
     NSDictionary *param = @{@"nativeWindow": [NSString stringWithFormat:@"%lu", (unsigned long)nativeWindow]};
@@ -295,7 +329,7 @@ typedef NS_ENUM(NSUInteger, RefreshFrequency) {
             sublayer.frame = surfaceRect;
         }
     } @catch (NSException* exception) {
-        LOGE("AceSurfaceView NumberFormatException, setSurfaceSize failed");
+        LOGE("AceXcomponentTextureView NumberFormatException, setSurfaceSize failed");
         return FAIL;
     }
     return SUCCESS;
@@ -484,7 +518,7 @@ typedef NS_ENUM(NSUInteger, RefreshFrequency) {
 }
 
 - (void)releaseObject {
-    LOGI("AceSurfaceView releaseObject isMainThread: %{public}ld", [NSThread isMainThread]);
+    LOGI("AceXcomponentTextureView releaseObject isMainThread: %ld", [NSThread isMainThread]);
     [self stopObservingEmbeddedLayer];
 
     if (_player && _player.currentItem && self.renderTexture && self.renderTexture.videoOutput) {
@@ -506,6 +540,7 @@ typedef NS_ENUM(NSUInteger, RefreshFrequency) {
     if (self.renderTexture) {
         self.renderTexture = nil;
     }
+    _surfaceCaptureHelper = nil;
     if (self.callMethodMap) {
         for (id key in self.callMethodMap) {
             IAceOnCallSyncResourceMethod block = [self.callMethodMap objectForKey:key];
