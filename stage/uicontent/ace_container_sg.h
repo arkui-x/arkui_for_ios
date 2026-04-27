@@ -402,6 +402,8 @@ private:
         ResourceConfiguration& resConfig);
     void SetColor(Platform::ParsedConfig& parsedConfig, ConfigurationChange& configurationChange,
         ResourceConfiguration& resConfig);
+    void SubscribeHighContrastChange();
+    void UnsubscribeHighContrastChange();
 
     AceView* aceView_ { nullptr };
     RefPtr<TaskExecutor> taskExecutor_;
