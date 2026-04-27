@@ -163,6 +163,9 @@ typedef enum {
     element.accessibilityIdentifier = node.inspectorKey;
     element.accessibilityLevel = node.accessibilityLevel;
     element.componentType = node.componentType;
+    element.isEnabled = node.enabled;
+    element.isChecked = node.isChecked;
+    element.isSelected = node.isSelected;
     element.isScrollable = node.isScrollable;
     element.actionType = node.actionType;
     element.pageId = node.pageId;
@@ -173,21 +176,17 @@ typedef enum {
 
 - (BOOL)isAccessibilityEnabled:(AccessibilityNodeInfo*)node allNodeInfo:(NSMutableDictionary*)allNodeInfo
 {
-    if ([node.componentType isEqualToString:COMPONENTTYPE_ROOT]) {
+    if (!node.visible || node.nodeWidth <= 0 || node.nodeHeight <= 0 ||
+        [node.componentType isEqualToString:COMPONENTTYPE_ROOT]) {
         return NO;
     }
-    if (!node.enabled || !node.visible) {
-        return NO;
-    }
+
     NSString* strElementId = [NSString stringWithFormat:@"%lld", node.parentId];
     AccessibilityNodeInfo* parentNode = [allNodeInfo objectForKey:strElementId];
     if (parentNode) {
         if ([node.componentType isEqualToString:@"Calendar"] && [parentNode.componentType isEqualToString:@"Swiper"]) {
             return NO;
         }
-    }
-    if (node.nodeWidth <= 0 || node.nodeHeight <= 0) {
-        return NO;
     }
     if ([node.componentType isEqualToString:@"Text"] &&
         (node.nodeLabel.length > 0 || node.descriptionInfo.length > 0)) {
