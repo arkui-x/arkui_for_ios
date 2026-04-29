@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2025 Huawei Device Co., Ltd.
+ * Copyright (c) 2023-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -16,6 +16,8 @@
 #include "adapter/ios/osal/accessibility_manager_impl.h"
 
 #include <algorithm>
+#include <cstdio>
+#include <mutex>
 #include <variant>
 
 #include "adapter/ios/entrance/accessibility/AceAccessibilityBridge.h"
@@ -25,6 +27,26 @@ using namespace OHOS::Accessibility;
 using namespace std;
 
 namespace OHOS::Ace::Framework {
+
+AccessibilityManagerImpl::AccessibilityEventCallback AccessibilityManagerImpl::uiTestEventCallback_ = nullptr;
+std::atomic<int32_t> AccessibilityManagerImpl::testForceEnableCount_ { 0 };
+static std::mutex g_uiTestEventCallbackMutex;
+static std::mutex g_accessibilityStateMutex;
+static std::atomic<bool> g_lastSystemA11yState { false };
+
+void AccessibilityManagerImpl::RefreshEffectiveAccessibilityState(bool isSystemEnabled)
+{
+    std::lock_guard<std::mutex> lock(g_accessibilityStateMutex);
+    g_lastSystemA11yState.store(isSystemEnabled);
+    bool effectiveEnabled = isSystemEnabled || (AccessibilityManagerImpl::testForceEnableCount_.load() > 0);
+    AceApplicationInfo::GetInstance().SetAccessibilityEnabled(effectiveEnabled);
+}
+
+void AccessibilityManagerImpl::RefreshEffectiveAccessibilityState()
+{
+    bool isSystemEnabled = g_lastSystemA11yState.load();
+    RefreshEffectiveAccessibilityState(isSystemEnabled);
+}
 
 constexpr int32_t INVALID_PARENT_ID = -2100000;
 constexpr int32_t ELEMENT_MOVE_BIT = 40;
@@ -903,6 +925,7 @@ void AccessibilityManagerImpl::InitializeCallback()
         }
     }
     AceApplicationInfo::GetInstance().SetAccessibilityEnabled(isEnabled);
+    RefreshEffectiveAccessibilityState(isEnabled);
     if (pipelineContext->IsFormRender() || pipelineContext->IsJsCard() || pipelineContext->IsJsPlugin()) {
         return;
     }
@@ -1007,6 +1030,7 @@ void AccessibilityManagerImpl::AccessibilityStateObserver::OnStateChanged(const 
                 jsAccessibilityManager->DeregisterInteractionOperation();
             }
             AceApplicationInfo::GetInstance().SetAccessibilityEnabled(state);
+            RefreshEffectiveAccessibilityState(state);
         },
         TaskExecutor::TaskType::UI, "ArkUIAccessibilityStateChanged");
 }
@@ -1075,8 +1099,26 @@ void AccessibilityManagerImpl::UpdateElementInfos(
         TaskExecutor::TaskType::UI, MAX_TIME, "ArkUIAccessibilitySearchElementInfoById");
 }
 
+void AccessibilityManagerImpl::NotifyUiTestEventCallback(const AccessibilityEvent& accessibilityEvent)
+{
+    if (testForceEnableCount_.load() <= 0) {
+        return;
+    }
+
+    AccessibilityEventCallback callback = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(g_uiTestEventCallbackMutex);
+        callback = uiTestEventCallback_;
+    }
+    if (!callback) {
+        return;
+    }
+    callback(accessibilityEvent);
+}
+
 void AccessibilityManagerImpl::SendAccessibilityAsyncEvent(const AccessibilityEvent& accessibilityEvent)
 {
+    NotifyUiTestEventCallback(accessibilityEvent);
     switch (accessibilityEvent.type) {
         case AccessibilityEventType::PAGE_OPEN:
         case AccessibilityEventType::PAGE_CLOSE:
@@ -1102,6 +1144,35 @@ void AccessibilityManagerImpl::SendAccessibilityAsyncEvent(const AccessibilityEv
         default:
             break;
     }
+}
+
+void AccessibilityManagerImpl::SetUiTestEventCallback(const AccessibilityEventCallback& cb)
+{
+    std::lock_guard<std::mutex> lock(g_uiTestEventCallbackMutex);
+    uiTestEventCallback_ = cb;
+}
+
+void AccessibilityManagerImpl::UnsetUiTestEventCallback()
+{
+    std::lock_guard<std::mutex> lock(g_uiTestEventCallbackMutex);
+    uiTestEventCallback_ = nullptr;
+}
+
+void AccessibilityManagerImpl::AddUiTestAccessibilityRequest()
+{
+    testForceEnableCount_++;
+    RefreshEffectiveAccessibilityState();
+}
+
+void AccessibilityManagerImpl::RemoveUiTestAccessibilityRequest()
+{
+    int32_t current = testForceEnableCount_.load();
+    while (current > 0) {
+        if (testForceEnableCount_.compare_exchange_weak(current, current - 1)) {
+            break;
+        }
+    }
+    RefreshEffectiveAccessibilityState();
 }
 
 void ConvertExtensionAccessibilityId(AccessibilityElementInfo& info, const RefPtr<NG::FrameNode>& extensionNode,
@@ -1488,6 +1559,7 @@ void AccessibilityManagerImpl::SendEventToAccessibilityWithNodeInner(
     if ((!frameNode->IsActive()) || frameNode->CheckAccessibilityLevelNo()) {
         return;
     }
+    NotifyUiTestEventCallback(accessibilityEvent);
     ProcessAccessibilityEvent(accessibilityEvent, false, static_cast<size_t>(accessibilityEvent.type));
 }
 

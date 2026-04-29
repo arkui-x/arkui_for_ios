@@ -15,6 +15,8 @@
 
 #include "adapter/ios/stage/uicontent/ui_content_impl.h"
 
+#include <mutex>
+
 #include "ability.h"
 #include "ability_context.h"
 #include "ability_info.h"
@@ -52,6 +54,8 @@
 
 namespace OHOS::Ace::Platform {
 namespace {
+std::shared_ptr<UiEventMonitor> g_uiEventMonitor = nullptr;
+std::mutex g_uiEventMonitorMutex;
 const std::string START_PARAMS_KEY = "__startParams";
 const std::string SUBWINDOW_PREFIX = "ARK_APP_SUBWINDOW_";
 const std::string HYPERLINK_BUNDLE_NAME = "com.ohos.hyperlink";
@@ -636,6 +640,25 @@ void UIContentImpl::Destroy()
     ContainerScope::RemoveAndCheck(instanceId_);
 }
 
+void UIContentImpl::NotifyUiTestStart()
+{
+    std::lock_guard<std::mutex> lock(g_uiEventMonitorMutex);
+    if (g_uiEventMonitor == nullptr) {
+        g_uiEventMonitor = UiEventMonitor::Create();
+        g_uiEventMonitor->Init();
+    }
+}
+
+void UIContentImpl::NotifyUiTestEnd()
+{
+    std::lock_guard<std::mutex> lock(g_uiEventMonitorMutex);
+    if (g_uiEventMonitor != nullptr) {
+        OHOS::Ace::Framework::AccessibilityManagerImpl::RemoveUiTestAccessibilityRequest();
+        OHOS::Ace::Framework::AccessibilityManagerImpl::UnsetUiTestEventCallback();
+        g_uiEventMonitor.reset();
+    }
+}
+
 void UIContentImpl::OnNewWant(const OHOS::AAFwk::Want& want)
 {
     LOGI("UIContent OnNewWant");
@@ -728,6 +751,17 @@ bool UIContentImpl::ProcessPointerEvent(const std::shared_ptr<OHOS::MMI::Pointer
     CHECK_NULL_RETURN(aceView, false);
 
     return aceView->DispatchTouchEvent(pointerEvent);
+}
+
+bool UIContentImpl::ProcessSyntheticPointerEvent(const std::shared_ptr<OHOS::MMI::PointerEvent>& pointerEvent)
+{
+    auto container = AceEngine::Get().GetContainer(instanceId_);
+    CHECK_NULL_RETURN(container, false);
+
+    auto aceView = static_cast<Platform::AceViewSG*>(container->GetView());
+    CHECK_NULL_RETURN(aceView, false);
+
+    return aceView->DispatchSyntheticPointerEvent(pointerEvent);
 }
 
 bool UIContentImpl::ProcessPointerEventWithCallback(
@@ -911,6 +945,13 @@ bool UIContentImpl::GetAllComponents(NodeId nodeID, OHOS::Ace::Platform::Compone
     return false;
 }
 
+RefPtr<DisplayInfo> UIContentImpl::GetDisplayInfo()
+{
+    auto container = Platform::AceContainerSG::GetContainer(instanceId_);
+    CHECK_NULL_RETURN(container, nullptr);
+    return container->GetDisplayInfo();
+}
+
 void UIContentImpl::DumpInfo(const std::vector<std::string>& params, std::vector<std::string>& info)
 {
     auto container = Platform::AceContainerSG::GetContainer(instanceId_);
@@ -937,6 +978,17 @@ void UIContentImpl::NotifyMemoryLevel(int32_t level)
     CHECK_NULL_VOID(pipelineContext);
     ContainerScope scope(instanceId_);
     pipelineContext->NotifyMemoryLevel(level);
+}
+
+ bool UIContentImpl::WaitEventIdle(uint32_t idleThresholdMs, uint32_t timeoutMs)
+{
+    std::shared_ptr<UiEventMonitor> monitor;
+    {
+        std::lock_guard<std::mutex> lock(g_uiEventMonitorMutex);
+        CHECK_NULL_RETURN(g_uiEventMonitor, false);
+        monitor = g_uiEventMonitor;
+    }
+    return monitor->WaitEventIdle(idleThresholdMs, timeoutMs);
 }
 
 void UIContentImpl::NotifySurfaceCreated()

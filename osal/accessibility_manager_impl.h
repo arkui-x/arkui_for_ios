@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2025 Huawei Device Co., Ltd.
+ * Copyright (c) 2023-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -15,6 +15,9 @@
 
 #ifndef FOUNDATION_ACE_ADAPTER_IOS_OSAL_ACCESSIBILITY_MANAGER_IMPL_H
 #define FOUNDATION_ACE_ADAPTER_IOS_OSAL_ACCESSIBILITY_MANAGER_IMPL_H
+
+#include <atomic>
+#include <functional>
 
 #include "foundation/appframework/arkui/uicontent/component_info.h"
 
@@ -65,6 +68,8 @@ class AccessibilityManagerImpl : public AccessibilityNodeManager {
     DECLARE_ACE_TYPE(AccessibilityManagerImpl, AccessibilityNodeManager);
 
 public:
+    using AccessibilityEventCallback = std::function<void(const AccessibilityEvent&)>;
+
     AccessibilityManagerImpl() = default;
     ~AccessibilityManagerImpl() override;
     void InitializeCallback() override;
@@ -92,6 +97,11 @@ public:
     void UpdateNodeChildIds(const RefPtr<AccessibilityNode>& node);
     void SendActionEvent(const Accessibility::ActionType& action, int64_t nodeId);
     void FireAccessibilityEventCallback(uint32_t eventId, int64_t parameter) override;
+
+    static void SetUiTestEventCallback(const AccessibilityEventCallback& cb);
+    static void UnsetUiTestEventCallback();
+    static void AddUiTestAccessibilityRequest();
+    static void RemoveUiTestAccessibilityRequest();
 
     std::string GetPagePath();
 
@@ -160,6 +170,9 @@ protected:
     void DumpTree(int32_t depth, int64_t nodeID, bool isDumpSimplify = false) override;
 
 private:
+    static void NotifyUiTestEventCallback(const AccessibilityEvent& accessibilityEvent);
+    static void RefreshEffectiveAccessibilityState(bool isSystemEnabled);
+    static void RefreshEffectiveAccessibilityState();
     RefPtr<NG::PipelineContext> FindPipelineByElementId(const int32_t elementId, RefPtr<NG::FrameNode>& node);
     RefPtr<NG::FrameNode> FindNodeFromPipeline(const WeakPtr<PipelineBase>& context, const int32_t elementId);
     RefPtr<PipelineBase> GetPipelineByWindowId(const int32_t windowId);
@@ -196,6 +209,9 @@ private:
     int64_t currentFocusNodeId_ = DEFAULT_ElEMENTID;
     WeakPtr<NG::FrameNode> lastFrameNode_;
     mutable std::mutex ocNodeUpdateMutex_;
+
+    static AccessibilityEventCallback uiTestEventCallback_;
+    static std::atomic<int32_t> testForceEnableCount_;
 };
 } // namespace OHOS::Ace::Framework
 #endif // FOUNDATION_ACE_ADAPTER_PREVIEW_INSPECTOR_JS_INSPECTOR_MANAGER_H

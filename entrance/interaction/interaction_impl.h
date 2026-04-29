@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Huawei Device Co., Ltd.
+ * Copyright (c) 2024-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -16,15 +16,28 @@
 #ifndef FOUNDATION_ACE_ADAPTER_IOS_ENTRANCE_INTERACTION_INTERACTION_IMPL_H
 #define FOUNDATION_ACE_ADAPTER_IOS_ENTRANCE_INTERACTION_INTERACTION_IMPL_H
 
+#include <cstdint>
+
 #include "virtual_rs_window.h"
 
 #include "core/common/interaction/interaction_interface.h"
 namespace OHOS::Ace {
 
+void UpdateSyntheticDragTouchState(int32_t pointerId, bool active);
+void CompleteSyntheticDragTouchState(int32_t pointerId, bool active);
+void PrepareSyntheticDragCompensationContext(int32_t pointerId, bool active, bool isStart, int64_t actionTime);
+uint64_t ResolveSyntheticDragSessionId(const std::shared_ptr<MMI::PointerEvent>& pointerEvent);
+bool IsSyntheticDragTouchActiveForPointer(int32_t pointerId);
+void InitializeSyntheticDragCompensation(const DragDataCore& dragData,
+    const std::shared_ptr<OHOS::Rosen::Window>& dragWindow, int32_t width, int32_t height, uint64_t sessionId);
+
 class SurfaceNodeListener : public OHOS::Rosen::IWindowSurfaceNodeListener {
 public:
-    explicit SurfaceNodeListener(std::shared_ptr<OHOS::Rosen::Window> dragWindow, const DragDataCore& dragData)
-        : dragWindow_(dragWindow), dragData(dragData) {};
+    explicit SurfaceNodeListener(
+        std::shared_ptr<OHOS::Rosen::Window> dragWindow, const DragDataCore& dragData, bool isSyntheticDrag,
+        uint64_t syntheticSessionId)
+        : dragWindow_(dragWindow), dragData(dragData), isSyntheticDrag_(isSyntheticDrag),
+          syntheticSessionId_(syntheticSessionId) {};
     ~SurfaceNodeListener() = default;
 
     void OnSurfaceNodeCreated() {};
@@ -35,6 +48,8 @@ public:
 
     std::shared_ptr<OHOS::Rosen::Window> dragWindow_;
     DragDataCore dragData;
+    bool isSyntheticDrag_ = false;
+    uint64_t syntheticSessionId_ = 0;
 };
 class InteractionImpl : public InteractionInterface {
     DECLARE_ACE_TYPE(InteractionImpl, InteractionInterface);
@@ -91,6 +106,8 @@ public:
     bool IsDragStart() const override;
 
     int32_t UpdatePointAction(const std::shared_ptr<MMI::PointerEvent>& pointerEvent);
+
+    int32_t UpdateSyntheticPointAction(const std::shared_ptr<MMI::PointerEvent>& pointerEvent);
 
     int32_t GetPointerId()
     {

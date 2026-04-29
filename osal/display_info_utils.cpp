@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2024 Huawei Device Co., Ltd.
+ * Copyright (c) 2024-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -15,12 +15,20 @@
 
 #include "core/common/display_info_utils.h"
 
+#include "display_manager.h"
 #include "core/common/display_info.h"
 
 namespace OHOS::Ace {
 RefPtr<DisplayInfo> DisplayInfoUtils::GetDisplayInfo(int32_t displayId)
 {
-    return AceType::MakeRefPtr<DisplayInfo>();
+    auto display = Rosen::DisplayManager::GetInstance().GetDefaultDisplaySync();
+    CHECK_NULL_RETURN(display, displayInfo_);
+    auto dmDisplayInfo = display->GetDisplayInfo();
+    CHECK_NULL_RETURN(dmDisplayInfo, displayInfo_);
+    displayInfo_->SetWidth(dmDisplayInfo->GetWidth());
+    displayInfo_->SetHeight(dmDisplayInfo->GetHeight());
+    displayInfo_->SetDisplayId(dmDisplayInfo->GetDisplayId());
+    return displayInfo_;
 }
 
 void DisplayInfoUtils::InitIsFoldable() {}

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Huawei Device Co., Ltd.
+ * Copyright (c) 2024-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -15,7 +15,11 @@
 
 #include "mmi_event_convertor.h"
 
+#include <atomic>
+#include <limits>
 #include <memory>
+#include <mutex>
+#include <unordered_map>
 
 #include "ace_pointer_data_packet.h"
 #include "base/utils/time_util.h"
@@ -32,9 +36,110 @@ constexpr int32_t ANGLE_90 = 90;
 constexpr int32_t ANGLE_180 = 180;
 constexpr int32_t ANGLE_270 = 270;
 constexpr double SIZE_DIVIDE = 2.0;
+constexpr size_t MAX_SYNTHETIC_DOWN_TIME_MAP_SIZE = 64;
+constexpr uint32_t SYNTHETIC_DOWN_TIME_CLEANUP_INTERVAL = 32;
+constexpr int64_t STALE_SYNTHETIC_DOWN_TIME_TIMEOUT_US = 60LL * 1000 * 1000;
+
+struct SyntheticDownTimeEntry {
+    int64_t downTime = 0;
+    int64_t lastAccessTime = 0;
+};
+
+std::unordered_map<int32_t, SyntheticDownTimeEntry> syntheticDownTimeMap;
+std::atomic<uint32_t> g_syntheticDownTimeCleanupTick { 0 };
+std::mutex g_syntheticDownTimeMapMutex;
+std::mutex g_actionPointMapMutex;
+
+bool ShouldCleanStaleSyntheticDownTimeEntries()
+{
+    const auto tick = g_syntheticDownTimeCleanupTick.fetch_add(1, std::memory_order_relaxed) + 1;
+    return (tick % SYNTHETIC_DOWN_TIME_CLEANUP_INTERVAL) == 0;
+}
+
+void CleanStaleSyntheticDownTimeEntries(int64_t currentTime)
+{
+    for (auto iter = syntheticDownTimeMap.begin(); iter != syntheticDownTimeMap.end();) {
+        if (currentTime - iter->second.lastAccessTime > STALE_SYNTHETIC_DOWN_TIME_TIMEOUT_US) {
+            LOGW("clean stale synthetic down time entry, pointerId=%{public}d", iter->first);
+            iter = syntheticDownTimeMap.erase(iter);
+            continue;
+        }
+        ++iter;
+    }
+}
+
+void CleanOldestSyntheticDownTimeEntry()
+{
+    if (syntheticDownTimeMap.empty()) {
+        return;
+    }
+
+    auto oldestIter = syntheticDownTimeMap.begin();
+    auto oldestAccessTime = oldestIter->second.lastAccessTime;
+    for (auto iter = std::next(syntheticDownTimeMap.begin()); iter != syntheticDownTimeMap.end(); ++iter) {
+        if (iter->second.lastAccessTime < oldestAccessTime) {
+            oldestIter = iter;
+            oldestAccessTime = iter->second.lastAccessTime;
+        }
+    }
+    LOGW("clean oldest synthetic down time entry due to capacity limit, pointerId=%{public}d", oldestIter->first);
+    syntheticDownTimeMap.erase(oldestIter);
+}
 } // namespace
 
 static std::unordered_map<int32_t, bool> actionPointMap;
+
+bool IsActionPoint(int32_t pointerId)
+{
+    std::lock_guard<std::mutex> lock(g_actionPointMapMutex);
+    auto iter = actionPointMap.find(pointerId);
+    return iter != actionPointMap.end() && iter->second;
+}
+
+void SetActionPoint(int32_t pointerId, bool actionPoint)
+{
+    std::lock_guard<std::mutex> lock(g_actionPointMapMutex);
+    actionPointMap[pointerId] = actionPoint;
+}
+
+int64_t ResolveSyntheticDownTime(const AcePointerData& pointerData)
+{
+    std::lock_guard<std::mutex> lock(g_syntheticDownTimeMapMutex);
+    const auto pointerId = static_cast<int32_t>(pointerData.pointer_id);
+    const auto action = pointerData.pointer_action;
+    const auto currentTime = pointerData.time_stamp;
+    auto iter = syntheticDownTimeMap.find(pointerId);
+    int64_t downTime = pointerData.time_stamp;
+
+    if (action == AcePointerData::PointerAction::kDowned) {
+        if (iter != syntheticDownTimeMap.end()) {
+            LOGW("duplicate synthetic DOWN, pointerId=%{public}d", pointerId);
+            iter->second.downTime = currentTime;
+            iter->second.lastAccessTime = currentTime;
+            return currentTime;
+        }
+        if (ShouldCleanStaleSyntheticDownTimeEntries()) {
+            CleanStaleSyntheticDownTimeEntries(currentTime);
+        }
+        if (iter == syntheticDownTimeMap.end()) {
+            while (syntheticDownTimeMap.size() >= MAX_SYNTHETIC_DOWN_TIME_MAP_SIZE) {
+                CleanOldestSyntheticDownTimeEntry();
+            }
+        }
+        syntheticDownTimeMap[pointerId] = { currentTime, currentTime };
+        return currentTime;
+    }
+
+    if (iter != syntheticDownTimeMap.end()) {
+        downTime = iter->second.downTime;
+        iter->second.lastAccessTime = currentTime;
+    }
+
+    if (action == AcePointerData::PointerAction::kUped || action == AcePointerData::PointerAction::kCanceled) {
+        syntheticDownTimeMap.erase(pointerId);
+    }
+    return downTime;
+}
 
 SourceTool GetSourceTool(int32_t orgToolType)
 {
@@ -113,17 +218,8 @@ void SetTouchEventType(int32_t orgAction, TouchEvent& event)
     }
 }
 
-void ConvertPointerEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent, DragPointerEvent& event)
+void FillDragPointerEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent, DragPointerEvent& event)
 {
-#ifdef ENABLE_DRAG_FRAMEWORK
-    Ace::DragState dragState;
-    Ace::InteractionInterface::GetInstance()->GetDragState(dragState);
-    if (dragState == Ace::DragState::START &&
-        static_cast<Ace::InteractionImpl*>(Ace::InteractionInterface::GetInstance())->GetPointerId() ==
-            pointerEvent->GetPointerId()) {
-        static_cast<Ace::InteractionImpl*>(Ace::InteractionInterface::GetInstance())->UpdatePointAction(pointerEvent);
-    }
-#endif
     event.rawPointerEvent = pointerEvent;
     event.pointerId = pointerEvent->GetPointerId();
     MMI::PointerEvent::PointerItem pointerItem;
@@ -140,6 +236,34 @@ void ConvertPointerEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent,
     event.time = TimeStamp(std::chrono::microseconds(pointerEvent->GetActionTime()));
     event.sourceTool = GetSourceTool(pointerItem.GetToolType());
     event.targetWindowId = pointerItem.GetTargetWindowId();
+}
+
+void ConvertPointerEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent, DragPointerEvent& event)
+{
+#ifdef ENABLE_DRAG_FRAMEWORK
+    Ace::DragState dragState;
+    auto interactionImpl = static_cast<Ace::InteractionImpl*>(Ace::InteractionInterface::GetInstance());
+    Ace::InteractionInterface::GetInstance()->GetDragState(dragState);
+    if (dragState == Ace::DragState::START &&
+        interactionImpl->GetPointerId() == pointerEvent->GetPointerId()) {
+        interactionImpl->UpdatePointAction(pointerEvent);
+    }
+#endif
+    FillDragPointerEvent(pointerEvent, event);
+}
+
+void ConvertSyntheticPointerEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent, DragPointerEvent& event)
+{
+#ifdef ENABLE_DRAG_FRAMEWORK
+    Ace::DragState dragState;
+    auto interactionImpl = static_cast<Ace::InteractionImpl*>(Ace::InteractionInterface::GetInstance());
+    Ace::InteractionInterface::GetInstance()->GetDragState(dragState);
+    if (dragState == Ace::DragState::START &&
+        interactionImpl->GetPointerId() == pointerEvent->GetPointerId()) {
+        interactionImpl->UpdateSyntheticPointAction(pointerEvent);
+    }
+#endif
+    FillDragPointerEvent(pointerEvent, event);
 }
 
 void UpdateTouchEvent(std::vector<TouchEvent>& events)
@@ -271,7 +395,7 @@ void ConvertTouchEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent, s
             LOGE("get device Id: -1");
             continue;
         }
-        if (!actionPointMap[item.GetPointerId()]) {
+        if (!IsActionPoint(item.GetPointerId())) {
             LOGE("not action point");
             continue;
         }
@@ -284,6 +408,43 @@ void ConvertTouchEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent, s
             .SetType(TouchType::UNKNOWN)
             .SetPullType(TouchType::UNKNOWN)
             .SetTime(TimeStamp(std::chrono::microseconds(item.GetDownTime())))
+            .SetSize(pointerEvent->GetFingerCount())
+            .SetSourceType(SourceType::TOUCH);
+        event.pointerEvent = pointerEvent;
+        int32_t orgAction = pointerEvent->GetPointerAction();
+        SetTouchEventType(orgAction, event);
+        events.emplace_back(event);
+    }
+    UpdateTouchEvent(events);
+}
+
+void ConvertSyntheticTouchEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent, std::vector<TouchEvent>& events)
+{
+    auto ids = pointerEvent->GetPointerIds();
+    for (auto&& point_id : ids) {
+        MMI::PointerEvent::PointerItem item;
+        bool ret = pointerEvent->GetPointerItem(point_id, item);
+        if (!ret) {
+            LOGE("get pointer item failed.");
+            continue;
+        }
+        if (item.GetDeviceId() == -1) {
+            LOGE("get device Id: -1");
+            continue;
+        }
+        if (!IsActionPoint(item.GetPointerId())) {
+            LOGE("not action point");
+            continue;
+        }
+        TouchEvent event;
+        event.SetId(item.GetPointerId())
+            .SetX(item.GetWindowX())
+            .SetY(item.GetWindowY())
+            .SetScreenX(item.GetDisplayX())
+            .SetScreenY(item.GetDisplayY())
+            .SetType(TouchType::UNKNOWN)
+            .SetPullType(TouchType::UNKNOWN)
+            .SetTime(TimeStamp(std::chrono::microseconds(pointerEvent->GetActionTime())))
             .SetSize(pointerEvent->GetFingerCount())
             .SetSourceType(SourceType::TOUCH);
         event.pointerEvent = pointerEvent;
@@ -307,7 +468,7 @@ TouchEvent ConvertTouchEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEv
         LOGE("get device Id: -1");
         return TouchEvent();
     }
-    if (!actionPointMap[item.GetPointerId()]) {
+    if (!IsActionPoint(item.GetPointerId())) {
         LOGE("not action point");
         return TouchEvent();
     }
@@ -320,6 +481,41 @@ TouchEvent ConvertTouchEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEv
         .SetType(TouchType::UNKNOWN)
         .SetPullType(TouchType::UNKNOWN)
         .SetTime(TimeStamp(std::chrono::microseconds(item.GetDownTime())))
+        .SetSize(pointerEvent->GetFingerCount())
+        .SetSourceType(SourceType::TOUCH);
+    event.pointerEvent = pointerEvent;
+    int32_t orgAction = pointerEvent->GetPointerAction();
+    SetTouchEventType(orgAction, event);
+    UpdateTouchEvent(pointerEvent, event);
+    return event;
+}
+
+TouchEvent ConvertSyntheticTouchEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent)
+{
+    auto point_id = pointerEvent->GetPointerId();
+    MMI::PointerEvent::PointerItem item;
+    bool ret = pointerEvent->GetPointerItem(point_id, item);
+    if (!ret) {
+        LOGE("get pointer item failed.");
+        return TouchEvent();
+    }
+    if (item.GetDeviceId() == -1) {
+        LOGE("get device Id: -1");
+        return TouchEvent();
+    }
+    if (!IsActionPoint(item.GetPointerId())) {
+        LOGE("not action point");
+        return TouchEvent();
+    }
+    TouchEvent event;
+    event.SetId(item.GetPointerId())
+        .SetX(item.GetWindowX())
+        .SetY(item.GetWindowY())
+        .SetScreenX(item.GetDisplayX())
+        .SetScreenY(item.GetDisplayY())
+        .SetType(TouchType::UNKNOWN)
+        .SetPullType(TouchType::UNKNOWN)
+        .SetTime(TimeStamp(std::chrono::microseconds(pointerEvent->GetActionTime())))
         .SetSize(pointerEvent->GetFingerCount())
         .SetSourceType(SourceType::TOUCH);
     event.pointerEvent = pointerEvent;
@@ -370,6 +566,7 @@ void ConvertMmiPointerEvent(std::shared_ptr<MMI::PointerEvent>& pointerEvent, co
     {
         OHOS::MMI::PointerEvent::PointerItem pointerItem;
         pointerItem.SetPointerId(static_cast<int32_t>(current->pointer_id));
+        pointerItem.SetDeviceId(static_cast<int32_t>(current->device_id));
         pointerItem.SetDownTime(current->time_stamp);
         pointerItem.SetWindowX(static_cast<int32_t>(current->window_x));
         pointerItem.SetWindowY(static_cast<int32_t>(current->window_y));
@@ -379,7 +576,7 @@ void ConvertMmiPointerEvent(std::shared_ptr<MMI::PointerEvent>& pointerEvent, co
         pointerItem.SetTiltY(current->tilt);
         pointerItem.SetToolType(static_cast<int32_t>(SourceTypeFromToolType(current->tool_type)));
         pointerEvent->AddPointerItem(pointerItem);
-        actionPointMap[current->pointer_id] = current->actionPoint;
+        SetActionPoint(current->pointer_id, current->actionPoint);
         current++;
     }
 }
@@ -398,6 +595,7 @@ void ConvertMmiPointerEvent(
     {
         OHOS::MMI::PointerEvent::PointerItem pointerItem;
         pointerItem.SetPointerId(static_cast<int32_t>(current->pointer_id));
+        pointerItem.SetDeviceId(static_cast<int32_t>(current->device_id));
         pointerItem.SetDownTime(current->time_stamp);
         pointerItem.SetWindowX(static_cast<int32_t>(current->window_x));
         pointerItem.SetWindowY(static_cast<int32_t>(current->window_y));
@@ -407,13 +605,59 @@ void ConvertMmiPointerEvent(
         pointerItem.SetTiltY(current->tilt);
         pointerItem.SetToolType(static_cast<int32_t>(SourceTypeFromToolType(current->tool_type)));
         SetPointerItemPressed(actionType, pointerItem);
-        actionPointMap[current->pointer_id] = current->actionPoint;
+        SetActionPoint(current->pointer_id, current->actionPoint);
         current++;
         items.emplace_back(pointerItem);
     }
     for (size_t i = 0; i < items.size(); i++) {
         int32_t pointerId = items[i].GetPointerId();
-        if (!actionPointMap[pointerId]) {
+        if (!IsActionPoint(pointerId)) {
+            continue;
+        }
+        auto pointerEvent = OHOS::MMI::PointerEvent::Create();
+        pointerEvent->SetPointerId(pointerId);
+        pointerEvent->SetDeviceId(deviceId);
+        pointerEvent->SetTargetDisplayId(0);
+        pointerEvent->SetActionTime(actionTime);
+        SetPointerEventAction(actionType, pointerEvent);
+        for (auto& item : items) {
+            pointerEvent->AddPointerItem(item);
+        }
+        pointerEvents.emplace_back(pointerEvent);
+    }
+}
+
+void ConvertSyntheticMmiPointerEvent(
+    std::vector<std::shared_ptr<MMI::PointerEvent>>& pointerEvents, const std::vector<uint8_t>& data)
+{
+    const auto* current = reinterpret_cast<const AcePointerData*>(data.data());
+    size_t size = data.size() / sizeof(AcePointerData);
+    auto end = current + size;
+    auto deviceId = static_cast<int32_t>(current->device_id);
+    auto actionTime = current->time_stamp;
+    auto actionType = current->pointer_action;
+    std::vector<OHOS::MMI::PointerEvent::PointerItem> items;
+    while (current < end) {
+        OHOS::MMI::PointerEvent::PointerItem pointerItem;
+        const int64_t downTime = ResolveSyntheticDownTime(*current);
+        pointerItem.SetPointerId(static_cast<int32_t>(current->pointer_id));
+        pointerItem.SetDeviceId(static_cast<int32_t>(current->device_id));
+        pointerItem.SetDownTime(downTime);
+        pointerItem.SetWindowX(static_cast<int32_t>(current->window_x));
+        pointerItem.SetWindowY(static_cast<int32_t>(current->window_y));
+        pointerItem.SetDisplayX(static_cast<int32_t>(current->display_x));
+        pointerItem.SetDisplayY(static_cast<int32_t>(current->display_y));
+        pointerItem.SetPressure(current->pressure);
+        pointerItem.SetTiltY(current->tilt);
+        pointerItem.SetToolType(static_cast<int32_t>(SourceTypeFromToolType(current->tool_type)));
+        SetPointerItemPressed(actionType, pointerItem);
+        SetActionPoint(current->pointer_id, current->actionPoint);
+        current++;
+        items.emplace_back(pointerItem);
+    }
+    for (size_t i = 0; i < items.size(); i++) {
+        int32_t pointerId = items[i].GetPointerId();
+        if (!IsActionPoint(pointerId)) {
             continue;
         }
         auto pointerEvent = OHOS::MMI::PointerEvent::Create();
