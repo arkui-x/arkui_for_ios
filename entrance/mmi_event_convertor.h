@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Huawei Device Co., Ltd.
+ * Copyright (c) 2024-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -66,12 +66,18 @@ void GetEventDevice(int32_t sourceType, E& event)
 }
 
 void ConvertPointerEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent, DragPointerEvent& event);
+void ConvertSyntheticPointerEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent, DragPointerEvent& event);
 void ConvertTouchEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent, std::vector<TouchEvent>& events);
 TouchEvent ConvertTouchEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent);
+void ConvertSyntheticTouchEvent(
+    const std::shared_ptr<MMI::PointerEvent>& pointerEvent, std::vector<TouchEvent>& events);
+TouchEvent ConvertSyntheticTouchEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent);
 TouchPoint ConvertTouchPoint(const MMI::PointerEvent::PointerItem& pointerItem);
 void LogPointInfo(const std::shared_ptr<MMI::PointerEvent>& pointerEvent, int32_t instanceId);
 void ConvertMmiPointerEvent(std::shared_ptr<MMI::PointerEvent>& pointerEvent, const std::vector<uint8_t>& data);
 void ConvertMmiPointerEvent(
+    std::vector<std::shared_ptr<MMI::PointerEvent>>& pointerEvents, const std::vector<uint8_t>& data);
+void ConvertSyntheticMmiPointerEvent(
     std::vector<std::shared_ptr<MMI::PointerEvent>>& pointerEvents, const std::vector<uint8_t>& data);
 } // namespace OHOS::Ace::Platform
 

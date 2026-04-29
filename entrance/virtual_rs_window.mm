@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2025 Huawei Device Co., Ltd.
+ * Copyright (c) 2023-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -21,6 +21,7 @@
 #include <UIKit/UIKit.h>
 #include <objc/objc.h>
 #include "WindowView.h"
+#include "adapter/ios/stage/uicontent/ui_content_impl.h"
 #include "base/log/log.h"
 #include "foundation/appframework/arkui/uicontent/ui_content.h"
 #include "transaction/rs_interfaces.h"
@@ -1071,6 +1072,23 @@ bool Window::ProcessPointerEvent(const std::vector<uint8_t>& data)
     bool result = true;
     for (auto& pointerEvent : pointerEvents) {
          result &= uiContent_->ProcessPointerEvent(pointerEvent);
+    }
+    return result;
+}
+
+bool Window::ProcessSyntheticPointerEvent(const std::vector<uint8_t>& data)
+{
+    if (!uiContent_) {
+        LOGE("Window::ProcessSyntheticPointerEvent failed, uicontent is nullptr");
+        return false;
+    }
+    auto* uiContentImpl = static_cast<Ace::Platform::UIContentImpl*>(uiContent_.get());
+    CHECK_NULL_RETURN(uiContentImpl, false);
+    std::vector<std::shared_ptr<MMI::PointerEvent>> pointerEvents;
+    Ace::Platform::ConvertSyntheticMmiPointerEvent(pointerEvents, data);
+    bool result = true;
+    for (auto& pointerEvent : pointerEvents) {
+        result &= uiContentImpl->ProcessSyntheticPointerEvent(pointerEvent);
     }
     return result;
 }

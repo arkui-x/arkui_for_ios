@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2024 Huawei Device Co., Ltd.
+ * Copyright (c) 2023-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -16,8 +16,11 @@
 #ifndef FOUNDATION_ACE_ADAPTER_IOS_STAGE_UI_CONTENT_IMPL_H
 #define FOUNDATION_ACE_ADAPTER_IOS_STAGE_UI_CONTENT_IMPL_H
 
+#include <memory>
+
 #include "adapter/ios/entrance/virtual_rs_window.h"
 #include "adapter/ios/stage/uicontent/ace_container_sg.h"
+#include "adapter/ios/stage/uicontent/ui_event_monitor.h"
 #include "base/utils/macros.h"
 #include "core/accessibility/accessibility_node.h"
 #include "core/event/key_event.h"
@@ -58,6 +61,7 @@ public:
     // UI content event process
     bool ProcessBackPressed() override;
     bool ProcessPointerEvent(const std::shared_ptr<OHOS::MMI::PointerEvent>& pointerEvent) override;
+    bool ProcessSyntheticPointerEvent(const std::shared_ptr<OHOS::MMI::PointerEvent>& pointerEvent);
     bool ProcessPointerEventWithCallback(
         const std::shared_ptr<OHOS::MMI::PointerEvent>& pointerEvent, const std::function<void()>& callback) override;
     bool ProcessPointerEventTargetHitTest(const std::shared_ptr<OHOS::MMI::PointerEvent>& pointerEvent, const std::string& target) override;
@@ -78,6 +82,7 @@ public:
 
     // Control filtering
     bool GetAllComponents(NodeId nodeID, OHOS::Ace::Platform::ComponentInfo& components) override;
+    RefPtr<DisplayInfo> GetDisplayInfo() override;
 
     void DumpInfo(const std::vector<std::string>& params, std::vector<std::string>& info) override;
 
@@ -86,6 +91,10 @@ public:
 
     // Receive memory level notification
     void NotifyMemoryLevel(int32_t level) override;
+
+    void NotifyUiTestStart();
+    void NotifyUiTestEnd();
+    bool WaitEventIdle(uint32_t idleThresholdMs, uint32_t timeoutMs) override;
 
     bool ProcessBasicEvent(const std::vector<TouchEvent>& touchEvents) override;
 

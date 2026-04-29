@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2025 Huawei Device Co., Ltd.
+ * Copyright (c) 2023-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -56,6 +56,11 @@ class Window;
 - (void)keyboardWillChangeFrame:(NSNotification*)notification;
 - (void)keyboardWillBeHidden:(NSNotification*)notification;
 - (void)startBaseDisplayLink;
+- (BOOL)dispatchSyntheticTouchWithPhase:(UITouchPhase)phase
+                                pixelX:(CGFloat)pixelX
+                                pixelY:(CGFloat)pixelY
+                             pointerId:(int32_t)pointerId
+                             timeStamp:(int64_t)timeStamp;
 @end
 
 #endif  // FOUNDATION_ACE_ADAPTER_IOS_ENTRANCE_WINDOW_VIEW_H

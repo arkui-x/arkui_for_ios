@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2024 Huawei Device Co., Ltd.
+ * Copyright (c) 2023-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -35,6 +35,17 @@
 
 namespace OHOS::Ace::Platform {
 namespace {
+bool PreparePointerDispatch(const std::shared_ptr<MMI::PointerEvent>& pointerEvent, int32_t instanceId)
+{
+    if (!pointerEvent) {
+        return false;
+    }
+    LogPointInfo(pointerEvent, instanceId);
+    auto container = Platform::AceContainerSG::GetContainer(instanceId);
+    CHECK_NULL_RETURN(container, false);
+    container->SetCurPointerEvent(pointerEvent);
+    return true;
+}
 } // namespace
 
 AceViewSG* AceViewSG::CreateView(int32_t instanceId)
@@ -183,17 +194,12 @@ bool AceViewSG::DispatchBasicEvent(const std::vector<TouchEvent>& touchEvents)
 bool AceViewSG::DispatchTouchEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent,
         const RefPtr<OHOS::Ace::NG::FrameNode>& node, const std::function<void()>& callback)
 {
-    if (!pointerEvent) {
+    if (!PreparePointerDispatch(pointerEvent, GetInstanceId())) {
         LOGE("DispatchTouchEvent pointerEvent is null return.");
         return false;
     }
-    auto instanceId = GetInstanceId();
-    LogPointInfo(pointerEvent, instanceId);
 
     bool forbiddenToPlatform = false;
-
-    auto container = Platform::AceContainerSG::GetContainer(instanceId);
-    container->SetCurPointerEvent(pointerEvent);
     if (pointerEvent->GetSourceType() != MMI::PointerEvent::SOURCE_TYPE_MOUSE) {
         // touch event
         ProcessDragEvent(pointerEvent, node);
@@ -201,6 +207,20 @@ bool AceViewSG::DispatchTouchEvent(const std::shared_ptr<MMI::PointerEvent>& poi
     }
     // if it is last page, let os know to quit app
     return forbiddenToPlatform || (!IsLastPage());
+}
+
+bool AceViewSG::DispatchSyntheticPointerEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent,
+    const RefPtr<OHOS::Ace::NG::FrameNode>& node)
+{
+    if (!PreparePointerDispatch(pointerEvent, GetInstanceId())) {
+        LOGE("DispatchSyntheticPointerEvent pointerEvent is null return.");
+        return false;
+    }
+    if (pointerEvent->GetSourceType() != MMI::PointerEvent::SOURCE_TYPE_MOUSE) {
+        ProcessSyntheticDragEvent(pointerEvent, node);
+        ProcessSyntheticTouchEvent(pointerEvent, node);
+    }
+    return !IsLastPage();
 }
 
 bool AceViewSG::IsLastPage() const
@@ -333,11 +353,64 @@ void AceViewSG::ProcessTouchEvent(const std::shared_ptr<MMI::PointerEvent>& poin
     }
 }
 
+void AceViewSG::ProcessSyntheticTouchEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent,
+    const RefPtr<OHOS::Ace::NG::FrameNode>& node)
+{
+    TouchEvent touchPoint = ConvertSyntheticTouchEvent(pointerEvent);
+    if (touchPoint.type != TouchType::UNKNOWN) {
+        if (touchEventCallback_) {
+            touchEventCallback_(touchPoint, nullptr, nullptr);
+        }
+    }
+}
+
 void AceViewSG::ProcessDragEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent, const RefPtr<OHOS::Ace::NG::FrameNode>& node)
 {
     DragEventAction action;
     DragPointerEvent event;
     ConvertPointerEvent(pointerEvent, event);
+    CHECK_NULL_VOID(dragEventCallback_);
+    int32_t orgAction = pointerEvent->GetPointerAction();
+    switch (orgAction) {
+        case OHOS::MMI::PointerEvent::POINTER_ACTION_PULL_MOVE: {
+            action = DragEventAction::DRAG_EVENT_MOVE;
+            event.x = event.windowX;
+            event.y = event.windowY;
+            dragEventCallback_(event, action, node);
+            break;
+        }
+        case OHOS::MMI::PointerEvent::POINTER_ACTION_PULL_UP: {
+            action = DragEventAction::DRAG_EVENT_END;
+            event.x = event.windowX;
+            event.y = event.windowY;
+            dragEventCallback_(event, action, node);
+            break;
+        }
+        case OHOS::MMI::PointerEvent::POINTER_ACTION_PULL_IN_WINDOW: {
+            action = DragEventAction::DRAG_EVENT_START;
+            event.x = event.displayX;
+            event.y = event.displayY;
+            dragEventCallback_(event, action, node);
+            break;
+        }
+        case OHOS::MMI::PointerEvent::POINTER_ACTION_PULL_OUT_WINDOW: {
+            action = DragEventAction::DRAG_EVENT_OUT;
+            event.x = event.displayX;
+            event.y = event.displayY;
+            dragEventCallback_(event, action, node);
+            break;
+        }
+        default:
+            break;
+    }
+}
+
+void AceViewSG::ProcessSyntheticDragEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent,
+    const RefPtr<OHOS::Ace::NG::FrameNode>& node)
+{
+    DragEventAction action;
+    DragPointerEvent event;
+    ConvertSyntheticPointerEvent(pointerEvent, event);
     CHECK_NULL_VOID(dragEventCallback_);
     int32_t orgAction = pointerEvent->GetPointerAction();
     switch (orgAction) {

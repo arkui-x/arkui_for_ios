@@ -24,6 +24,7 @@
 #include <vector>
 #include "base/utils/time_util.h"
 
+#include "adapter/ios/entrance/interaction/interaction_impl.h"
 #include "adapter/ios/capability/editing/iOSTxtInputManager.h"
 #include "ace_pointer_data_packet.h"
 #include "virtual_rs_window.h"
@@ -405,6 +406,24 @@ static OHOS::Ace::Platform::AcePointerData::PointerAction PointerDataChangeFromU
     return action;
 }
 
+static const char* SyntheticPhaseToString(UITouchPhase phase)
+{
+    switch (phase) {
+        case UITouchPhaseBegan:
+            return "BEGAN";
+        case UITouchPhaseMoved:
+            return "MOVED";
+        case UITouchPhaseStationary:
+            return "STATIONARY";
+        case UITouchPhaseEnded:
+            return "ENDED";
+        case UITouchPhaseCancelled:
+            return "CANCELLED";
+        default:
+            return "UNKNOWN";
+    }
+}
+
 static OHOS::Ace::Platform::AcePointerData::ToolType DeviceKindFromTouchType(UITouch *touch) {
     switch (touch.type) {
         case UITouchTypeDirect:
@@ -418,6 +437,62 @@ static OHOS::Ace::Platform::AcePointerData::ToolType DeviceKindFromTouchType(UIT
         break;
     }
     return OHOS::Ace::Platform::AcePointerData::ToolType::Touch;
+}
+
+static bool IsSyntheticTouchActive(UITouchPhase phase)
+{
+    return phase == UITouchPhaseBegan || phase == UITouchPhaseMoved || phase == UITouchPhaseStationary;
+}
+
+static void UpdateSyntheticTouchDisplayLink(WindowView *view, UITouchPhase phase)
+{
+    if (!view.displayLinkTouch) {
+        return;
+    }
+    if (IsSyntheticTouchActive(phase)) {
+        view.displayLinkTouch.paused = NO;
+        [view stopPausedTimer];
+        return;
+    }
+    if (phase == UITouchPhaseEnded || phase == UITouchPhaseCancelled) {
+        [view startPausedTimer];
+    }
+}
+
+struct SyntheticPointerDataParams {
+    UITouchPhase phase;
+    CGFloat scale;
+    CGPoint windowCoordinates;
+    CGPoint displayCoordinates;
+    int32_t pointerId;
+    int64_t timeStamp;
+};
+
+static OHOS::Ace::Platform::AcePointerData CreateSyntheticPointerData(
+    const SyntheticPointerDataParams& params)
+{
+    OHOS::Ace::Platform::AcePointerData pointerData;
+    pointerData.Clear();
+    pointerData.pointer_id = params.pointerId >= 0 ? params.pointerId : 0;
+    pointerData.device_id = 0;
+    pointerData.time_stamp =
+        params.timeStamp > 0 ? params.timeStamp : OHOS::Ace::GetMicroTickCount();
+    pointerData.finger_count = 1;
+    pointerData.pointer_action = PointerDataChangeFromUITouchPhase(params.phase);
+    pointerData.tool_type = OHOS::Ace::Platform::AcePointerData::ToolType::Touch;
+    pointerData.display_x = params.displayCoordinates.x * params.scale;
+    pointerData.display_y = params.displayCoordinates.y * params.scale;
+    pointerData.window_x = params.windowCoordinates.x * params.scale;
+    pointerData.window_y = params.windowCoordinates.y * params.scale;
+    pointerData.pressure =
+        (params.phase == UITouchPhaseEnded || params.phase == UITouchPhaseCancelled) ? 0.0f : 1.0f;
+    pointerData.radius_major = 0.0;
+    pointerData.radius_min = 0.0;
+    pointerData.radius_max = 0.0;
+    pointerData.tilt = 0.0;
+    pointerData.orientation = 0.0;
+    pointerData.actionPoint = true;
+    return pointerData;
 }
 
 - (int32_t)getTouchDevice:(UITouch *)touch {
@@ -470,6 +545,45 @@ static OHOS::Ace::Platform::AcePointerData::ToolType DeviceKindFromTouchType(UIT
         }
     }
     return pointerId;
+}
+
+- (BOOL)dispatchSyntheticTouchWithPhase:(UITouchPhase)phase
+                                pixelX:(CGFloat)pixelX
+                                pixelY:(CGFloat)pixelY
+                             pointerId:(int32_t)pointerId
+                             timeStamp:(int64_t)timeStamp
+{
+    UpdateSyntheticTouchDisplayLink(self, phase);
+
+    auto window = [self getWindow];
+    if (window == nullptr) {
+        return NO;
+    }
+
+    CGFloat scale = [UIScreen mainScreen].scale;
+    if (scale <= 0.0) {
+        scale = 1.0;
+    }
+    UIView *displayView = self.superview ?: self;
+    CGPoint windowCoordinates = CGPointMake(pixelX / scale, pixelY / scale);
+    CGPoint displayCoordinates = displayView == self ? windowCoordinates :
+        [self convertPoint:windowCoordinates toView:displayView];
+
+    const SyntheticPointerDataParams pointerParams {
+        phase, scale, windowCoordinates, displayCoordinates, pointerId, timeStamp
+    };
+    auto pointerData = CreateSyntheticPointerData(pointerParams);
+
+    const bool syntheticActive = IsSyntheticTouchActive(phase);
+    OHOS::Ace::UpdateSyntheticDragTouchState(pointerData.pointer_id, syntheticActive);
+    OHOS::Ace::PrepareSyntheticDragCompensationContext(pointerData.pointer_id, syntheticActive,
+        phase == UITouchPhaseBegan, pointerData.time_stamp);
+
+    OHOS::Ace::Platform::AcePointerDataPacket packet(1);
+    packet.SetPointerData(0, pointerData);
+    const bool result = window->ProcessSyntheticPointerEvent(packet.data());
+    OHOS::Ace::CompleteSyntheticDragTouchState(pointerData.pointer_id, syntheticActive);
+    return result;
 }
 
 - (void)dispatchTouches:(NSSet *)touches {
