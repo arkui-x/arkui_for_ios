@@ -719,7 +719,7 @@ int32_t InteractionImpl::UpdatePreviewStyleWithAnimation(const OHOS::Ace::Previe
     return -1;
 }
 
-int32_t InteractionImpl::StopDrag(DragDropRet result)
+int32_t InteractionImpl::StopDrag(DragDropRet result, std::function<void()> callback)
 {
 #if defined(ENABLE_DRAG_FRAMEWORK)
     auto& state = GetSyntheticDragRuntimeState();
