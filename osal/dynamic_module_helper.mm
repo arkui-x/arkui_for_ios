@@ -88,6 +88,7 @@ const std::unordered_map<std::string, std::string> soMap = {
     {"Search", "search"},
     // Menu components are now statically linked, handled in GetDynamicModule
     {"TextClock", "textclock"},
+    {"DynamicLayout", "dynamiclayout"},
 };
 } // namespace
 DynamicModuleHelper& DynamicModuleHelper::GetInstance()
