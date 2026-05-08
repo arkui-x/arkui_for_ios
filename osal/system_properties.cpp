@@ -444,7 +444,7 @@ bool SystemProperties::IsSoftPageTransition()
 
 bool SystemProperties::GetMultiInstanceEnabled()
 {
-    return false;
+    return true;
 }
 
 bool SystemProperties::ConfigChangePerform()
