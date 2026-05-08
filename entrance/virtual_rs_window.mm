@@ -25,6 +25,8 @@
 #include "base/log/log.h"
 #include "foundation/appframework/arkui/uicontent/ui_content.h"
 #include "transaction/rs_interfaces.h"
+#include "render_service_client/core/ui/rs_ui_director.h"
+#include "render_service_client/core/ui/rs_ui_context.h"
 #include "virtual_rs_window.h"
 #include "StageViewController.h"
 #include "StageApplication.h"
@@ -760,6 +762,7 @@ WMError Window::RequestFocus()
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
 }
+
 bool Window::IsFocused() const
 {
     return isFocused_;
@@ -856,9 +859,10 @@ void Window::RequestNextVsync(std::function<void(int64_t, void*)> callback)
 
 void Window::CreateSurfaceNode(void* layer)
 {
+    rsUidriect_ = Rosen::RSUIDirector::Create(nullptr);
     struct OHOS::Rosen::RSSurfaceNodeConfig rsSurfaceNodeConfig = { .SurfaceNodeName = "arkui-x_surface",
         .additionalData = layer };
-    surfaceNode_ = OHOS::Rosen::RSSurfaceNode::Create(rsSurfaceNodeConfig);
+    surfaceNode_ = Rosen::RSSurfaceNode::Create(rsSurfaceNodeConfig, true, rsUidriect_->GetRSUIContext());
 
     if (!uiContent_) {
         LOGW("Window Notify uiContent_ Surface Created, uiContent_ is nullptr, delay notify.");
