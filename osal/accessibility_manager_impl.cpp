@@ -22,6 +22,7 @@
 
 #include "adapter/ios/entrance/accessibility/AceAccessibilityBridge.h"
 #include "core/components_ng/property/accessibility_property.h"
+#include "core/components_ng/pattern/stage/stage_manager.h"
 
 using namespace OHOS::Accessibility;
 using namespace std;
