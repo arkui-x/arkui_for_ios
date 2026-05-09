@@ -25,6 +25,7 @@
 
 #include "refbase.h"
 #include "render_service_client/core/ui/rs_surface_node.h"
+#include "render_service_client/core/ui/rs_ui_director.h"
 #include "vsync_receiver.h"
 #include "foundation/appframework/window_manager/interfaces/innerkits/wm/wm_common.h"
 #include "foundation/appframework/window_manager/interfaces/innerkits/wm/window_interface.h"
@@ -319,7 +320,7 @@ public:
      * @return std::shared_ptr<RSUIDirector> Shared pointer to the RSUIDirector instance,
      *         or nullptr if RS client multi-instance is disabled.
      */
-    virtual std::shared_ptr<RSUIDirector> GetRSUIDirector() const { return nullptr; }
+    virtual std::shared_ptr<RSUIDirector> GetRSUIDirector() const {  return rsUidriect_; }
 
     /**
      * @brief Get the associated RSUIContext instance
@@ -327,7 +328,7 @@ public:
      * @return std::shared_ptr<RSUIContext> Shared pointer to the RSUIContext instance,
      *         or nullptr if RS client multi-instance is disabled.
      */
-    virtual std::shared_ptr<RSUIContext> GetRSUIContext() const { return nullptr; }
+    virtual std::shared_ptr<RSUIContext> GetRSUIContext() const {  return rsUidriect_->GetRSUIContext(); }
     
 private:
     void SetWindowView(WindowView* windowView);
@@ -484,6 +485,7 @@ private:
     Rect rect_ = {0, 0, 0, 0};
     std::string name_;
     float density_ = 0;
+    std::shared_ptr<RSUIDirector> rsUidriect_;
     std::shared_ptr<RSSurfaceNode> surfaceNode_;
     bool isWindowShow_ = false;
     WindowView* windowView_ = nullptr;
