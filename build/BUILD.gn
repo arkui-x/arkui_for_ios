@@ -256,6 +256,7 @@ foreach(module, arkui_x_components) {
 
 # for arkui component modules
 component_modules = [
+  "dynamiclayout",
   "marquee",
   "stepper",
   "slider",
