@@ -1649,6 +1649,7 @@ __ZNK6icu_746Locale15getISO3LanguageEv
 _u_isUAlphabetic_74
 _u_isUUppercase_74
 _u_isspace_74
+_UpdateTraceLabel
 __ZN4OHOS3Ace15ImageSourceInfo*
 __ZNK4OHOS3Ace2NG17ScrollablePattern*
 __ZN4OHOS3Ace2NG17ScrollablePattern*
