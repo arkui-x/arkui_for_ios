@@ -35,6 +35,7 @@
 #import "AcePlatformViewPlugin.h"
 #import "AceWeb.h"
 #import "StageContainerView.h"
+#import <QuartzCore/CAMetalLayer.h>
 #define HIT_TEST_TARGET_WEB  @"Web"
 #define HIT_TEST_TARGET_PLATFORMVIEW @"PlatformView"
 
@@ -88,8 +89,10 @@ extern "C" void SetIsPointInsideWebForceResult(bool enable, bool result)
 }
 
 +(Class)layerClass{
-#ifdef ACE_ENABLE_GL
-    return [CAEAGLLayer class];
+#ifdef ACE_IOS_USE_CAMETAL_LAYER
+ 	return [CAMetalLayer class];
+#elif defined(ACE_ENABLE_GL)	 
+    return [CAEAGLLayer class];	 
 #else
     return [CALayer class];
 #endif
@@ -133,6 +136,14 @@ extern "C" void SetIsPointInsideWebForceResult(bool enable, bool result)
         static_cast<int32_t>(self.bounds.size.height));
     int32_t width = static_cast<int32_t>(self.bounds.size.width * scale);
     int32_t height = static_cast<int32_t>(self.bounds.size.height * scale);
+#ifdef ACE_IOS_USE_CAMETAL_LAYER
+    if ([self.layer isKindOfClass:[CAMetalLayer class]]) {
+        CAMetalLayer* metalLayer = static_cast<CAMetalLayer*>(self.layer);
+        metalLayer.contentsScale = scale;
+        metalLayer.framebufferOnly = NO;
+        metalLayer.drawableSize = CGSizeMake(self.bounds.size.width * scale, self.bounds.size.height * scale);
+    }
+#elif defined(ACE_ENABLE_GL)
     if ([self.layer isKindOfClass:[CAEAGLLayer class]]) {
         CAEAGLLayer* layer = reinterpret_cast<CAEAGLLayer*>(self.layer);
         layer.allowsGroupOpacity = YES;
@@ -144,6 +155,7 @@ extern "C" void SetIsPointInsideWebForceResult(bool enable, bool result)
             kEAGLDrawablePropertyRetainedBacking : @(NO),
         };
     }
+#endif
     [self notifySurfaceChangedWithWidth:width height:height density:scale];
 }
 - (void)setFullScreen:(BOOL)fullScreen {

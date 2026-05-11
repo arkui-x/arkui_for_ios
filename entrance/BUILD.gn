@@ -13,6 +13,7 @@
 
 import("//build/ohos.gni")
 import("//foundation/arkui/ace_engine/ace_config.gni")
+import("//foundation/graphic/graphic_2d/graphic_config.gni")
 
 # build static
 template("ace_ios_standard_source_set") {
@@ -93,6 +94,7 @@ template("ace_ios_standard_source_set") {
     defines += [
       "BUILD_FOR_ARKUI",
       "CROSS_PLATFORM",
+      "ACE_ENABLE_GL",
     ]
 
     configs = [
@@ -126,6 +128,11 @@ template("ace_ios_standard_source_set") {
       "OpenGLES.framework",
       "QuartzCore.framework",
     ]
+
+    if (graphic_2d_feature_enable_vulkan) {
+      defines += [ "ACE_IOS_USE_CAMETAL_LAYER" ]
+      frameworks += [ "Metal.framework" ]
+    }
 
     include_dirs += [
       "//base/global/resource_management/interfaces/inner_api/include",
