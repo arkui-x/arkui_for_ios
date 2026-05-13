@@ -305,21 +305,21 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
 - (void)initConsole:(NSString*)consoleLevel controller:(WKUserContentController*)controller
 {
     NSString* jsConsole = @"";
-    if ([consoleLevel isEqualToString:CONSOLELOG]) {
-        jsConsole = @"console.log = (function(oriLogFunc){ return function(str){ oriLogFunc.call(console,str); "
-                    "window.webkit.messageHandlers.log.postMessage(str); } })(console.log);";
-    } else if ([consoleLevel isEqualToString:CONSOLEINFO]) {
-        jsConsole = @"console.info = (function(oriLogFunc){ return function(str){ oriLogFunc.call(console,str); "
-                    "window.webkit.messageHandlers.info.postMessage(str); } })(console.info);";
-    } else if ([consoleLevel isEqualToString:CONSOLEERROR]) {
-        jsConsole = @"console.error = (function(oriLogFunc){ return function(str){ oriLogFunc.call(console,str); "
-                    "window.webkit.messageHandlers.error.postMessage(str); } })(console.error);";
-    } else if ([consoleLevel isEqualToString:CONSOLEDEBUG]) {
-        jsConsole = @"console.debug = (function(oriLogFunc){ return function(str){ oriLogFunc.call(console,str); "
-                    "window.webkit.messageHandlers.debug.postMessage(str); } })(console.debug);";
-    } else if ([consoleLevel isEqualToString:CONSOLEWARN]) {
-        jsConsole = @"console.warn = (function(oriLogFunc){ return function(str){ oriLogFunc.call(console,str); "
-                    "window.webkit.messageHandlers.warn.postMessage(str); } })(console.warn);";
+    if ([consoleLevel isEqualToString:CONSOLELOG] ||
+        [consoleLevel isEqualToString:CONSOLEINFO] ||
+        [consoleLevel isEqualToString:CONSOLEDEBUG] ||
+        [consoleLevel isEqualToString:CONSOLEWARN] ||
+        [consoleLevel isEqualToString:CONSOLEERROR]) {
+        jsConsole = [NSString stringWithFormat:
+            @"console.%@ = (function(oriLogFunc) {"
+             "  return function(...args) {"
+             "    oriLogFunc.apply(console, args);"
+             "    const msg = args.map(arg => typeof arg === 'object' && arg !== null ?"
+             "      JSON.stringify(arg) : String(arg)).join(' ');"
+             "    window.webkit.messageHandlers.%@.postMessage(msg);"
+             "  }"
+             "})(console.%@);",
+            consoleLevel, consoleLevel, consoleLevel];
     }
     WKUserScript* script = [[WKUserScript alloc] initWithSource:jsConsole
                                                   injectionTime:WKUserScriptInjectionTimeAtDocumentEnd
