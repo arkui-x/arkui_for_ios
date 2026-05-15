@@ -15,6 +15,7 @@
 
 #include "adapter/ios/capability/editing/text_input_client_handler.h"
 #include "adapter/ios/capability/editing/text_input_connection_impl.h"
+#include "core/common/container.h"
 #include "core/common/ime/input_method_manager.h"
 #include "core/common/ime/text_input_connection.h"
 #include "core/components_ng/pattern/text_field/text_field_manager.h"
