@@ -443,6 +443,24 @@ std::string StageAssetProvider::GetPreferencesDir()
     return preferencesDir;
 }
 
+std::string StageAssetProvider::GetResourceDir(const std::string& moduleName) const
+{
+    if (moduleName.empty()) {
+        LOGE("GetResourceDir failed, moduleName is empty");
+        return "";
+    }
+
+    std::string resourceDir = GetAppDataModuleDir() + "/" + moduleName + "/resources/resfile";
+
+    NSString* nsPath = [NSString stringWithUTF8String:resourceDir.c_str()];
+    if (![[NSFileManager defaultManager] fileExistsAtPath:nsPath]) {
+        LOGW("Resource dir not found: %{public}s", resourceDir.c_str());
+        return "";
+    }
+
+    return resourceDir;
+}
+
 std::string StageAssetProvider::GetAppDataModuleDir() const
 {
     NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
