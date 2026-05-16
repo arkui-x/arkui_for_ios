@@ -17,8 +17,6 @@
 
 #import <AVFoundation/AVFoundation.h>
 #import <CoreFoundation/CoreFoundation.h>
-#import <OpenGLES/ES3/gl.h>
-#import <OpenGLES/ES3/glext.h>
 #import <QuartzCore/QuartzCore.h>
 
 #import "AceTextureHolder.h"
@@ -27,7 +25,7 @@
 #import "StageApplication.h"
 #import "WindowView.h"
 #import "StageViewController.h"
-#import "RenderViewXcomponent.h"
+#import "../platformview/render/MetalTextureRenderer.h"
 #import "base/log/log.h"
 
 #define TEXTURE_FLAG    @"texture@"
@@ -45,10 +43,8 @@
 #define FAIL @"false"
 #define KEY_TEXTUREID @"textureId"
 
-typedef NS_ENUM(NSUInteger, RefreshFrequency) {
-    RefreshFrequencyHigh = 60,
-    RefreshFrequencyLow = 36,
-};
+const static NSInteger XC_MIN_ACTIVE_FRAME_RATE = 60;
+const static NSInteger XC_FRAME_RATE_DIVISOR = 2;
 
 @implementation AceXcomponentWeakProxy
 
@@ -76,13 +72,12 @@ typedef NS_ENUM(NSUInteger, RefreshFrequency) {
 @end
 
 @interface AceXcomponentTextureView () {
-    RenderViewXcomponent *_renderView;
+    MetalTextureRenderer *_metalTextureRenderer;
     UIView *_embeddedView;
     AVPlayer *_player;
     AVPlayer *_lastPlayer;
     AVPlayerLayer *_playerLayer;
     CGRect _currentFrame;
-    void *_eglContextPtr;
     BOOL _viewAdded;
     BOOL _isVideo;
     BOOL _observingSublayers;
@@ -94,7 +89,6 @@ typedef NS_ENUM(NSUInteger, RefreshFrequency) {
 @property (nonatomic, assign) int64_t textureResourceId;
 @property (nonatomic, copy) IAceOnResourceEvent callback;
 @property (nonatomic, strong) NSMutableDictionary<NSString*, IAceOnCallSyncResourceMethod>* callMethodMap;
-@property (nonatomic, copy) IAceTextureAttachEventCallback attachCallbackHandler;
 @property (nonatomic, weak) UIViewController* target;
 @property (nonatomic, weak) NSObject<AcePlatformViewDelegate>* delegate;
 @property (nonatomic, weak) id<IAceSurface> surfaceDelegate;
@@ -114,7 +108,7 @@ typedef NS_ENUM(NSUInteger, RefreshFrequency) {
                 viewdelegate:(NSObject<AcePlatformViewDelegate> *)viewdelegate
                 surfaceDelegate:(id<IAceSurface>)surfaceDelegate
 {
-    if (self = [super init]) {
+    if ((self = [super init]) != nullptr) {
         self.textureId = textureId;
         self.instanceId = instanceId;
         self.target = target;
@@ -125,16 +119,19 @@ typedef NS_ENUM(NSUInteger, RefreshFrequency) {
         self.screenScale = [UIScreen mainScreen].scale;
         _isVideo = NO;
         _observingSublayers = NO;
-        _renderView = [[RenderViewXcomponent alloc] initWithFrame:CGRectZero];
-        _renderView.autoresizesSubviews = YES;
+        _metalTextureRenderer = [[MetalTextureRenderer alloc] initWithFrame:CGRectZero];
+        _metalTextureRenderer.autoresizesSubviews = YES;
         _embeddedView = [[UIView alloc] initWithFrame:CGRectZero];
         _embeddedView.backgroundColor = [UIColor whiteColor];
         _embeddedView.autoresizesSubviews = YES;
+        [_metalTextureRenderer ensureMetalSetup:_embeddedView];
+        [_metalTextureRenderer addSubview:_embeddedView];
         __weak __typeof(self) weakSelf = self;
+        NSString *strLogTag = @"AceXcomponentTextureView";
         AceSurfaceCaptureConfig* captureConfig = [[AceSurfaceCaptureConfig alloc]
             initWithWidthKey:TEXTURE_WIDTH_KEY
             heightKey:TEXTURE_HEIGHT_KEY
-            logTag:"AceXcomponentTextureView"
+            logTag:[strLogTag UTF8String]
             hostLayerBlock:^CALayer* {
                 __strong __typeof(weakSelf) strongSelf = weakSelf;
                 return strongSelf ? strongSelf->_embeddedView.layer : nil;
@@ -164,7 +161,7 @@ typedef NS_ENUM(NSUInteger, RefreshFrequency) {
 {
     __weak __typeof(self) weakSelf = self;
     IAceOnCallSyncResourceMethod callSetSurfaceSize = ^NSString * (NSDictionary *param) {
-        if (weakSelf) {
+        if (weakSelf != nullptr) {
             return [weakSelf setSurfaceBounds:param];
         } else {
             LOGE("AceXcomponentTextureView: setSurfaceBounds fail");
@@ -174,7 +171,7 @@ typedef NS_ENUM(NSUInteger, RefreshFrequency) {
     [self.callMethodMap setObject:[callSetSurfaceSize copy] forKey:[self method_hashFormat:@"setTextureBounds"]];
 
     IAceOnCallSyncResourceMethod callAttachNativeWindow = ^NSString * (NSDictionary *param) {
-        if (weakSelf) {
+        if (weakSelf != nullptr) {
             return [weakSelf setAttachNativeWindow:param];
         } else {
             LOGE("AceXcomponentTextureView: callAttachNativeWindow fail");
@@ -184,7 +181,7 @@ typedef NS_ENUM(NSUInteger, RefreshFrequency) {
     [self.callMethodMap setObject:[callAttachNativeWindow copy] forKey:[self method_hashFormat:@"attachNativeWindow"]];
 
     IAceOnCallSyncResourceMethod callAttachTextureIsVideo = ^NSString * (NSDictionary *param) {
-        if (weakSelf) {
+        if (weakSelf != nullptr) {
             return [weakSelf setAttachTextureIsVideo:param];
         } else {
             LOGE("AceXcomponentTextureView: callAttachTextureIsVideo fail");
@@ -212,7 +209,7 @@ typedef NS_ENUM(NSUInteger, RefreshFrequency) {
 
 - (void)startObservingEmbeddedLayer
 {
-    if (_embeddedView && !_observingSublayers) {
+    if (_embeddedView != nullptr && !_observingSublayers) {
         [_embeddedView.layer addObserver:self forKeyPath:@"sublayers"
         options:NSKeyValueObservingOptionNew | NSKeyValueObservingOptionInitial context:nil];
         _observingSublayers = YES;
@@ -221,7 +218,7 @@ typedef NS_ENUM(NSUInteger, RefreshFrequency) {
 
 - (void)stopObservingEmbeddedLayer
 {
-    if (_embeddedView && _observingSublayers) {
+    if (_embeddedView != nullptr && _observingSublayers) {
         [_embeddedView.layer removeObserver:self forKeyPath:@"sublayers"];
         _observingSublayers = NO;
     }
@@ -235,7 +232,7 @@ typedef NS_ENUM(NSUInteger, RefreshFrequency) {
 
 - (NSString *)setSurfaceBounds:(NSDictionary *)params
 {
-    if (!params[TEXTURE_WIDTH_KEY] || !params[TEXTURE_HEIGHT_KEY]) {
+    if (params[TEXTURE_WIDTH_KEY] == nullptr || params[TEXTURE_HEIGHT_KEY] == nullptr) {
         return FAIL;
     }
     CGFloat surfaceX = [params[TEXTURE_LEFT_KEY] floatValue];
@@ -246,25 +243,19 @@ typedef NS_ENUM(NSUInteger, RefreshFrequency) {
     if (!_viewAdded) {
         _viewAdded = YES;
         self.textureResourceId = [params[KEY_TEXTUREID] longLongValue];
-        if (self.delegate) {
-            [self.delegate registerContextPtrWithInstanceId:self.instanceId
-                                                textureId:self.textureResourceId
-                                                contextPtr:(void *)&_eglContextPtr];
-        }
-        if (!self.renderTexture) {
+        if (self.renderTexture == nullptr) {
             AceTexture *newTexture = (AceTexture *)[AceTextureHolder getTextureWithId:self.textureResourceId
                                                                             inceId:self.instanceId];
             self.renderTexture = newTexture;
         }
+        if (self.delegate != nullptr && !_isVideo && _metalTextureRenderer != nullptr) {
+            [self.delegate registerBufferWithInstanceId:self.instanceId
+                                              textureId:self.textureResourceId
+                                     texturePixelBuffer:(__bridge void*)_metalTextureRenderer];
+        }
         [self callSurfaceChange:textureRect];
         [self bringSubviewToFront];
-        __weak __typeof(self) weakSelf = self;
-        self.attachCallbackHandler = ^(int32_t textureName) {
-            if (weakSelf) {
-                [weakSelf textureAttach:textureName];
-            }
-        };
-        [self.renderTexture addAttachEventCallback:self.attachCallbackHandler];
+        [self displayLinkPlay];
         [self initRenderTexture];
     } else {
         [self callSurfaceChange:textureRect];
@@ -275,23 +266,24 @@ typedef NS_ENUM(NSUInteger, RefreshFrequency) {
 
 - (void)bringSubviewToFront
 {
-    if (self.target) {
+    if (self.target != nullptr) {
         StageViewController *superViewController = (StageViewController *)self.target;
-        if (!superViewController) {
+        if (superViewController == nullptr) {
             return;
         }
         UIView *windowView = [superViewController getWindowView];
-        if (!windowView) {
+        if (windowView == nullptr) {
             return;
         }
-        [windowView.superview insertSubview:_renderView belowSubview:windowView];
-        [windowView.superview insertSubview:_embeddedView belowSubview:windowView];
+        if (_metalTextureRenderer != nullptr) {
+            [windowView.superview insertSubview:_metalTextureRenderer belowSubview:windowView];
+        }
     }
 }
 
 - (NSString *)setAttachNativeWindow:(NSDictionary *)params
 {
-    if (!self.surfaceDelegate) {
+    if (self.surfaceDelegate == nullptr) {
         LOGE("AceXcomponentTextureView IAceSurface is null");
         return FAIL;
     }
@@ -310,7 +302,7 @@ typedef NS_ENUM(NSUInteger, RefreshFrequency) {
 
 - (NSString*)setSurfaceRect:(NSDictionary*)params
 {
-    if (!params[TEXTURE_WIDTH_KEY] || !params[TEXTURE_HEIGHT_KEY]) {
+    if (params[TEXTURE_WIDTH_KEY] == nullptr || params[TEXTURE_HEIGHT_KEY] == nullptr) {
         return FAIL;
     }
     @try {
@@ -325,7 +317,7 @@ typedef NS_ENUM(NSUInteger, RefreshFrequency) {
         CGFloat height = [params[TEXTURE_HEIGHT_KEY] floatValue];
         CGRect surfaceRect = CGRectMake(x / scale, y / scale, width / scale, height / scale);
         CALayer *sublayer = [_embeddedView.layer.sublayers firstObject];
-        if (sublayer) {
+        if (sublayer != nullptr) {
             sublayer.frame = surfaceRect;
         }
     } @catch (NSException* exception) {
@@ -360,9 +352,13 @@ typedef NS_ENUM(NSUInteger, RefreshFrequency) {
                                 textureRect.origin.y / scale,
                                 textureRect.size.width / scale,
                                 textureRect.size.height / scale);
-    _embeddedView.frame = newRect;
-    _renderView.frame = newRect;
-    if (_embeddedView.layer) {
+    if (_metalTextureRenderer != nullptr) {
+        _metalTextureRenderer.frame = newRect;
+        _embeddedView.frame = _metalTextureRenderer.bounds;
+    } else {
+        _embeddedView.frame = newRect;
+    }
+    if (_embeddedView.layer != nullptr) {
         if (!CGRectEqualToRect(_currentFrame, textureRect)) {
             _currentFrame = textureRect;
             NSString *param = [NSString stringWithFormat:@"textureWidth=%f&textureHeight=%f",
@@ -372,29 +368,9 @@ typedef NS_ENUM(NSUInteger, RefreshFrequency) {
     }
 }
 
-- (void)textureAttach:(int32_t)textureId
-{
-    __weak __typeof(self) weakSelf = self;
-    dispatch_main_async_safe(^{
-        __strong __typeof(weakSelf) strongSelf = weakSelf;
-        if (!strongSelf) {
-            LOGE("error: textureAttach strongSelf is nil");
-            return;
-        }
-        if (strongSelf->_eglContextPtr == nullptr) {
-            LOGE("error: textureAttach _eglContextPtr is null");
-            return;
-        }
-        [strongSelf->_renderView setEAGLContext:(__bridge EAGLContext*)strongSelf->_eglContextPtr];
-        [strongSelf->_renderView setTextureName:textureId];
-        [strongSelf->_renderView initXComponent:strongSelf->_embeddedView];
-        [strongSelf displayLinkPlay];
-    });
-}
-
 - (void)fireCallback:(NSString *)method params:(NSString *)params
 {
-    if (self.callback) {
+    if (self.callback != nullptr) {
         NSString *method_hash = [NSString stringWithFormat:@"%@%lld%@%@%@%@", 
         TEXTURE_FLAG, self.textureId, EVENT, PARAM_EQUALS, method, PARAM_BEGIN];
         self.callback(method_hash, params);
@@ -409,14 +385,14 @@ typedef NS_ENUM(NSUInteger, RefreshFrequency) {
 
 - (void)initRenderTexture
 {
-    if (self.renderTexture) {
+    if (self.renderTexture != nullptr) {
         [self.renderTexture refreshPixelBuffer];
     }
 }
 
 - (void)refreshPixelBuffer
 {
-    if (self.renderTexture) {
+    if (self.renderTexture != nullptr) {
         [self.renderTexture refreshPixelBuffer];
     }
 }
@@ -424,16 +400,16 @@ typedef NS_ENUM(NSUInteger, RefreshFrequency) {
 #pragma mark - displayLink update
 - (void)displayLinkDidrefresh
 {
-    if (!_displayLink) {
+    if (_displayLink == nullptr) {
         return;
     }
-    if (_isVideo && _player) {
+    if (_isVideo && _player != nullptr) {
         [self refreshPixelBuffer];
     } else {
         __weak __typeof(self) weakSelf = self;
         dispatch_main_async_safe(^{
             __strong __typeof(weakSelf) strongSelf = weakSelf;
-            if (!strongSelf) {
+            if (strongSelf == nullptr) {
                 LOGE("error: displayLinkDidrefresh strongSelf is nil");
                 return;
             }
@@ -444,14 +420,9 @@ typedef NS_ENUM(NSUInteger, RefreshFrequency) {
 
 - (void)refreshRenderTexture
 {
-    if (_renderView != nullptr && _viewAdded) {
-        if (_renderView.isTouchIng) {
-            [self adjustRefreshRate:RefreshFrequencyHigh];
-        } else {
-            [self adjustRefreshRate:RefreshFrequencyLow];
-        }
-        [_renderView startRenderXComponent:_embeddedView];
-        if (self.displayLink) {
+    if (_metalTextureRenderer != nullptr && _viewAdded) {
+        BOOL isRenderFinish = [_metalTextureRenderer startRender:_embeddedView];
+        if (self.displayLink != nullptr && isRenderFinish) {
             [self refreshPixelBuffer];
         }
     }
@@ -459,7 +430,7 @@ typedef NS_ENUM(NSUInteger, RefreshFrequency) {
 
 - (BOOL)displayLinkPlay
 {
-    if (self.displayLink) {
+    if (self.displayLink != nullptr) {
         [self.displayLink addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSRunLoopCommonModes];
         return YES;
     }
@@ -495,7 +466,8 @@ typedef NS_ENUM(NSUInteger, RefreshFrequency) {
         return;
     }
     [self updateEmbeddedPlayerState];
-    if (!_player || !_player.currentItem || !self.renderTexture || !self.renderTexture.videoOutput) {
+    if (_player == nullptr || _player.currentItem == nullptr || self.renderTexture == nullptr ||
+        self.renderTexture.videoOutput == nullptr) {
         return;
     }
     AVPlayerItem *item = _player.currentItem;
@@ -504,7 +476,7 @@ typedef NS_ENUM(NSUInteger, RefreshFrequency) {
     }
     [item addOutput:self.renderTexture.videoOutput];
     _isVideo = YES;
-    if (self.delegate) {
+    if (self.delegate != nullptr) {
         [self.delegate registerContextPtrWithInstanceId:self.instanceId
                                               textureId:self.textureResourceId
                                               contextPtr:(__bridge void*)self.renderTexture.videoOutput];
@@ -521,7 +493,8 @@ typedef NS_ENUM(NSUInteger, RefreshFrequency) {
     LOGI("AceXcomponentTextureView releaseObject isMainThread: %ld", [NSThread isMainThread]);
     [self stopObservingEmbeddedLayer];
 
-    if (_player && _player.currentItem && self.renderTexture && self.renderTexture.videoOutput) {
+    if (_player != nullptr && _player.currentItem != nullptr && self.renderTexture != nullptr &&
+        self.renderTexture.videoOutput != nullptr) {
         [_player.currentItem removeOutput:self.renderTexture.videoOutput];
     }
     _player = nil;
@@ -530,18 +503,15 @@ typedef NS_ENUM(NSUInteger, RefreshFrequency) {
     if (_viewAdded) {
         _viewAdded = NO;
     }
-    if (_displayLink) {
+    if (_displayLink != nullptr) {
         [_displayLink invalidate];
         _displayLink = nil;
     }
-    if (_attachCallbackHandler) {
-        _attachCallbackHandler = nil;
-    }
-    if (self.renderTexture) {
+    if (self.renderTexture != nullptr) {
         self.renderTexture = nil;
     }
     _surfaceCaptureHelper = nil;
-    if (self.callMethodMap) {
+    if (self.callMethodMap != nullptr) {
         for (id key in self.callMethodMap) {
             IAceOnCallSyncResourceMethod block = [self.callMethodMap objectForKey:key];
             block = nil;
@@ -549,54 +519,39 @@ typedef NS_ENUM(NSUInteger, RefreshFrequency) {
         [self.callMethodMap removeAllObjects];
         self.callMethodMap = nil;
     }
-    if (_callback) {
+    if (_callback != nullptr) {
         _callback = nil;
     }
-    if (_embeddedView) {
+    if (_embeddedView != nullptr) {
         [AceSurfaceHolder removeLayerWithId:self.textureId inceId:self.instanceId];
         [_embeddedView removeFromSuperview];
         _embeddedView = nil;
     }
-    if (_renderView) {
-        [_renderView releaseObject];
-        [_renderView removeFromSuperview];
-        _renderView = nil;
+    if (_metalTextureRenderer != nullptr) {
+        [_metalTextureRenderer destroy];
+        [_metalTextureRenderer removeFromSuperview];
+        _metalTextureRenderer = nil;
     }
 }
 
 #pragma mark - lazys
 - (CADisplayLink *)displayLink
 {
-    if (!_displayLink) {
+    if (_displayLink == nullptr) {
         id weakProxy = [AceXcomponentWeakProxy proxyWithTarget:self];
-        _displayLink = [CADisplayLink displayLinkWithTarget:weakProxy
-                                                   selector:@selector(displayLinkDidrefresh)];
-        auto mainMaxFrameRate = [UIScreen mainScreen].maximumFramesPerSecond;
-        double maxFrameRate = fmin(mainMaxFrameRate, (double)RefreshFrequencyHigh);
-        double minFrameRate = fmin(mainMaxFrameRate / 2, maxFrameRate);
+        _displayLink = [CADisplayLink displayLinkWithTarget:weakProxy selector:@selector(displayLinkDidrefresh)];
+        NSInteger mainMaxFrameRate = [UIScreen mainScreen].maximumFramesPerSecond;
+        NSInteger activeFrameRate = MAX(mainMaxFrameRate, XC_MIN_ACTIVE_FRAME_RATE);
         if (@available(iOS 15.0, *)) {
-            _displayLink.preferredFrameRateRange = CAFrameRateRangeMake(
-                minFrameRate, maxFrameRate, maxFrameRate);
+            double targetMaxFrameRate = activeFrameRate;
+            double targetMinFrameRate = fmin(activeFrameRate / XC_FRAME_RATE_DIVISOR, targetMaxFrameRate);
+            _displayLink.preferredFrameRateRange =
+                CAFrameRateRangeMake(targetMinFrameRate, targetMaxFrameRate, targetMaxFrameRate);
         } else {
-            _displayLink.preferredFramesPerSecond = RefreshFrequencyHigh;
+            _displayLink.preferredFramesPerSecond = activeFrameRate;
         }
     }
     return _displayLink;
-}
-
-- (void)adjustRefreshRate:(RefreshFrequency)frequency
-{
-    if (_displayLink.preferredFramesPerSecond != frequency) {
-        if (@available(iOS 15.0, *) && frequency == RefreshFrequencyHigh) {
-            auto mainMaxFrameRate = [UIScreen mainScreen].maximumFramesPerSecond;
-            double maxFrameRate = fmin(mainMaxFrameRate, (double)RefreshFrequencyHigh);
-            double minFrameRate = fmin(mainMaxFrameRate / 2, maxFrameRate);
-            _displayLink.preferredFrameRateRange = CAFrameRateRangeMake(
-                minFrameRate, maxFrameRate, maxFrameRate);
-        } else {
-            _displayLink.preferredFramesPerSecond = frequency;
-        }
-    }
 }
 
 - (void)dealloc
