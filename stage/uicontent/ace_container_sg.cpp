@@ -257,7 +257,7 @@ void AceContainerSG::SetPipelineContextFont(
 void AceContainerSG::InitPiplineContext(
     std::unique_ptr<Window> window, double density, int32_t width, int32_t height, uint32_t windowId)
 {
-    LOGI("init piplinecontext start.");
+    LOGI("init piplinecontext start density: %{public}f", density);
     ACE_DCHECK(aceView_ && window && taskExecutor_ && assetManager_ && resRegister_ && frontend_);
     auto instanceId = aceView_->GetInstanceId();
     LOGI("New pipeline version creating...");
