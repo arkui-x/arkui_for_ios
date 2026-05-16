@@ -58,6 +58,12 @@ ohos_combine_darwin_framework("libarkui_ios") {
 # time via an action target.
 _xcode_dev = get_path_info(get_path_info(get_path_info(get_path_info(get_path_info(ios_device_sdk_path, "dir"), "dir"), "dir"), "dir"), "dir")
 
+# Simulator links must use libclang_rt.iossim.a; device uses libclang_rt.ios.a (see collect_clang_rt_ios_a.sh).
+_clang_rt_darwin_kind = "ios"
+if (defined(use_ios_simulator) && use_ios_simulator) {
+  _clang_rt_darwin_kind = "iossim"
+}
+
 action("clang_rt_ios_collect") {
   script = "//build_plugins/config/ios/collect_clang_rt_ios_a.sh"
   inputs = [ "//build_plugins/config/ios/collect_clang_rt_ios_a.sh" ]
@@ -65,6 +71,7 @@ action("clang_rt_ios_collect") {
   args = [
     _xcode_dev,
     rebase_path("${target_gen_dir}/libclang_rt.ios.a", root_build_dir),
+    _clang_rt_darwin_kind,
   ]
 }
 
