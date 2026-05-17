@@ -107,7 +107,6 @@ template("ace_capability_ios_source_set") {
       "$ace_root/adapter/ios/capability/texture/AceTexture.mm",
       "$ace_root/adapter/ios/capability/texture/AceXcomponentTextureView.mm",
       "$ace_root/adapter/ios/capability/texture/AceTextureResourcePlugin.mm",
-      "$ace_root/adapter/ios/capability/texture/RenderViewXcomponent.mm",
       
       # vibrator
       "$ace_root/adapter/ios/capability/vibrator/audio_haptic_player.mm",
@@ -125,8 +124,9 @@ template("ace_capability_ios_source_set") {
       # platformview
       "$ace_root/adapter/ios/capability/platformview/AcePlatformView.mm",
       "$ace_root/adapter/ios/capability/platformview/AcePlatformViewPlugin.mm",
+      "$ace_root/adapter/ios/capability/platformview/render/MetalTextureRenderer.mm",
+      "$ace_root/adapter/ios/capability/platformview/render/UIViewMetalRenderTarget.mm",
       "$ace_root/adapter/ios/capability/platformview/render/RenderProgram.mm",
-      "$ace_root/adapter/ios/capability/platformview/render/RenderView.mm",
 
       # bridge
       "$ace_root/adapter/ios/capability/bridge/BridgeGCDTaskQueue.mm",
@@ -184,7 +184,9 @@ template("ace_capability_ios_source_set") {
     subsystem_name = "arkui"
 
     frameworks = [
+      "CoreImage.framework",
       "CoreHaptics.framework",
+      "Metal.framework",
       "WebKit.framework",
       "Security.framework",
     ]

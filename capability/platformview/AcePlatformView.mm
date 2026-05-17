@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+ * Copyright (c) 2024-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -22,12 +22,12 @@
 #import "AcePlatformView.h"
 #import "AceTextureHolder.h"
 #import <AVFoundation/AVFoundation.h>
-#import "render/RenderView.h"
+#import "render/MetalTextureRenderer.h"
 #import "StageApplication.h"
 #import "WindowView.h"
 
 #import <UIKit/UIKit.h>
-#import <GLKit/GLKit.h>
+#import <WebKit/WebKit.h>
 #import <CoreImage/CoreImage.h>
 
 #define PLATFORMVIEW_FLAG      @"platformview@"
@@ -46,10 +46,17 @@
 #define PLATFORMVIEW_HEIGHT    @"platformViewHeight"
 #define PLATFORMVIEW_TOP       @"platformViewTop"
 #define PLATFORMVIEW_LEFT      @"platformViewLeft"
+#define SCROLL_EDGE_EFFECT_CLASS        @"ScrollEdgeEffect"
+#define SCROLL_EDGE_EFFECT_BACKDROP     @"Backdrop"
+#define SCROLL_EDGE_EFFECT_LUMINANCE    @"Luminance"
+#define SCROLL_EDGE_EFFECT_POCKETMASK   @"PocketMask"
+
 const static CGFloat PLATFORMVIEW_Z_POSITION = -1000.0f;
 const static CGFloat PLATFORMVIEW_DEFAULT_CAMERA_DISTANCE_PX = 576.0f;
 const static CGFloat PLATFORMVIEW_INCH = 72.0f;
 const static size_t QueueSize = 3;
+const static NSInteger PLATFORMVIEW_MIN_ACTIVE_FRAME_RATE = 60;
+const static NSInteger PLATFORMVIEW_FRAME_RATE_DIVISOR = 2;
 @interface AcePlatformView()
 @property (nonatomic, assign) int32_t instanceId;
 @property (nonatomic, strong) NSObject<AcePlatformViewDelegate>* delegate;
@@ -63,7 +70,6 @@ const static size_t QueueSize = 3;
 @property(nonatomic, assign) int64_t textureResourceId;
 @property(nonatomic, copy) IAceOnResourceEvent onEvent;
 @property (nonatomic, strong) AceTexture *renderTexture;
-@property (nonatomic, copy) IAceTextureAttachEventCallback attachCallbackHandler;
 
 @property(nonatomic, assign) CGFloat frameWidth;
 @property(nonatomic, assign) CGFloat frameHeight;
@@ -76,18 +82,17 @@ const static size_t QueueSize = 3;
 @property(nonatomic, strong) NSDictionary *pendingTranslateParams;
 @property(nonatomic, strong) NSDictionary *pendingRotateParams;
 @property(nonatomic, assign) CATransform3D originalTransform;
-
+@property(nonatomic, strong) MetalTextureRenderer *metalTextureRenderer;
 @end
 
 @implementation AcePlatformView
 {
-    RenderView *_renderView;
     AVPlayer *_player;
     AVPlayerLayer *_playerLayer;
-    void *_eglContextPtr;
     bool _initView;
     bool _isVideo;
     bool _isRenderFinish;
+    UIView *_scrollEdgeEffectView;
 }
 
 namespace {
@@ -107,7 +112,7 @@ inline CGFloat NormalizeCenterValue(UIView *targetView, NSString *key, CGFloat n
 inline NSString *TrimmedNumberString(NSString *value, NSString *suffix)
 {
     static NSCharacterSet *whitespaceSet = nil;
-    if (!whitespaceSet) {
+    if (whitespaceSet == nullptr) {
         whitespaceSet = [NSCharacterSet whitespaceCharacterSet];
     }
     return [[value stringByReplacingOccurrencesOfString:suffix withString:@""]
@@ -146,7 +151,7 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
     id:(int64_t)id abilityInstanceId:(int32_t)abilityInstanceId
     viewdelegate:(NSObject<AcePlatformViewDelegate>*)viewdelegate
 {
-    if (self = [super init]) {
+    if ((self = [super init]) != nullptr) {
         self.instanceId = abilityInstanceId;
         self.onEvent = callback;
         self.id = id;
@@ -164,6 +169,7 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
         self.pendingRotateParams = nil;
         self.originalTransform = CATransform3DIdentity;
         _initView = false;
+        _isRenderFinish = false;
         _isVideo = false;
         self.callSyncMethodMap = [[NSMutableDictionary alloc] init];
         [self initEventCallback];
@@ -188,7 +194,7 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
     __weak __typeof(self)weakSelf = self;
     IAceOnCallSyncResourceMethod register_callback = ^NSString *(NSDictionary * param){
         __strong __typeof(weakSelf)strongSelf = weakSelf;
-        if (strongSelf) {
+        if (strongSelf != nullptr) {
             return RunOnMainSync(^NSString *{
                 return [strongSelf registerPlatformView:param];
             });
@@ -207,7 +213,7 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
     NSString *updatelayout_method_hash = [self method_hashFormat:@"updateLayout"];
     IAceOnCallSyncResourceMethod updatelayout_callback = ^NSString *(NSDictionary * param){
         __strong __typeof(weakSelf)strongSelf = weakSelf;
-        if (strongSelf) {
+        if (strongSelf != nullptr) {
             return RunOnMainSync(^NSString *{
                 return [strongSelf updatelayout:param];
             });
@@ -225,7 +231,7 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
     NSString *exchange_bind_method_hash = [self method_hashFormat:@"exchangeBind"];
     IAceOnCallSyncResourceMethod exchange_bind_callback = ^NSString *(NSDictionary * param){
         __strong __typeof(weakSelf)strongSelf = weakSelf;
-        if (strongSelf) {
+        if (strongSelf != nullptr) {
             return RunOnMainSync(^NSString *{
                 return [strongSelf exchangeBind:param];
             });
@@ -243,7 +249,7 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
     NSString *platform_view_type_hash = [self method_hashFormat:@"platformViewType"];
     IAceOnCallSyncResourceMethod platform_view_type_callback = ^NSString *(NSDictionary * param){
         __strong __typeof(weakSelf)strongSelf = weakSelf;
-        if (strongSelf) {
+        if (strongSelf != nullptr) {
             return RunOnMainSync(^NSString *{
                 return [strongSelf platformViewType:param];
             });
@@ -261,7 +267,7 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
     NSString *setRotation_method_hash = [self method_hashFormat:@"setRotation"];
     IAceOnCallSyncResourceMethod setRotation_callback = ^NSString *(NSDictionary * param){
         __strong __typeof(weakSelf)strongSelf = weakSelf;
-        if (strongSelf) {
+        if (strongSelf != nullptr) {
             return RunOnMainSync(^NSString *{
                 return [strongSelf setRotation:param];
             });
@@ -279,7 +285,7 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
     NSString *setScale_method_hash = [self method_hashFormat:@"setScale"];
     IAceOnCallSyncResourceMethod setScale_callback = ^NSString *(NSDictionary * param) {
         __strong __typeof(weakSelf)strongSelf = weakSelf;
-        if (strongSelf) {
+        if (strongSelf != nullptr) {
             return RunOnMainSync(^NSString *{
                 return [strongSelf setScale:param];
             });
@@ -296,7 +302,7 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
     NSString *setTranslate_method_hash = [self method_hashFormat:@"setTranslate"];
     IAceOnCallSyncResourceMethod setTranslate_callback = ^NSString *(NSDictionary * param) {
         __strong __typeof(weakSelf)strongSelf = weakSelf;
-        if (strongSelf) {
+        if (strongSelf != nullptr) {
             return RunOnMainSync(^NSString *{
                 return [strongSelf setTranslate:param];
             });
@@ -313,7 +319,7 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
     NSString *setTransformMatrix_method_hash = [self method_hashFormat:@"setTransformMatrix"];
     IAceOnCallSyncResourceMethod setTransformMatrix_callback = ^NSString *(NSDictionary * param) {
         __strong __typeof(weakSelf)strongSelf = weakSelf;
-        if (strongSelf) {
+        if (strongSelf != nullptr) {
             return RunOnMainSync(^NSString *{
                 return [strongSelf setTransformMatrix:param];
             });
@@ -328,7 +334,7 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
     key:(NSString *)key defaultValue:(CGFloat)defaultValue
 {
     id value = params[key];
-    if (!value || value == [NSNull null] || !targetView) {
+    if (value == nullptr || value == [NSNull null] || targetView == nullptr) {
         return defaultValue;
     }
     if (![value isKindOfClass:[NSString class]] || [(NSString *)value length] == 0) {
@@ -354,7 +360,7 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
 
 - (void)applyScaleToTargetView:(UIView *)targetView
 {
-    if (!targetView || !self.pendingScaleParams) {
+    if (targetView == nullptr || self.pendingScaleParams == nullptr) {
         return;
     }
     CGFloat scaleX = [self getDataFromParams:targetView params:self.pendingScaleParams key:@"X" defaultValue:1.0f];
@@ -371,12 +377,12 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
 
 - (void)applyTransformMatrixToTargetView:(UIView *)targetView
 {
-    if (!targetView || !self.pendingTransformMatrixParams) {
+    if (targetView == nullptr || self.pendingTransformMatrixParams == nullptr) {
         return;
     }
     for (int i = 0; i < 16; i++) {
         NSString *key = [NSString stringWithFormat:@"m%d", i];
-        if (!self.pendingTransformMatrixParams[key]) {
+        if (self.pendingTransformMatrixParams[key] == nullptr) {
             LOGE("AcePlatformView: Transform matrix parameter %{public}d missing", i);
             return;
         }
@@ -404,7 +410,7 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
 
 - (void)applyPendingTransformations:(UIView *)targetView
 {
-    if (!targetView) {
+    if (targetView == nullptr) {
         return;
     }
     [self applyScaleToTargetView:targetView];
@@ -415,7 +421,7 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
 
 - (void)applyTranslateToTargetView:(UIView *)targetView
 {
-    if (!targetView || !self.pendingTranslateParams) {
+    if (targetView == nullptr || self.pendingTranslateParams == nullptr) {
         return;
     }
     CGFloat translateX = [self getDataFromParams:targetView params:self.pendingTranslateParams key:@"X" defaultValue:0.0f];
@@ -433,7 +439,7 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
 
 - (void)applyRotateToTargetView:(UIView *)targetView
 {
-    if (!targetView || !self.pendingRotateParams) {
+    if (targetView == nullptr || self.pendingRotateParams == nullptr) {
         return;
     }
     CGFloat rotationX = [self getDataFromParams:targetView params:self.pendingRotateParams key:@"X" defaultValue:0.0f];
@@ -469,7 +475,7 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
 
 - (NSString *)setRotation:(NSDictionary *)params
 {
-    if (!params) {
+    if (params == nullptr) {
         return FAIL;
     }
     self.pendingRotateParams = params;
@@ -478,7 +484,7 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
 
 - (NSString *)setScale:(NSDictionary *)params
 {
-    if (!params) {
+    if (params == nullptr) {
         return FAIL;
     }
     self.pendingScaleParams = params;
@@ -487,7 +493,7 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
 
 - (NSString *)setTranslate:(NSDictionary *)params
 {
-    if (!params) {
+    if (params == nullptr) {
         return FAIL;
     }
     self.pendingTranslateParams = params;
@@ -497,7 +503,7 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
 - (NSString *)setTransformMatrix:(NSDictionary *)params
 {
     UIView* targetView = [self getPlatformView];
-    if (!targetView) {
+    if (targetView == nullptr) {
         return FAIL;
     }
     self.pendingTransformMatrixParams = params;
@@ -508,11 +514,11 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
 {
     self.curPlatformView = platformView;
     UIView *view = [platformView view];
-   if (view && view.superview) {
+   if (view != nullptr && view.superview != nullptr) {
        self.originalTransform = view.layer.transform;
    }
     NSObject<IPlatformView>* embeddedView = self.curPlatformView;
-    if (!embeddedView) {
+    if (embeddedView == nullptr) {
         LOGE("AcePlatformView: setPlatformView failed: platformView is null");
         return ;
     }
@@ -536,9 +542,6 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
 
 - (NSString *)exchangeBind:(NSDictionary *)params
 {
-    if (_renderView != nullptr) {
-        [_renderView exchangeBind];
-    }
     return SUCCESS;
 }
 
@@ -562,7 +565,7 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
 
 - (NSString *)registerPlatformView:(NSDictionary *)params
 {
-    if (!params) {
+    if (params == nullptr) {
         LOGE("AcePlatformView: registerPlatformView failed: params is null");
         return FAIL;
     }
@@ -572,53 +575,31 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
         return SUCCESS;
     }
     self.textureResourceId = [params[KEY_TEXTUREID] longLongValue];
-    [self initPlatformView];
-    if (!_isVideo) {
-        [self.delegate registerContextPtrWithInstanceId:self.instanceId textureId: self.textureResourceId
-            contextPtr: (void*)&_eglContextPtr];
-    }
-    if (!self.renderTexture) {
+    if (self.renderTexture == nullptr) {
         AceTexture *newTexture = (AceTexture*)[AceTextureHolder getTextureWithId:self.textureResourceId
             inceId:self.instanceId];
         self.renderTexture = newTexture;
     }
-    _renderView = [[RenderView alloc] initWithFrame:CGRectZero];
-    if (_isVideo && _player) {
+    _metalTextureRenderer = [[MetalTextureRenderer alloc] initWithFrame:CGRectZero];
+    [self initPlatformView];
+    if (_isVideo && _player != nullptr) {
         [_player.currentItem addOutput:self.renderTexture.videoOutput];
         [self initWithEmbeddedView:platformView];
         [self initRenderTexture];
     } else {
-        __weak __typeof(&*self) weakSelf = self;
-        self.attachCallbackHandler = ^(int32_t textureName){
-            if (weakSelf) {
-                [weakSelf textureAttach:textureName];
-            }
-        };
-        [self.renderTexture addAttachEventCallback:self.attachCallbackHandler];
-        [self initRenderTexture];
+        [self.delegate registerBufferWithInstanceId:self.instanceId
+                                          textureId:self.textureResourceId
+                                 texturePixelBuffer:(__bridge void*)_metalTextureRenderer];
+        [self initWithEmbeddedView:platformView];
+        [self platformViewReady];
+        _initView = true;
     }
     return SUCCESS;
 }
 
-- (void)textureAttach:(int32_t)textureName
-{
-    dispatch_main_async_safe(^{
-        NSObject<IPlatformView>* embeddedView = self.curPlatformView;
-        if (!embeddedView) {
-            LOGE("AcePlatformView: registerPlatformView failed: platformView is null");
-            return;
-        }
-        [_renderView setTextureName:textureName];
-        UIView* platformView = [embeddedView view];
-        [self initWithEmbeddedView:platformView];
-        [self platformViewReady];
-        _initView = true;
-    });
-}
-
 - (void)platformViewReady
 {
-    if (self.onEvent) {
+    if (self.onEvent != nullptr) {
         NSString *prepared_method_hash = [NSString stringWithFormat:@"%@%lld%@%@%@%@",
                 PLATFORMVIEW_FLAG, self.id, EVENT, PARAM_EQUALS, @"platformViewReady", PARAM_BEGIN];
         LOGI("[PlatformView] platformViewReady");
@@ -628,7 +609,7 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
 
 - (NSString *)updatelayout:(NSDictionary *)params
 {
-    if (!params) {
+    if (params == nullptr) {
         LOGE("AcePlatformView: setSurface failed: params is null");
         return FAIL;
     }
@@ -640,21 +621,7 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
         self.frameHeight = [params[PLATFORMVIEW_HEIGHT] floatValue];
         self.frameTop = [params[PLATFORMVIEW_TOP] floatValue];
         self.frameLeft = [params[PLATFORMVIEW_LEFT] floatValue];
-
-        CGRect tempFrame = platformView.frame;
-        tempFrame.origin.x = self.frameLeft / self.screenScale;
-        tempFrame.origin.y = self.frameTop / self.screenScale;
-        tempFrame.size.height = self.frameHeight / self.screenScale;
-        tempFrame.size.width = self.frameWidth / self.screenScale;
-        if (!_isVideo && _renderView) {
-            _renderView.frame = tempFrame;
-            platformView.frame = _renderView.bounds;
-        } else {
-            platformView.frame = tempFrame;
-            if (_isVideo) {
-                _playerLayer.frame = platformView.bounds;
-            }
-        }
+        [self updateNativeFrame];
         [self applyPendingTransformations:platformView];
     } @catch (NSException *exception) {
         LOGE("AcePlatformView: IOException, updatelayout failed");
@@ -665,7 +632,7 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
 
 - (BOOL)initPlatformView
 {
-    if (self.displayLink) {
+    if (self.displayLink != nullptr) {
         [self.displayLink addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSRunLoopCommonModes];
         return YES;
     }
@@ -674,54 +641,93 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
 
 - (CADisplayLink *)displayLink
 {
-    if (!_displayLink) {
+    if (_displayLink == nullptr) {
         _displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(displayLinkDidrefresh)];
-        auto mainMaxFrameRate = [UIScreen mainScreen].maximumFramesPerSecond;
-        double maxFrameRate = fmin(mainMaxFrameRate, 60);
-        double minFrameRate = fmin(mainMaxFrameRate / 2, maxFrameRate);
-        if(@available(iOS 15.0,*)){
-            _displayLink.preferredFrameRateRange = CAFrameRateRangeMake(minFrameRate, maxFrameRate, maxFrameRate);
-        } else{
-            _displayLink.preferredFramesPerSecond = 60;
-        }
+        [self updateDisplayLinkFrameRate];
     }
     return _displayLink;
+}
+
+- (void)updateDisplayLinkFrameRate
+{
+    if (_displayLink == nullptr) {
+        return;
+    }
+    NSInteger mainMaxFrameRate = [UIScreen mainScreen].maximumFramesPerSecond;
+    NSInteger activeFrameRate = MAX(mainMaxFrameRate, PLATFORMVIEW_MIN_ACTIVE_FRAME_RATE);
+    if (@available(iOS 15.0, *)) {
+        double targetMaxFrameRate = activeFrameRate;
+        double targetMinFrameRate = fmin(activeFrameRate / PLATFORMVIEW_FRAME_RATE_DIVISOR, targetMaxFrameRate);
+        _displayLink.preferredFrameRateRange =
+            CAFrameRateRangeMake(targetMinFrameRate, targetMaxFrameRate, targetMaxFrameRate);
+    } else {
+        _displayLink.preferredFramesPerSecond = activeFrameRate;
+    }
 }
 
 - (void)displayLinkDidrefresh
 {
     if (_isVideo) {
-        if (self.displayLink) {
+        if (self.displayLink != nullptr) {
             [self refreshPixelBuffer];
         }
         return;
     }
-
     NSObject<IPlatformView>* embeddedView = self.curPlatformView;
-    if (!embeddedView) {
+    if (embeddedView == nullptr) {
         LOGE("AcePlatformView: register failed: platformView is null");
         return;
     }
     UIView* platformView = [embeddedView view];
-    _isRenderFinish = false;
-    if (_initView && _renderView != nullptr) {
-        _isRenderFinish = [_renderView startRender:platformView];
-        if (self.displayLink && _isRenderFinish) {
-            [self refreshPixelBuffer];
+    if (@available(iOS 26.0, *) && [platformView isKindOfClass:[WKWebView class]]) {
+        [self hideScrollEdgeEffectSubviews:platformView];
+    }
+    if (_initView) {
+        _isRenderFinish = [_metalTextureRenderer startRender:platformView];
+    }
+    if (self.displayLink != nullptr && _isRenderFinish) {
+        [self refreshPixelBuffer];
+    }
+}
+
+/*
+ * For iOS 26 and above, the subview CARenderer of WKWebView named "ScrollEdgeEffect" causes unexpected rendering
+ * effects during off-screen rendering.
+ */
+- (void)hideScrollEdgeEffectSubviews:(UIView*)view
+{
+    if (_scrollEdgeEffectView != nullptr) {
+        return;
+    }
+    NSString* className = NSStringFromClass([view class]);
+    if ([className containsString:SCROLL_EDGE_EFFECT_CLASS]) {
+        view.alpha = 0;
+        _scrollEdgeEffectView = view;
+        for (UIView* effectSubview in view.subviews) {
+            NSString* effectClassName = NSStringFromClass([effectSubview class]);
+            if ([effectClassName containsString:SCROLL_EDGE_EFFECT_BACKDROP] ||
+                [effectClassName containsString:SCROLL_EDGE_EFFECT_LUMINANCE] ||
+                [effectClassName containsString:SCROLL_EDGE_EFFECT_POCKETMASK]) {
+                effectSubview.alpha = 0;
+            }
         }
+        return;
+    }
+    for (UIView* subview in view.subviews) {
+        [self hideScrollEdgeEffectSubviews:subview];
     }
 }
 
 - (void)initRenderTexture
 {
-    if (self.renderTexture) {
+    if (self.renderTexture != nullptr) {
         [self.renderTexture refreshPixelBuffer];
     }
 }
 
 - (void)refreshPixelBuffer
 {
-    if (self.renderTexture) {
+    if (self.renderTexture != nullptr) {
         [self.renderTexture refreshPixelBuffer];
     }
 }
@@ -741,26 +747,61 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
     return distancePt > FLT_EPSILON ? distancePt : 1.0f;
 }
 
+- (CGRect)getTargetPlatformViewFrame
+{
+    CGFloat scaledLeft = self.frameLeft / self.screenScale;
+    CGFloat scaledTop = self.frameTop / self.screenScale;
+    StageViewController* controller = [StageApplication getApplicationTopViewController];
+    if (!controller.navigationController.navigationBarHidden) {
+        scaledTop += [self getSafeAreaHeight];
+    }
+    CGFloat scaledWidth = self.frameWidth / self.screenScale;
+    CGFloat scaledHeight = self.frameHeight / self.screenScale;
+    return CGRectMake(scaledLeft, scaledTop, scaledWidth, scaledHeight);
+}
+
+- (void)updateNativeFrame
+{
+    UIView* platformView = [self getPlatformView];
+    if (platformView == nullptr) {
+        return;
+    }
+    if (_metalTextureRenderer != nullptr) {
+        StageViewController* controller = [StageApplication getApplicationTopViewController];
+        if (controller.navigationController.navigationBarHidden) {
+            _metalTextureRenderer.frame =
+                CGRectMake(0, 0, controller.view.bounds.size.width, controller.view.bounds.size.height);
+        } else {
+            _metalTextureRenderer.frame = CGRectMake(0, -[self getSafeAreaHeight], controller.view.bounds.size.width,
+                controller.view.bounds.size.height + [self getSafeAreaHeight]);
+        }
+    }
+    CGRect targetFrame = [self getTargetPlatformViewFrame];
+    if (!CGRectEqualToRect(platformView.frame, targetFrame)) {
+        platformView.frame = targetFrame;
+    }
+    if (_isVideo && _playerLayer != nullptr) {
+        _playerLayer.frame = platformView.bounds;
+    }
+}
+
 -(UIView*)getPlatformView {
     NSObject<IPlatformView>* embeddedView = self.curPlatformView;
-    if (!embeddedView) {
+    if (embeddedView == nullptr) {
         return nil;
     }
-
     UIView* platformView = [embeddedView view];
     return platformView;
 }
 
-- (void)releaseObject
+- (void)releaseDisplayLinkAndCallbacks
 {
-    if (self.displayLink) {
+    if (self.displayLink != nullptr) {
         [self.displayLink invalidate];
         self.displayLink = nil;
     }
-
     self.onEvent = nil;
-
-    if (self.callSyncMethodMap) {
+    if (self.callSyncMethodMap != nullptr) {
         for (id key in self.callSyncMethodMap) {
             IAceOnCallSyncResourceMethod block = [self.callSyncMethodMap objectForKey:key];
             block = nil;
@@ -768,40 +809,91 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
         [self.callSyncMethodMap removeAllObjects];
         self.callSyncMethodMap = nil;
     }
+}
 
-    self.attachCallbackHandler = nil;
-    NSObject<IPlatformView>* embeddedView = self.curPlatformView;
-    if (!embeddedView) {
-        LOGE("AcePlatformView: releaseObject failed: platformView is null");
-        return;
-    }
-
-    [[embeddedView view] removeFromSuperview];
-    [embeddedView onDispose];
-
-    [_renderView removeFromSuperview];
-    _renderView = nil;
-
-    if (self.renderTexture) {
-        self.renderTexture = nil;
-    }
-
-    if (_player != nil) {
-        _player = nil;
-    }
-
-    if (_playerLayer != nil) {
-        _playerLayer = nil;
+- (void)unregisterBufferIfNeeded:(NSObject<AcePlatformViewDelegate>*)viewDelegate
+               textureResourceId:(int64_t)releaseTextureResourceId
+                         isVideo:(bool)isVideo
+{
+    if (!isVideo && releaseTextureResourceId > 0) {
+        [viewDelegate unregisterBufferWithInstanceId:self.instanceId textureId:releaseTextureResourceId];
     }
 }
 
-- (void)dealloc
+- (void)disposePlatformView:(UIView*)platformView
+               embeddedView:(NSObject<IPlatformView>*)embeddedView
+                   renderer:(MetalTextureRenderer*)renderer
 {
+    if (renderer != nullptr) {
+        [renderer destroy];
+    }
+    if (platformView == nullptr) {
+        if (embeddedView != nullptr) {
+            [embeddedView onDispose];
+        }
+        return;
+    }
+    platformView.userInteractionEnabled = NO;
+    platformView.hidden = YES;
+    [platformView removeFromSuperview];
+    StageViewController* controller = [StageApplication getApplicationTopViewController];
+    UIWindow* window = controller ? controller.view.window : nil;
+    if (window != nullptr) {
+        [window addSubview:platformView];
+    }
+    if (embeddedView != nullptr) {
+        [embeddedView onDispose];
+    }
+    [platformView removeFromSuperview];
+}
+
+- (void)clearReleaseState
+{
+    if (self.renderTexture != nullptr) {
+        self.renderTexture = nil;
+    }
+    if (_player != nil) {
+        _player = nil;
+    }
+    if (_playerLayer != nil) {
+        _playerLayer = nil;
+    }
+    self.pendingScaleParams = nil;
+    self.pendingTransformMatrixParams = nil;
+    self.pendingTranslateParams = nil;
+    self.pendingRotateParams = nil;
+    self.delegate = nil;
+    _scrollEdgeEffectView = nil;
+}
+
+- (void)releaseObject
+{
+    [self releaseDisplayLinkAndCallbacks];
+    NSObject<IPlatformView>* embeddedView = self.curPlatformView;
+    UIView* platformView = embeddedView ? [embeddedView view] : nil;
+    MetalTextureRenderer* renderer = _metalTextureRenderer;
+    NSObject<AcePlatformViewDelegate>* viewDelegate = self.delegate;
+    int32_t releaseInstanceId = self.instanceId;
+    int64_t releaseTextureResourceId = self.textureResourceId;
+    bool isVideo = _isVideo;
+    self.curPlatformView = nil;
+    _metalTextureRenderer = nil;
+    void (^releaseBlock)(void) = ^{
+      [self unregisterBufferIfNeeded:viewDelegate textureResourceId:releaseTextureResourceId isVideo:isVideo];
+      [self disposePlatformView:platformView embeddedView:embeddedView renderer:renderer];
+    };
+    if ([NSThread isMainThread]) {
+        releaseBlock();
+    } else {
+        dispatch_async(dispatch_get_main_queue(), releaseBlock);
+    }
+    [self clearReleaseState];
 }
 
 - (void)onActivityResume
 {
-    if (self.displayLink) {
+    if (self.displayLink != nullptr) {
+        [self updateDisplayLinkFrameRate];
         self.displayLink.paused = NO;
         LOGI("AcePlatformView displayLink resume.");
     }
@@ -809,7 +901,7 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
 
 - (void)onActivityPause
 {
-    if (self.displayLink) {
+    if (self.displayLink != nullptr) {
         self.displayLink.paused = YES;
         LOGI("AcePlatformView displayLink paused.");
     }
@@ -843,16 +935,31 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
         [windowView.superview insertSubview:embeddedView belowSubview:windowView];
         return;
     }
-    if (_renderView) {
-        [_renderView setEAGLContext: (__bridge EAGLContext*)_eglContextPtr];
-        [_renderView init];
-        [_renderView addSubview: embeddedView];
-
+    if (_metalTextureRenderer != nullptr) {
+        [_metalTextureRenderer ensureMetalSetup:embeddedView];
+        [_metalTextureRenderer addSubview:embeddedView];
         StageViewController* controller = [StageApplication getApplicationTopViewController];
-        embeddedView.autoresizingMask = (UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight);
+        embeddedView.autoresizingMask =  (UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight);
         UIView *windowView = [controller getWindowView];
-        [windowView.superview insertSubview:_renderView belowSubview:windowView];
+        [windowView.superview insertSubview:_metalTextureRenderer belowSubview:windowView];
     }
+}
+
+- (CGFloat)getSafeAreaHeight
+{
+    CGFloat statusBarHeight = 0;
+    if (@available(iOS 13.0, *)) {
+        UIWindow* window = [UIApplication sharedApplication].windows.firstObject;
+        statusBarHeight = window.safeAreaInsets.top;
+    } else {
+        statusBarHeight = [UIApplication sharedApplication].statusBarFrame.size.height;
+    }
+    CGFloat navigationBarHeight = 0;
+    StageViewController* controller = [StageApplication getApplicationTopViewController];
+    if (controller.navigationController != nullptr) {
+        navigationBarHeight = controller.navigationController.navigationBar.frame.size.height;
+    }
+    return statusBarHeight + navigationBarHeight;
 }
 
 @end

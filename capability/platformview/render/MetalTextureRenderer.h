@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Huawei Device Co., Ltd.
+ * Copyright (c) 2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -12,23 +12,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef RENDER_VIEW_H
-#define RENDER_VIEW_H
+#ifndef METAL_TEXTURE_RENDERER_H
+#define METAL_TEXTURE_RENDERER_H
 
 #import <UIKit/UIKit.h>
 
-#import <OpenGLES/EAGL.h>
-#import <OpenGLES/ES2/gl.h>
-#import <OpenGLES/ES2/glext.h>
+#import "UIViewMetalRenderTarget.h"
 
-@interface RenderView : UIView
-- (void)init;
-- (void)setEAGLContext:(EAGLContext*)context;
-- (void)setTextureName:(int32_t)textureName;
+@interface MetalTextureRenderer : UIView
+
+- (void)ensureMetalSetup:(UIView *)view;
 - (bool)startRender:(UIView *)view;
-- (void)exchangeBind;
-
-- (bool)setupImageData:(UIImage *)image;
+- (void)destroy;
+/*
+ * Caller should be careful to release the buffer.
+ */
+- (CVPixelBufferRef)currentPixelBuffer;
 @end
 
-#endif // RENDER_VIEW_H
+#endif // METAL_TEXTURE_RENDERER_H
