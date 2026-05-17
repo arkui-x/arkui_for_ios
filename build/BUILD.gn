@@ -13,6 +13,7 @@
 
 import("//build/config/config.gni")
 import("//build/ohos.gni")
+import("//build_plugins/config/ios/ios_sdk.gni")
 import("//foundation/arkui/ace_engine/ace_config.gni")
 import("//third_party/icu/icu.gni")
 
@@ -50,11 +51,42 @@ ohos_combine_darwin_framework("libarkui_ios") {
 }
 
 # libace target
+# Clang runtime for iOS (provides ___chkstk_darwin used by MoltenVK).
+#
+# GN build config forbids calling exec_script() here (whitelist restriction),
+# so we resolve the actual clang runtime directory by copying it at build
+# time via an action target.
+_xcode_dev = get_path_info(get_path_info(get_path_info(get_path_info(get_path_info(ios_device_sdk_path, "dir"), "dir"), "dir"), "dir"), "dir")
+
+# Simulator links must use libclang_rt.iossim.a; device uses libclang_rt.ios.a (see collect_clang_rt_ios_a.sh).
+_clang_rt_darwin_kind = "ios"
+if (defined(use_ios_simulator) && use_ios_simulator) {
+  _clang_rt_darwin_kind = "iossim"
+}
+
+action("clang_rt_ios_collect") {
+  script = "//build_plugins/config/ios/collect_clang_rt_ios_a.sh"
+  inputs = [ "//build_plugins/config/ios/collect_clang_rt_ios_a.sh" ]
+  outputs = [ "${target_gen_dir}/libclang_rt.ios.a" ]
+  args = [
+    _xcode_dev,
+    rebase_path("${target_gen_dir}/libclang_rt.ios.a", root_build_dir),
+    _clang_rt_darwin_kind,
+  ]
+}
+
+# Path to copied libclang_rt.ios.a for -force_load (so ___chkstk_darwin is always pulled in after MoltenVK).
+_clang_rt_ios_out =
+    get_label_info(":clang_rt_ios_collect", "target_gen_dir") +
+    "/libclang_rt.ios.a"
+_clang_rt_ios_force_load_path = rebase_path(_clang_rt_ios_out, root_build_dir)
+
 ohos_shared_library("arkui_ios") {
   ldflags = [
     "-Wl",
     "-install_name",
     "@rpath/libarkui_ios.framework/libarkui_ios",
+    "-Wl,-force_load," + _clang_rt_ios_force_load_path,
   ]
 
   deps = [
@@ -83,6 +115,9 @@ ohos_shared_library("arkui_ios") {
 
   deps +=
       [ "//foundation/appframework/arkui/uicontent:ace_uicontent_interface" ]
+
+  # Link after MoltenVK so ___chkstk_darwin is resolved (static lib order matters).
+  deps += [ ":clang_rt_ios_collect" ]
 
   cflags_cc += [
     "-Wall",
@@ -149,9 +184,11 @@ foreach(module, common_plugin_libs) {
       "-Wl",
       "-install_name",
       "@rpath/${lib_name}.framework/$lib_name",
+      "-Wl,-force_load," + _clang_rt_ios_force_load_path,
     ]
     deps = [ "//plugins/$module:${plugin_name_ext}_static_ios" ]
     deps += [ ":arkui_ios" ]
+    deps += [ ":clang_rt_ios_collect" ]
 
     frameworks = [
       "AVFoundation.framework",
