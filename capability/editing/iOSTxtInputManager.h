@@ -13,6 +13,9 @@
  * limitations under the License.
  */
 
+#ifndef IOSTXTINPUTMANAGER_H
+#define IOSTXTINPUTMANAGER_H
+
 #import <UIKit/UIKit.h>
 
 #include "iOSTextInputDelegate.h"
@@ -57,3 +60,5 @@ NS_ASSUME_NONNULL_BEGIN
 @end
 
 NS_ASSUME_NONNULL_END
+
+#endif /* IOSTXTINPUTMANAGER_H */
