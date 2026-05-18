@@ -13,6 +13,10 @@
  * limitations under the License.
  */
 
+#ifndef ACEWEBPATTERNOCBRIDGE_H
+#define ACEWEBPATTERNOCBRIDGE_H
 
 void SetScrollLockedRegisterOC(int webId, const bool& value);
 void SetNestedScrollOptionsExtOC(int webId, void* options);
+
+#endif /* ACEWEBPATTERNOCBRIDGE_H */
