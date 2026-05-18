@@ -824,19 +824,29 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
     }
 }
 
-- (UIView*)keyWindow {
+- (UIWindow*)keyWindow {
     UIApplication *sharedApplication = [UIApplication sharedApplication];
     UIWindow *keyWindow = nil;
     if (@available(iOS 13.0, *)) {
         for (UIWindowScene *windowScene in sharedApplication.connectedScenes) {
-            if (windowScene.activationState ==
-                    UISceneActivationStateForegroundActive && [windowScene isKindOfClass:UIWindowScene.class]) {
-                keyWindow = windowScene.windows.firstObject;
-                break;
+            if (windowScene.activationState == UISceneActivationStateForegroundActive
+                && [windowScene isKindOfClass:UIWindowScene.class]) {
+                for (UIWindow *window in windowScene.windows) {
+                    if (!window.hidden && window.isKeyWindow) {
+                        keyWindow = window;
+                        break;
+                    }
+                }
+                if (keyWindow) {
+                    break;
+                }
             }
         }
     } else {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
         keyWindow = sharedApplication.keyWindow;
+#pragma clang diagnostic pop
     }
     return keyWindow;
 }
