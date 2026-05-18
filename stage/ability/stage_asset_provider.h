@@ -48,6 +48,7 @@ public:
     std::string GetFilesDir();
     std::string GetDatabaseDir();
     std::string GetPreferencesDir();
+    std::string GetResourceDir(const std::string& moduleName) const;
     std::string GetAppLibDir()
     {
         return "";
