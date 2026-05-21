@@ -446,19 +446,21 @@ std::string StageAssetProvider::GetPreferencesDir()
 std::string StageAssetProvider::GetResourceDir(const std::string& moduleName) const
 {
     if (moduleName.empty()) {
-        LOGE("GetResourceDir failed, moduleName is empty");
+        LOGW("GetResourceDir failed, moduleName is empty");
+        return "";
+    }
+    NSString *nsModuleName = GetOCstring(moduleName);
+    NSString *bundlePath = [NSBundle mainBundle].bundlePath;
+
+    NSString *resourceDir = [NSString stringWithFormat:@"%@/arkui-x/%@/resources/resfile", bundlePath, nsModuleName];
+
+    std::string resourceDirPath = [resourceDir UTF8String];
+    if (![[NSFileManager defaultManager] fileExistsAtPath:resourceDir]) {
+        LOGW("Resource dir not found: %{public}s", resourceDirPath.c_str());
         return "";
     }
 
-    std::string resourceDir = GetAppDataModuleDir() + "/" + moduleName + "/resources/resfile";
-
-    NSString* nsPath = [NSString stringWithUTF8String:resourceDir.c_str()];
-    if (![[NSFileManager defaultManager] fileExistsAtPath:nsPath]) {
-        LOGW("Resource dir not found: %{public}s", resourceDir.c_str());
-        return "";
-    }
-
-    return resourceDir;
+    return resourceDirPath;
 }
 
 std::string StageAssetProvider::GetAppDataModuleDir() const
