@@ -70,6 +70,9 @@ static GLfloat texArray[] = {
     
     GLint _renderWidth;
     GLint _renderHeight;
+    size_t _imageDataSize;
+    GLint _contextWidth;
+    GLint _contextHeight;
     CGContextRef tContext;
     void *imageData;
 }
@@ -86,7 +89,10 @@ static GLfloat texArray[] = {
 - (id)initWithFrame:(CGRect)frame {
     self = [super initWithFrame:frame];
     self.backgroundColor = [UIColor whiteColor];
-    _texture = -1;    
+    _texture = -1;
+    _imageDataSize = 0;
+    _contextWidth = 0;
+    _contextHeight = 0;
     return self;
 }
 
@@ -120,6 +126,8 @@ static GLfloat texArray[] = {
 }
 
 - (void)setupBuffer {
+    GLint lastRenderWidth = _renderWidth;
+    GLint lastRenderHeight = _renderHeight;
     [self clearBuffer];
     
     glGenRenderbuffers(1, &_renderBuffer);
@@ -131,6 +139,39 @@ static GLfloat texArray[] = {
     [_context renderbufferStorage:GL_RENDERBUFFER fromDrawable:(CAEAGLLayer *)self.layer];    
     glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_WIDTH, &_renderWidth);
     glGetRenderbufferParameteriv(GL_RENDERBUFFER, GL_RENDERBUFFER_HEIGHT, &_renderHeight);
+
+    if (lastRenderWidth != _renderWidth || lastRenderHeight != _renderHeight) {
+        [self clearImageContext];
+    }
+}
+
+- (void)clearImageContext {
+    if (tContext) {
+        CGContextRelease(tContext);
+        tContext = nil;
+    }
+    if (imageData != NULL) {
+        free(imageData);
+        imageData = NULL;
+    }
+    _imageDataSize = 0;
+    _contextWidth = 0;
+    _contextHeight = 0;
+}
+
+- (bool)ensureRenderBufferSize {
+    CGFloat contentsScale = ((CAEAGLLayer *)self.layer).contentsScale;
+    GLint expectedWidth = static_cast<GLint>(CGRectGetWidth(self.bounds) * contentsScale);
+    GLint expectedHeight = static_cast<GLint>(CGRectGetHeight(self.bounds) * contentsScale);
+    if (expectedWidth <= 0 || expectedHeight <= 0) {
+        return false;
+    }
+    if (_renderWidth == expectedWidth && _renderHeight == expectedHeight) {
+        return true;
+    }
+
+    [self setupBuffer];
+    return _renderWidth == expectedWidth && _renderHeight == expectedHeight;
 }
 
 - (void)setupShaders {
@@ -177,19 +218,38 @@ static GLfloat texArray[] = {
 
 - (bool)createContext {
     int spaceRow = _renderWidth * DATA_SIZE;
-    int space = spaceRow * _renderHeight;
+    size_t space = static_cast<size_t>(spaceRow) * static_cast<size_t>(_renderHeight);
     if (_renderWidth <= 0 || _renderHeight <= 0 || space <= 0) {
         return false;
     }
-    if (imageData == NULL) {
-        imageData = malloc(space);
-        memset(imageData, 0xFF, space); 
+
+    bool needRecreate = !tContext || !imageData || _imageDataSize != space ||
+        _contextWidth != _renderWidth || _contextHeight != _renderHeight;
+    if (!needRecreate) {
+        return true;
     }
+
+    if (needRecreate) {
+        [self clearImageContext];
+        imageData = malloc(space);
+        if (imageData == NULL) {
+            return false;
+        }
+        memset(imageData, 0xFF, space);
+    }
+
     CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
     tContext = CGBitmapContextCreate(imageData, _renderWidth, _renderHeight, COLOR_NUMBER, spaceRow, colorSpace,
         kCGImageAlphaPremultipliedLast | kCGBitmapByteOrder32Big);
     CGColorSpaceRelease(colorSpace);
-    UIGraphicsPushContext(tContext);
+    if (!tContext) {
+        [self clearImageContext];
+        return false;
+    }
+
+    _imageDataSize = space;
+    _contextWidth = _renderWidth;
+    _contextHeight = _renderHeight;
     return true;
 }
 
@@ -199,11 +259,10 @@ static GLfloat texArray[] = {
     if (!cgImage) {
         return false;
     }
-    if (!tContext) {
-        bool isRes = [self createContext];
-        if (!isRes) {
-            return false;
-        }
+
+    bool isRes = [self createContext];
+    if (!isRes) {
+        return false;
     }
 
     GLsizei width = _renderWidth;
@@ -251,6 +310,9 @@ static GLfloat texArray[] = {
     if ([EAGLContext currentContext] != _context) {
         [EAGLContext setCurrentContext:_context];
     }
+    if (![self ensureRenderBufferSize]) {
+        return false;
+    }
     
     UIImage *image = [self createImageByView:view];
     if (image == nil) {
@@ -275,13 +337,7 @@ static GLfloat texArray[] = {
     if (_context) {
         _context = nil;
     }
-    if (tContext) {
-        CGContextRelease(tContext);
-        tContext = nil;
-    }
-    if (imageData != NULL) {
-        free(imageData);
-    }
+    [self clearImageContext];
 }
 
 - (void)clearBuffer {
