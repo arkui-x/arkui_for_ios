@@ -141,7 +141,6 @@ extern "C" void SetIsPointInsideWebForceResult(bool enable, bool result)
         CAMetalLayer* metalLayer = static_cast<CAMetalLayer*>(self.layer);
         metalLayer.contentsScale = scale;
         metalLayer.framebufferOnly = NO;
-        metalLayer.drawableSize = CGSizeMake(self.bounds.size.width * scale, self.bounds.size.height * scale);
     }
 #elif defined(ACE_ENABLE_GL)
     if ([self.layer isKindOfClass:[CAEAGLLayer class]]) {
