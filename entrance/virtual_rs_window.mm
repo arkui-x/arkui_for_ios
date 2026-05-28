@@ -15,7 +15,6 @@
 
 #include "adapter/ios/entrance/virtual_rs_window.h"
 
-#include <__nullptr>
 #include <_types/_uint32_t.h>
 #include <memory>
 #include <UIKit/UIKit.h>
