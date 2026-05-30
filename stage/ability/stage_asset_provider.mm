@@ -157,12 +157,6 @@ bool StageAssetProvider::ParseSharedModulePackageName(
         }
     }
 
-    if (moduleJson.contains("module") && moduleJson["module"].contains("type")) {
-        if (moduleJson["module"]["type"].get<std::string>() != "shared") {
-            return false;
-        }
-    }
-
     if (moduleJson.contains("module") && moduleJson["module"].contains("packageName")) {
         packageName = moduleJson["module"]["packageName"].get<std::string>();
     }
@@ -611,6 +605,47 @@ bool StageAssetProvider::IsDynamicUpdateModule(const std::string& moduleName)
         isDynamicUpdate = it->second;
     }
     return isDynamicUpdate;
+}
+
+std::vector<std::string> StageAssetProvider::GetAllModuleDirectories()
+{
+    std::vector<std::string> moduleDirs;
+    auto appDataDir = GetAppDataModuleDir();
+    if (appDataDir.empty()) {
+        LOGE("GetAllModuleDirectories: AppData module dir is empty");
+        return moduleDirs;
+    }
+
+    NSString *oc_appDataDir = GetOCstring(appDataDir);
+    NSFileManager *fileMgr = [NSFileManager defaultManager];
+    NSError *error = nil;
+    NSArray *dirContents = [fileMgr contentsOfDirectoryAtPath:oc_appDataDir error:&error];
+    
+    if (error || !dirContents) {
+        LOGW("GetAllModuleDirectories: Failed to read AppData dir: %{public}s", appDataDir.c_str());
+        return moduleDirs;
+    }
+
+    for (NSString *entry in dirContents) {
+        NSString *modulePath = [oc_appDataDir stringByAppendingPathComponent:entry];
+        BOOL isDir = NO;
+        if (![fileMgr fileExistsAtPath:modulePath isDirectory:&isDir] || !isDir) {
+            continue;
+        }
+
+        NSString *moduleJsonPath = [modulePath stringByAppendingPathComponent:@"module.json"];
+        NSString *pkgContextInfoPath = [modulePath stringByAppendingPathComponent:@"pkgContextInfo.json"];
+        
+        BOOL hasModuleJson = [fileMgr fileExistsAtPath:moduleJsonPath];
+        BOOL hasPkgContextInfo = [fileMgr fileExistsAtPath:pkgContextInfoPath];
+
+        if (hasModuleJson && hasPkgContextInfo) {
+            std::string moduleName = [entry UTF8String];
+            moduleDirs.emplace_back(moduleName);
+            LOGI("GetAllModuleDirectories: Valid module: %{public}s", moduleName.c_str());
+        }
+    }
+    return moduleDirs;
 }
 } // namespace Platform
 } // namespace AbilityRuntime
