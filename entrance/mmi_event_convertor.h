@@ -79,6 +79,8 @@ void ConvertMmiPointerEvent(
     std::vector<std::shared_ptr<MMI::PointerEvent>>& pointerEvents, const std::vector<uint8_t>& data);
 void ConvertSyntheticMmiPointerEvent(
     std::vector<std::shared_ptr<MMI::PointerEvent>>& pointerEvents, const std::vector<uint8_t>& data);
+int64_t GetPointerDownTimeDiffMs(const std::shared_ptr<MMI::PointerEvent>& pointerEvent, int32_t fingerId0,
+    int32_t fingerId1);
 } // namespace OHOS::Ace::Platform
 
 #endif // FOUNDATION_ACE_ADAPTER_IOS_ENTRANCE_MMI_EVENT_CONVERTOR_H

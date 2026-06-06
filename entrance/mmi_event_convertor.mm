@@ -39,6 +39,7 @@ constexpr double SIZE_DIVIDE = 2.0;
 constexpr size_t MAX_SYNTHETIC_DOWN_TIME_MAP_SIZE = 64;
 constexpr uint32_t SYNTHETIC_DOWN_TIME_CLEANUP_INTERVAL = 32;
 constexpr int64_t STALE_SYNTHETIC_DOWN_TIME_TIMEOUT_US = 60LL * 1000 * 1000;
+constexpr int64_t US_TO_MS = 1000;
 
 struct SyntheticDownTimeEntry {
     int64_t downTime = 0;
@@ -673,3 +674,11 @@ void ConvertSyntheticMmiPointerEvent(
     }
 }
 } // namespace OHOS::Ace::Platform
+
+namespace OHOS::Ace {
+int64_t GetPointerDownTimeDiffMs(
+    const std::shared_ptr<MMI::PointerEvent>& pointerEvent, int32_t fingerId0, int32_t fingerId1)
+{
+    return -1;
+}
+} // namespace OHOS::Ace
