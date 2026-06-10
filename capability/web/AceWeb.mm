@@ -48,6 +48,9 @@
 #define POLLING_INTERVAL_MS 50
 #define TIMEOUT_S 15
 #define HTTP_STATUS_GATEWAY_TIMEOUT 504
+#define FLOAT_EPSILON 0.0001f
+#define SCALE_PERCENT_MAX 1000.0f
+#define SCALE_PERCENT_100 100.0f
 
 #define WEB_FLAG        @"web@"
 #define PARAM_AND       @"#HWJS-&-#"
@@ -71,6 +74,8 @@
 #define NTC_HORIZONTALSCROLLBAR_ACCESS    @"horizontalScrollBarAccess"
 #define NTC_VERTICALSCROLLBAR_ACCESS      @"verticalScrollBarAccess"
 #define NTC_BACKGROUNDCOLOR               @"backgroundColor"
+#define NTC_INITIAL_SCALE                 @"initialScale"
+#define NTC_OVER_SCROLL_MODE              @"overScrollMode"
 #define NTC_UPDATELAYOUT                  @"updateLayout"
 #define NTC_ONLOADINTERCEPT               @"onLoadIntercept"
 #define NTC_ONHTTPERRORRECEIVE            @"onHttpErrorReceive"
@@ -148,6 +153,8 @@ typedef id (^onJavaScriptFunction)(NSString* objName, NSString* methodName, NSAr
 @property (nonatomic, assign) int8_t  currentType;
 @property (nonatomic, assign) CGFloat screenScale;
 @property (nonatomic, assign) CGFloat oldScale;
+@property (nonatomic, assign) CGFloat initialScale;
+@property (nonatomic, assign) BOOL hasInitialScaleSet;
 @property (nonatomic, assign) int httpErrorCode;
 @property (nonatomic, assign) bool allowZoom;
 @property (nonatomic, assign) bool isLoadRichText;
@@ -230,6 +237,8 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
     self.allowIncognitoMode = incognitoMode;
     self.allowZoom = true;
     self.oldScale = 100.0f;
+    self.initialScale = SCALE_PERCENT_100;
+    self.hasInitialScaleSet = NO;
     self.httpErrorCode = 400;
     self.isLoadRichText = false;
     self.jsReady = false;
@@ -1067,6 +1076,10 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
     [self setVerticalScrollBarAccessCallback];
     // backgroundColor callback
     [self setBackGroundColorCallback];
+    // initialScale callback
+    [self setInitialScaleCallback];
+    // overScrollMode callback
+    [self setOverScrollModeCallback];
     // updateRichText callback
     [self setRichText];
     // updateLayout callback
@@ -1265,6 +1278,87 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
         }
     };
     [self.callSyncMethodMap setObject:[javascriptAccess_callback copy] forKey:javascriptAccess_method_hash];
+}
+
+- (void)applyInitialScale
+{
+    CGFloat scale = self.initialScale / SCALE_PERCENT_100;
+    if (self.webView == nil || !self.hasInitialScaleSet) {
+        return;
+    }
+    NSString *js = [NSString stringWithFormat:
+        @"(function(s){"
+        @"var metas=document.querySelectorAll('meta[name=\"viewport\"]');"
+        @"if(metas.length){"
+        @"metas.forEach(function(m){"
+        @"var c=m.getAttribute('content')||'';"
+        @"if(/initial-scale\\s*=\\s*[^,]+/i.test(c)){"
+        @"m.setAttribute('content',c.replace(/initial-scale\\s*=\\s*[^,]+/i,'initial-scale='+s));"
+        @"}else{"
+        @"m.setAttribute('content',c?c+',initial-scale='+s:'initial-scale='+s);"
+        @"}"
+        @"});"
+        @"}else{"
+        @"var n=document.createElement('meta');"
+        @"n.name='viewport';"
+        @"n.content='width=device-width,initial-scale='+s;"
+        @"(document.head||document.documentElement).appendChild(n);"
+        @"}"
+        @"})(%@);",
+        @(scale)];
+    [self.webView evaluateJavaScript:js completionHandler:^(id result, NSError *error) {
+        if (error) {
+            LOGE("AceWeb: applyInitialScale evaluateJavaScript error");
+        }
+    }];
+}
+
+- (void)setInitialScaleCallback
+{
+    __weak __typeof(self) weakSelf = self;
+    NSString *initial_scale_hash = [self method_hashFormat:NTC_INITIAL_SCALE];
+    IAceOnCallSyncResourceMethod initial_scale_callback = ^NSString *(NSDictionary * param) {
+        __strong __typeof(weakSelf) strongSelf = weakSelf;
+        CGFloat initialScale = [[param objectForKey:NTC_INITIAL_SCALE] floatValue];
+        if (strongSelf) {
+            if (fabs(initialScale) > FLOAT_EPSILON) {
+                strongSelf.initialScale = MIN(initialScale, SCALE_PERCENT_MAX);
+                strongSelf.hasInitialScaleSet = YES;
+                [strongSelf applyInitialScale];
+            }
+            return SUCCESS;
+        }
+        return FAIL;
+    };
+    [self.callSyncMethodMap setObject:[initial_scale_callback copy] forKey:initial_scale_hash];
+}
+
+- (void)setOverScrollModeCallback
+{
+    __weak __typeof(self) weakSelf = self;
+    NSString *over_scroll_mode_hash = [self method_hashFormat:NTC_OVER_SCROLL_MODE];
+    IAceOnCallSyncResourceMethod over_scroll_mode_callback = ^NSString *(NSDictionary * param) {
+        __strong __typeof(weakSelf) strongSelf = weakSelf;
+        NSInteger overScrollMode = [[param objectForKey:NTC_OVER_SCROLL_MODE] integerValue];
+        if (strongSelf && strongSelf.webView) {
+            BOOL enableBounce = NO;
+            switch (overScrollMode) {
+                case 0:
+                    enableBounce = NO;
+                    break;
+                case 1:
+                    enableBounce = YES;
+                    break;
+                default:
+                    enableBounce = NO;
+                    break;
+            }
+            strongSelf.webView.scrollView.bounces = enableBounce;
+            return SUCCESS;
+        }
+        return FAIL;
+    };
+    [self.callSyncMethodMap setObject:[over_scroll_mode_callback copy] forKey:over_scroll_mode_hash];
 }
 
 - (void)setEnableHapticFeedbackCallback
@@ -1606,6 +1700,19 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
     [self fireCallback:@"onPageVisible" params:param];
 }
 
+- (void)closeBounceForSubScrollViews:(UIView *)view
+{
+    if (view == nil) {
+        return;
+    }
+    for (UIView *subview in view.subviews) {
+        if ([subview isKindOfClass:[UIScrollView class]]) {
+            ((UIScrollView *)subview).bounces = NO;
+        }
+        [self closeBounceForSubScrollViews:subview];
+    }
+}
+
 - (void)webView:(WKWebView *)webView didFinishNavigation:(WKNavigation *)navigation
 {
     if(!self.jsReady) {
@@ -1615,6 +1722,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
     self.jsReady = true;
     [self registerSelectionGestures];
     [self updateTextZoomRatio:self.textZoomRatio];
+    [self applyInitialScale];
     NSString *param = [NSString stringWithFormat:@"%@",webView.URL];
     if (self.isLoadRichText) {
         self.isLoadRichText = false;
@@ -2091,6 +2199,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
     AceWebObject([[self event_hashFormat:NTC_ONWILL_SCROLLSTART] UTF8String], [NTC_ONWILL_SCROLLSTART UTF8String], obj);
     self.dragStartPoint = scrollView.contentOffset;
     self.hasCalledOnScrollStart = NO;
+    [self closeBounceForSubScrollViews:scrollView];
 }
 
 - (void)scrollViewDidScroll:(UIScrollView*)scrollView
