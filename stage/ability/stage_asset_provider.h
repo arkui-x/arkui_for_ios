@@ -67,6 +67,8 @@ public:
     void InitModuleVersionCode();
     void UpdateVersionCode(const std::string& moduleName, bool needUpdate);
     bool IsDynamicUpdateModule(const std::string& moduleName);
+    std::vector<std::string> GetAllModuleDirectories();
+
 private:
     std::string bundleName_;
     std::string fontConfigName_;
