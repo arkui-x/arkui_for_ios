@@ -1093,7 +1093,7 @@ void AccessibilityManagerImpl::UpdateElementInfos(
             auto accessibilityManager = weak.Upgrade();
             CHECK_NULL_VOID(accessibilityManager);
             CHECK_NULL_VOID(node);
-            while (!node->IsLayoutComplete()) {
+            while (!node->IsLayoutComplete() && node->IsOnMainTree()) {
                 std::this_thread::yield();
             }
             accessibilityManager->UpdateElementInfosByAccessibilityId(splitElementId, windowId, eventType);
