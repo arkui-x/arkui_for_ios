@@ -887,7 +887,7 @@ void AccessibilityManagerImpl::InitializeCallback()
     auto pipelineContext = GetPipelineContext().Upgrade();
     CHECK_NULL_VOID(pipelineContext);
     windowId_ = pipelineContext->GetWindowId();
-    bool isEnabled = false;
+    bool isEnabled = IsUITestingEnabled(windowId_);
     auto container = Container::Current();
     if (!container) {
         LOGE("container is null");
@@ -1487,7 +1487,7 @@ void AccessibilityManagerImpl::SendEventToAccessibilityWithNodeInner(
     if ((!frameNode->IsActive()) || frameNode->CheckAccessibilityLevelNo()) {
         return;
     }
-    ProcessAccessibilityEvent(accessibilityEvent, false, static_cast<size_t>(accessibilityEvent.type));
+    SendAccessibilityAsyncEvent(accessibilityEvent);
 }
 
 int64_t AccessibilityManagerImpl::GetDelayTimeBeforeSendEvent(

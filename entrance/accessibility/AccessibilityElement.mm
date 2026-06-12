@@ -28,11 +28,6 @@
 
 @implementation AccessibilityElement
 
-- (NSString*)accessibilityIdentifier
-{
-    return [NSString stringWithFormat:@"%lld", self.elementId];
-}
-
 - (id)accessibilityContainer
 {
     if ((self.children != nil && self.children.count != ELEMENT_COUNT) || self.elementId == self.rootId) {
@@ -60,7 +55,7 @@
     } else if ([self.componentType isEqualToString:@"Text"]) {
         traits |= UIAccessibilityTraitStaticText;
     } else if ([self.componentType isEqualToString:@"TextInput"]) {
-        traits |= UIAccessibilityTraitKeyboardKey;
+        traits |= UIAccessibilityTraitSearchField;
     } else if ([self.componentType isEqualToString:@"Image"]) {
         traits |= UIAccessibilityTraitImage;
     } else if ([self.componentType isEqualToString:@"TabBar"]) {
@@ -70,6 +65,12 @@
     }
     if (self.isScrollable) {
         traits |= UIAccessibilityTraitAllowsDirectInteraction;
+    }
+    if (!self.isEnabled) {
+        traits |= UIAccessibilityTraitNotEnabled;
+    }
+    if (self.isSelected || self.isChecked) {
+        traits |= UIAccessibilityTraitSelected;
     }
     return traits;
 }
@@ -187,6 +188,33 @@
         return ELEMENT_COUNT_DEFAULT;
     }
     return _elementObject.children.count + ELEMENT_COUNT_DEFAULT;
+}
+
+- (NSArray *)accessibilityElements
+{
+    NSMutableArray *elements = [NSMutableArray arrayWithCapacity:[self accessibilityElementCount]];
+    if (_elementObject == nil) {
+        return elements;
+    }
+    [elements addObject:_elementObject];
+    if (_elementObject.children != nil) {
+        for (AccessibilityElement *child in _elementObject.children) {
+            if (child == nil) {
+                continue;
+            }
+            if (child.children != nil && child.children.count > ELEMENT_COUNT) {
+                id container = [child accessibilityContainer];
+                if (container != nil) {
+                    [elements addObject:container];
+                } else {
+                    [elements addObject:child];
+                }
+            } else {
+                [elements addObject:child];
+            }
+        }
+    }
+    return elements;
 }
 
 - (nullable id)accessibilityElementAtIndex:(NSInteger)index
