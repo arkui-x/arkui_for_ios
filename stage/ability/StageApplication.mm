@@ -128,6 +128,10 @@ static bool g_isOnBackground = false;
                selector:@selector(HighContrastStatusChanged:)
                    name:UIAccessibilityDarkerSystemColorsStatusDidChangeNotification
                  object:nil];
+    [center addObserver:self
+               selector:@selector(DispatchOnMemoryWarning:)
+                   name:UIApplicationDidReceiveMemoryWarningNotification
+                 object:nil];
 }
 
 + (void)DispatchApplicationOnForeground:(NSNotification *)notification {
@@ -454,6 +458,19 @@ static bool g_isOnBackground = false;
         return;
     }
     AppMain::GetInstance()->PreloadModule([moduleName UTF8String], [abilityName UTF8String]);
+}
+
++ (void)onMemoryLevel:(int32_t)level
+{
+    LOGI("%{public}s, level: %{public}d", __FUNCTION__, level);
+    AppMain::GetInstance()->OnMemoryLevel(level);
+}
+
++ (void)DispatchOnMemoryWarning:(NSNotification *)notification
+{
+    LOGI("%{public}s", __FUNCTION__);
+    // iOS didReceiveMemoryWarning has no level parameter, use MEMORY_LEVEL_LOW (1) as conservative default
+    AppMain::GetInstance()->OnMemoryLevel(1);
 }
 
 + (void)loadModule:(NSString *)moduleName entryFile:(NSString *)entryFile {

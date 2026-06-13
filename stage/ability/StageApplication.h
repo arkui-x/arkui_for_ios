@@ -63,6 +63,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 + (void)loadModule:(NSString *)moduleName entryFile:(NSString *)entryFile;
 
++ (void)onMemoryLevel:(int32_t)level;
+
 @end
 
 NS_ASSUME_NONNULL_END
