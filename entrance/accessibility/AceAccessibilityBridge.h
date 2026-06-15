@@ -30,5 +30,6 @@ bool SubscribeState(
 void UnSubscribeState(const int windowId);
 int32_t GetAccessibilityElementActionTypes(const OHOS::Accessibility::AccessibilityElementInfo& info);
 void AnnounceForAccessibilityOC(const std::string& text);
+bool IsUITestingEnabled(const uint32_t windowId);
 
 #endif // FOUNDATION_ACE_ADAPTER_IOS_ENTRANCE_ACCESSIBILITY_ACCESSIBILITYBRIDGE_H

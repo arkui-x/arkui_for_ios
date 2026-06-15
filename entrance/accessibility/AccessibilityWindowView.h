@@ -34,6 +34,7 @@
 - (void)SendAccessibilityEvent:(int64_t)elementId eventType:(size_t)eventType;
 - (void)UpdateAccessibilityValue:(int64_t)elementId info:(AccessibilityNodeInfo*)info;
 - (int)IsViewOffscreenTopOrBottom:(int64_t)elementId;
+- (bool)IsUITestingEnabled;
 
 @end
 #endif // FOUNDATION_ACE_ADAPTER_IOS_ENTRANCE_ACCESSIBILITY_ACCESSIBILITYWINDOWVIEW_H

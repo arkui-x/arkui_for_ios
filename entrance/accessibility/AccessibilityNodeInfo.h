@@ -26,6 +26,7 @@
 @property(nonatomic, strong) NSString* descriptionInfo;
 @property(nonatomic, strong) NSString* componentType;
 @property(nonatomic, strong) NSString* accessibilityLevel;
+@property(nonatomic, strong) NSString* inspectorKey;
 @property(nonatomic, strong) NSMutableArray<NSString*>* childIds;
 @property(nonatomic, strong) NSMutableDictionary<NSString*, AccessibilityElement*>* elements_;
 @property(nonatomic, assign) float nodeX;
@@ -42,6 +43,8 @@
 @property(nonatomic, assign) bool isClickable;
 @property(nonatomic, assign) bool isLongClickable;
 @property(nonatomic, assign) bool isScrollable;
+@property(nonatomic, assign) bool isChecked;
+@property(nonatomic, assign) bool isSelected;
 @property(nonatomic, assign) bool hasAccessibilityFocus;
 @property(nonatomic, assign) int32_t actionType;
 

@@ -87,6 +87,8 @@ AccessibilityNodeInfo* SetAccessibilityNodeInfo(
     descriptionInfo = [descriptionInfo stringByReplacingOccurrencesOfString:@" " withString:@""];
     NSString* componentType = [NSString stringWithCString:info.GetComponentType().c_str()
                                                  encoding:NSUTF8StringEncoding];
+    NSString* inspectorKey = [NSString stringWithCString:info.GetInspectorKey().c_str()
+                                                    encoding:NSUTF8StringEncoding];
     int32_t left = info.GetRectInScreen().GetLeftTopXScreenPostion();
     int32_t top = info.GetRectInScreen().GetLeftTopYScreenPostion();
     int32_t width =
@@ -111,6 +113,7 @@ AccessibilityNodeInfo* SetAccessibilityNodeInfo(
     aiModel.pageId = info.GetPageId();
     aiModel.childIds = childIdArray;
     aiModel.elementId = info.GetAccessibilityId();
+    aiModel.inspectorKey = inspectorKey;
     aiModel.actionType = GetAccessibilityElementActionTypes(info);
     return aiModel;
 }
@@ -128,6 +131,8 @@ AccessibilityNodeInfo* SetAccessibilityNodePermission(
     aiModel.isClickable = info.IsClickable();
     aiModel.isLongClickable = info.IsLongClickable();
     aiModel.isScrollable = info.IsScrollable();
+    aiModel.isChecked = info.IsChecked();
+    aiModel.isSelected = info.IsSelected();
     aiModel.hasAccessibilityFocus = info.HasAccessibilityFocus();
     return aiModel;
 }
@@ -198,4 +203,12 @@ void AnnounceForAccessibilityOC(const std::string& text)
             UIAccessibilityPostNotification(UIAccessibilityAnnouncementNotification, announcement);
         });
     });
+}
+
+bool IsUITestingEnabled(const uint32_t windowId) {
+    std::shared_ptr<OHOS::Rosen::Window> window = OHOS::Rosen::Window::FindWindow(windowId);
+    CHECK_NULL_RETURN(window, false);
+    AccessibilityWindowView* windowView = window->GetWindowView();
+    CHECK_NULL_RETURN(windowView, false);
+    return [windowView IsUITestingEnabled];
 }

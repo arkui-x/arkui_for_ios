@@ -229,6 +229,7 @@ public:
     void SetInputType(const int32_t inputType);
     void SetInspectorKey(const std::string& key);
     void SetPagePath(const std::string& path);
+    const std::string& GetInspectorKey() const;
     const std::string& GetPagePath() const;
     void SetPageId(const int32_t pageId);
     int32_t GetPageId() const;
