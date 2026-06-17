@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2025 Huawei Device Co., Ltd.
+ * Copyright (c) 2023-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -68,8 +68,15 @@ public:
     void UpdateVersionCode(const std::string& moduleName, bool needUpdate);
     bool IsDynamicUpdateModule(const std::string& moduleName);
     std::vector<std::string> GetAllModuleDirectories();
+    bool GetSourceMapBufferByModuleName(const std::string& moduleName, std::string& content);
 
 private:
+    bool GetSourceMapBufferFromSandbox(const std::string& moduleName, std::string& content);
+    bool GetSourceMapBufferFromBundle(const std::string& moduleName, std::string& content);
+    bool MergeSourceMapFilesFromSandbox(const std::vector<std::string>& sourceMapPaths, std::string& content);
+    bool MergeSourceMapFilesFromBundle(const std::vector<std::string>& sourceMapPaths, std::string& content);
+    bool ReadSourceMapFile(const std::string& sourceMapPath, std::string& content);
+    static std::string MergeSourceMapJsonParts(const std::vector<std::string>& parts);
     std::string bundleName_;
     std::string fontConfigName_;
     std::mutex providerLock_;
