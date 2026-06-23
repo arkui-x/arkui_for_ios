@@ -307,12 +307,11 @@ std::shared_ptr<Window> Window::Create(
 {
     LOGI("Window::Create with %{public}p", windowView);
 
-    id obj = (__bridge id)windowView;
-    if (!obj || ![obj isKindOfClass:[WindowView class]]) {
+    WindowView* validWindowView = static_cast<WindowView*>(windowView);
+    if (!validWindowView || ![validWindowView isKindOfClass:[WindowView class]]) {
         HILOG_ERROR("Window::Create : windowView is not a valid WindowView instance, ptr=%{public}p", windowView);
         return nullptr;
     }
-    WindowView* validWindowView = (WindowView*)obj;
 
     std::string windowName = AbilityRuntime::Platform::WindowViewAdapter::GetInstance()->GetWindowName(windowView);
     if (CheckWindowNameExist(windowName)) {
