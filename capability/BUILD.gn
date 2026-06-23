@@ -163,6 +163,7 @@ template("ace_capability_ios_source_set") {
       "$ace_root/adapter/ios/capability/web/AceWebPatternOCBridge.mm",
       "$ace_root/adapter/ios/capability/web/AceWebResourcePlugin.mm",
       "$ace_root/adapter/ios/capability/web/AceWebSchemeHandler.cpp",
+      "$ace_root/adapter/ios/capability/web/AceWebView.mm",
       "$ace_root/adapter/ios/capability/web/WebMessageChannel.mm",
       "$ace_root/adapter/ios/capability/web/scheme_handler/resource_handler.mm",
       "$ace_root/adapter/ios/capability/web/scheme_handler/resource_request.mm",
