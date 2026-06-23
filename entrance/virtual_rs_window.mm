@@ -305,6 +305,12 @@ std::shared_ptr<Window> Window::Create(
 {
     LOGI("Window::Create with %{public}p", windowView);
 
+    WindowView* validWindowView = static_cast<WindowView*>(windowView);
+    if (!validWindowView || ![validWindowView isKindOfClass:[WindowView class]]) {
+        HILOG_ERROR("Window::Create : windowView is not a valid WindowView instance, ptr=%{public}p", windowView);
+        return nullptr;
+    }
+
     std::string windowName = AbilityRuntime::Platform::WindowViewAdapter::GetInstance()->GetWindowName(windowView);
     if (CheckWindowNameExist(windowName)) {
         HILOG_ERROR("Window::Create : windowName exist! windowName=%{public}s", windowName.c_str());
@@ -313,11 +319,11 @@ std::shared_ptr<Window> Window::Create(
     
     uint32_t windowId = [InstanceIdGenerator getAndIncrement];
     auto window = std::shared_ptr<Window>(new Window(context, windowId), DummyWindowRelease);
-    window->SetWindowView((WindowView*)windowView);
+    window->SetWindowView(validWindowView);
     window->SetWindowName(windowName);
     window->IncStrongRef(window.get());
     window->SetMode(Rosen::WindowMode::WINDOW_MODE_FULLSCREEN);
-    [(WindowView*)windowView setWindowDelegate:window];
+    [validWindowView setWindowDelegate:window];
     AddToWindowMap(window);
     return window;
 }
