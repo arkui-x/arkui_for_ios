@@ -3208,3 +3208,4 @@ _vkGetInstanceProcAddr
 _vkGetDeviceProcAddr
 _vkEnumerateInstanceExtensionProperties
 _vkCreateInstance
+__ZNK4OHOS14AbilityRuntime8Platform17StageAssetManager11GetFilesDirEv
