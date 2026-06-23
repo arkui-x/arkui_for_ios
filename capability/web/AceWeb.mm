@@ -14,6 +14,8 @@
  */
 
 #import "AceWeb.h"
+#import <WebKit/WebKit.h>
+#import <Foundation/Foundation.h>
 #import <Security/Security.h>
 #import "AceWebPatternBridge.h"
 #import "AceWebErrorReceiveInfoObject.h"
@@ -30,6 +32,7 @@
 #include "scheme_handler/resource_request.h"
 #include "ace_engine_types.h"
 #import "AceWebInfoManager.h"
+#import "AceWebView.h"
 
 #define WEBVIEW_WIDTH  @"width"
 #define WEBVIEW_HEIGHT  @"height"
@@ -51,6 +54,14 @@
 #define FLOAT_EPSILON 0.0001f
 #define SCALE_PERCENT_MAX 1000.0f
 #define SCALE_PERCENT_100 100.0f
+#define DEBOUNCE_UPDATE_WEBVIEW_HEIGHT_MS 150
+#define LAYOUT_MODE_FIT_CONTENT           @"1"
+#define NTC_ONCONTENTHEIGHTCHANGED        @"onContentHeightChanged"
+#define DEFAULT_FONT_SIZE_MIN             1
+#define DEFAULT_FONT_SIZE_MAX             72
+#define DARK_MODE_LIGHT                   0
+#define DARK_MODE_DARK                    1
+#define DARK_MODE_SYSTEM                  2
 
 #define WEB_FLAG        @"web@"
 #define PARAM_AND       @"#HWJS-&-#"
@@ -67,6 +78,7 @@
 #define CONSOLEWARN     @"warn"
 #define ESTIMATEDPROGRESS  @"estimatedProgress"
 #define TITLE           @"title"
+#define CONTENT_SIZE    @"contentSize"
 
 #define NTC_ZOOM_ACCESS                   @"zoomAccess"
 #define NTC_JAVASCRIPT_ACCESS             @"javascriptAccess"
@@ -103,6 +115,11 @@
 #define NTC_TEXT_ZOOM_RATIO               @"textZoomRatio"
 #define NTC_ENABLE_HAPTIC_FEEDBACK        @"enableHapticFeedback"
 #define SELECTION_DRAG_THRESHOLD          2.0
+#define NTC_OVERVIEWMODE_ACCESS           @"overviewModeAccess"
+#define NTC_LAYOUT_MODE                   @"layoutMode"
+#define NTC_DARK_MODE                     @"darkMode"
+#define NTC_DEFAULT_FONT_SIZE             @"defaultFontSize"
+#define NTC_FORCE_DARK                    @"forceDarkAccess"
 
 typedef NS_ENUM(NSInteger, NestedScrollMode) {
     SELF_ONLY,
@@ -114,6 +131,15 @@ typedef NS_ENUM(NSUInteger, WebViewLoadType) {
     WebViewLoadTypeURL,
     WebViewLoadTypeData
 };
+#ifndef dispatch_main_async_safe
+#define dispatch_main_async_safe(block) \
+    if (dispatch_queue_get_label(DISPATCH_CURRENT_QUEUE_LABEL) == \
+        dispatch_queue_get_label(dispatch_get_main_queue())) { \
+        block(); \
+    } else { \
+        dispatch_async(dispatch_get_main_queue(), block); \
+    }
+#endif
 @interface NestedScrollOptionsExt : NSObject
 @property (nonatomic, assign) NestedScrollMode scrollUp;
 @property (nonatomic, assign) NestedScrollMode scrollDown;
@@ -143,7 +169,7 @@ typedef id (^onJavaScriptFunction)(NSString* objName, NSString* methodName, NSAr
 @interface AceWeb()<WKScriptMessageHandler, WKUIDelegate, WKNavigationDelegate, 
                     UIScrollViewDelegate, NSURLSessionDownloadDelegate, WKHTTPCookieStoreObserver, WKURLSchemeHandler>
 /**webView*/
-@property (nonatomic, assign) WKWebView *webView;
+@property (nonatomic, strong) AceWebView *webView;
 @property (nonatomic, assign) int64_t incId;
 @property (nonatomic, strong) WKPreferences *preferences;
 @property (nonatomic, strong) WKWebpagePreferences *webpagePreferences;
@@ -189,6 +215,9 @@ typedef id (^onJavaScriptFunction)(NSString* objName, NSString* methodName, NSAr
 @property (nonatomic, assign) bool isMainFrame;
 @property (nonatomic, copy) NSString* mainFrameUrl;
 @property (nonatomic, assign) bool isLoadUrl;
+@property (nonatomic, assign) bool isForceDark;
+@property (nonatomic, assign) bool isSystemDarkMode;
+@property (nonatomic, assign) NSInteger darkModeValue;
 @property (nonatomic, strong) NSMutableSet<NSString *> *handleSslErrorUrls;
 @property (nonatomic, strong) NestedScrollOptionsExt *nestedOpt;
 @property (nonatomic, assign) CGPoint dragStartPoint;
@@ -197,6 +226,7 @@ typedef id (^onJavaScriptFunction)(NSString* objName, NSString* methodName, NSAr
 @property (nonatomic, assign) BOOL isSelectionDragArmed;
 @property (nonatomic, assign) BOOL hasTriggeredDragHaptic;
 @property (nonatomic, assign) BOOL isSelectionLongPressActive;
+@property (nonatomic, assign) BOOL isFitContentMode;
 @property (nonatomic, assign) CGPoint selectionDragStartPoint;
 @property (nonatomic, assign) WebViewLoadType lastLoadType;
 @property (nonatomic, copy) NSString *lastData;
@@ -212,6 +242,51 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
 
 @implementation AceWeb {
     dispatch_source_t _timer;
+    dispatch_block_t _contentHeightDebounceBlock;
+}
+
+- (void)debounceUpdateWebViewHeight
+{
+    if (_contentHeightDebounceBlock != nil) {
+        dispatch_block_cancel(_contentHeightDebounceBlock);
+        _contentHeightDebounceBlock = nil;
+    }
+    __weak __typeof(self) weakSelf = self;
+    dispatch_block_t block = dispatch_block_create(DISPATCH_BLOCK_INHERIT_QOS_CLASS, ^{
+        __strong __typeof(weakSelf) strongSelf = weakSelf;
+        if (strongSelf != nil) {
+            [strongSelf updateWebViewHeightToFitContent];
+        }
+    });
+    _contentHeightDebounceBlock = block;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(DEBOUNCE_UPDATE_WEBVIEW_HEIGHT_MS * NSEC_PER_MSEC)),
+                   dispatch_get_main_queue(), block);
+}
+
+- (void)updateWebViewHeightToFitContent
+{
+    if (self.webView == nil || !self.isFitContentMode) {
+        return;
+    }
+    UIScrollView *scrollView = self.webView.scrollView;
+    CGSize contentSize = scrollView.contentSize;
+    UIEdgeInsets adjustedInsets = UIEdgeInsetsZero;
+    if (@available(iOS 11.0, *)) {
+        adjustedInsets = scrollView.adjustedContentInset;
+    } else {
+        adjustedInsets = scrollView.contentInset;
+    }
+    CGFloat targetHeight = ceil(contentSize.height + adjustedInsets.top + adjustedInsets.bottom);
+    if (targetHeight <= 0) {
+        return;
+    }
+    int32_t contentHeight = static_cast<int32_t>(ceil(targetHeight * self.screenScale));
+    if (contentHeight <= 0) {
+        return;
+    }
+    self.webScrollEnabled = NO;
+    scrollView.bounces = NO;
+    [self fireCallback:NTC_ONCONTENTHEIGHTCHANGED params:[NSString stringWithFormat:@"%d", contentHeight]];
 }
 
 - (instancetype)init:(int64_t)incId
@@ -241,6 +316,8 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
     self.hasInitialScaleSet = NO;
     self.httpErrorCode = 400;
     self.isLoadRichText = false;
+    self.isForceDark = false;
+    self.isSystemDarkMode = false;
     self.jsReady = false;
     self.currentResourceRequest = nullptr;
     self.currentResourceHandler = nullptr;
@@ -248,6 +325,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
     self.referrer = @"";
     self.isMainFrame = false;
     self.isLoadUrl = false;
+    self.darkModeValue = DARK_MODE_LIGHT;
     self.handleSslErrorUrls = [NSMutableSet set];
     [self initConfigure];
     [self initEventCallback];
@@ -299,7 +377,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
     [config setURLSchemeHandler:self forURLScheme:CUSTOM_SCHEME];
     [config setURLSchemeHandler:self forURLScheme:CUSTOM_SCHEME_HANDLER];
     [self incognitoModeWithConfig:config];
-    self.webView = [[WKWebView alloc] initWithFrame:CGRectZero configuration:config];
+    self.webView = [[AceWebView alloc] initWithFrame:CGRectZero configuration:config];
     self.webView.UIDelegate = self;
     self.webView.navigationDelegate = self;
     self.webView.scrollView.delegate = self;
@@ -308,11 +386,16 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
     }
     [self.webView addObserver:self forKeyPath:ESTIMATEDPROGRESS options:NSKeyValueObservingOptionNew context:nil];
     [self.webView addObserver:self forKeyPath:TITLE options:NSKeyValueObservingOptionNew context:nil];
+    [self.webView.scrollView addObserver:self
+                              forKeyPath:CONTENT_SIZE
+                                 options:NSKeyValueObservingOptionNew
+                                 context:nil];
     self.hasCalledOnScrollStart = YES;
     self.selectionGestureRecognizers = [NSHashTable weakObjectsHashTable];
     self.isSelectionDragArmed = NO;
     self.hasTriggeredDragHaptic = NO;
     [self registerSelectionGestures];
+    [self addSystemDarkModeObserver];
 }
 
 - (void)incognitoModeWithConfig:(WKWebViewConfiguration*) config
@@ -1092,6 +1175,16 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
     [self setTouchUpCallback];
     // textZoomRatio callback
     [self updateTextZoomRatio];
+    // overviewModeAccess callback
+    [self setOverviewModeAccessCallback];
+    // layoutMode callback
+    [self setLayoutModeCallback];
+    // darkMode callback
+    [self setDarkModeCallback];
+    // forceDark callback
+    [self setForceDarkCallback];
+    // defaultFontSize callback
+    [self setDefaultFontSizeCallback];
 
     [self enterFullScreenOrExitFullScreenNotifi];
 }
@@ -1306,11 +1399,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
         @"}"
         @"})(%@);",
         @(scale)];
-    [self.webView evaluateJavaScript:js completionHandler:^(id result, NSError *error) {
-        if (error) {
-            LOGE("AceWeb: applyInitialScale evaluateJavaScript error");
-        }
-    }];
+    [self setWebViewJsCode:js injectionTime:WKUserScriptInjectionTimeAtDocumentEnd];
 }
 
 - (void)setInitialScaleCallback
@@ -1590,6 +1679,92 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
     [self.callSyncMethodMap setObject:[text_zoom_ratio_callback copy] forKey:text_zoom_ratio_hash];
 }
 
+- (void)setOverviewModeAccessCallback
+{
+    __weak __typeof(self) weakSelf = self;
+    NSString *overview_mode_access_hash = [self method_hashFormat:NTC_OVERVIEWMODE_ACCESS];
+    IAceOnCallSyncResourceMethod overview_mode_access_callback = ^NSString *(NSDictionary * param) {
+        bool isOverviewModeEnable = [[param objectForKey:NTC_OVERVIEWMODE_ACCESS] boolValue];
+        __strong __typeof(weakSelf) strongSelf = weakSelf;
+        if (strongSelf != nil) {
+            [strongSelf setOverviewModeAccess:isOverviewModeEnable];
+            return SUCCESS;
+        }
+        LOGE("AceWeb: overviewModeAccess fail");
+        return FAIL;
+    };
+    [self.callSyncMethodMap setObject:[overview_mode_access_callback copy] forKey:overview_mode_access_hash];
+}
+
+- (void)setLayoutModeCallback
+{
+    __weak __typeof(self) weakSelf = self;
+    NSString *layout_mode_hash = [self method_hashFormat:NTC_LAYOUT_MODE];
+    IAceOnCallSyncResourceMethod layout_mode_callback = ^NSString *(NSDictionary * param) {
+        __strong __typeof(weakSelf) strongSelf = weakSelf;
+        if (strongSelf != nil) {
+            NSString* layoutMode = [param objectForKey:NTC_LAYOUT_MODE];
+            strongSelf.isFitContentMode = [layoutMode isEqualToString:LAYOUT_MODE_FIT_CONTENT];
+            [strongSelf setLayoutMode:strongSelf.isFitContentMode];
+            return SUCCESS;
+        }
+        LOGE("AceWeb: layoutMode fail");
+        return FAIL;
+    };
+    [self.callSyncMethodMap setObject:[layout_mode_callback copy] forKey:layout_mode_hash];
+}
+
+- (void)setDarkModeCallback
+{
+    __weak __typeof(self) weakSelf = self;
+    NSString *dark_mode_hash = [self method_hashFormat:NTC_DARK_MODE];
+    IAceOnCallSyncResourceMethod dark_mode_callback = ^NSString *(NSDictionary * param) {
+        __strong __typeof(weakSelf) strongSelf = weakSelf;
+        if (strongSelf != nil) {
+            strongSelf.darkModeValue = [[param objectForKey:NTC_DARK_MODE] integerValue];
+            [strongSelf setDarkMode:strongSelf.darkModeValue];
+            return SUCCESS;
+        }
+        LOGE("AceWeb: darkMode fail");
+        return FAIL;
+    };
+    [self.callSyncMethodMap setObject:[dark_mode_callback copy] forKey:dark_mode_hash];
+}
+
+- (void)setForceDarkCallback
+{
+    __weak __typeof(self) weakSelf = self;
+    NSString* force_dark_hash = [self method_hashFormat:NTC_FORCE_DARK];
+    IAceOnCallSyncResourceMethod force_dark_callback = ^NSString*(NSDictionary* param) {
+        __strong __typeof(weakSelf) strongSelf = weakSelf;
+        if (strongSelf != nil) {
+            strongSelf.isForceDark = [[param objectForKey:NTC_FORCE_DARK] boolValue];
+            [strongSelf setForceDark:strongSelf.isForceDark];
+            return SUCCESS;
+        }
+        LOGE("AceWeb: forceDark fail");
+        return FAIL;
+    };
+    [self.callSyncMethodMap setObject:[force_dark_callback copy] forKey:force_dark_hash];
+}
+
+- (void)setDefaultFontSizeCallback
+{
+    __weak __typeof(self) weakSelf = self;
+    NSString *default_font_size_hash = [self method_hashFormat:NTC_DEFAULT_FONT_SIZE];
+    IAceOnCallSyncResourceMethod default_font_size_callback = ^NSString *(NSDictionary * param) {
+        __strong __typeof(weakSelf) strongSelf = weakSelf;
+        if (strongSelf != nil) {
+            int defaultFontSize = [[param objectForKey:NTC_DEFAULT_FONT_SIZE] intValue];
+            [strongSelf setDefaultFontSize:defaultFontSize];
+            return SUCCESS;
+        }
+        LOGE("AceWeb: defaultFontSize fail");
+        return FAIL;
+    };
+    [self.callSyncMethodMap setObject:[default_font_size_callback copy] forKey:default_font_size_hash];
+}
+
 - (void)updateTextZoomRatio:(NSInteger)textZoomRatio {
     NSString* js = [NSString stringWithFormat:
         @"var style = document.createElement('style');"
@@ -1602,6 +1777,242 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
             LOGE("AceWeb: updateTextZoomRatio evaluateJavaScript error: %{public}s", desc.UTF8String);
         }
     }];
+}
+
+- (void)setWebViewJsCode:(NSString*)jsCode injectionTime:(WKUserScriptInjectionTime)injectionTime
+{
+    __weak __typeof(self) weakSelf = self;
+    dispatch_main_async_safe(^{
+        __strong __typeof(weakSelf)strongSelf = weakSelf;
+        if (strongSelf == nil) {
+            LOGE("AceWeb: setWebViewJsCode fail, self is nil");
+            return;
+        }
+        WKUserScript* script = [[WKUserScript alloc] initWithSource:jsCode
+                                                      injectionTime:injectionTime
+                                                   forMainFrameOnly:NO];
+        [strongSelf.webView.configuration.userContentController addUserScript:script];
+        [strongSelf.webView evaluateJavaScript:jsCode completionHandler:^(id result, NSError* error) {
+            if (error != nil) {
+                NSString* desc = error.localizedDescription ?: @"";
+                LOGE("AceWeb: evaluateJavaScript:%{public}s error: %{public}s", jsCode.UTF8String, desc.UTF8String);
+            }
+        }];
+    });   
+}
+
+- (void)addSystemDarkModeObserver
+{
+    __weak __typeof(self) weakSelf = self;
+    [self.webView observeSystemDarkModeWithBlock:^(BOOL isDarkModeEnabled) {
+        __strong __typeof(weakSelf)strongSelf = weakSelf;
+        if (strongSelf != nil) {
+            strongSelf.isSystemDarkMode = isDarkModeEnabled;
+            [strongSelf setForceDark:strongSelf.isForceDark];
+        }
+    }];
+}
+
+- (void)setOverviewModeAccess:(BOOL)isOverviewModeEnable
+{
+    NSString *initialScaleSetting = isOverviewModeEnable ? @"" : @"attrs['initial-scale'] = '1.0';";
+    NSString *jsSource = [NSString stringWithFormat:
+        @"(function() {"
+        @"  var meta = document.querySelector('meta[name=\"viewport\"]');"
+        @"  if (!meta) {"
+        @"    meta = document.createElement('meta');"
+        @"    meta.name = 'viewport';"
+        @"    document.head.appendChild(meta);"
+        @"  }"
+        @"  var oldContent = meta.content || '';"
+        @"  var attrs = {};"
+        @"  oldContent.split(',').forEach(function(part) {"
+        @"    var trimmed = part.trim();"
+        @"    if (trimmed) {"
+        @"      var eqIndex = trimmed.indexOf('=');"
+        @"      if (eqIndex !== -1) {"
+        @"        var name = trimmed.substring(0, eqIndex).trim();"
+        @"        var value = trimmed.substring(eqIndex+1).trim();"
+        @"        attrs[name] = value;"
+        @"      } else {"
+        @"        attrs[trimmed] = true;"
+        @"      }"
+        @"    }"
+        @"  });"
+        @"  attrs['width'] = document.documentElement.scrollWidth;"
+        @"  attrs['shrink-to-fit'] = 'no';"
+        @"  %@"
+        @"  var newParts = [];"
+        @"  for (var name in attrs) {"
+        @"    if (attrs.hasOwnProperty(name)) {"
+        @"      var value = attrs[name];"
+        @"      if (value === true) {"
+        @"        newParts.push(name);"
+        @"      } else {"
+        @"        newParts.push(name + '=' + value);"
+        @"      }"
+        @"    }"
+        @"  }"
+        @"  meta.content = newParts.join(',');"
+        @"})();",
+        initialScaleSetting
+    ];
+    [self setWebViewJsCode:jsSource injectionTime:WKUserScriptInjectionTimeAtDocumentEnd];
+}
+
+- (void)setLayoutMode:(BOOL)isFitContentMode
+{
+    if (self.webView == nil) {
+        return;
+    }
+    self.webScrollEnabled = !isFitContentMode;
+    self.webView.scrollView.bounces = !isFitContentMode;
+}
+
+- (void)setDarkMode:(NSInteger)darkModeValue
+{
+    if (@available(iOS 13.0, *)) {
+        UIUserInterfaceStyle interfaceStyle = UIUserInterfaceStyleUnspecified;
+        switch (darkModeValue) {
+            case DARK_MODE_LIGHT:
+                interfaceStyle = UIUserInterfaceStyleLight;
+                break;
+            case DARK_MODE_DARK:
+                interfaceStyle = UIUserInterfaceStyleDark;
+                break;
+            case DARK_MODE_SYSTEM:
+            default:
+                interfaceStyle = UIUserInterfaceStyleUnspecified;
+                break;
+        }
+        self.webView.overrideUserInterfaceStyle = interfaceStyle;
+        self.webView.scrollView.overrideUserInterfaceStyle = interfaceStyle;
+    } else {
+        LOGW("AceWeb: Dark mode not supported on iOS versions below 13.0");
+    }
+}
+
+- (void)setForceDark:(BOOL)enable
+{
+    NSString *jsCode = [self getResetMetaJsCode];
+    if (self.darkModeValue != DARK_MODE_LIGHT) {
+        if (self.darkModeValue == DARK_MODE_SYSTEM && !self.isSystemDarkMode) {
+            enable = NO;
+        }
+        if (enable) {
+            jsCode = [self getForceDarkJsCode];
+        }
+    }
+    [self setWebViewJsCode:jsCode injectionTime:WKUserScriptInjectionTimeAtDocumentEnd];
+}
+
+- (NSString*)getResetMetaJsCode
+{
+    NSString* jsCode =
+        @"(function() {"
+         "    var FORCE_DARK_FILTER = 'invert(1) hue-rotate(180deg)';"
+         "    var style = document.getElementById('__arkuix-force-dark-style');"
+         "    if (style && style.parentNode) {"
+         "        style.parentNode.removeChild(style);"
+         "    }"
+         "    var ourMeta = document.querySelector('meta[name=\"color-scheme\"][data-arkuix-injected]');"
+         "    if (ourMeta && ourMeta.parentNode) {"
+         "        ourMeta.parentNode.removeChild(ourMeta);"
+         "    }"
+         "    var nodes = document.querySelectorAll('img, video, picture, canvas, svg, iframe, embed, object, input, textarea, select, button');"
+         "    for (var i = 0; i < nodes.length; i++) {"
+         "        var node = nodes[i];"
+         "        if (node.style.filter === FORCE_DARK_FILTER) {"
+         "            node.style.filter = '';"
+         "        }"
+         "        if (node.style.webkitFilter === FORCE_DARK_FILTER) {"
+         "            node.style.webkitFilter = '';"
+         "        }"
+         "    }"
+         "    document.documentElement.style.transition = 'none';"
+         "    document.documentElement.style.filter = '';"
+         "    document.documentElement.style.webkitFilter = '';"
+         "    document.documentElement.style.transform = '';"
+         "    document.documentElement.style.willChange = '';"
+         "    document.documentElement.style.backgroundColor = '';"
+         "    if (document.body) {"
+         "        document.body.style.backgroundColor = '';"
+         "    }"
+         "    if (window.__arkuiDarkObserver) {"
+         "        window.__arkuiDarkObserver.disconnect();"
+         "        window.__arkuiDarkObserver = null;"
+         "    }"
+         "})();";
+    return jsCode;
+}
+
+- (NSString*)getForceDarkJsCode
+{
+    NSString* jsCode =
+        @"(function() {"
+         "    var STYLE_ID = '__arkuix-force-dark-style';"
+         "    var nativeDarkMeta = document.querySelector("
+         "        'meta[name=\"color-scheme\"][content*=\"dark\"]:not([data-arkuix-injected])'"
+         "    );"
+         "    if (window.matchMedia('(prefers-color-scheme:dark)').matches && nativeDarkMeta) { return; }"
+         "    if (!document.querySelector('meta[name=\"color-scheme\"][data-arkuix-injected]')) {"
+         "        var meta = document.createElement('meta');"
+         "        meta.setAttribute('data-arkuix-injected', 'true');"
+         "        meta.name = 'color-scheme';"
+         "        meta.content = 'dark';"
+         "        document.head.appendChild(meta);"
+         "    }"
+         "    var style = document.getElementById(STYLE_ID);"
+         "    if (!style) {"
+         "        style = document.createElement('style');"
+         "        style.id = STYLE_ID;"
+         "        (document.head || document.documentElement).appendChild(style);"
+         "    }"
+         "    style.textContent = \"html { filter: invert(1) hue-rotate(180deg) !important; "
+         "-webkit-filter: invert(1) hue-rotate(180deg) !important; transform: translateZ(0); "
+         "will-change: transform; } "
+         "img, video, picture, canvas, svg, svg *, iframe, embed, object, input, textarea, select, "
+         "button { filter: invert(1) hue-rotate(180deg) !important; "
+         "-webkit-filter: invert(1) hue-rotate(180deg) !important; background-color: transparent !important; } "
+         "::-webkit-scrollbar-thumb { background: #444 !important; } "
+         "::placeholder { color: #999 !important; opacity: 1 !important; } "
+         "::selection { background: #444 !important; color: #ddd !important; }\";"
+         "    document.documentElement.style.transition = 'filter 0.15s ease';"
+         "    if (!window.__arkuiDarkObserver) {"
+         "        window.__arkuiDarkObserver = new MutationObserver(function(mutations) {"
+         "            mutations.forEach(function(m) { m.addedNodes.forEach(function(node) {"
+         "                if (node.nodeType !== 1) return;"
+         "                var media = node.querySelectorAll ? node.querySelectorAll('img,video,picture,canvas,svg') : null;"
+         "                if (media) for (var i = 0; i < media.length; i++) {"
+         "                    media[i].style.filter = 'invert(1) hue-rotate(180deg)';"
+         "                    media[i].style.webkitFilter = 'invert(1) hue-rotate(180deg)';"
+         "                }"
+         "            }); });"
+         "        });"
+         "        window.__arkuiDarkObserver.observe(document.documentElement, { childList: true, subtree: true });"
+         "    }"
+         "})();";
+    return jsCode;
+}
+
+- (void)setDefaultFontSize:(int)defaultFontSize
+{
+    if (defaultFontSize < DEFAULT_FONT_SIZE_MIN) {
+        defaultFontSize = DEFAULT_FONT_SIZE_MIN;
+    } else if (defaultFontSize > DEFAULT_FONT_SIZE_MAX) {
+        defaultFontSize = DEFAULT_FONT_SIZE_MAX;
+    }
+    NSString *jsCode = [NSString stringWithFormat:
+        @"(function(){"
+        "  var s=document.getElementById('__arkuix-font-size-style');"
+        "  if(!s){"
+        "    s=document.createElement('style');"
+        "    s.id='__arkuix-font-size-style';"
+        "    (document.head||document.documentElement).appendChild(s);"
+        "  }"
+        "  s.textContent='html{font-size:%dpx}';"
+        "})();", defaultFontSize];
+    [self setWebViewJsCode:jsCode injectionTime:WKUserScriptInjectionTimeAtDocumentStart];
 }
 
 - (NSString *)method_hashFormat:(NSString *)method
@@ -1640,6 +2051,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
     LOGI("AceWeb releaseObject");
     [self.webView removeObserver:self forKeyPath:ESTIMATEDPROGRESS];
     [self.webView removeObserver:self forKeyPath:TITLE];
+    [self.webView.scrollView removeObserver:self forKeyPath:CONTENT_SIZE];
     for (UIGestureRecognizer *gestureRecognizer in self.selectionGestureRecognizers) {
         [gestureRecognizer removeTarget:self action:@selector(onSelectionLongPress:)];
     }
@@ -1649,6 +2061,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
     [self.webView.configuration.userContentController removeScriptMessageHandlerForName:CONSOLEERROR];
     [self.webView.configuration.userContentController removeScriptMessageHandlerForName:CONSOLEDEBUG];
     [self.webView.configuration.userContentController removeScriptMessageHandlerForName:CONSOLEWARN];
+    [self.webView releaseDarkModeObserver];
     [[NSNotificationCenter defaultCenter] removeObserver:self];
     if (self.callSyncMethodMap) {
         for (id key in self.callSyncMethodMap) {
@@ -1722,7 +2135,6 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
     self.jsReady = true;
     [self registerSelectionGestures];
     [self updateTextZoomRatio:self.textZoomRatio];
-    [self applyInitialScale];
     NSString *param = [NSString stringWithFormat:@"%@",webView.URL];
     if (self.isLoadRichText) {
         self.isLoadRichText = false;
@@ -2093,6 +2505,9 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
     } else if ([keyPath isEqualToString:TITLE] && object == _webView) {
         _webView.title == nil ? [self fireCallback:NTC_ONRECEIVEDTITLE params:@""]
                               : [self fireCallback:NTC_ONRECEIVEDTITLE params:_webView.title];
+    } else if ([keyPath isEqualToString:CONTENT_SIZE] &&
+               object == self.webView.scrollView) {
+        [self debounceUpdateWebViewHeight];
     }
 }
 
