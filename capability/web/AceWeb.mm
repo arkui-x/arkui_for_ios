@@ -34,6 +34,8 @@
 #import "AceWebInfoManager.h"
 #import "AceWebView.h"
 
+#include "base/log/log.h"
+
 #define WEBVIEW_WIDTH  @"width"
 #define WEBVIEW_HEIGHT  @"height"
 #define WEBVIEW_POSITION_LEFT  @"left"
