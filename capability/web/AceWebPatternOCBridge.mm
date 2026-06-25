@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Huawei Device Co., Ltd.
+ * Copyright (c) 2025-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -16,14 +16,27 @@
 #import "AceWebResourcePlugin.h"
 #import "AceWebPatternOCBridge.h"
 
-void SetScrollLockedRegisterOC(int webId, const bool& value)
+#include <cstdint>
+
+extern "C" void SetWebScrollLocked(int64_t webId, bool locked);
+extern "C" void ClearWebScrollLocked(int64_t webId);
+
+void SetScrollLockedRegisterOC(int64_t webId, const bool& value)
 {
-    AceWeb* web = [AceWebResourcePlugin.getObjectMap objectForKey:[NSString stringWithFormat:@"%d", webId]];
+    AceWeb* web = [AceWebResourcePlugin.getObjectMap
+        objectForKey:[NSString stringWithFormat:@"%lld", static_cast<long long>(webId)]];
     if (web == nil) {
         return;
     }
     web.webScrollEnabled = !value;
+    SetWebScrollLocked(webId, value);
 }
+
+void ClearScrollLockedRegisterOC(int64_t webId)
+{
+    ClearWebScrollLocked(webId);
+}
+
 void SetNestedScrollOptionsExtOC(int webId, void* options)
 {
     AceWeb* web = [AceWebResourcePlugin.getObjectMap objectForKey:[NSString stringWithFormat:@"%d", webId]];

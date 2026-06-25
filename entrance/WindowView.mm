@@ -19,8 +19,11 @@
 #include <__nullptr>
 #include <atomic>
 #include <cstddef>
+#include <cstdint>
 #include <map>
 #include <memory>
+#include <mutex>
+#include <unordered_set>
 #include <vector>
 #include "base/utils/time_util.h"
 
@@ -41,17 +44,33 @@
 
 #define ACE_ENABLE_GL
 
-static bool g_isPointInsideWebForceResult = false;
-static bool g_isPointInsideWebForceEnable = false;
+static std::mutex g_webScrollLockedMutex;
+static std::unordered_set<int64_t> g_webScrollLockedSet;
 static const uint64_t KEY_REPEAT_INITIAL_DELAY_MS = 500;
 static const uint64_t KEY_REPEAT_INTERVAL_MS = 100;
 static const uint64_t KEY_REPEAT_LEEWAY_MS = 5;
 static const int64_t MILLISECONDS_PER_SECOND = 1000;
 static const char* KEY_REPEAT_QUEUE_NAME = "com.ohos.ace.keyrepeat";
-extern "C" void SetIsPointInsideWebForceResult(bool enable, bool result)
+extern "C" void SetWebScrollLocked(int64_t webId, bool locked)
 {
-    g_isPointInsideWebForceEnable = enable;
-    g_isPointInsideWebForceResult = result;
+    std::lock_guard<std::mutex> lock(g_webScrollLockedMutex);
+    if (locked) {
+        g_webScrollLockedSet.insert(webId);
+        return;
+    }
+    g_webScrollLockedSet.erase(webId);
+}
+
+extern "C" void ClearWebScrollLocked(int64_t webId)
+{
+    std::lock_guard<std::mutex> lock(g_webScrollLockedMutex);
+    g_webScrollLockedSet.erase(webId);
+}
+
+static bool IsWebScrollLocked(int64_t webId)
+{
+    std::lock_guard<std::mutex> lock(g_webScrollLockedMutex);
+    return g_webScrollLockedSet.find(webId) != g_webScrollLockedSet.end();
 }
 
 @interface WindowView()
@@ -248,20 +267,23 @@ extern "C" void SetIsPointInsideWebForceResult(bool enable, bool result)
 }
 
 - (BOOL)isPointInsideWeb:(CGPoint)point withEvent:(UIEvent *)event {
-     __block BOOL isNeedTouchTestArkWeb = NO;
+     __block BOOL isTouchArkWeb = NO;
     [AceWebResourcePlugin.getObjectMap enumerateKeysAndObjectsUsingBlock:^(
         NSString * _Nonnull key, AceWeb * _Nonnull aceWeb, BOOL * _Nonnull stop) {
         UIView *uiview = [aceWeb getWeb];
         CGPoint webPoint = [self convertPoint:point toView:uiview];
-        if ([uiview pointInside:webPoint withEvent:event]) {
-            isNeedTouchTestArkWeb = YES;
+        if (![uiview pointInside:webPoint withEvent:event]) {
+            return;
         }
-    }];
-    BOOL isTouchArkWeb = NO;
-    if (isNeedTouchTestArkWeb) {
+        int64_t webId = [key longLongValue];
+        if (IsWebScrollLocked(webId)) {
+            *stop = YES;
+            return;
+        }
         isTouchArkWeb = [self touchHitTestTarget:point targetName:HIT_TEST_TARGET_WEB];
-    }
-    return isTouchArkWeb && g_isPointInsideWebForceEnable && !g_isPointInsideWebForceResult;
+        *stop = YES;
+    }];
+    return isTouchArkWeb;
 }
 
 - (BOOL)touchHitTestTarget:(CGPoint)point targetName:(NSString*)target{

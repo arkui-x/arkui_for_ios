@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2023-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -22,6 +22,7 @@
 #define PAGE_URL @"pageUrl"
 #define INCOGNITO_MOD @"incognitoMode"
 #define INCOGNITO_FLAG @"1"
+#define WEB_KEY @"web"
 
 @interface AceWebResourcePlugin()
 @property (nonatomic, weak) UIViewController *target;
@@ -59,7 +60,7 @@ static NSMutableDictionary<NSString*, AceWeb*> *objectMap;
 }
 
 - (int64_t)create:(NSDictionary <NSString *, NSString *> *)param{
-    int64_t incId = [self getAtomicId];
+    int64_t incId = [param[WEB_KEY] longLongValue];
     IAceOnResourceEvent callback = [self getEventCallback];
     bool incognitoMode =[[param valueForKey:INCOGNITO_MOD] isEqualToString:INCOGNITO_FLAG] ? true : false;
     AceWeb *aceWeb;

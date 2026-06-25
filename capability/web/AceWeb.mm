@@ -27,6 +27,7 @@
 #import <AVFoundation/AVFoundation.h>
 #import <AVKit/AVKit.h>
 #import "AceWebPatternOCBridge.h"
+#import "AceWebResourcePlugin.h"
 #import "adapter/ios/capability/vibrator/haptic_vibrator.h"
 #include "core/components_ng/pattern/scrollable/scrollable_properties.h"
 #include "scheme_handler/resource_request.h"
@@ -114,6 +115,12 @@
 #define WEBVIEW_PAGE_HALF                 2
 #define NTC_TEXT_ZOOM_RATIO               @"textZoomRatio"
 #define NTC_ENABLE_HAPTIC_FEEDBACK        @"enableHapticFeedback"
+#define NTC_MULTI_WINDOW_ACCESS           @"multiWindowAccess"
+#define NTC_ALLOW_WINDOW_OPEN_METHOD      @"allowWindowOpenMethod"
+#define NTC_ONWINDOWNEW                   @"onWindowNew"
+#define NTC_ONWINDOWEXIT                  @"onWindowExit"
+#define NTC_ONRENDEREXITED                @"onRenderExited"
+#define NTC_ONRENDEREXITED_ERRORCODE      @"4"
 #define SELECTION_DRAG_THRESHOLD          2.0
 #define NTC_OVERVIEWMODE_ACCESS           @"overviewModeAccess"
 #define NTC_LAYOUT_MODE                   @"layoutMode"
@@ -234,6 +241,9 @@ typedef id (^onJavaScriptFunction)(NSString* objName, NSString* methodName, NSAr
 @property (nonatomic, copy) NSString *lastEncoding;
 @property (nonatomic, copy) NSString *lastBaseUrl;
 @property (nonatomic, copy) NSString *lastHistoryUrl;
+@property (nonatomic, assign) BOOL isMultiWindowAccessEnabled;
+@property (nonatomic, assign) BOOL isAllowWindowOpenMethodEnabled;
+@property (nonatomic, assign) BOOL hasSentWindowExitEvent;
 @end
 
 static BOOL _webDebuggingAccessInit = NO;
@@ -326,6 +336,9 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
     self.isMainFrame = false;
     self.isLoadUrl = false;
     self.darkModeValue = DARK_MODE_LIGHT;
+    self.isMultiWindowAccessEnabled = NO;
+    self.isAllowWindowOpenMethodEnabled = NO;
+    self.hasSentWindowExitEvent = NO;
     self.handleSslErrorUrls = [NSMutableSet set];
     [self initConfigure];
     [self initEventCallback];
@@ -369,6 +382,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
     [userContentController addUserScript:script];
     [userContentController addScriptMessageHandler:self name:@"videoPlayed"];
     preference.javaScriptEnabled = self.javascriptAccessSwitch;
+    preference.javaScriptCanOpenWindowsAutomatically = self.isAllowWindowOpenMethodEnabled;
 
     config.preferences = preference;
     config.userContentController = userContentController;
@@ -1185,6 +1199,10 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
     [self setForceDarkCallback];
     // defaultFontSize callback
     [self setDefaultFontSizeCallback];
+    // multiWindowAccess callback
+    [self setMultiWindowAccessCallback];
+    // allowWindowOpenMethod callback
+    [self setAllowWindowOpenMethodCallback];
 
     [self enterFullScreenOrExitFullScreenNotifi];
 }
@@ -1658,6 +1676,42 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
     
 }
 
+- (void)setMultiWindowAccessCallback
+{
+    __weak __typeof(self) weakSelf = self;
+    NSString *multi_window_access_hash = [self method_hashFormat:NTC_MULTI_WINDOW_ACCESS];
+    IAceOnCallSyncResourceMethod multi_window_access_callback = ^NSString *(NSDictionary * param) {
+        __strong __typeof(weakSelf) strongSelf = weakSelf;
+        if (strongSelf == nil) {
+            LOGE("AceWeb: multiWindowAccess fail");
+            return FAIL;
+        }
+        bool isMultiWindowAccessEnabled = [[param objectForKey:NTC_MULTI_WINDOW_ACCESS] boolValue];
+        strongSelf.isMultiWindowAccessEnabled = isMultiWindowAccessEnabled ? YES : NO;
+        return SUCCESS;
+    };
+    [self.callSyncMethodMap setObject:[multi_window_access_callback copy] forKey:multi_window_access_hash];
+}
+
+- (void)setAllowWindowOpenMethodCallback
+{
+    __weak __typeof(self) weakSelf = self;
+    NSString *allow_window_open_method_hash = [self method_hashFormat:NTC_ALLOW_WINDOW_OPEN_METHOD];
+    IAceOnCallSyncResourceMethod allow_window_open_method_callback = ^NSString *(NSDictionary * param) {
+        __strong __typeof(weakSelf) strongSelf = weakSelf;
+        if (strongSelf == nil) {
+            LOGE("AceWeb: allowWindowOpenMethod fail");
+            return FAIL;
+        }
+        bool isAllowWindowOpenMethodEnabled = [[param objectForKey:NTC_ALLOW_WINDOW_OPEN_METHOD] boolValue];
+        strongSelf.isAllowWindowOpenMethodEnabled = isAllowWindowOpenMethodEnabled ? YES : NO;
+        strongSelf.webView.configuration.preferences.javaScriptCanOpenWindowsAutomatically =
+            strongSelf.isAllowWindowOpenMethodEnabled;
+        return SUCCESS;
+    };
+    [self.callSyncMethodMap setObject:[allow_window_open_method_callback copy] forKey:allow_window_open_method_hash];
+}
+
 - (void)updateTextZoomRatio
 {
     __weak __typeof(self) weakSelf = self;
@@ -2093,6 +2147,15 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
     }
 }
 
+- (void)notifyWindowExitIfNeeded
+{
+    if (self.hasSentWindowExitEvent) {
+        return;
+    }
+    self.hasSentWindowExitEvent = YES;
+    AceWebObject([[self event_hashFormat:NTC_ONWINDOWEXIT] UTF8String], [NTC_ONWINDOWEXIT UTF8String], nullptr);
+}
+
 - (NSDictionary<NSString *, IAceOnCallSyncResourceMethod> *)getSyncCallMethod
 {
     return self.callSyncMethodMap;
@@ -2101,6 +2164,23 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
 - (void)webView:(WKWebView *)webView didFailNavigation:(WKNavigation *)navigation withError:(NSError *)error
 {
     LOGE("didFailNavigation === ");
+}
+
+- (nullable WKWebView *)webView:(WKWebView *)webView
+    createWebViewWithConfiguration:(WKWebViewConfiguration *)configuration
+               forNavigationAction:(WKNavigationAction *)navigationAction
+                    windowFeatures:(WKWindowFeatures *)windowFeatures
+{
+    NSString *targetUrl = navigationAction.request.URL.absoluteString ?: @"";
+    if (!self.isMultiWindowAccessEnabled) {
+        [self loadUrl:targetUrl header:nil];
+        return nil;
+    }
+    bool isAlert = false;
+    bool isUserTrigger = navigationAction.navigationType == WKNavigationTypeLinkActivated;
+    auto object = std::make_shared<AceWebWindowNewObject>(isAlert, isUserTrigger, std::string([targetUrl UTF8String]));
+    AceWebObject([[self event_hashFormat:NTC_ONWINDOWNEW] UTF8String], [NTC_ONWINDOWNEW UTF8String], object.get());
+    return nil;
 }
 
 - (void)webView:(WKWebView *)webView didCommitNavigation:(WKNavigation *)navigation
@@ -2150,6 +2230,19 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
     NSString *url = self.webView.URL.absoluteString;
     AceWebRefreshAccessedHistoryObject *obj = new AceWebRefreshAccessedHistoryObject(std::string([url UTF8String]), isRefreshed);
     AceWebObject([[self event_hashFormat:NTC_ONREFRESHACCESSED_HISTORYEVENT] UTF8String], [NTC_ONREFRESHACCESSED_HISTORYEVENT UTF8String], obj);
+}
+
+- (void)webViewWebContentProcessDidTerminate:(WKWebView *)webView
+{
+    [self fireCallback:NTC_ONRENDEREXITED params:NTC_ONRENDEREXITED_ERRORCODE];
+}
+
+- (void)webViewDidClose:(WKWebView *)webView
+{
+    if (webView != self.webView) {
+        return;
+    }
+    [self notifyWindowExitIfNeeded];
 }
 
 - (void)releaseResourceRequest {

@@ -129,6 +129,47 @@ int AceWebFullScreenEnterObject::GetHeights() {
     return this->heights_;
 }
 
+bool AceWebWindowNewObject::IsAlert() const
+{
+    return this->isAlert_;
+}
+
+bool AceWebWindowNewObject::IsUserTrigger() const
+{
+    return this->isUserTrigger_;
+}
+
+std::string AceWebWindowNewObject::GetTargetUrl() const
+{
+    return this->targetUrl_;
+}
+
+void AceWebWindowNewObject::CompleteWithChildWeb(int32_t childWebId)
+{
+    std::lock_guard<std::mutex> lock(mutex_);
+    this->childWebId_ = childWebId;
+    this->isCompleted_ = true;
+}
+
+void AceWebWindowNewObject::CancelPopup()
+{
+    std::lock_guard<std::mutex> lock(mutex_);
+    this->childWebId_ = -1;
+    this->isCompleted_ = true;
+}
+
+bool AceWebWindowNewObject::IsCompleted() const
+{
+    std::lock_guard<std::mutex> lock(mutex_);
+    return this->isCompleted_;
+}
+
+int32_t AceWebWindowNewObject::GetChildWebId() const
+{
+    std::lock_guard<std::mutex> lock(mutex_);
+    return this->childWebId_;
+}
+
 int AceWebSslErrorEventObject::GetError() {
     return this->error_;
 }
