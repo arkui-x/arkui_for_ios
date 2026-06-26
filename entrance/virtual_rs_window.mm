@@ -926,7 +926,13 @@ void Window::NotifySurfaceChanged(int32_t width, int32_t height, float density)
         config.SetDensity(density_);
         config.SetSize(surfaceWidth_, surfaceHeight_);
         config.SetOrientation(surfaceWidth_ <= surfaceHeight_ ? 0 : 1);
-        uiContent_->UpdateViewportConfig(config, WindowSizeChangeReason::RESIZE);
+        std::map<AvoidAreaType, Rosen::AvoidArea> avoidAreas;
+        for (auto t : { AvoidAreaType::TYPE_SYSTEM, AvoidAreaType::TYPE_CUTOUT, AvoidAreaType::TYPE_NAVIGATION_INDICATOR }) {
+            Rosen::AvoidArea area;
+            GetAvoidAreaByType(t, area);
+            avoidAreas[t] = area;
+        }
+        uiContent_->UpdateViewportConfig(config, WindowSizeChangeReason::RESIZE, avoidAreas);
     }
 
     delayNotifySurfaceChanged_ = true;
@@ -1024,10 +1030,29 @@ void Window::UpdateAvoidArea(const std::shared_ptr<Rosen::AvoidArea>& avoidArea,
 
     {
         std::lock_guard<std::recursive_mutex> lock(globalMutex_);
-        if (avoidAreaMap_[type] != *avoidArea) {
-            avoidAreaMap_[type] = *avoidArea;
-            NotifyAvoidAreaChange(avoidArea, type);
-        }    
+        auto iter = avoidAreaMap_.find(type);
+        if (iter != avoidAreaMap_.end() && iter->second == *avoidArea) {
+            LOGD("UpdateAvoidArea type:%{public}d unchanged, skip", type);
+            return;
+        }
+        avoidAreaMap_[type] = *avoidArea;
+    }
+
+    NotifyAvoidAreaChange(avoidArea, type);
+
+    if (uiContent_) {
+        Ace::ViewportConfig config;
+        config.SetDensity(density_);
+        config.SetSize(surfaceWidth_, surfaceHeight_);
+        config.SetOrientation(surfaceWidth_ <= surfaceHeight_ ? 0 : 1);
+        std::map<AvoidAreaType, Rosen::AvoidArea> avoidAreas;
+        for (auto t : { AvoidAreaType::TYPE_SYSTEM, AvoidAreaType::TYPE_CUTOUT,
+                        AvoidAreaType::TYPE_NAVIGATION_INDICATOR }) {
+            Rosen::AvoidArea area;
+            GetAvoidAreaByType(t, area);
+            avoidAreas[t] = area;
+        }
+        uiContent_->UpdateViewportConfig(config, WindowSizeChangeReason::RESIZE, avoidAreas);
     }
 }
 void Window::NotifyAvoidAreaChange(const std::shared_ptr<AvoidArea>& avoidArea, AvoidAreaType type)
@@ -1149,7 +1174,13 @@ void Window::DelayNotifyUIContentIfNeeded()
         config.SetDensity(density_);
         config.SetSize(surfaceWidth_, surfaceHeight_);
         config.SetOrientation(surfaceWidth_ <= surfaceHeight_ ? 0 : 1);
-        uiContent_->UpdateViewportConfig(config, WindowSizeChangeReason::RESIZE);
+        std::map<AvoidAreaType, Rosen::AvoidArea> avoidAreas;
+        for (auto t : { AvoidAreaType::TYPE_SYSTEM, AvoidAreaType::TYPE_CUTOUT, AvoidAreaType::TYPE_NAVIGATION_INDICATOR }) {
+            Rosen::AvoidArea area;
+            GetAvoidAreaByType(t, area);
+            avoidAreas[t] = area;
+        }
+        uiContent_->UpdateViewportConfig(config, WindowSizeChangeReason::RESIZE, avoidAreas);
     }
 
     if (delayNotifySurfaceDestroyed_) {
@@ -1193,6 +1224,9 @@ WMError Window::SetUIContent(const std::string& contentInfo,
 
     // make uiContent available after Initialize/Restore
     uiContent_ = std::move(uiContent);
+    if (isIgnoreSafeAreaNeedNotify_) {
+        uiContent_->SetIgnoreViewSafeArea(isIgnoreSafeArea_);
+    }
     if(isWindowShow_ && ([UIApplication sharedApplication].applicationState != UIApplicationStateBackground)) {
         uiContent_->Foreground();
     }
@@ -1698,15 +1732,19 @@ WMError Window::SetLayoutFullScreen(bool status) {
     if (![controller isKindOfClass:[StageViewController class]]) {
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
+    [controller.navigationController setNavigationBarHidden:YES animated:NO];
     if (status == true) {
         LOGI("isLayoutFullScreen is ture");
-        controller.edgesForExtendedLayout = UIRectEdgeAll;
-        controller.navigationController.navigationBar.translucent = YES;
+        SetMode(OHOS::Rosen::WindowMode::WINDOW_MODE_FULLSCREEN);
     } else {
         LOGI("isLayoutFullScreen is false");
-        controller.edgesForExtendedLayout = UIRectEdgeNone;
-        controller.navigationController.navigationBar.translucent = NO;
+        SetMode(OHOS::Rosen::WindowMode::WINDOW_MODE_UNDEFINED);
     }
+    isIgnoreSafeArea_ = status;
+    if (uiContent_ != nullptr) {
+        uiContent_->SetIgnoreViewSafeArea(status);
+    }
+    isIgnoreSafeAreaNeedNotify_ = true;
     return WMError::WM_OK;
 }
 
