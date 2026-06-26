@@ -48,9 +48,12 @@
 #include "core/common/asset_manager_impl.h"
 #include "core/common/container.h"
 #include "core/common/container_scope.h"
+#include "core/components_ng/property/safe_area_insets.h"
+#include "core/components_ng/manager/safe_area/safe_area_manager.h"
 #include "core/event/touch_event.h"
 #include "core/image/image_file_cache.h"
 #include "frameworks/bridge/declarative_frontend/ng/declarative_frontend_ng.h"
+#include "frameworks/core/pipeline_ng/pipeline_context.h"
 
 namespace OHOS::Ace::Platform {
 namespace {
@@ -176,16 +179,21 @@ public:
             systemSafeArea_ = ConvertAvoidArea(avoidArea);
         } else if (type == Rosen::AvoidAreaType::TYPE_NAVIGATION_INDICATOR) {
             navigationBar_ = ConvertAvoidArea(avoidArea);
+        } else if (type == Rosen::AvoidAreaType::TYPE_CUTOUT) {
+            cutoutSafeArea_ = ConvertAvoidArea(avoidArea);
         }
         auto safeArea = systemSafeArea_;
         auto navSafeArea = navigationBar_;
+        auto cutoutSafeArea = cutoutSafeArea_;
         ContainerScope scope(instanceId_);
         taskExecutor->PostTask(
-            [pipeline, safeArea, navSafeArea, type, avoidArea] {
+            [pipeline, safeArea, navSafeArea, cutoutSafeArea, type, avoidArea] {
                 if (type == Rosen::AvoidAreaType::TYPE_SYSTEM) {
                     pipeline->UpdateSystemSafeArea(safeArea);
                 } else if (type == Rosen::AvoidAreaType::TYPE_NAVIGATION_INDICATOR) {
                     pipeline->UpdateNavSafeArea(navSafeArea);
+                } else if (type == Rosen::AvoidAreaType::TYPE_CUTOUT) {
+                    pipeline->UpdateCutoutSafeArea(cutoutSafeArea);
                 }
                 // for ui extension component
                 pipeline->UpdateOriginAvoidArea(avoidArea, static_cast<uint32_t>(type));
@@ -196,6 +204,7 @@ public:
 private:
     NG::SafeAreaInsets systemSafeArea_;
     NG::SafeAreaInsets navigationBar_;
+    NG::SafeAreaInsets cutoutSafeArea_;
     int32_t instanceId_ = -1;
 };
 
@@ -488,6 +497,8 @@ void UIContentImpl::CommonInitialize(OHOS::Rosen::Window* window, const std::str
         }
     }
 
+    InitializeSafeArea(container);
+
     if (runtime_) {
         auto nativeEngine = reinterpret_cast<NativeEngine*>(runtime_);
         if (!storage) {
@@ -510,7 +521,35 @@ void UIContentImpl::InitializeSafeArea(const RefPtr<Platform::AceContainerSG>& c
     if (pipeline && pipeline->GetMinPlatformVersion() >= PLATFORM_VERSION_TEN) {
         avoidAreaChangedListener_ = new AvoidAreaChangedListener(instanceId_);
         window_->RegisterAvoidAreaChangeListener(avoidAreaChangedListener_);
+        auto systemInsets = GetViewSafeAreaByType(Rosen::AvoidAreaType::TYPE_SYSTEM);
+        auto cutoutInsets = GetViewSafeAreaByType(Rosen::AvoidAreaType::TYPE_CUTOUT);
+        auto navInsets = GetViewSafeAreaByType(Rosen::AvoidAreaType::TYPE_NAVIGATION_INDICATOR);
+        pipeline->UpdateSystemSafeAreaWithoutAnimation(systemInsets);
+        pipeline->UpdateCutoutSafeAreaWithoutAnimation(cutoutInsets);
+        pipeline->UpdateNavSafeAreaWithoutAnimation(navInsets);
+        LOGI("InitializeSafeArea systemInsets:%{public}s, cutoutInsets:%{public}s, navInsets:%{public}s",
+            systemInsets.ToString().c_str(), cutoutInsets.ToString().c_str(), navInsets.ToString().c_str());
     }
+}
+
+void UIContentImpl::SetIgnoreViewSafeArea(bool ignoreViewSafeArea)
+{
+    LOGI("[%{public}d]: SetIgnoreViewSafeArea:%{public}u", instanceId_, ignoreViewSafeArea);
+    auto container = Platform::AceContainerSG::GetContainer(instanceId_);
+    CHECK_NULL_VOID(container);
+    ContainerScope scope(instanceId_);
+    auto pipeline = container->GetPipelineContext();
+    constexpr static int32_t PLATFORM_VERSION_TEN = 10;
+    CHECK_NULL_VOID(pipeline && pipeline->GetMinPlatformVersion() >= PLATFORM_VERSION_TEN);
+    auto taskExecutor = container->GetTaskExecutor();
+    CHECK_NULL_VOID(taskExecutor);
+    taskExecutor->PostSyncTask(
+        [container, ignoreSafeArea = ignoreViewSafeArea]() {
+            auto pipelineContext = container->GetPipelineContext();
+            CHECK_NULL_VOID(pipelineContext);
+            pipelineContext->SetIgnoreViewSafeArea(ignoreSafeArea);
+        },
+        TaskExecutor::TaskType::UI, "ArkUI-XSetIgnoreViewSafeArea");
 }
 
 NG::SafeAreaInsets UIContentImpl::GetViewSafeAreaByType(OHOS::Rosen::AvoidAreaType type)
@@ -888,7 +927,28 @@ void UIContentImpl::ProcessWindowSizeLayoutBreakPointChange(double density)
     }
 }
 
-void UIContentImpl::UpdateViewportConfig(const ViewportConfig& config, OHOS::Rosen::WindowSizeChangeReason reason)
+bool ParseAvoidAreasUpdate(const RefPtr<PipelineBase>& pipeline,
+    const std::map<OHOS::Rosen::AvoidAreaType, OHOS::Rosen::AvoidArea>& avoidAreas)
+{
+    CHECK_NULL_RETURN(pipeline, false);
+    for (auto& avoidArea : avoidAreas) {
+        if (avoidArea.first == OHOS::Rosen::AvoidAreaType::TYPE_SYSTEM) {
+            pipeline->UpdateSystemSafeArea(ConvertAvoidArea(avoidArea.second));
+        } else if (avoidArea.first == OHOS::Rosen::AvoidAreaType::TYPE_NAVIGATION_INDICATOR) {
+            pipeline->UpdateNavSafeArea(ConvertAvoidArea(avoidArea.second));
+        } else if (avoidArea.first == OHOS::Rosen::AvoidAreaType::TYPE_CUTOUT) {
+            pipeline->UpdateCutoutSafeArea(ConvertAvoidArea(avoidArea.second));
+        }
+    }
+    auto ngContext = AceType::DynamicCast<NG::PipelineContext>(pipeline);
+    if (ngContext) {
+        ngContext->SyncSafeArea(SafeAreaSyncType::SYNC_TYPE_AVOID_AREA);
+    }
+    return true;
+}
+
+void UIContentImpl::UpdateViewportConfig(const ViewportConfig& config, OHOS::Rosen::WindowSizeChangeReason reason,
+    const std::map<OHOS::Rosen::AvoidAreaType, OHOS::Rosen::AvoidArea>& avoidAreas)
 {
     LOGI("UIContentImpl: UpdateViewportConfig %{public}s", config.ToString().c_str());
     ProcessWindowSizeLayoutBreakPointChange(config.Density());
@@ -901,6 +961,15 @@ void UIContentImpl::UpdateViewportConfig(const ViewportConfig& config, OHOS::Ros
     CHECK_NULL_VOID(container);
     auto taskExecutor = container->GetTaskExecutor();
     CHECK_NULL_VOID(taskExecutor);
+
+    if (!avoidAreas.empty()) {
+        taskExecutor->PostSyncTask(
+            [container, avoidAreas]() {
+                ParseAvoidAreasUpdate(container->GetPipelineContext(), avoidAreas);
+            },
+            TaskExecutor::TaskType::UI, "ArkUI-XUIContentImplParseAvoidAreas");
+    }
+
     taskExecutor->PostTask(
         [config, container, reason, rsWindow = window_]() {
             container->SetWindowPos(config.Left(), config.Top());

@@ -72,7 +72,9 @@ public:
 
     void NotifySurfaceCreated() override;
     void NotifySurfaceDestroyed() override;
-    void UpdateViewportConfig(const ViewportConfig& config, OHOS::Rosen::WindowSizeChangeReason reason) override;
+    void UpdateViewportConfig(const ViewportConfig& config, OHOS::Rosen::WindowSizeChangeReason reason,
+        const std::map<OHOS::Rosen::AvoidAreaType, OHOS::Rosen::AvoidArea>& avoidAreas = {}) override;
+    virtual void SetIgnoreViewSafeArea(bool ignoreViewSafeArea) override;
 
     void UpdateConfiguration(const std::shared_ptr<OHOS::AbilityRuntime::Platform::Configuration>& config) override;
 
