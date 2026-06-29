@@ -171,6 +171,10 @@ _napi_get_uv_event_loop
 _napi_get_value_string_utf8
 _napi_get_value_uint32
 _napi_load_module
+_napi_load_module_with_info
+_napi_create_ark_context
+_napi_switch_ark_context
+_napi_destroy_ark_context
 _napi_is_array
 _napi_is_exception_pending
 _napi_module_register
