@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2021-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -20,6 +20,7 @@
 #include <parcel.h>
 #include <map>
 #include <string>
+#include <vector>
 
 #include "base/utils/macros.h"
 #include "dm_common.h"
@@ -28,9 +29,12 @@
 #include "nocopyable.h"
 
 namespace OHOS::Rosen {
+std::vector<uint64_t> GetAllDisplayIdsFromPlatform();
+
 class ACE_EXPORT DisplayInfo : public virtual RefBase {
 public:
     DisplayInfo();
+    explicit DisplayInfo(DisplayId displayId);
     ~DisplayInfo();
     DISALLOW_COPY_AND_MOVE(DisplayInfo);
     DisplayId GetDisplayId() const;
@@ -41,6 +45,7 @@ public:
     float GetDensityPixels() const;
     float GetScaledDensity() const;
     int32_t GetDensityDpi() const;
+    int32_t GetRotation() const;
 
     void SetDisplayId(DisplayId displayId);
     void SetWidth(int32_t width);
@@ -50,6 +55,7 @@ public:
     void SetDensityPixels(float densityPixels);
     void SetScaledDensity(float scaledDensity);
     void SetDensityDpi(int32_t dpi);
+    void SetRotation(int32_t rotation);
     int32_t GetXDpi();
     int32_t GetYDpi();
 
@@ -62,6 +68,7 @@ private:
     float densityPixels_ { 0.0f };
     float scaledDensity_ { 0.0f };
     int32_t densityDpi_ { 0.0f };
+    int32_t rotation_ { 0 };
     int32_t GetDevicePpi() const;
 };
 } // namespace OHOS::Rosen
