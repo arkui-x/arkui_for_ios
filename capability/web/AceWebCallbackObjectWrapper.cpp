@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Huawei Device Co., Ltd.
+ * Copyright (c) 2025-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -19,6 +19,10 @@
 #include "AceWebObject.h"
 #include <stdio.h>
 #include <string.h>
+#include <mutex>
+#include <unordered_map>
+
+#include "AceWebControllerBridge.h"
 
 class AceWebResourceObjectWrapper final : public OHOS::Ace::WebResourceRequestObject {
 public:
@@ -467,6 +471,97 @@ void AceWebFullScreenEnterObjectWrapper::ExitFullScreen(void* object, int index)
     }
 }
 
+class AceWebWindowNewObjectWrapper final : public OHOS::Ace::WebWindowNewObject {
+public:
+    bool IsAlert(void* object) override;
+    bool IsUserTrigger(void* object) override;
+    std::string GetTargetUrl(void* object) override;
+    int AddObject(void* object) override;
+    void DelObject(int index) override;
+    void CompleteWithChildWeb(int index, int32_t childWebId) override;
+    void CancelPopup(int index) override;
+
+private:
+    std::shared_ptr<AceWebWindowNewObject> GetObject(int index);
+
+    int index_ = 0;
+    std::unordered_map<int, std::shared_ptr<AceWebWindowNewObject>> objectMap_;
+    std::mutex mutex_;
+};
+
+bool AceWebWindowNewObjectWrapper::IsAlert(void* object)
+{
+    AceWebWindowNewObject* acePtr = reinterpret_cast<AceWebWindowNewObject*>(object);
+    if (acePtr != nullptr) {
+        return acePtr->IsAlert();
+    }
+    return false;
+}
+
+bool AceWebWindowNewObjectWrapper::IsUserTrigger(void* object)
+{
+    AceWebWindowNewObject* acePtr = reinterpret_cast<AceWebWindowNewObject*>(object);
+    if (acePtr != nullptr) {
+        return acePtr->IsUserTrigger();
+    }
+    return false;
+}
+
+std::string AceWebWindowNewObjectWrapper::GetTargetUrl(void* object)
+{
+    AceWebWindowNewObject* acePtr = reinterpret_cast<AceWebWindowNewObject*>(object);
+    if (acePtr != nullptr) {
+        return acePtr->GetTargetUrl();
+    }
+    return "";
+}
+
+int AceWebWindowNewObjectWrapper::AddObject(void* object)
+{
+    auto* aceObject = reinterpret_cast<AceWebWindowNewObject*>(object);
+    if (aceObject == nullptr) {
+        return -1;
+    }
+    std::lock_guard<std::mutex> lock(mutex_);
+    objectMap_[++index_] = aceObject->shared_from_this();
+    return index_;
+}
+
+void AceWebWindowNewObjectWrapper::DelObject(int index)
+{
+    std::lock_guard<std::mutex> lock(mutex_);
+    objectMap_.erase(index);
+}
+
+void AceWebWindowNewObjectWrapper::CompleteWithChildWeb(int index, int32_t childWebId)
+{
+    auto object = GetObject(index);
+    if (object == nullptr) {
+        return;
+    }
+    object->CompleteWithChildWeb(childWebId);
+    loadUrlOC(childWebId, GetTargetUrl(object.get()), std::map<std::string, std::string>());
+}
+
+void AceWebWindowNewObjectWrapper::CancelPopup(int index)
+{
+    auto object = GetObject(index);
+    if (object == nullptr) {
+        return;
+    }
+    object->CancelPopup();
+}
+
+std::shared_ptr<AceWebWindowNewObject> AceWebWindowNewObjectWrapper::GetObject(int index)
+{
+    std::lock_guard<std::mutex> lock(mutex_);
+    auto iter = objectMap_.find(index);
+    if (iter == objectMap_.end()) {
+        return nullptr;
+    }
+    return iter->second;
+}
+
 class AceWebSslErrorEventObjectWrapper final : public OHOS::Ace::WebSslErrorEventObject {
 public:
     int GetError(void* object);
@@ -609,6 +704,11 @@ void InjectAceWebResourceObject()
     OHOS::Ace::WebObjectEventManager::GetInstance().SetFullScreenEnterObject(aceWebFullScreenEnterObject);
     auto aceWebFullScreenExitObject = OHOS::Ace::Referenced::MakeRefPtr<AceWebFullScreenExitObjectWrapper>();
     OHOS::Ace::WebObjectEventManager::GetInstance().SetFullScreenExitObject(aceWebFullScreenExitObject);
+    auto aceWebWindowNewObject = OHOS::Ace::WebObjectEventManager::GetInstance().GetWindowNewObject();
+    if (aceWebWindowNewObject == nullptr) {
+        aceWebWindowNewObject = OHOS::Ace::Referenced::MakeRefPtr<AceWebWindowNewObjectWrapper>();
+        OHOS::Ace::WebObjectEventManager::GetInstance().SetWindowNewObject(aceWebWindowNewObject);
+    }
     auto aceWebSslErrorEventObject = OHOS::Ace::Referenced::MakeRefPtr<AceWebSslErrorEventObjectWrapper>();
     OHOS::Ace::WebObjectEventManager::GetInstance().SetSslErrorEventObject(aceWebSslErrorEventObject);
     auto aceWebOnSslErrorEventReceiveEventObject= OHOS::Ace::Referenced::MakeRefPtr<AceWebOnSslErrorEventReceiveEventObjectWrapper>();

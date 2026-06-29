@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Huawei Device Co., Ltd.
+ * Copyright (c) 2025-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -19,6 +19,9 @@
 #include <vector>
 #include <iostream>
 #include <string>
+#include <cstdint>
+#include <memory>
+#include <mutex>
 
 typedef bool (^HttpAuthRequestMethod)(int action, std::string name, std::string pwd);
 typedef void (^PermissionRequestMethod)(int action, int ResourcesId);
@@ -221,6 +224,27 @@ private:
     FullEnterRequestExitMethod fullEnterRequestExitCallback_;
 };
 class AceWebFullScreenExitObject{
+};
+
+class AceWebWindowNewObject : public std::enable_shared_from_this<AceWebWindowNewObject> {
+public:
+    AceWebWindowNewObject(bool isAlert, bool isUserTrigger, const std::string& targetUrl)
+        : isAlert_(isAlert), isUserTrigger_(isUserTrigger), targetUrl_(targetUrl) {}
+    bool IsAlert() const;
+    bool IsUserTrigger() const;
+    std::string GetTargetUrl() const;
+    void CompleteWithChildWeb(int32_t childWebId);
+    void CancelPopup();
+    bool IsCompleted() const;
+    int32_t GetChildWebId() const;
+
+private:
+    bool isAlert_ = false;
+    bool isUserTrigger_ = false;
+    std::string targetUrl_;
+    bool isCompleted_ = false;
+    int32_t childWebId_ = -1;
+    mutable std::mutex mutex_;
 };
 
 class AceWebSslErrorEventObject {
