@@ -65,6 +65,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 + (void)onMemoryLevel:(int32_t)level;
 
++ (BOOL)destroyVm;
+
 @end
 
 NS_ASSUME_NONNULL_END

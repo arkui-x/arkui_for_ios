@@ -497,4 +497,9 @@ static bool g_isOnBackground = false;
     AppMain::GetInstance()->LoadModule([moduleName UTF8String], [entryFile UTF8String]);
 }
 
++ (BOOL)destroyVm
+{
+    return AppMain::GetInstance()->DestroyVm() ? YES : NO;
+}
+
 @end
