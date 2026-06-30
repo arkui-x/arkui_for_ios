@@ -343,13 +343,17 @@ std::shared_ptr<Window> Window::CreateSubWindow(
     AccessibilityWindowView* windowView = [[AccessibilityWindowView alloc]init];
     LOGI("Window::Createsubwindow with %{public}p", windowView);
     window->SetWindowView(windowView);
-    [windowView setWindowDelegate:window]; 
+    [windowView setWindowDelegate:window];
     [windowView createSurfaceNode];
     window->IncStrongRef(window.get());
     window->SetWindowName(option->GetWindowName());
     window->SetWindowType(option->GetWindowType());
     window->SetMode(Rosen::WindowMode::WINDOW_MODE_FLOATING);
-    LOGI("Window::Createsubwindow with name:%s, parentId=%{public}u", window->GetWindowName().c_str(), option->GetParentId());
+    window->SetWindowModal(option->IsWindowModal());
+    window->SetWindowZLevel(option->GetWindowZLevel());
+    window->SetRequestRect(option);
+    windowView.zOrder = option->GetWindowZLevel();
+    windowView.isModal = option->IsWindowModal();
     window->SetParentId(option->GetParentId());
     AddToSubWindowMap(window);
     AddToWindowMap(window);
@@ -620,6 +624,11 @@ WMError Window::ShowWindow()
     UIView *mainWindowView = [controller getWindowView];
 
     if ([windowView_ showOnView:mainWindowView.superview]) {
+        if (IsSubWindow()) {
+            ResizeWindowTo(requestRect_.width_, requestRect_.height_);
+            rect_ = requestRect_;
+            NotifySizeChange(rect_);
+        }
         DelayNotifyUIContentIfNeeded();
         NotifyAfterForeground();
         isWindowShow_ = true;
@@ -655,16 +664,19 @@ WMError Window::MoveWindowTo(int32_t x, int32_t y)
     if (isFullScreen_) {
         return WMError::WM_ERROR_INVALID_PARENT;
     }
+    requestRect_.posX_ = x;
+    requestRect_.posY_ = y;
     UIScreen *screen = [UIScreen mainScreen];
     CGFloat scale = screen.scale;
     if (scale == 0) {
         scale = 2;
     }
-    rect_.posX_ = x;
-    rect_.posY_ = y;
     x = x < 0 ? 0 : x / scale;
     y = y < 0 ? 0 : y / scale;
     windowView_.frame = CGRectMake(x, y, windowView_.frame.size.width, windowView_.frame.size.height);
+    rect_.posX_ = requestRect_.posX_;
+    rect_.posY_ = requestRect_.posY_;
+    NotifySizeChange(rect_);
     return WMError::WM_OK;
 }
 
@@ -716,7 +728,7 @@ WMError Window::SetFocusable(bool focusable)
         LOGE("Window: SetFocusable failed");
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
-    windowView_.focusable = focusable;
+    [windowView_ setWindowFocusable:focusable];
     focusable_ = focusable;
     return WMError::WM_OK;
 }
@@ -796,12 +808,15 @@ WMError Window::ResizeWindowTo(int32_t width, int32_t height) {
     if (isFullScreen_) {
         return WMError::WM_ERROR_INVALID_PARENT;
     }
+    requestRect_.width_ = width;
+    requestRect_.height_ = height;
     UIScreen *screen = [UIScreen mainScreen];
     CGFloat scale = screen.scale;
     windowView_.frame = CGRectMake(windowView_.frame.origin.x, windowView_.frame.origin.y, width / scale, height / scale);
 
-    rect_.width_ = width;
-    rect_.height_ = height;
+    rect_.width_ = requestRect_.width_;
+    rect_.height_ = requestRect_.height_;
+    NotifySizeChange(rect_);
     return WMError::WM_OK;
 }
 
@@ -1065,6 +1080,16 @@ void Window::NotifySurfaceDestroyed()
     }
 }
 
+void Window::SubWindowHide()
+{
+    NotifyAfterBackground();
+}
+
+void Window::SubWindowClose()
+{
+    Destroy();
+}
+
 bool Window::ProcessPointerEvent(const std::vector<uint8_t>& data)
 {
     if (!uiContent_) {
@@ -1229,9 +1254,30 @@ void Window::SetMode(WindowMode windowMode)
     windowMode_ = windowMode;
 }
 
+void Window::SetWindowModal(bool isModal)
+{
+    isModal_ = isModal;
+    if (windowView_) {
+        windowView_.isModal = isModal;
+    }
+}
+
+void Window::SetWindowZLevel(int32_t zLevel)
+{
+    zLevel_ = zLevel;
+}
+
 void Window::SetParentId(uint32_t parentId)
 {
     parentId_ = parentId;
+}
+
+void Window::SetRequestRect(std::shared_ptr<WindowOption> option)
+{
+    requestRect_.width_ = option->GetWindowRect().width_;
+    requestRect_.height_ = option->GetWindowRect().height_;
+    requestRect_.posX_ = option->GetWindowRect().posX_;
+    requestRect_.posY_ = option->GetWindowRect().posY_;
 }
 
 void Window::WindowActiveChanged(bool isActive)
@@ -1463,6 +1509,12 @@ void Window::SetRequestedOrientation(Orientation orientation)
 
     [[NSNotificationCenter defaultCenter]postNotificationName:@(kOrientationMaskUpdateNotificationName)
         object:nil userInfo:@{@(kOrientationMaskUpdateNotificationKey):@(windowView_.OrientationMask)}];
+    orientation_ = orientation;
+}
+
+Orientation Window::GetRequestedOrientation()
+{
+    return orientation_;
 }
 
 SystemBarProperty Window::GetSystemBarPropertyByType(WindowType type) const

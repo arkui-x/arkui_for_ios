@@ -272,6 +272,11 @@ public:
     int32_t GetNodeId() const override;
     void SetWindowAnchorInfo(const NG::OffsetF& offset, SubwindowType type, int32_t nodeId) override;
 
+    bool NeedAvoidKeyboard() override
+    {
+        return needAvoidKeyboard_;
+    }
+
 private:
     void InitSubwindow(const RefPtr<Platform::AceContainerSG>& parentContainer);
     bool InitSubContainer(const RefPtr<Platform::AceContainerSG>& parentContainer) const;
@@ -297,6 +302,7 @@ private:
     bool isToastWindow_ = false;
     bool isMenuWindow_ = false;
     bool destroyInHide_ = false;
+    bool needAvoidKeyboard_ = false;
     std::shared_ptr<OHOS::Rosen::Window> window_ = nullptr;
     sptr<OHOS::Rosen::Window> parentWindow_ = nullptr;
     std::unordered_map<int32_t, std::vector<Rosen::Rect>> hotAreasMap_;

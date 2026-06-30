@@ -30,6 +30,10 @@ class Window;
 @property (nonatomic, assign) BOOL fullScreen;
 @property (nonatomic, assign) NSInteger zOrder;
 @property (nonatomic, assign) float brightness;
+@property (nonatomic, assign) BOOL isModal;
+
+- (void)setWindowFocusable:(BOOL)isFocusable;
+- (void)onViewFocusChanged:(BOOL)gainFocus;
 
 - (UIViewController*)getViewController;
 

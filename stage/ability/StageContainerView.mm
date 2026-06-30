@@ -32,13 +32,20 @@
     }
     return self;
 }
+
 - (void)showWindow:(WindowView *)window {
     LOGI("%{public}s", "showWindow");
+    if (window == self.mainWindow) {
+        [self addSubview:window];
+        return;
+    }
     UIView* aboveView = nullptr;
-    for (UIView* view in self.subviews.reverseObjectEnumerator) {
+    for (UIView* view in self.subviews) {
+        if (view == self.mainWindow) {
+            continue;
+        }
         if (window.zOrder < ((WindowView *)view).zOrder) {
             aboveView = view;
-        } else {
             break;
         }
     }
@@ -51,6 +58,7 @@
     if (window.focusable) {
         [self setActiveWindow:window];
     }
+    [self syncContentViewFocusable:window.focusable];
 }
 
 - (BOOL)requestFocus:(WindowView*)window {
@@ -65,6 +73,7 @@
        }
     }
     if (res) {
+        [self syncContentViewFocusable:YES];
         [self bringSubviewToFront:window];
         self.activeWindow = window;
         return YES;
@@ -181,6 +190,24 @@
         _activeWindow.isFocused = NO;
         _activeWindow = activeWindow;
         _activeWindow.isFocused = YES;
+        [self syncContentViewFocusable:activeWindow.focusable];
+    }
+}
+
+- (void)setWindowFocusable:(BOOL)isFocusable {
+    for (UIView *subview in [self.subviews reverseObjectEnumerator]) {
+       if ([subview isKindOfClass:[WindowView class]]) {
+           [(WindowView*)subview setWindowFocusable:isFocusable];
+       }
+    }
+}
+
+- (void)syncContentViewFocusable:(BOOL)isFocusable {
+    for (UIView *subview in [self.subviews reverseObjectEnumerator]) {
+       if ([subview isKindOfClass:[WindowView class]]) {
+           [(WindowView*)subview setWindowFocusable:isFocusable];
+           break;
+       }
     }
 }
 

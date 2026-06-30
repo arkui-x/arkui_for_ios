@@ -39,6 +39,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)hiddenWindow:(WindowView *)window;
 // only invoked by StageViewController
 - (void)notifyActiveChanged:(BOOL)actived;
+- (void)setWindowFocusable:(BOOL)isFocusable;
+- (void)syncContentViewFocusable:(BOOL)isFocusable;
 // only invoked by StageViewController
 - (void)notifyForeground;
 // only invoked by StageViewController

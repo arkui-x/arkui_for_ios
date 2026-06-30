@@ -170,6 +170,8 @@ public:
     void NotifyTraitCollectionDidChange(bool isSplitScreen);
     void NotifyTouchOutside();
     void NotifySurfaceDestroyed();
+    void SubWindowHide();
+    void SubWindowClose();
 
     bool ProcessBackPressed();
     bool ProcessPointerEvent(const std::vector<uint8_t>& data);
@@ -276,6 +278,18 @@ public:
         return windowMode_;
     }
 
+    bool IsModal() const
+    {
+        return isModal_;
+    }
+
+    void SetWindowModal(bool isModal);
+
+    int32_t GetZLevel() const
+    {
+        return zLevel_;
+    }
+
     WindowState GetWindowState()
     {
         return state_;
@@ -289,6 +303,7 @@ public:
     void UpdateOtherWindowFocusStateToFalse(Window *window);
     SystemBarProperty GetSystemBarPropertyByType(WindowType type) const;
     void SetRequestedOrientation(Orientation);
+    Orientation GetRequestedOrientation();
     WMError RegisterLifeCycleListener(const sptr<IWindowLifeCycle>& listener);
     WMError UnregisterLifeCycleListener(const sptr<IWindowLifeCycle>& listener);
     WMError RegisterWindowChangeListener(const sptr<IWindowChangeListener>& listener);
@@ -335,7 +350,9 @@ private:
     void SetWindowName(const std::string& windowName);
     void SetWindowType(WindowType windowType);
     void SetMode(WindowMode windowMode);
+    void SetWindowZLevel(int32_t zLevel);
     void SetParentId(uint32_t parentId);
+    void SetRequestRect(std::shared_ptr<WindowOption> option);
     void ReleaseWindowView();
     void UpdateAvoidArea(const std::shared_ptr<Rosen::AvoidArea>& avoidArea, AvoidAreaType type);
     WindowStatus GetWindowStatusInner(WindowMode mode);
@@ -483,8 +500,10 @@ private:
     int32_t surfaceWidth_ = 0;
     int32_t surfaceHeight_ = 0;
     Rect rect_ = {0, 0, 0, 0};
+    Rect requestRect_ = {0, 0, 0, 0};
     std::string name_;
     float density_ = 0;
+    Orientation orientation_ = Orientation::UNSPECIFIED;
     std::shared_ptr<RSUIDirector> rsUidriect_;
     std::shared_ptr<RSSurfaceNode> surfaceNode_;
     bool isWindowShow_ = false;
@@ -521,6 +540,8 @@ private:
     WindowState state_ { WindowState::STATE_INITIAL };
     WindowStatus status_ { WindowStatus::WINDOW_STATUS_UNDEFINED };
     bool applicationForeground_ = false;
+    bool isModal_ = false;
+    int32_t zLevel_ = 0;
 
     static void AddToWindowMap(std::shared_ptr<Window> window);
     static void DeleteFromWindowMap(std::shared_ptr<Window> window);

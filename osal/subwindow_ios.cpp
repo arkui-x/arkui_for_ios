@@ -234,6 +234,7 @@ void SubwindowIos::clearStatus()
 {
     isMenuWindow_ = false;
     SetIsToastWindow(false);
+    needAvoidKeyboard_ = false;
 }
 
 void SubwindowIos::HideWindow()
@@ -254,6 +255,7 @@ void SubwindowIos::HideWindow()
 
     ContainerModalUnFocus();
 
+    window_->SetWindowModal(false);
     OHOS::Rosen::WMError ret = window_->Hide();
     auto parentContainer = Platform::AceContainerSG::GetContainer(parentContainerId_);
     CHECK_NULL_VOID(parentContainer);
@@ -360,8 +362,9 @@ void SubwindowIos::ShowPopupNG(int32_t targetId, const NG::PopupInfo& popupInfo,
     auto overlayManager = context->GetOverlayManager();
     CHECK_NULL_VOID(overlayManager);
     window_->SetFullScreen(true);
-    ShowWindow(false);
+    ShowWindow(popupInfo.focusable);
     window_->SetTouchable(true);
+    needAvoidKeyboard_ = popupInfo.isAvoidKeyboard;
 
     ResizeWindow();
     ContainerScope scope(childContainerId_);
@@ -572,6 +575,7 @@ RefPtr<NG::FrameNode> SubwindowIos::ShowDialogNG(
         parentOverlay->SetSubWindowId(SubwindowManager::GetInstance()->GetDialogSubwindowInstanceId(GetSubwindowId()));
     }
     window_->SetFullScreen(true);
+    window_->SetWindowModal(dialogProps.isModal);
     ShowWindow();
     window_->SetTouchable(true);
     ResizeWindow();
@@ -617,6 +621,7 @@ void SubwindowIos::OpenCustomDialogNG(const DialogProperties& dialogProps, std::
         parentOverlay->SetSubWindowId(SubwindowManager::GetInstance()->GetDialogSubwindowInstanceId(GetSubwindowId()));
     }
     window_->SetFullScreen(true);
+    window_->SetWindowModal(dialogProps.isModal);
     ShowWindow();
     window_->SetTouchable(true);
     ResizeWindow();
