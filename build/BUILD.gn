@@ -89,6 +89,10 @@ ohos_shared_library("arkui_ios") {
     "-Wl,-force_load," + _clang_rt_ios_force_load_path,
   ]
 
+  if (ace_engine_enable_reduce_eh_frame) {
+    ldflags += [ "-Wl,-no_compact_unwind" ]
+  }
+
   deps = [
     "$ace_root/build:libace_static_ios",
     "$ace_root/interfaces/inner_api/ace_kit:ace_kit",
