@@ -31,6 +31,8 @@ config("capability_config") {
     "$ace_root/adapter/ios/capability/surface",
     "$ace_root/adapter/ios/stage/ability",
     "$ace_root/adapter/ios/capability/web",
+    "//base/web/webview/interfaces/kits/nativecommon",
+    "//commonlibrary/c_utils/base/include",
     "//foundation/appframework/arkui",
     "//foundation/graphic/graphic_2d/rosen/modules",
     "$ace_root/adapter/ios/capability/font",

@@ -14,6 +14,7 @@
  */
 
 #import "AceWebResourcePlugin.h"
+
 #import "AceWeb.h"
 #import "StageViewController.h"
 #include "base/log/log.h"
@@ -23,6 +24,8 @@
 #define INCOGNITO_MOD @"incognitoMode"
 #define INCOGNITO_FLAG @"1"
 #define WEB_KEY @"web"
+#define RUN_JAVASCRIPT_ON_DOCUMENT_START @"runJavaScriptOnDocumentStart"
+#define RUN_JAVASCRIPT_ON_DOCUMENT_END @"runJavaScriptOnDocumentEnd"
 
 @interface AceWebResourcePlugin()
 @property (nonatomic, weak) UIViewController *target;
@@ -74,6 +77,18 @@ static NSMutableDictionary<NSString*, AceWeb*> *objectMap;
         [aceWeb getWeb].inspectable = [AceWeb getWebDebuggingAccess];
     }
 #endif
+    id documentStartScripts = [param valueForKey:RUN_JAVASCRIPT_ON_DOCUMENT_START];
+    if ([documentStartScripts isKindOfClass:[NSString class]]) {
+        [aceWeb setDocumentStartScripts:documentStartScripts];
+    } else if (documentStartScripts != nil) {
+        LOGE("AceWebResourcePlugin runJavaScriptOnDocumentStart parameter is not NSString");
+    }
+    id documentEndScripts = [param valueForKey:RUN_JAVASCRIPT_ON_DOCUMENT_END];
+    if ([documentEndScripts isKindOfClass:[NSString class]]) {
+        [aceWeb setDocumentEndScripts:documentEndScripts];
+    } else if (documentEndScripts != nil) {
+        LOGE("AceWebResourcePlugin runJavaScriptOnDocumentEnd parameter is not NSString");
+    }
     [aceWeb loadUrl:[param valueForKey:URL_SRC] header:[NSMutableDictionary dictionary]];
     StageViewController* controller = (StageViewController*)self.target;
     UIView *windowView = [controller getWindowView];
