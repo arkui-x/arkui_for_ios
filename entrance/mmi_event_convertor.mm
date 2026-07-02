@@ -302,6 +302,8 @@ TouchPoint ConvertTouchPoint(const MMI::PointerEvent::PointerItem& pointerItem)
     touchPoint.y = pointerItem.GetWindowY();
     touchPoint.screenX = pointerItem.GetDisplayX();
     touchPoint.screenY = pointerItem.GetDisplayY();
+    touchPoint.globalDisplayX = pointerItem.GetGlobalX();
+    touchPoint.globalDisplayY = pointerItem.GetGlobalY();
     touchPoint.isPressed = pointerItem.IsPressed();
     touchPoint.force = static_cast<float>(pointerItem.GetPressure());
     touchPoint.tiltX = pointerItem.GetTiltX();
@@ -479,6 +481,8 @@ TouchEvent ConvertTouchEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEv
         .SetY(item.GetWindowY())
         .SetScreenX(item.GetDisplayX())
         .SetScreenY(item.GetDisplayY())
+        .SetGlobalDisplayX(item.GetGlobalX())
+        .SetGlobalDisplayY(item.GetGlobalY())
         .SetType(TouchType::UNKNOWN)
         .SetPullType(TouchType::UNKNOWN)
         .SetTime(TimeStamp(std::chrono::microseconds(item.GetDownTime())))
@@ -514,6 +518,8 @@ TouchEvent ConvertSyntheticTouchEvent(const std::shared_ptr<MMI::PointerEvent>& 
         .SetY(item.GetWindowY())
         .SetScreenX(item.GetDisplayX())
         .SetScreenY(item.GetDisplayY())
+        .SetGlobalDisplayX(item.GetGlobalX())
+        .SetGlobalDisplayY(item.GetGlobalY())
         .SetType(TouchType::UNKNOWN)
         .SetPullType(TouchType::UNKNOWN)
         .SetTime(TimeStamp(std::chrono::microseconds(pointerEvent->GetActionTime())))
@@ -573,6 +579,8 @@ void ConvertMmiPointerEvent(std::shared_ptr<MMI::PointerEvent>& pointerEvent, co
         pointerItem.SetWindowY(static_cast<int32_t>(current->window_y));
         pointerItem.SetDisplayX(static_cast<int32_t>(current->display_x));
         pointerItem.SetDisplayY(static_cast<int32_t>(current->display_y));
+        pointerItem.SetGlobalX(current->global_x);
+        pointerItem.SetGlobalY(current->global_y);
         pointerItem.SetPressure(current->pressure);
         pointerItem.SetTiltY(current->tilt);
         pointerItem.SetToolType(static_cast<int32_t>(SourceTypeFromToolType(current->tool_type)));
@@ -602,6 +610,8 @@ void ConvertMmiPointerEvent(
         pointerItem.SetWindowY(static_cast<int32_t>(current->window_y));
         pointerItem.SetDisplayX(static_cast<int32_t>(current->display_x));
         pointerItem.SetDisplayY(static_cast<int32_t>(current->display_y));
+        pointerItem.SetGlobalX(current->global_x);
+        pointerItem.SetGlobalY(current->global_y);
         pointerItem.SetPressure(current->pressure);
         pointerItem.SetTiltY(current->tilt);
         pointerItem.SetToolType(static_cast<int32_t>(SourceTypeFromToolType(current->tool_type)));
@@ -648,6 +658,8 @@ void ConvertSyntheticMmiPointerEvent(
         pointerItem.SetWindowY(static_cast<int32_t>(current->window_y));
         pointerItem.SetDisplayX(static_cast<int32_t>(current->display_x));
         pointerItem.SetDisplayY(static_cast<int32_t>(current->display_y));
+        pointerItem.SetGlobalX(current->global_x);
+        pointerItem.SetGlobalY(current->global_y);
         pointerItem.SetPressure(current->pressure);
         pointerItem.SetTiltY(current->tilt);
         pointerItem.SetToolType(static_cast<int32_t>(SourceTypeFromToolType(current->tool_type)));

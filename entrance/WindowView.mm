@@ -515,6 +515,8 @@ static OHOS::Ace::Platform::AcePointerData CreateSyntheticPointerData(
     pointerData.tool_type = OHOS::Ace::Platform::AcePointerData::ToolType::Touch;
     pointerData.display_x = params.displayCoordinates.x * params.scale;
     pointerData.display_y = params.displayCoordinates.y * params.scale;
+    pointerData.global_x = pointerData.display_x;
+    pointerData.global_y = pointerData.display_y;
     pointerData.window_x = params.windowCoordinates.x * params.scale;
     pointerData.window_y = params.windowCoordinates.y * params.scale;
     pointerData.pressure =
@@ -642,6 +644,8 @@ static OHOS::Ace::Platform::AcePointerData CreateSyntheticPointerData(
 
         pointer_data.display_x = screenCoordinates.x * scale;
         pointer_data.display_y = screenCoordinates.y * scale;
+        pointer_data.global_x = pointer_data.display_x;
+        pointer_data.global_y = pointer_data.display_y;
         pointer_data.window_x = windowCoordinates.x * scale;
         pointer_data.window_y = windowCoordinates.y * scale;
 

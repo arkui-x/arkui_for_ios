@@ -17,7 +17,7 @@
 
 namespace OHOS::Ace::Platform {
 
-static constexpr int ACE_POINTER_DATA_FIELD_COUNT = 17;
+static constexpr int ACE_POINTER_DATA_FIELD_COUNT = 19;
 
 static_assert(sizeof(AcePointerData) == sizeof(int64_t) * ACE_POINTER_DATA_FIELD_COUNT,
               "AcePointerData has the wrong size");

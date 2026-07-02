@@ -54,6 +54,8 @@ enum class ToolType : int64_t {
     double radius_max;
     double tilt;
     double orientation;
+    double global_x;
+    double global_y;
     int64_t time_stamp;
     int64_t finger_count { 0 };
     PointerAction pointer_action;
