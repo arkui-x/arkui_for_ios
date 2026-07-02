@@ -122,7 +122,8 @@ template("ace_osal_ios_source_set") {
       "$ace_root/adapter/ios/entrance/logIntercept",
       "//base/hiviewdfx/hitrace/interfaces/native/innerkits/include/hitrace_meter",
       "$app_framework_hiviewdfx_path/vsnprintf/include",
-      "$app_framework_hiviewdfx_path/hilog/include"
+      "$app_framework_hiviewdfx_path/hilog/include",
+      "//foundation/multimodalinput/input/interfaces/native/innerkits/event/include",
     ]
 
     deps = [
