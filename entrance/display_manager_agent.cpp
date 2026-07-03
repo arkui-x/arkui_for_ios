@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025-2025 Huawei Device Co., Ltd.
+ * Copyright (c) 2025-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -14,6 +14,8 @@
  */
 
 #include "display_manager_agent.h"
+
+#include "display_info.h"
 #include <__nullptr>
 
 namespace OHOS::Rosen {
@@ -42,6 +44,16 @@ bool DisplayManagerAgent::IsFoldable() const
 uint32_t DisplayManagerAgent::GetFoldStatus() const
 {
     return 0;
+}
+
+std::vector<uint64_t> DisplayManagerAgent::GetAllDisplayIds() const
+{
+    return GetAllDisplayIdsFromPlatform();
+}
+
+std::vector<int32_t> DisplayManagerAgent::GetLiveCreaseRegion() const
+{
+    return {};
 }
 
 uint32_t DisplayManagerAgent::GetFoldDisplayMode() const

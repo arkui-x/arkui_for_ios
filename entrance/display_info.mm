@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021-2022 Huawei Device Co., Ltd.
+ * Copyright (c) 2021-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -15,6 +15,8 @@
 
 #include "display_info.h"
 
+#include <cmath>
+#include <cstdint>
 #include <new>
 #include <parcel.h>
 #import <UIKit/UIKit.h>
@@ -22,6 +24,104 @@
 
 
 namespace OHOS::Rosen {
+namespace {
+
+UIScreen* GetScreenByDisplayId(DisplayId displayId, DisplayId& resolvedDisplayId)
+{
+    NSArray<UIScreen *> *screens = [UIScreen screens];
+    if (screens != nil && screens.count > 0) {
+        if (displayId != DISPLAY_ID_INVALID) {
+            auto screenIndex = static_cast<NSUInteger>(displayId);
+            if (screenIndex < screens.count) {
+                resolvedDisplayId = displayId;
+                return screens[screenIndex];
+            }
+        }
+        UIScreen *mainScreen = [UIScreen mainScreen];
+        NSUInteger mainScreenIndex = [screens indexOfObject:mainScreen];
+        if (mainScreenIndex != NSNotFound) {
+            resolvedDisplayId = static_cast<DisplayId>(mainScreenIndex);
+            return mainScreen;
+        }
+        resolvedDisplayId = 0;
+        return screens.firstObject;
+    }
+    resolvedDisplayId = 0;
+    return [UIScreen mainScreen];
+}
+
+Rotation ConvertDisplayOrientationToRotation(DisplayOrientation displayOrientation)
+{
+    switch (displayOrientation) {
+        case DisplayOrientation::PORTRAIT:
+            return Rotation::ROTATION_0;
+        case DisplayOrientation::LANDSCAPE_INVERTED:
+            return Rotation::ROTATION_90;
+        case DisplayOrientation::PORTRAIT_INVERTED:
+            return Rotation::ROTATION_180;
+        case DisplayOrientation::LANDSCAPE:
+            return Rotation::ROTATION_270;
+        default:
+            return Rotation::ROTATION_0;
+    }
+}
+
+CGSize GetCurrentModeSize(UIScreen* screen)
+{
+    if (screen == nil) {
+        return CGSizeZero;
+    }
+    UIScreenMode* currentMode = screen.currentMode;
+    if (currentMode != nil && currentMode.size.width > 0.0 && currentMode.size.height > 0.0) {
+        return currentMode.size;
+    }
+    CGRect nativeBounds = screen.nativeBounds;
+    if (nativeBounds.size.width > 0.0 && nativeBounds.size.height > 0.0) {
+        return nativeBounds.size;
+    }
+    CGRect bounds = screen.bounds;
+    CGFloat scale = screen.scale;
+    if (scale <= 0.0) {
+        scale = 1.0;
+    }
+    return CGSizeMake(bounds.size.width * scale, bounds.size.height * scale);
+}
+
+DisplayOrientation ConvertUIInterfaceToDisplayOrientation(UIInterfaceOrientation orientation)
+{
+    switch (orientation) {
+        case UIInterfaceOrientationPortrait:
+            return DisplayOrientation::PORTRAIT;
+        case UIInterfaceOrientationPortraitUpsideDown:
+            return DisplayOrientation::PORTRAIT_INVERTED;
+        case UIInterfaceOrientationLandscapeLeft:
+            return DisplayOrientation::LANDSCAPE;
+        case UIInterfaceOrientationLandscapeRight:
+            return DisplayOrientation::LANDSCAPE_INVERTED;
+        default:
+            return DisplayOrientation::UNKNOWN;
+    }
+}
+
+UIInterfaceOrientation GetSceneOrientationForScreen(UIScreen* screen)
+{
+    if (@available(iOS 13.0, *)) {
+        for (UIScene *scene in [UIApplication sharedApplication].connectedScenes) {
+            if (![scene isKindOfClass:[UIWindowScene class]]) {
+                continue;
+            }
+            UIWindowScene *windowScene = (UIWindowScene *)scene;
+            for (UIWindow *window in windowScene.windows) {
+                if (window.screen == screen) {
+                    return windowScene.interfaceOrientation;
+                }
+            }
+        }
+    }
+    return UIInterfaceOrientationUnknown;
+}
+}
+
 std::map<UIDeviceOrientation, DisplayOrientation> gUIDeviceOrientationToOrientationMap = {
     {UIDeviceOrientationUnknown, DisplayOrientation::PORTRAIT},
     {UIDeviceOrientationPortrait, DisplayOrientation::PORTRAIT},
@@ -44,10 +144,51 @@ DisplayInfo::DisplayInfo()
     densityPixels_ = scale;
     scaledDensity_ = scale;
     densityDpi_ = GetDevicePpi();
+    rotation_ = static_cast<int32_t>(ConvertDisplayOrientationToRotation(displayOrientation_));
+}
+
+DisplayInfo::DisplayInfo(DisplayId displayId)
+{
+    UIScreen *screen = GetScreenByDisplayId(displayId, id_);
+    CGSize currentModeSize = GetCurrentModeSize(screen);
+    if (screen != [UIScreen mainScreen]) {
+        UIInterfaceOrientation sceneOrientation = GetSceneOrientationForScreen(screen);
+        if (sceneOrientation != UIInterfaceOrientationUnknown) {
+            displayOrientation_ = ConvertUIInterfaceToDisplayOrientation(sceneOrientation);
+        } else {
+            displayOrientation_ = (currentModeSize.width > currentModeSize.height)
+                ? DisplayOrientation::LANDSCAPE : DisplayOrientation::PORTRAIT;
+        }
+    } else {
+        auto deviceOrientation = [UIDevice currentDevice].orientation;
+        displayOrientation_ = gUIDeviceOrientationToOrientationMap[deviceOrientation];
+    }
+    rotation_ = static_cast<int32_t>(ConvertDisplayOrientationToRotation(displayOrientation_));
+    CGFloat scale = screen.scale;
+    width_ = static_cast<int32_t>(currentModeSize.width);
+    height_ = static_cast<int32_t>(currentModeSize.height);
+    densityPixels_ = scale;
+    scaledDensity_ = scale;
+    densityDpi_ = GetDevicePpi();
 }
 
 DisplayInfo::~DisplayInfo()
 {
+}
+
+std::vector<uint64_t> GetAllDisplayIdsFromPlatform()
+{
+    std::vector<uint64_t> displayIds;
+    NSArray<UIScreen *> *screens = [UIScreen screens];
+    if (screens == nil || screens.count == 0) {
+        displayIds.emplace_back(0);
+    } else {
+        displayIds.reserve(static_cast<size_t>(screens.count));
+        for (NSUInteger index = 0; index < screens.count; index++) {
+            displayIds.emplace_back(static_cast<uint64_t>(index));
+        }
+    }
+    return displayIds;
 }
 
 DisplayId DisplayInfo::GetDisplayId() const
@@ -86,6 +227,11 @@ int32_t DisplayInfo::GetDensityDpi() const
     return densityDpi_;
 }
 
+int32_t DisplayInfo::GetRotation() const
+{
+    return rotation_;
+}
+
 void DisplayInfo::SetDisplayId(DisplayId displayId)
 {
     id_ = displayId;
@@ -120,6 +266,11 @@ void DisplayInfo::SetScaledDensity(float scaledDensity)
 void DisplayInfo::SetDensityDpi(int32_t dpi)
 {
     densityDpi_ = dpi;
+}
+
+void DisplayInfo::SetRotation(int32_t rotation)
+{
+    rotation_ = rotation;
 }
 
 int32_t DisplayInfo::GetDevicePpi() const
