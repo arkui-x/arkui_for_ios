@@ -53,8 +53,8 @@ typedef enum : NSUInteger {
 // Supported playback speeds defined by AVPlayer or system standards
 static const float DEFAULT_SPEED = 1.0f;
 static const float SPEED_COMPARE_EPSILON = 0.00001f;
-static const float SUPPORTED_SPEEDS[] = {
-    0.125f, 0.25f, 0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 1.75f, 2.0f, 3.0f };
+static const float MIN_SPEED = 0.125f;
+static const float MAX_SPEED = 8.0f;
 
 @interface AceVideo()
 {
@@ -539,10 +539,8 @@ static const float SUPPORTED_SPEEDS[] = {
 
 - (float)normalizeSpeed:(float)speed
 {
-    for (float supportedSpeed : SUPPORTED_SPEEDS) {
-        if (std::fabs(supportedSpeed - speed) <= SPEED_COMPARE_EPSILON) {
-            return supportedSpeed;
-        }
+    if (speed > MIN_SPEED - SPEED_COMPARE_EPSILON && speed < MAX_SPEED + SPEED_COMPARE_EPSILON) {
+        return speed;
     }
     LOGW("AceVideo: Unsupported speed %{public}f, fallback to default speed.", speed);
     return DEFAULT_SPEED;
