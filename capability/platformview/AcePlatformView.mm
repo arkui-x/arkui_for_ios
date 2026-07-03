@@ -919,6 +919,9 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
 - (void)initWithSurfaceView:(UIView*)surfaceView {
     StageViewController* controller = [StageApplication getApplicationTopViewController];
     surfaceView.autoresizingMask = (UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight);
+    if (![controller isKindOfClass:[StageViewController class]]) {
+        return;
+    }
     UIView *windowView = [controller getWindowView];
     windowView.backgroundColor = [UIColor clearColor];
     [windowView.superview insertSubview:surfaceView belowSubview:windowView];
@@ -940,6 +943,9 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
         [_metalTextureRenderer addSubview:embeddedView];
         StageViewController* controller = [StageApplication getApplicationTopViewController];
         embeddedView.autoresizingMask =  (UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight);
+        if (![controller isKindOfClass:[StageViewController class]]) {
+            return;
+        }
         UIView *windowView = [controller getWindowView];
         [windowView.superview insertSubview:_metalTextureRenderer belowSubview:windowView];
     }
