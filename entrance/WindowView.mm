@@ -233,6 +233,9 @@ static bool IsWebScrollLocked(int64_t webId)
         }
     }
     inside = [self.layer containsPoint:point] && inHotArea;
+    if (self.isModal && !inside) {
+        return YES;
+    }
 
     if (!inside && _firstTouchFlag){
         [self touchOutside];
@@ -406,10 +409,24 @@ static bool IsWebScrollLocked(int64_t webId)
 }
 
 - (void)setIsFocused:(BOOL)isFocused {
-    if (self.focusable && _isFocused != isFocused) {
+    if (self.focusable) {
         _isFocused = isFocused;
-        [self notifyFocusChanged:isFocused];
+    } else {
+        _isFocused = NO;
     }
+    [self notifyFocusChanged:_isFocused];
+}
+
+- (void)setWindowFocusable:(BOOL)isFocusable {
+    self.focusable = isFocusable;
+    if (!isFocusable) {
+        [self setIsFocused:NO];
+        [self onViewFocusChanged:NO];
+    }
+}
+
+- (void)onViewFocusChanged:(BOOL)gainFocus {
+    _isFocused = gainFocus;
 }
 #pragma mark - Touch event handling
 

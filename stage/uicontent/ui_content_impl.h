@@ -124,6 +124,7 @@ private:
     OHOS::Rosen::IOccupiedAreaChangeListener *occupiedAreaChangeListener_ = nullptr;
     OHOS::sptr<OHOS::Rosen::IAvoidAreaChangedListener> avoidAreaChangedListener_ = nullptr;
     OHOS::Rosen::ITouchOutsideListener* touchOutsideListener_ = nullptr;
+    OHOS::Rosen::IWindowLifeCycle* windowLifeCycleListener_ = nullptr;
 };
 } // namespace OHOS::Ace::Platform
 #endif // FOUNDATION_ACE_ADAPTER_IOS_STAGE_UI_CONTENT_IMPL_H

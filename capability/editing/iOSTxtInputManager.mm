@@ -16,6 +16,7 @@
 #import "iOSTxtInputManager.h"
 #import "KeyboardTypeMapper.h"
 #import "base/log/log.h"
+#import "WindowView.h"
 
 #include <Foundation/Foundation.h>
 #include <UIKit/UIKit.h>
@@ -842,6 +843,23 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
     NSAssert([UIApplication sharedApplication].keyWindow != nullptr,
              @"The application must have a key window since the keyboard client "
              @"must be part of the responder chain to function");
+    UIView<UITextInput>* textInputView = [self textInputView];
+    if (textInputView == nil) {
+        return;
+    }
+    UIView* parentView = textInputView.superview;
+    while (parentView != nil) {
+        if ([parentView isKindOfClass:[WindowView class]]) {
+            WindowView* windowView = (WindowView*)parentView;
+            if (!windowView.focusable) {
+                LOGI("[iOSTxtInputManager] showTextInput skipped: view is not focusable");
+                [self hideTextInput];
+                return;
+            }
+            break;
+        }
+        parentView = parentView.superview;
+    }
     if (self.textInputBlock) {
         _activeView.textInputBlock = self.textInputBlock;
     }
