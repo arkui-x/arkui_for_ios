@@ -90,6 +90,12 @@ const std::unordered_map<std::string, std::string> soMap = {
     {"TextClock", "textclock"},
     {"Toggle", "toggle"},
     {"DynamicLayout", "dynamiclayout"},
+    {"Progress", "progress"},
+    {"LoadingProgress", "loadingprogress"},
+    {"Badge", "badge"},
+    {"TextTimer", "texttimer"},
+    {"ImageSpan", "span"},
+ 	{"SymbolSpan", "span"},
 };
 } // namespace
 DynamicModuleHelper& DynamicModuleHelper::GetInstance()
