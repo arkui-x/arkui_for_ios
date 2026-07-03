@@ -316,6 +316,7 @@ component_modules = [
   "rich_editor",
   "search",
   "text_clock",
+  "toggle",
 ]
 component_modules_libs = []
 
