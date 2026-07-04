@@ -37,6 +37,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 + (StageViewController *)getApplicationTopViewController;
 
++ (StageViewController *)getApplicationTopStageViewController;
+
 + (void)setLocaleWithLanguage:(NSString *)language country:(NSString *)country script:(NSString *)script;
 
 - (NSString *)getTopAbility;
