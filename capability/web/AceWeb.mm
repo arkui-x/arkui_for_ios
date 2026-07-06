@@ -175,6 +175,16 @@ typedef void (^onDownloadUpdated)(NSString* guid, NSString* state, int64_t total
 typedef void (^onDownloadFailed)(NSString* guid, NSString* state, int64_t code);
 typedef void (^onDownloadFinish)(NSString* guid, NSString* path);
 typedef id (^onJavaScriptFunction)(NSString* objName, NSString* methodName, NSArray* args);
+
+@interface JsProxyConfig : NSObject
+@property (nonatomic, strong) NSString* objName;
+@property (nonatomic, strong) NSArray* syncMethodList;
+@property (nonatomic, strong) NSArray* asyncMethodList;
+@end
+
+@implementation JsProxyConfig
+@end
+
 @interface AceWeb()<WKScriptMessageHandler, WKUIDelegate, WKNavigationDelegate, 
                     UIScrollViewDelegate, NSURLSessionDownloadDelegate, WKHTTPCookieStoreObserver, WKURLSchemeHandler>
 /**webView*/
@@ -211,9 +221,7 @@ typedef id (^onJavaScriptFunction)(NSString* objName, NSString* methodName, NSAr
 @property (nonatomic, strong) onDownloadFinish onDownloadFinishCallBack;
 @property (nonatomic, strong) onJavaScriptFunction onJavaScriptFunctionCallBack;
 @property (nonatomic, strong) NSMutableDictionary<NSString*, DownloadTaskInfo*>* downloadTasksDic;
-@property (nonatomic, strong) NSArray* syncMethodList;
-@property (nonatomic, strong) NSArray* asyncMethodList;
-@property (nonatomic, strong) NSString* objName;
+@property (nonatomic, strong) NSMutableArray* jsProxyConfigList;
 @property (nonatomic, assign) bool allowIncognitoMode;
 @property (nonatomic, assign) BOOL jsReady;
 @property (nonatomic, strong) NSMutableDictionary<NSString*, NSValue*>* schemeHandlerMap;
@@ -331,6 +339,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
     self.isForceDark = false;
     self.isSystemDarkMode = false;
     self.jsReady = false;
+    self.jsProxyConfigList = [NSMutableArray array];
     self.currentResourceRequest = nullptr;
     self.currentResourceHandler = nullptr;
     self.textZoomRatio = 100;
@@ -1099,9 +1108,11 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
 {
     LOGI("registerJavaScriptProxy objName is : %{public}s", objName.UTF8String);
     if (!self.jsReady) {
-        self.syncMethodList = syncMethodList;
-        self.asyncMethodList = asyncMethodList;
-        self.objName = objName;
+        JsProxyConfig* config = [[JsProxyConfig alloc] init];
+        config.objName = objName;
+        config.syncMethodList = syncMethodList;
+        config.asyncMethodList = asyncMethodList;
+        [self.jsProxyConfigList addObject:config];
     }
     [self registerJavaScriptMethods:syncMethodList asyncMethodList:asyncMethodList objName:objName];
     self.onJavaScriptFunctionCallBack = callback;
@@ -1112,9 +1123,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
     LOGI("deleteJavaScriptRegister objName is : %{public}s", objName.UTF8String);
     NSString* js = [NSString stringWithFormat:@"delete window.%@;", objName];
     [self.webView evaluateJavaScript:js completionHandler:^(id result, NSError* error) {}];
-    self.syncMethodList = nil;
-    self.asyncMethodList = nil;
-    self.objName = nil;
+    [self.jsProxyConfigList filterUsingPredicate:[NSPredicate predicateWithFormat:@"objName != %@", objName]];
     self.onJavaScriptFunctionCallBack = nil;
 }
 
@@ -2210,9 +2219,11 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
 
 - (void)webView:(WKWebView *)webView didFinishNavigation:(WKNavigation *)navigation
 {
-    if(!self.jsReady) {
-        [self registerJavaScriptMethods:self.syncMethodList 
-            asyncMethodList:self.asyncMethodList objName:self.objName];
+    if(!self.jsReady && self.jsProxyConfigList.count > 0) {
+        for (JsProxyConfig* config in self.jsProxyConfigList) {
+            [self registerJavaScriptMethods:config.syncMethodList 
+                asyncMethodList:config.asyncMethodList objName:config.objName];
+        }
     }
     self.jsReady = true;
     [self registerSelectionGestures];
