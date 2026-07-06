@@ -943,6 +943,52 @@ static const float SUPPORTED_SPEEDS[] = {
     }
 }
 
+- (void)applyVideoCompositionIfNeeded:(AVPlayerItem *)item
+{
+    if (!item) {
+        return;
+    }
+    NSArray<AVAssetTrack *> *videoTracks = [item.asset tracksWithMediaType:AVMediaTypeVideo];
+    AVAssetTrack *videoTrack = videoTracks.firstObject;
+    if (!videoTrack) {
+        return;
+    }
+
+    CGSize naturalSize = videoTrack.naturalSize;
+    CGAffineTransform transform = videoTrack.preferredTransform;
+
+    CGRect displayRect = CGRectApplyAffineTransform(
+        CGRectMake(0.0, 0.0, naturalSize.width, naturalSize.height), transform);
+    CGSize renderSize = CGSizeMake(fabs(CGRectGetWidth(displayRect)), fabs(CGRectGetHeight(displayRect)));
+
+    // No rotation if width and height are not swapped.
+    if (fabs(naturalSize.width - renderSize.width) < 1.0 &&
+        fabs(naturalSize.height - renderSize.height) < 1.0) {
+        return;
+    }
+
+    AVMutableVideoComposition *videoComposition = [AVMutableVideoComposition videoComposition];
+    videoComposition.renderSize = renderSize;
+
+    float frameRate = videoTrack.nominalFrameRate;
+    if (frameRate <= 0.0f) {
+        frameRate = 30.0f;
+    }
+    videoComposition.frameDuration = CMTimeMake(1, (int32_t)frameRate);
+
+    AVMutableVideoCompositionInstruction *instruction =
+        [AVMutableVideoCompositionInstruction videoCompositionInstruction];
+    instruction.timeRange = CMTimeRangeMake(kCMTimeZero, item.asset.duration);
+
+    AVMutableVideoCompositionLayerInstruction *layerInstruction =
+        [AVMutableVideoCompositionLayerInstruction videoCompositionLayerInstructionWithAssetTrack:videoTrack];
+    [layerInstruction setTransform:transform atTime:kCMTimeZero];
+
+    instruction.layerInstructions = @[layerInstruction];
+    videoComposition.instructions = @[instruction];
+    item.videoComposition = videoComposition;
+}
+
 - (void)resetPlayerToPrepare:(id)object withIsSetAutoPlay:(BOOL)setAutoPlay
 {
     if (self.player_ && self.player_.currentItem) {
@@ -960,6 +1006,7 @@ static const float SUPPORTED_SPEEDS[] = {
         }
         if (_isTexture && self.renderTexture) {
             AVPlayerItem* item = (AVPlayerItem*)object;
+            [self applyVideoCompositionIfNeeded:item];
             [item addOutput:self.renderTexture.videoOutput];
             [self.displayLink addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSRunLoopCommonModes];
         }
