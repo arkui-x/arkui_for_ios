@@ -322,6 +322,8 @@ component_modules = [
   "badge",
   "texttimer",
   "span",
+  "select",
+  "navigator",
 ]
 component_modules_libs = []
 
