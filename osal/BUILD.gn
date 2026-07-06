@@ -129,7 +129,6 @@ template("ace_osal_ios_source_set") {
     deps = [
       "$ace_root/adapter/ios/entrance:ace_ios_entrance",
       "$ace_root/adapter/ios/entrance/logIntercept:logIntercept",
-      "$ace_root/frameworks/core/components/theme:build_theme_code",
       "$app_framework_resource_path:global_resmgr",
       "$app_framework_resource_path/interfaces/js/innerkits/core:resmgr_napi_core",
       "$app_framework_resource_path/interfaces/js/kits:resourcemanager",

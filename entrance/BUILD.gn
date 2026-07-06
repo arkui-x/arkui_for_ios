@@ -116,7 +116,6 @@ template("ace_ios_standard_source_set") {
       "$ace_root/adapter/ios/capability:ace_capability_ios",
       "$ace_root/adapter/ios/entrance/accessibility:accessibility",
       "$ace_root/adapter/ios/entrance/resource:resource",
-      "$ace_root/frameworks/core/components/theme:build_theme_code",
       "//foundation/distributeddatamgr/udmf/adapter:arkui_x_udmf_data_napi",
       "//foundation/graphic/graphic_2d/rosen/modules/render_service_client:librender_service_client_static",
       "//third_party/zlib:libz",
