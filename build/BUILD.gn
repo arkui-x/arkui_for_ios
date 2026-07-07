@@ -166,6 +166,10 @@ ohos_shared_library("arkui_ios") {
     "-Wl,-u,__ZN4OHOS12ColorManager24CreateJsColorSpaceObjectEP10napi_env__RNSt3__110shared_ptrINS0_10ColorSpaceEEE",
   ]
 
+  if (ace_engine_enable_reduce_eh_frame) {
+    ldflags += [ "-Wl,-no_compact_unwind" ]
+  }
+
   deps = [
     "$ace_root/build:libace_static_ios",
     "$ace_root/interfaces/inner_api/ace_kit:ace_kit",
