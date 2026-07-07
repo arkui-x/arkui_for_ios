@@ -25,6 +25,7 @@
 
 #include "adapter/ios/entrance/ace_resource_register.h"
 #include "adapter/ios/entrance/ace_platform_plugin.h"
+#include "base/subwindow/subwindow_manager.h"
 #include "core/common/container_scope.h"
 #include "base/log/log.h"
 
@@ -121,7 +122,11 @@
 - (void)onEvent:(NSString *)eventId param:(NSString *)param
 {
     auto resRegister = OHOS::Ace::Platform::AcePlatformPlugin::GetResRegister(self.instanceId);
-    OHOS::Ace::ContainerScope scope(self.instanceId);
+
+    int32_t containerId = OHOS::Ace::SubwindowManager::GetInstance()->GetContainerId(
+        static_cast<uint32_t>(self.instanceId));
+    int32_t scopeInstanceId = (containerId >= 0) ? containerId : self.instanceId;
+    OHOS::Ace::ContainerScope scope(scopeInstanceId);
     const char* eventIdcString = [eventId UTF8String];
     const char* paramcString = [param UTF8String];
     resRegister->OnEvent(eventIdcString, paramcString);
