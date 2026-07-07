@@ -16,6 +16,7 @@
 #include "adapter/ios/entrance/ace_platform_plugin.h"
 
 #include "base/log/log.h"
+#include "base/subwindow/subwindow_manager.h"
 #include "base/utils/macros.h"
 #include "base/utils/utils.h"
 
@@ -23,6 +24,12 @@ namespace OHOS::Ace::Platform {
 using NativeLayerMap = std::unordered_map<int64_t, void*>;
 std::unordered_map<int, RefPtr<PlatformResRegister>> g_resRegisters;
 std::unordered_map<int, NativeLayerMap> g_nativeLayerMaps;
+
+static int32_t ResolveInstanceId(int32_t instanceId)
+{
+    auto windowId = SubwindowManager::GetInstance()->GetWindowIdByContainerId(instanceId);
+    return (windowId >= 0) ? windowId : instanceId;
+}
 
 void AcePlatformPlugin::InitResRegister(int32_t instanceId, const RefPtr<PlatformResRegister>& resRegister)
 {
@@ -35,7 +42,18 @@ void AcePlatformPlugin::InitResRegister(int32_t instanceId, const RefPtr<Platfor
 
 RefPtr<PlatformResRegister> AcePlatformPlugin::GetResRegister(int32_t instanceId)
 {
-    return g_resRegisters[instanceId];
+    auto it = g_resRegisters.find(instanceId);
+    if (it != g_resRegisters.end()) {
+        return it->second;
+    }
+    auto resolvedId = ResolveInstanceId(instanceId);
+    if (resolvedId != instanceId) {
+        it = g_resRegisters.find(resolvedId);
+        if (it != g_resRegisters.end()) {
+            return it->second;
+        }
+    }
+    return nullptr;
 }
 
 void AcePlatformPlugin::RegisterSurface(int32_t instanceId, int64_t texture_id, void* surface)
@@ -63,9 +81,15 @@ void AcePlatformPlugin::UnregisterSurface(int32_t instanceId, int64_t texture_id
 
 void* AcePlatformPlugin::GetNativeWindow(int32_t instanceId, int64_t textureId)
 {
-    auto iter = g_nativeLayerMaps.find(static_cast<int32_t>(instanceId));
+    auto iter = g_nativeLayerMaps.find(instanceId);
+    if (iter == g_nativeLayerMaps.end()) {
+        auto resolvedId = ResolveInstanceId(instanceId);
+        if (resolvedId != instanceId) {
+            iter = g_nativeLayerMaps.find(resolvedId);
+        }
+    }
     if (iter != g_nativeLayerMaps.end()) {
-        auto map =  iter->second;
+        auto map = iter->second;
         auto nativeWindowIter = map.find(static_cast<int64_t>(textureId));
         if (nativeWindowIter != map.end()) {
             return nativeWindowIter->second;
@@ -78,6 +102,11 @@ void AcePlatformPlugin::ReleaseInstance(int32_t instanceId)
 {
     g_nativeLayerMaps.erase(instanceId);
     g_resRegisters.erase(instanceId);
+    auto resolvedId = ResolveInstanceId(instanceId);
+    if (resolvedId != instanceId) {
+        g_nativeLayerMaps.erase(resolvedId);
+        g_resRegisters.erase(resolvedId);
+    }
 }
 
 }
