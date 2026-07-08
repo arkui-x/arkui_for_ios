@@ -103,6 +103,10 @@ const std::unordered_map<std::string, std::string> soMap = {
  	{"SymbolSpan", "span"},
     {"Select", "select"},
     {"Navigator", "navigator"},
+    { "LazyVGridLayout", "lazygridlayout" },
+    { "Refresh", "refresh" },
+    { "Grid", "grid" },
+    { "GridItem", "grid" },
 };
 } // namespace
 DynamicModuleHelper& DynamicModuleHelper::GetInstance()
