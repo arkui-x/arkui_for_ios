@@ -631,6 +631,12 @@ WMError Window::ShowWindow()
 
     if ([windowView_ showOnView:mainWindowView.superview]) {
         if (IsSubWindow()) {
+            if (requestRect_.width_ <= 0 && requestRect_.height_ <= 0) {
+                UIScreen *screen = [UIScreen mainScreen];
+                CGFloat scale = screen.scale;
+                requestRect_.width_ = screen.bounds.size.width * scale;
+                requestRect_.height_ = screen.bounds.size.height * scale;
+            }
             ResizeWindowTo(requestRect_.width_, requestRect_.height_);
             rect_ = requestRect_;
             NotifySizeChange(rect_);
