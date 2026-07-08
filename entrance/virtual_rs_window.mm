@@ -917,6 +917,18 @@ WindowStatus Window::GetWindowStatusInner(WindowMode mode)
     return windowStatus;
 }
 
+static void GetAvoidAreas(Window* window, std::map<AvoidAreaType, Rosen::AvoidArea>& avoidAreas) {
+    for (AvoidAreaType type : { AvoidAreaType::TYPE_SYSTEM, AvoidAreaType::TYPE_CUTOUT,
+                        AvoidAreaType::TYPE_NAVIGATION_INDICATOR, AvoidAreaType::TYPE_KEYBOARD }) {
+        Rosen::AvoidArea area;
+        window->GetAvoidAreaByType(type, area);
+        avoidAreas[type] = area;
+        if(type == AvoidAreaType::TYPE_SYSTEM || type == AvoidAreaType::TYPE_NAVIGATION_INDICATOR) {
+            avoidAreas[type].bottomRect_ = emptyRect;
+        }
+    }
+}
+
 void Window::NotifySurfaceChanged(int32_t width, int32_t height, float density)
 {
     rect_.width_ = width;
@@ -942,11 +954,7 @@ void Window::NotifySurfaceChanged(int32_t width, int32_t height, float density)
         config.SetSize(surfaceWidth_, surfaceHeight_);
         config.SetOrientation(surfaceWidth_ <= surfaceHeight_ ? 0 : 1);
         std::map<AvoidAreaType, Rosen::AvoidArea> avoidAreas;
-        for (auto t : { AvoidAreaType::TYPE_SYSTEM, AvoidAreaType::TYPE_CUTOUT, AvoidAreaType::TYPE_NAVIGATION_INDICATOR }) {
-            Rosen::AvoidArea area;
-            GetAvoidAreaByType(t, area);
-            avoidAreas[t] = area;
-        }
+        GetAvoidAreas(this, avoidAreas);
         uiContent_->UpdateViewportConfig(config, WindowSizeChangeReason::RESIZE, avoidAreas);
     }
 
@@ -1043,30 +1051,33 @@ void Window::UpdateAvoidArea(const std::shared_ptr<Rosen::AvoidArea>& avoidArea,
         avoidArea->bottomRect_.posX_, avoidArea->bottomRect_.posY_, avoidArea->bottomRect_.width_,
         avoidArea->bottomRect_.height_);
 
+    std::map<AvoidAreaType, Rosen::AvoidArea> avoidAreas;
+    GetAvoidAreas(this, avoidAreas);
+
+    auto it = avoidAreas.find(type);
+    if (it == avoidAreas.end()) {
+        LOGE("AvoidArea type:%{public}d not found in avoidAreas", type);
+        return;
+    }
+    
+    const Rosen::AvoidArea& newArea = it->second;
     {
         std::lock_guard<std::recursive_mutex> lock(globalMutex_);
         auto iter = avoidAreaMap_.find(type);
-        if (iter != avoidAreaMap_.end() && iter->second == *avoidArea) {
+        if (iter != avoidAreaMap_.end() && iter->second == newArea) {
             LOGD("UpdateAvoidArea type:%{public}d unchanged, skip", type);
             return;
         }
-        avoidAreaMap_[type] = *avoidArea;
+        avoidAreaMap_[type] = newArea;
     }
-
-    NotifyAvoidAreaChange(avoidArea, type);
+    std::shared_ptr<Rosen::AvoidArea> avoidAreaPtr = std::make_shared<Rosen::AvoidArea>(newArea);
+    NotifyAvoidAreaChange(avoidAreaPtr, type);
 
     if (uiContent_) {
         Ace::ViewportConfig config;
         config.SetDensity(density_);
         config.SetSize(surfaceWidth_, surfaceHeight_);
         config.SetOrientation(surfaceWidth_ <= surfaceHeight_ ? 0 : 1);
-        std::map<AvoidAreaType, Rosen::AvoidArea> avoidAreas;
-        for (auto t : { AvoidAreaType::TYPE_SYSTEM, AvoidAreaType::TYPE_CUTOUT,
-                        AvoidAreaType::TYPE_NAVIGATION_INDICATOR }) {
-            Rosen::AvoidArea area;
-            GetAvoidAreaByType(t, area);
-            avoidAreas[t] = area;
-        }
         uiContent_->UpdateViewportConfig(config, WindowSizeChangeReason::RESIZE, avoidAreas);
     }
 }
@@ -1200,11 +1211,7 @@ void Window::DelayNotifyUIContentIfNeeded()
         config.SetSize(surfaceWidth_, surfaceHeight_);
         config.SetOrientation(surfaceWidth_ <= surfaceHeight_ ? 0 : 1);
         std::map<AvoidAreaType, Rosen::AvoidArea> avoidAreas;
-        for (auto t : { AvoidAreaType::TYPE_SYSTEM, AvoidAreaType::TYPE_CUTOUT, AvoidAreaType::TYPE_NAVIGATION_INDICATOR }) {
-            Rosen::AvoidArea area;
-            GetAvoidAreaByType(t, area);
-            avoidAreas[t] = area;
-        }
+        GetAvoidAreas(this, avoidAreas);
         uiContent_->UpdateViewportConfig(config, WindowSizeChangeReason::RESIZE, avoidAreas);
     }
 
@@ -1784,6 +1791,7 @@ WMError Window::SetLayoutFullScreen(bool status) {
     if (![controller isKindOfClass:[StageViewController class]]) {
         return WMError::WM_ERROR_INVALID_WINDOW;
     }
+    controller.edgesForExtendedLayout = UIRectEdgeAll;
     [controller.navigationController setNavigationBarHidden:YES animated:NO];
     if (status == true) {
         LOGI("isLayoutFullScreen is ture");
