@@ -230,6 +230,8 @@ void FillDragPointerEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent
     event.windowY = pointerItem.GetWindowY();
     event.displayX = pointerItem.GetDisplayX();
     event.displayY = pointerItem.GetDisplayY();
+    event.globalDisplayX = pointerItem.GetGlobalX();
+ 	event.globalDisplayY = pointerItem.GetGlobalY();
     event.size = std::max(pointerItem.GetWidth(), pointerItem.GetHeight()) / SIZE_DIVIDE;
     event.force = static_cast<float>(pointerItem.GetPressure());
     event.deviceId = pointerItem.GetDeviceId();
