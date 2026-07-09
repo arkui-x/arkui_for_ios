@@ -315,7 +315,7 @@ static bool g_isOnBackground = false;
     UIViewController* viewController = [[UIApplication sharedApplication].delegate window].rootViewController;
     return (StageViewController *)[StageApplication findTopViewController:viewController];
 }
- 
+
 + (UIViewController *)findTopViewController:(UIViewController*)topViewController {
     return [StageApplication _findTopViewController:topViewController onlyStagePresented:NO];
 }
@@ -334,8 +334,8 @@ static bool g_isOnBackground = false;
         if (topViewController.presentedViewController) {
             if (!onlyStagePresented || [topViewController.presentedViewController isKindOfClass:[StageViewController class]]) {
                 topViewController = topViewController.presentedViewController;
-			    continue;
-		    }
+                continue;
+            }
         }
         if ([topViewController isKindOfClass:[UINavigationController class]]
             && [(UINavigationController*)topViewController topViewController]) {
