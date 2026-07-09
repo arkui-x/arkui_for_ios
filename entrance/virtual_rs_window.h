@@ -87,28 +87,6 @@ enum class WindowSizeChangeReason : uint32_t {
     END,
 };
 
-/**
- * @brief Enumerates occupied area type.
- */
-enum class OccupiedAreaType : uint32_t {
-    TYPE_INPUT, // area of input window
-};
-
-/**
- * @class IOccupiedAreaChangeListener
- *
- * @brief IOccupiedAreaChangeListener is used to observe OccupiedArea change.
- */
-class IOccupiedAreaChangeListener : public RefBase {
-public:
-    /**
-     * @brief Notify caller when OccupiedArea size change.
-     *
-     * @param info Occupied area info when occupied changed.
-     */
-    virtual void OnSizeChange(const Rect &rect, OccupiedAreaType type) {}
-};
-
 class Window : public RefBase {
 #define CALL_LIFECYCLE_LISTENER(windowLifecycleCb, listeners) \
     do {                                                      \
@@ -167,6 +145,7 @@ public:
     void NotifySafeAreaChanged();
     void NotifySurfaceChanged(int32_t width, int32_t height, float density);
     void NotifyKeyboardHeightChanged(int32_t height);
+    uint32_t CalculateKeyboardAvoidHeight(uint32_t keyboardHeight);
     void NotifyTraitCollectionDidChange(bool isSplitScreen);
     void NotifyTouchOutside();
     void NotifySurfaceDestroyed();
@@ -539,6 +518,8 @@ private:
     uint32_t backgroundColor_;
     float brightness_ = 0.0;
     float keyBoardHieght_ = 0;
+    int32_t lastNotifiedKeyboardHeight_ = -1;
+    int32_t originWindowY_ = 0;
     WindowState state_ { WindowState::STATE_INITIAL };
     WindowStatus status_ { WindowStatus::WINDOW_STATUS_UNDEFINED };
     bool applicationForeground_ = false;
