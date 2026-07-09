@@ -127,7 +127,7 @@
 }
 
 - (void)applicationDidEnterBackground:(NSNotification *)notification {
-    if (self.notifyDelegate == [StageApplication getApplicationTopViewController]) {
+    if (self.notifyDelegate == [StageApplication getApplicationTopStageViewController]) {
         LOGI("{public}StageContainerView TopViewController applicationDidEnterBackground");
         [self notifyBackground];
     }
@@ -138,7 +138,7 @@
 }
 
 - (void)applicationWillEnterForeground:(NSNotification *)notification {
-    if (self.notifyDelegate == [StageApplication getApplicationTopViewController]) {
+    if (self.notifyDelegate == [StageApplication getApplicationTopStageViewController]) {
         LOGI("{public}StageContainerView TopViewController applicationWillEnterForeground");
         [self notifyForeground];
     }

@@ -317,11 +317,28 @@ static bool g_isOnBackground = false;
 }
 
 + (UIViewController *)findTopViewController:(UIViewController*)topViewController {
+    return [StageApplication _findTopViewController:topViewController onlyStagePresented:NO];
+}
+ 
++ (StageViewController *)getApplicationTopStageViewController {
+    UIViewController* viewController = [[UIApplication sharedApplication].delegate window].rootViewController;
+    return (StageViewController *)[StageApplication findTopStageViewController:viewController];
+}
+ 
++ (UIViewController *)findTopStageViewController:(UIViewController*)topViewController {
+    return [StageApplication _findTopViewController:topViewController onlyStagePresented:YES];
+}
+
++ (UIViewController *)_findTopViewController:(UIViewController*)topViewController onlyStagePresented:(BOOL)onlyStagePresented {
     while (true) {
         if (topViewController.presentedViewController) {
-            topViewController = topViewController.presentedViewController;
-        } else if ([topViewController isKindOfClass:[UINavigationController class]]
-                    && [(UINavigationController*)topViewController topViewController]) {
+            if (!onlyStagePresented || [topViewController.presentedViewController isKindOfClass:[StageViewController class]]) {
+                topViewController = topViewController.presentedViewController;
+                continue;
+            }
+        }
+        if ([topViewController isKindOfClass:[UINavigationController class]]
+            && [(UINavigationController*)topViewController topViewController]) {
             topViewController = [(UINavigationController *)topViewController topViewController];
         } else if ([topViewController isKindOfClass:[UITabBarController class]]) {
             UITabBarController *tab = (UITabBarController *)topViewController;
