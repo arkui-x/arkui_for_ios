@@ -24,9 +24,9 @@
 #include "frameworks/bridge/common/utils/engine_helper.h"
 #include "interfaces/inner_api/ace/viewport_config.h"
 #include "window_option.h"
-#include "core/components_ng/pattern/overlay/sheet_manager.h"
 #include "core/interfaces/arkoala/arkoala_api.h"
 #include "core/interfaces/native/node/menu_modifier.h"
+#include "core/interfaces/native/node/sheet_modifier.h"
 
 namespace OHOS::Ace {
 namespace {
@@ -862,7 +862,9 @@ int32_t SubwindowIos::ShowBindSheetByUIContext(
     window_->SetFullScreen(true);
     window_->SetTouchable(true);
     ContainerScope scope(childContainerId_);
-    return NG::SheetManager::GetInstance().OpenBindSheetByUIContext(sheetContentNode, std::move(buildtitleNodeFunc),
+    auto* sheetModifier = NG::NodeModifier::GetSheetManagerInnerModifier();
+    CHECK_NULL_RETURN(sheetModifier, ERROR_CODE_BIND_SHEET_CONTENT_NOT_FOUND);
+    return sheetModifier->openBindSheetByUIContext(sheetContentNode, std::move(buildtitleNodeFunc),
         sheetStyle, std::move(onAppear), std::move(onDisappear), std::move(shouldDismiss), std::move(onWillDismiss),
         std::move(onWillAppear), std::move(onWillDisappear), std::move(onHeightDidChange),
         std::move(onDetentsDidChange), std::move(onWidthDidChange), std::move(onTypeDidChange),
@@ -873,16 +875,18 @@ int32_t SubwindowIos::UpdateBindSheetByUIContext(
     const RefPtr<NG::FrameNode> &sheetContentNode, const NG::SheetStyle &sheetStyle, bool isPartialUpdate)
 {
     ContainerScope scope(childContainerId_);
-    return NG::SheetManager::GetInstance().UpdateBindSheetByUIContext(
-        sheetContentNode, sheetStyle, isPartialUpdate, childContainerId_);
+    auto* sheetModifier = NG::NodeModifier::GetSheetManagerInnerModifier();
+    CHECK_NULL_RETURN(sheetModifier, ERROR_CODE_BIND_SHEET_CONTENT_NOT_FOUND);
+    return sheetModifier->updateBindSheetByUIContext(sheetContentNode, sheetStyle, isPartialUpdate, childContainerId_);
 }
 
 int32_t SubwindowIos::CloseBindSheetByUIContext(
     const RefPtr<NG::FrameNode> &sheetContentNode)
 {
     ContainerScope scope(childContainerId_);
-    return NG::SheetManager::GetInstance().CloseBindSheetByUIContext(
-        sheetContentNode, childContainerId_);
+    auto* sheetModifier = NG::NodeModifier::GetSheetManagerInnerModifier();
+    CHECK_NULL_RETURN(sheetModifier, ERROR_CODE_BIND_SHEET_CONTENT_NOT_FOUND);
+    return sheetModifier->closeBindSheetByUIContext(sheetContentNode, childContainerId_);
 }
 
 void SubwindowIos::SwitchFollowParentWindowLayout(bool freeMultiWindowEnable) {}
