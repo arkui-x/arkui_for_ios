@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2023-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -12,12 +12,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #include <list>
-#include "AceWebMessageExtImpl.h"
+
 #include "AceWebDownloadImpl.h"
-#include "web_javascript_value.h"
+#include "AceWebMessageExtImpl.h"
 #include "AceWebSchemeHandler.h"
 #include "scheme_handler/scheme_handler.h"
+#include "web_javascript_value.h"
 
 struct BackForwardItem{
     std::string URL;
@@ -115,6 +117,8 @@ bool deleteHttpAuthCredentialsOC();
 
 void setWebDebuggingAccessOC(bool webDebuggingAccess);
 
+void* getCookieDataStoreOC(bool incognito);
+
 void pageDownOC(int id, bool value);
 
 void postUrlOC(int id, const std::string& url, const std::vector<uint8_t>& postData);
@@ -153,3 +157,7 @@ bool setWebSchemeHandlerOC(int webId, const char* scheme, const ArkWeb_SchemeHan
 bool clearWebSchemeHandlerOC(int webId);
 
 std::string getUserAgentOC();
+
+void setNetworkAvailableOC(int webId, bool enable);
+
+std::string getDefaultUserAgentOC();

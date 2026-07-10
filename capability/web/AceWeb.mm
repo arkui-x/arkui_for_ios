@@ -114,6 +114,8 @@
 #define NTC_ONSSLERROREVENTRECEIVE        @"onSslErrorEventReceive"
 #define NTC_ONSSLERROREVENT               @"onSslErrorEvent"
 #define NTC_ONCLIENTAUTHENTICATIONREQUEST @"onClientAuthenticationRequest"
+#define NTC_RUN_JAVASCRIPT_ON_DOCUMENT_START @"runJavaScriptOnDocumentStart"
+#define NTC_RUN_JAVASCRIPT_ON_DOCUMENT_END @"runJavaScriptOnDocumentEnd"
 #define WEBVIEW_PAGE_HALF                 2
 #define NTC_TEXT_ZOOM_RATIO               @"textZoomRatio"
 #define NTC_ENABLE_HAPTIC_FEEDBACK        @"enableHapticFeedback"
@@ -129,6 +131,8 @@
 #define NTC_DARK_MODE                     @"darkMode"
 #define NTC_DEFAULT_FONT_SIZE             @"defaultFontSize"
 #define NTC_FORCE_DARK                    @"forceDarkAccess"
+
+static WKWebsiteDataStore* g_incognitoWebsiteDataStore = nil;
 
 typedef NS_ENUM(NSInteger, NestedScrollMode) {
     SELF_ONLY,
@@ -167,6 +171,24 @@ typedef NS_ENUM(NSUInteger, WebViewLoadType) {
 
 @implementation DownloadTaskInfo
 @end
+
+@interface DocumentStartUrlRegexRule : NSObject
+@property (nonatomic, copy) NSString* secondLevelDomain;
+@property (nonatomic, copy) NSString* rule;
+@end
+
+@implementation DocumentStartUrlRegexRule
+@end
+
+@interface DocumentStartScriptItem : NSObject
+@property (nonatomic, copy) NSString* script;
+@property (nonatomic, strong) NSArray<NSString*>* scriptRules;
+@property (nonatomic, strong) NSArray<DocumentStartUrlRegexRule*>* urlRegexRules;
+@end
+
+@implementation DocumentStartScriptItem
+@end
+
 typedef void (^PostMessageResultMethod)(NSString* ocResult);
 typedef void (^PostMessageResultMethodExt)(id ocResult);
 typedef void (^OnDownloadBeforeStart)(NSString* guid, NSString* method, NSString* mimeType, NSString* url);
@@ -254,11 +276,104 @@ typedef id (^onJavaScriptFunction)(NSString* objName, NSString* methodName, NSAr
 @property (nonatomic, assign) BOOL isMultiWindowAccessEnabled;
 @property (nonatomic, assign) BOOL isAllowWindowOpenMethodEnabled;
 @property (nonatomic, assign) BOOL hasSentWindowExitEvent;
+@property (nonatomic, strong) NSArray<DocumentStartScriptItem*> *documentStartScriptItems;
+@property (nonatomic, strong) NSArray<DocumentStartScriptItem*> *documentEndScriptItems;
+@property (nonatomic, assign) BOOL hasDocumentPublicSuffixInitScript;
++ (NSString*)documentPublicSuffixInitScript;
++ (void)prepareDocumentPublicSuffixInitScriptAsync;
++ (BOOL)hasDocumentUrlRegexRules:(NSArray<DocumentStartScriptItem*>*)items;
+- (void)addDocumentStartUserScripts:(WKUserContentController*)userContentController;
+- (void)addDocumentEndUserScripts:(WKUserContentController*)userContentController;
+- (void)addDocumentPublicSuffixInitScriptIfNeeded:(NSArray<DocumentStartScriptItem*>*)items
+                           userContentController:(WKUserContentController*)userContentController;
+- (void)addDocumentUserScripts:(NSArray<DocumentStartScriptItem*>*)items
+         userContentController:(WKUserContentController*)userContentController
+                  injectionTime:(WKUserScriptInjectionTime)injectionTime;
+- (BOOL)areScriptRulesValid:(NSArray<NSString*>*)rules;
+- (BOOL)isScriptRuleValid:(NSString*)rule;
 @end
 
 static BOOL _webDebuggingAccessInit = NO;
 static NSString *const kJavaScriptURLPrefix = @"javascript:";
 using SslError = OHOS::Ace::NG::Converter::SslError;
+
+constexpr NSUInteger SCRIPT_RULE_WILDCARD_MIN_SUFFIX_LENGTH = 2;
+constexpr NSUInteger DOCUMENT_PUBLIC_SUFFIX_WILDCARD_PREFIX_LENGTH = 2;
+
+static NSString* const DOCUMENT_PUBLIC_SUFFIX_FILE_NAME = @"effective_tld_names";
+static NSString* const DOCUMENT_PUBLIC_SUFFIX_FILE_EXTENSION = @"dat";
+static NSString* const DOCUMENT_PUBLIC_SUFFIX_RESOURCE_PATH =
+    @"arkui-x/systemres/extras/effective_tld_names.dat";
+static NSString* const DOCUMENT_PUBLIC_SUFFIX_CACHE_NAME = @"__arkuiXWebPublicSuffixRules";
+
+static NSString* const DOCUMENT_PUBLIC_SUFFIX_INIT_SCRIPT_FORMAT =
+    @"(function(){"
+    "var k='%@';"
+    "if(!window[k]){window[k]=%@;}"
+    "})();";
+
+static NSString* const DOCUMENT_START_WRAPPER_SCRIPT_FORMAT =
+    @"(function(){"
+    "var u=String(window.location.href);"
+    "function nu(x){var s=String(x);var l=s.toLowerCase();var rr='resource://rawfile/';"
+    "var cs='arkuixcustomscheme://';var ch='arkuixcustomschemehandler://';"
+    "if(l.indexOf(ch)===0){s=s.slice(ch.length);l=s.toLowerCase();}"
+    "else if(l.indexOf(cs)===0){s=s.slice(cs.length);l=s.toLowerCase();}"
+    "if(l.indexOf('://')<0){var sp=l.indexOf('//');"
+    "if(sp>0){s=s.slice(0,sp)+'://'+s.slice(sp+2);l=s.toLowerCase();}}"
+    "var p=l.indexOf(rr);if(p>=0){return rr+s.slice(p+rr.length);}"
+    "var rf='/resources/rawfile/';"
+    "if(/^file:/.test(l)||(!/^https?:/.test(l)&&l.indexOf(rf)>=0)){"
+    "p=l.indexOf(rf);if(p>=0){return rr+s.slice(p+rf.length);}}"
+    "return s;}"
+    "var mu=nu(u);"
+    "var rs=%@;"
+    "var xs=%@;"
+    "function esc(s){return String(s).replace(/[.*+?^${}()|[\\]\\\\]/g,'\\\\$&');}"
+    "function vr(r){r=String(r);if(r==='*'){return true;}if(!r){return false;}"
+    "var p=r.indexOf('://');if(p<0){return false;}var sc=r.slice(0,p).toLowerCase();"
+    "var http=sc==='http'||sc==='https';var st=r.indexOf('*');"
+    "if(st>=0){return http&&r.indexOf('*',st+1)<0&&st===p+3&&r.charAt(st+1)==='.'&&r.length>st+2;}"
+    "return http?r.length>p+3:r.slice(-3)==='://';}"
+    "function vrs(a){for(var k=0;k<a.length;k++){if(!vr(a[k])){return false;}}return true;}"
+    "function hu(x){var p=String(x).indexOf('://');if(p<0){return '';}"
+    "var h=String(x).slice(p+3).split(/[/?#]/)[0];"
+    "if(h.charAt(0)==='['){var e=h.indexOf(']');return e>=0?h.slice(1,e):h;}"
+    "return h.split(':')[0];}"
+    "function wm(r){var p=String(r).indexOf('://');var s=String(r).slice(0,p+3).toLowerCase();"
+    "if(mu.toLowerCase().indexOf(s)!==0){return false;}"
+    "var d=String(r).slice(p+5).toLowerCase();var h=hu(mu).toLowerCase();"
+    "return h.length>d.length&&h.slice(h.length-d.length-1)==='.'+d;}"
+    "function m(r){if(r==='*'||mu===r||mu.indexOf(r)===0){return true;}"
+    "if(String(r).indexOf('*')<0){return false;}return wm(r);}"
+    "function ip(h){return /^\\d{1,3}(\\.\\d{1,3}){3}$/.test(h)||String(h).indexOf(':')>=0;}"
+    "function raw(u){var l=String(u).toLowerCase();"
+    "return /^file:/.test(l)||/^resource:\\/\\/rawfile\\//.test(l)||"
+    "/^arkuixcustomscheme(?:handler)?:\\/\\/(?:file:|resource:\\/\\/rawfile\\/)/.test(l)||"
+    "(!/^https?:/.test(l)&&l.indexOf('/resources/rawfile/')>=0);}"
+    "function nh(h){h=String(h||'').toLowerCase().replace(/\\.$/,'');"
+    "if(h.charAt(0)==='['&&h.charAt(h.length-1)===']'){h=h.slice(1,-1);}"
+    "return h;}"
+    "function tc(){return window.%@||{rules:{},wildcards:{},exceptions:{}};}"
+    "function ps(h){var c=tc();var r=c.rules||{},w=c.wildcards||{},e=c.exceptions||{};"
+    "var p=h.split('.');var n=p.length;var b=1;"
+    "for(var i=0;i<n;i++){var d=p.slice(i).join('.');"
+    "if(e[d]){return p.slice(i+1).join('.')||d;}"
+    "if(r[d]&&n-i>b){b=n-i;}"
+    "if(i<n-1){var wd=p.slice(i+1).join('.');if(w[wd]&&n-i>b){b=n-i;}}}"
+    "return p.slice(n-b).join('.');}"
+    "function sld(){if(raw(mu)){return '';}"
+    "var h=nh(hu(mu));if(!h||ip(h)){return h;}"
+    "var s=ps(h);if(h===s){return h;}"
+    "var p=h.slice(0,h.length-s.length-1).split('.');return p[p.length-1]+'.'+s;}"
+    "function mr(o){if(!o){return false;}"
+    "if(sld()!==nh(o.secondLevelDomain)){return false;}"
+    "try{return new RegExp(String(o.rule||'')).test(mu);}catch(e){return false;}}"
+    "var rv=rs.length>0?vrs(rs):true;"
+    "var ok=false;if(rs.length>0){if(rv){for(var i=0;i<rs.length;i++){if(m(rs[i])){ok=true;break;}}}}"
+    "else{for(var j=0;j<xs.length;j++){if(mr(xs[j])){ok=true;break;}}}"
+    "if(ok){var s=%@[0];try{(0,eval)(s);}catch(e){}}"
+    "})();";
 
 @implementation AceWeb {
     dispatch_source_t _timer;
@@ -309,6 +424,233 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
     [self fireCallback:NTC_ONCONTENTHEIGHTCHANGED params:[NSString stringWithFormat:@"%d", contentHeight]];
 }
 
++ (WKWebsiteDataStore*)cookieDataStore:(BOOL)incognito
+{
+    if (incognito) {
+        if (g_incognitoWebsiteDataStore == nil) {
+            g_incognitoWebsiteDataStore = [WKWebsiteDataStore nonPersistentDataStore];
+        }
+        return g_incognitoWebsiteDataStore;
+    }
+    return [WKWebsiteDataStore defaultDataStore];
+}
+
++ (NSString*)documentPublicSuffixFilePath
+{
+    NSString* path = [[[NSBundle mainBundle] bundlePath]
+        stringByAppendingPathComponent:DOCUMENT_PUBLIC_SUFFIX_RESOURCE_PATH];
+    if ([[NSFileManager defaultManager] fileExistsAtPath:path]) {
+        return path;
+    }
+    NSBundle* frameworkBundle = [NSBundle bundleForClass:[AceWeb class]];
+    path = [frameworkBundle pathForResource:DOCUMENT_PUBLIC_SUFFIX_FILE_NAME
+                                     ofType:DOCUMENT_PUBLIC_SUFFIX_FILE_EXTENSION];
+    if (path.length > 0) {
+        return path;
+    }
+    path = [[NSBundle mainBundle] pathForResource:DOCUMENT_PUBLIC_SUFFIX_FILE_NAME
+                                           ofType:DOCUMENT_PUBLIC_SUFFIX_FILE_EXTENSION];
+    if (path.length > 0) {
+        return path;
+    }
+    return @"";
+}
+
++ (void)addDocumentPublicSuffixRule:(NSString*)rule
+                              rules:(NSMutableDictionary<NSString*, NSNumber*>*)rules
+                          wildcards:(NSMutableDictionary<NSString*, NSNumber*>*)wildcards
+                         exceptions:(NSMutableDictionary<NSString*, NSNumber*>*)exceptions
+{
+    if (rule.length == 0 || [rule hasPrefix:@"//"]) {
+        return;
+    }
+    if ([rule hasPrefix:@"!"]) {
+        NSString* exceptionRule = [rule substringFromIndex:1];
+        if (exceptionRule.length > 0) {
+            exceptions[exceptionRule] = @YES;
+        }
+        return;
+    }
+    if ([rule hasPrefix:@"*."]) {
+        NSString* wildcardRule = [rule substringFromIndex:DOCUMENT_PUBLIC_SUFFIX_WILDCARD_PREFIX_LENGTH];
+        if (wildcardRule.length > 0) {
+            wildcards[wildcardRule] = @YES;
+        }
+        return;
+    }
+    rules[rule] = @YES;
+}
+
++ (NSDictionary<NSString*, NSDictionary<NSString*, NSNumber*>*>*)loadDocumentPublicSuffixRules
+{
+    NSMutableDictionary<NSString*, NSNumber*>* rules = [NSMutableDictionary dictionary];
+    NSMutableDictionary<NSString*, NSNumber*>* wildcards = [NSMutableDictionary dictionary];
+    NSMutableDictionary<NSString*, NSNumber*>* exceptions = [NSMutableDictionary dictionary];
+    NSString* path = [AceWeb documentPublicSuffixFilePath];
+    if (path.length == 0) {
+        LOGE("AceWeb effective_tld_names.dat not found");
+        return @{
+            @"rules": rules,
+            @"wildcards": wildcards,
+            @"exceptions": exceptions
+        };
+    }
+    NSError* error = nil;
+    NSString* content = [NSString stringWithContentsOfFile:path encoding:NSUTF8StringEncoding error:&error];
+    if (error != nil || content.length == 0) {
+        LOGE("AceWeb read effective_tld_names.dat failed");
+        return @{
+            @"rules": rules,
+            @"wildcards": wildcards,
+            @"exceptions": exceptions
+        };
+    }
+    NSCharacterSet* trimmingSet = [NSCharacterSet whitespaceAndNewlineCharacterSet];
+    [content enumerateLinesUsingBlock:^(NSString* line, BOOL* stop) {
+        (void)stop;
+        NSString* rule = [[line stringByTrimmingCharactersInSet:trimmingSet] lowercaseString];
+        [AceWeb addDocumentPublicSuffixRule:rule rules:rules wildcards:wildcards exceptions:exceptions];
+    }];
+    return @{
+        @"rules": rules,
+        @"wildcards": wildcards,
+        @"exceptions": exceptions
+    };
+}
+
++ (NSDictionary<NSString*, NSDictionary<NSString*, NSNumber*>*>*)documentPublicSuffixRules
+{
+    static NSDictionary<NSString*, NSDictionary<NSString*, NSNumber*>*>* suffixRules = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        suffixRules = [AceWeb loadDocumentPublicSuffixRules];
+    });
+    return suffixRules;
+}
+
++ (NSString*)documentPublicSuffixInitScript
+{
+    static NSString* initScript = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        NSDictionary* suffixRules = [AceWeb documentPublicSuffixRules];
+        NSError* error = nil;
+        NSData* data = [NSJSONSerialization dataWithJSONObject:suffixRules options:0 error:&error];
+        if (error != nil || data == nil) {
+            LOGE("AceWeb serialize effective_tld_names.dat rules failed");
+            initScript = @"";
+            return;
+        }
+        NSString* suffixRulesJson = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+        if (suffixRulesJson.length == 0) {
+            initScript = @"";
+            return;
+        }
+        initScript = [NSString stringWithFormat:DOCUMENT_PUBLIC_SUFFIX_INIT_SCRIPT_FORMAT,
+            DOCUMENT_PUBLIC_SUFFIX_CACHE_NAME, suffixRulesJson];
+    });
+    return initScript;
+}
+
++ (void)prepareDocumentPublicSuffixInitScriptAsync
+{
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY, 0), ^{
+            [AceWeb documentPublicSuffixInitScript];
+        });
+    });
+}
+
++ (BOOL)hasDocumentUrlRegexRules:(NSArray<DocumentStartScriptItem*>*)items
+{
+    for (DocumentStartScriptItem* item in items) {
+        if (item.urlRegexRules.count > 0) {
+            return YES;
+        }
+    }
+    return NO;
+}
+
++ (NSArray<NSString*>*)parseDocumentStartScriptRules:(id)scriptRules
+{
+    if (![scriptRules isKindOfClass:[NSArray class]]) {
+        return @[];
+    }
+    NSMutableArray<NSString*>* rules = [NSMutableArray array];
+    for (id rule in (NSArray*)scriptRules) {
+        if ([rule isKindOfClass:[NSString class]]) {
+            [rules addObject:rule];
+        }
+    }
+    return rules;
+}
+
++ (DocumentStartUrlRegexRule*)createDocumentStartUrlRegexRule:(id)value
+{
+    if (![value isKindOfClass:[NSDictionary class]]) {
+        return nil;
+    }
+    NSDictionary* regexRuleValue = (NSDictionary*)value;
+    id secondLevelDomain = regexRuleValue[@"secondLevelDomain"];
+    id rule = regexRuleValue[@"rule"];
+    if (![secondLevelDomain isKindOfClass:[NSString class]] || ![rule isKindOfClass:[NSString class]]) {
+        return nil;
+    }
+    DocumentStartUrlRegexRule* regexRule = [[DocumentStartUrlRegexRule alloc] init];
+    regexRule.secondLevelDomain = secondLevelDomain;
+    regexRule.rule = rule;
+    return regexRule;
+}
+
++ (NSArray<DocumentStartUrlRegexRule*>*)parseDocumentStartUrlRegexRules:(id)urlRegexRules
+{
+    if (![urlRegexRules isKindOfClass:[NSArray class]]) {
+        return @[];
+    }
+    NSMutableArray<DocumentStartUrlRegexRule*>* regexRules = [NSMutableArray array];
+    for (id value in (NSArray*)urlRegexRules) {
+        DocumentStartUrlRegexRule* regexRule = [AceWeb createDocumentStartUrlRegexRule:value];
+        if (regexRule != nil) {
+            [regexRules addObject:regexRule];
+        }
+    }
+    return regexRules;
+}
+
++ (DocumentStartScriptItem*)createDocumentStartScriptItem:(id)value
+{
+    if (![value isKindOfClass:[NSDictionary class]]) {
+        return nil;
+    }
+    NSDictionary* item = (NSDictionary*)value;
+    id script = item[@"script"];
+    if (![script isKindOfClass:[NSString class]] || [script length] == 0) {
+        return nil;
+    }
+    DocumentStartScriptItem* scriptItem = [[DocumentStartScriptItem alloc] init];
+    scriptItem.script = script;
+    scriptItem.scriptRules = [AceWeb parseDocumentStartScriptRules:item[@"scriptRules"]];
+    scriptItem.urlRegexRules = [AceWeb parseDocumentStartUrlRegexRules:item[@"urlRegexRules"]];
+    return scriptItem;
+}
+
++ (NSArray<NSDictionary*>*)createDocumentStartRegexRuleDictionaries:
+    (NSArray<DocumentStartUrlRegexRule*>*)urlRegexRules
+{
+    NSMutableArray<NSDictionary*>* regexRules = [NSMutableArray array];
+    for (DocumentStartUrlRegexRule* regexRule in urlRegexRules) {
+        if (regexRule.secondLevelDomain == nil || regexRule.rule == nil) {
+            continue;
+        }
+        [regexRules addObject:@{
+            @"secondLevelDomain": regexRule.secondLevelDomain,
+            @"rule": regexRule.rule
+        }];
+    }
+    return regexRules;
+}
+
 - (instancetype)init:(int64_t)incId
               target:(UIViewController*)target
              onEvent:(IAceOnResourceEvent)callback
@@ -351,6 +693,10 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
     self.isAllowWindowOpenMethodEnabled = NO;
     self.hasSentWindowExitEvent = NO;
     self.handleSslErrorUrls = [NSMutableSet set];
+    self.documentStartScriptItems = @[];
+    self.documentEndScriptItems = @[];
+    self.hasDocumentPublicSuffixInitScript = NO;
+    [AceWeb prepareDocumentPublicSuffixInitScriptAsync];
     [self initConfigure];
     [self initEventCallback];
     [self initWeb];
@@ -392,6 +738,8 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
     WKUserScript *script = [[WKUserScript alloc] initWithSource:htmlJS injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES];
     [userContentController addUserScript:script];
     [userContentController addScriptMessageHandler:self name:@"videoPlayed"];
+    [self addDocumentStartUserScripts:userContentController];
+    [self addDocumentEndUserScripts:userContentController];
     preference.javaScriptEnabled = self.javascriptAccessSwitch;
     preference.javaScriptCanOpenWindowsAutomatically = self.isAllowWindowOpenMethodEnabled;
 
@@ -431,8 +779,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
         [defaultDataStore removeDataOfTypes:[NSSet setWithArray:dataTypes] modifiedSince:[NSDate dateWithTimeIntervalSince1970:0] completionHandler:^{
         }];
         config.processPool = [[WKProcessPool alloc] init];
-        WKWebsiteDataStore *nonPersistentDataStore = [WKWebsiteDataStore nonPersistentDataStore];
-        [config setWebsiteDataStore:nonPersistentDataStore];
+        [config setWebsiteDataStore:[AceWeb cookieDataStore:YES]];
     } else {
         WKWebsiteDataStore *defaultDataStore = [WKWebsiteDataStore defaultDataStore];
         config.websiteDataStore = defaultDataStore;
@@ -487,7 +834,9 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
         LOGE("Error:AceWeb: url is nill");
         return;
     }
-    if ([url hasSuffix:@".html"] && ![url hasPrefix:@"file://"] && ![url hasPrefix:@"http"]) {
+    NSURL* parsedUrl = [NSURL URLWithString:url];
+    if ([url hasSuffix:@".html"] && ![url hasPrefix:@"file://"] && ![url hasPrefix:@"http"] &&
+        parsedUrl.scheme.length == 0) {
         url = [NSString stringWithFormat:@"file://%@", url];
     }
     [self.handleSslErrorUrls removeAllObjects];
@@ -924,6 +1273,188 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
     return [self.webView customUserAgent];
 }
 
+- (void)setNetworkAvailable:(bool)enable
+{
+    NSString* value = enable ? @"true" : @"false";
+    NSString* script = [NSString stringWithFormat:
+        @"Object.defineProperty(window.navigator,'onLine',{"
+        "get:function(){return %@;},configurable:true});",
+        value];
+    if (!self.webView) {
+        return;
+    }
+    WKUserScript* userScript = [[WKUserScript alloc] initWithSource:script
+        injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:NO];
+    [self.webView.configuration.userContentController addUserScript:userScript];
+    [self.webView evaluateJavaScript:script completionHandler:nil];
+}
+
+- (void)setDocumentStartScripts:(NSString*)encodedScripts
+{
+    if (encodedScripts != nil && ![encodedScripts isKindOfClass:[NSString class]]) {
+        LOGE("AceWeb setDocumentStartScripts parameter is not NSString");
+        return;
+    }
+    self.documentStartScriptItems = [self parseDocumentStartScriptItems:encodedScripts];
+    if (!self.webView) {
+        return;
+    }
+    [self addDocumentStartUserScripts:self.webView.configuration.userContentController];
+}
+
+- (void)setDocumentEndScripts:(NSString*)encodedScripts
+{
+    if (encodedScripts != nil && ![encodedScripts isKindOfClass:[NSString class]]) {
+        LOGE("AceWeb setDocumentEndScripts parameter is not NSString");
+        return;
+    }
+    self.documentEndScriptItems = [self parseDocumentStartScriptItems:encodedScripts];
+    if (!self.webView) {
+        return;
+    }
+    [self addDocumentEndUserScripts:self.webView.configuration.userContentController];
+}
+
+- (NSArray<DocumentStartScriptItem*>*)parseDocumentStartScriptItems:(NSString*)encodedScripts
+{
+    if (encodedScripts == nil || encodedScripts.length == 0) {
+        return @[];
+    }
+    NSString* scripts = [encodedScripts stringByRemovingPercentEncoding];
+    NSData* data = [scripts dataUsingEncoding:NSUTF8StringEncoding];
+    if (data == nil) {
+        return @[];
+    }
+    NSError* error = nil;
+    id json = [NSJSONSerialization JSONObjectWithData:data options:0 error:&error];
+    if (error != nil || ![json isKindOfClass:[NSArray class]]) {
+        LOGE("AceWeb parse document start scripts failed");
+        return @[];
+    }
+    NSMutableArray<DocumentStartScriptItem*>* items = [NSMutableArray array];
+    for (id value in (NSArray*)json) {
+        DocumentStartScriptItem* scriptItem = [AceWeb createDocumentStartScriptItem:value];
+        if (scriptItem != nil) {
+            [items addObject:scriptItem];
+        }
+    }
+    return items;
+}
+
+- (void)addDocumentStartUserScripts:(WKUserContentController*)userContentController
+{
+    [self addDocumentUserScripts:self.documentStartScriptItems
+           userContentController:userContentController
+                    injectionTime:WKUserScriptInjectionTimeAtDocumentStart];
+}
+
+- (void)addDocumentEndUserScripts:(WKUserContentController*)userContentController
+{
+    [self addDocumentUserScripts:self.documentEndScriptItems
+           userContentController:userContentController
+                    injectionTime:WKUserScriptInjectionTimeAtDocumentEnd];
+}
+
+- (void)addDocumentPublicSuffixInitScriptIfNeeded:(NSArray<DocumentStartScriptItem*>*)items
+                           userContentController:(WKUserContentController*)userContentController
+{
+    if (userContentController == nil || self.hasDocumentPublicSuffixInitScript ||
+        ![AceWeb hasDocumentUrlRegexRules:items]) {
+        return;
+    }
+    NSString* initScript = [AceWeb documentPublicSuffixInitScript];
+    if (initScript.length == 0) {
+        return;
+    }
+    WKUserScript* userScript = [[WKUserScript alloc] initWithSource:initScript
+        injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:NO];
+    [userContentController addUserScript:userScript];
+    self.hasDocumentPublicSuffixInitScript = YES;
+}
+
+- (void)addDocumentUserScripts:(NSArray<DocumentStartScriptItem*>*)items
+         userContentController:(WKUserContentController*)userContentController
+                  injectionTime:(WKUserScriptInjectionTime)injectionTime
+{
+    if (userContentController == nil || items.count == 0) {
+        return;
+    }
+    [self addDocumentPublicSuffixInitScriptIfNeeded:items userContentController:userContentController];
+    for (DocumentStartScriptItem* item in items) {
+        NSString* wrapper = [self documentStartWrapperScript:item];
+        if (wrapper.length == 0) {
+            continue;
+        }
+        WKUserScript* userScript = [[WKUserScript alloc] initWithSource:wrapper
+            injectionTime:injectionTime forMainFrameOnly:NO];
+        [userContentController addUserScript:userScript];
+    }
+}
+
+- (NSString*)documentStartWrapperScript:(DocumentStartScriptItem*)item
+{
+    if (item == nil || item.script.length == 0 ||
+        (item.scriptRules.count == 0 && item.urlRegexRules.count == 0)) {
+        return @"";
+    }
+    if (item.scriptRules.count > 0 && ![self areScriptRulesValid:item.scriptRules]) {
+        return @"";
+    }
+    NSArray<NSDictionary*>* regexRules = [AceWeb createDocumentStartRegexRuleDictionaries:item.urlRegexRules];
+    NSData* rulesData = [NSJSONSerialization dataWithJSONObject:item.scriptRules options:0 error:nil];
+    NSData* regexRulesData = [NSJSONSerialization dataWithJSONObject:regexRules options:0 error:nil];
+    NSData* scriptData = [NSJSONSerialization dataWithJSONObject:@[item.script] options:0 error:nil];
+    if (rulesData == nil || regexRulesData == nil || scriptData == nil) {
+        return @"";
+    }
+    NSString* rulesJson = [[NSString alloc] initWithData:rulesData encoding:NSUTF8StringEncoding];
+    NSString* regexRulesJson = [[NSString alloc] initWithData:regexRulesData encoding:NSUTF8StringEncoding];
+    NSString* scriptJson = [[NSString alloc] initWithData:scriptData encoding:NSUTF8StringEncoding];
+    return [NSString stringWithFormat:DOCUMENT_START_WRAPPER_SCRIPT_FORMAT, rulesJson, regexRulesJson,
+        DOCUMENT_PUBLIC_SUFFIX_CACHE_NAME, scriptJson];
+}
+
+- (BOOL)areScriptRulesValid:(NSArray<NSString*>*)rules
+{
+    for (NSString* rule in rules) {
+        if (![self isScriptRuleValid:rule]) {
+            return NO;
+        }
+    }
+    return YES;
+}
+
+- (BOOL)isScriptRuleValid:(NSString*)rule
+{
+    if (rule.length == 0) {
+        return NO;
+    }
+    if ([rule isEqualToString:@"*"]) {
+        return YES;
+    }
+    NSRange schemeRange = [rule rangeOfString:@"://"];
+    if (schemeRange.location == NSNotFound) {
+        return NO;
+    }
+    NSString* scheme = [[rule substringToIndex:schemeRange.location] lowercaseString];
+    BOOL isHttpOrHttps = [scheme isEqualToString:@"http"] || [scheme isEqualToString:@"https"];
+    NSRange starRange = [rule rangeOfString:@"*"];
+    if (starRange.location != NSNotFound) {
+        if (!isHttpOrHttps || [rule rangeOfString:@"*" options:0
+            range:NSMakeRange(starRange.location + 1, rule.length - starRange.location - 1)].location != NSNotFound) {
+            return NO;
+        }
+        NSUInteger hostStart = schemeRange.location + schemeRange.length;
+        return starRange.location == hostStart &&
+            rule.length > starRange.location + SCRIPT_RULE_WILDCARD_MIN_SUFFIX_LENGTH &&
+            [rule characterAtIndex:starRange.location + 1] == '.';
+    }
+    if (!isHttpOrHttps) {
+        return [rule hasSuffix:@"://"];
+    }
+    return rule.length > schemeRange.location + schemeRange.length;
+}
+
 - (void)initConfigure
 {
     self.callSyncMethodMap = [[NSMutableDictionary alloc] init];
@@ -1214,6 +1745,10 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
     [self setMultiWindowAccessCallback];
     // allowWindowOpenMethod callback
     [self setAllowWindowOpenMethodCallback];
+    // runJavaScriptOnDocumentStart callback
+    [self setRunJavaScriptOnDocumentStartCallback];
+    // runJavaScriptOnDocumentEnd callback
+    [self setRunJavaScriptOnDocumentEndCallback];
 
     [self enterFullScreenOrExitFullScreenNotifi];
 }
@@ -1477,6 +2012,48 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
         return FAIL;
     };
     [self.callSyncMethodMap setObject:[over_scroll_mode_callback copy] forKey:over_scroll_mode_hash];
+}
+
+- (void)setRunJavaScriptOnDocumentStartCallback
+{
+    __weak __typeof(self) weakSelf = self;
+    NSString* methodHash = [self method_hashFormat:NTC_RUN_JAVASCRIPT_ON_DOCUMENT_START];
+    IAceOnCallSyncResourceMethod callback = ^NSString*(NSDictionary* param)
+    {
+        __strong __typeof(weakSelf) strongSelf = weakSelf;
+        if (!strongSelf) {
+            return FAIL;
+        }
+        id scripts = [param objectForKey:NTC_RUN_JAVASCRIPT_ON_DOCUMENT_START];
+        if (scripts != nil && ![scripts isKindOfClass:[NSString class]]) {
+            LOGE("AceWeb runJavaScriptOnDocumentStart parameter is not NSString");
+            return FAIL;
+        }
+        [strongSelf setDocumentStartScripts:scripts];
+        return SUCCESS;
+    };
+    [self.callSyncMethodMap setObject:[callback copy] forKey:methodHash];
+}
+
+- (void)setRunJavaScriptOnDocumentEndCallback
+{
+    __weak __typeof(self) weakSelf = self;
+    NSString* methodHash = [self method_hashFormat:NTC_RUN_JAVASCRIPT_ON_DOCUMENT_END];
+    IAceOnCallSyncResourceMethod callback = ^NSString*(NSDictionary* param)
+    {
+        __strong __typeof(weakSelf) strongSelf = weakSelf;
+        if (!strongSelf) {
+            return FAIL;
+        }
+        id scripts = [param objectForKey:NTC_RUN_JAVASCRIPT_ON_DOCUMENT_END];
+        if (scripts != nil && ![scripts isKindOfClass:[NSString class]]) {
+            LOGE("AceWeb runJavaScriptOnDocumentEnd parameter is not NSString");
+            return FAIL;
+        }
+        [strongSelf setDocumentEndScripts:scripts];
+        return SUCCESS;
+    };
+    [self.callSyncMethodMap setObject:[callback copy] forKey:methodHash];
 }
 
 - (void)setEnableHapticFeedbackCallback
@@ -2466,6 +3043,9 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
 {
     NSString* requestURL =
             navigationAction.request.URL.absoluteString ? navigationAction.request.URL.absoluteString : @"";
+    if (requestURL.length > 0) {
+        [self fireCallback:@"onResourceLoad" params:requestURL];
+    }
     NSString *referer = navigationAction.request.allHTTPHeaderFields[@"Referer"];
     self.referrer = referer ? referer : @"";
     if (navigationAction.targetFrame.isMainFrame) {

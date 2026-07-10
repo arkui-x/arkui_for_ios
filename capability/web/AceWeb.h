@@ -15,6 +15,7 @@
 
 #import <Foundation/Foundation.h>
 #import <WebKit/WebKit.h>
+
 #import "AceResourcePlugin.h"
 #include "scheme_handler/scheme_handler.h"
 
@@ -80,6 +81,7 @@
 -(WKWebView*)getWeb;
 -(NSString*)updateWebLayout:(NSDictionary*) paramMap;
 + (void)setWebDebuggingAccess:(bool)webDebuggingAccess;
++ (WKWebsiteDataStore*)cookieDataStore:(BOOL)incognito;
 - (void)pageDown:(bool)value;
 - (void)postUrl:(NSString*)url postData:(NSData *)postData;
 + (BOOL)getWebDebuggingAccess;
@@ -107,4 +109,7 @@
 - (BOOL)setWebSchemeHandler:(NSString*)scheme handler:(const ArkWeb_SchemeHandler*)handler;
 - (BOOL)clearWebSchemeHandler;
 - (void)onTextSelectionChanged:(void (^)(NSString* eventType, NSString* selectedText))callback;
+- (void)setNetworkAvailable:(bool)enable;
+- (void)setDocumentStartScripts:(NSString*)encodedScripts;
+- (void)setDocumentEndScripts:(NSString*)encodedScripts;
 @end

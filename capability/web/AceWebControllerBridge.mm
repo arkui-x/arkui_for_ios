@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 Huawei Device Co., Ltd.
+ * Copyright (c) 2023-2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -13,17 +13,18 @@
  * limitations under the License.
  */
 
+#import "AceWebControllerBridge.h"
+
+#import <Foundation/Foundation.h>
 #include <map>
+#include <mutex>
 #include <string>
 #include <vector>
-#include <mutex>
-#import <Foundation/Foundation.h>
 
-#include "scheme_handler/scheme_handler.h"
-#include "base/log/log.h"
-#import "AceWebResourcePlugin.h"
-#import "AceWebControllerBridge.h"
 #import "AceWebInfoManager.h"
+#import "AceWebResourcePlugin.h"
+#include "base/log/log.h"
+#include "scheme_handler/scheme_handler.h"
 
 #define MAX_DEPTH 10
 
@@ -634,6 +635,11 @@ void setWebDebuggingAccessOC(bool webDebuggingAccess){
     [AceWeb setWebDebuggingAccess:webDebuggingAccess];
 }
 
+void* getCookieDataStoreOC(bool incognito)
+{
+    return (__bridge void*)[AceWeb cookieDataStore:incognito];
+}
+
 void pageDownOC(int id, bool value)
 {
     AceWeb* web = [AceWebResourcePlugin.getObjectMap objectForKey:[NSString stringWithFormat:@"%d", id]];
@@ -1133,4 +1139,18 @@ bool clearWebSchemeHandlerOC(int webId)
 std::string getUserAgentOC()
 {
     return [[[AceWebInfoManager sharedManager] getUserAgent] UTF8String];
+}
+
+void setNetworkAvailableOC(int webId, bool enable)
+{
+    AceWeb* web = [AceWebResourcePlugin.getObjectMap objectForKey:[NSString stringWithFormat:@"%d", webId]];
+    if (web == nil) {
+        return;
+    }
+    [web setNetworkAvailable:enable];
+}
+
+std::string getDefaultUserAgentOC()
+{
+    return getUserAgentOC();
 }
