@@ -400,6 +400,8 @@ component_modules = [
   "search",
   "text_clock",
   "toggle",
+  "button",
+  "dialog",
   "progress",
   "loading_progress",
   "badge",
