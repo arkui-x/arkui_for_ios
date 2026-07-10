@@ -91,6 +91,8 @@ const std::unordered_map<std::string, std::string> soMap = {
     {"DataPanel", "datapanel"},
     {"Richeditor", "richeditor"},
     {"Search", "search"},
+    {"TextInput", "textfield"},
+ 	{"TextArea", "textfield"},
     // Menu components are now statically linked, handled in GetDynamicModule
     {"TextClock", "textclock"},
     {"Toggle", "toggle"},
