@@ -319,7 +319,7 @@ static bool g_isOnBackground = false;
             UITabBarController *tab = (UITabBarController *)topViewController;
             topViewController = tab.selectedViewController;
         } else if (topViewController.childViewControllers.count > 0) {
-            LOGI("topViewController has childViewControllers");
+            NSLog(@"topViewController has childViewControllers");
             UIViewController *foundChild = nil;
             for (UIViewController *childVC in topViewController.childViewControllers.reverseObjectEnumerator) {
                 if (childVC.isViewLoaded && childVC.view.window) {
@@ -328,10 +328,10 @@ static bool g_isOnBackground = false;
                 }
             }
             if (foundChild) {
-                LOGI("topViewController is a child view controller");
+                NSLog(@"topViewController is a child view controller, class: %@", foundChild.class);
                 topViewController = foundChild;
             } else {
-                LOGI("topViewController is a container view controller");
+                NSLog(@"topViewController is a container view controller, class: %@", topViewController.class);
                 break;
             }
         } else {
