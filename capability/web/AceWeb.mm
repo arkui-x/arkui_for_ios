@@ -1552,6 +1552,7 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
 
 - (void)webView:(WKWebView *)webView didCommitNavigation:(WKNavigation *)navigation
 {
+    self.jsReady = false;
     NSString *param = [NSString stringWithFormat:@"%@",webView.URL];
     if (self.isLoadRichText) {
         return;
