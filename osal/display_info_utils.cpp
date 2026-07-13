@@ -28,6 +28,9 @@ RefPtr<DisplayInfo> DisplayInfoUtils::GetDisplayInfo(int32_t displayId)
     displayInfo_->SetWidth(dmDisplayInfo->GetWidth());
     displayInfo_->SetHeight(dmDisplayInfo->GetHeight());
     displayInfo_->SetDisplayId(dmDisplayInfo->GetDisplayId());
+    auto dmRotation = dmDisplayInfo->GetRotation();
+    displayInfo_->SetRotation(static_cast<Rotation>(static_cast<uint32_t>(dmRotation)));
+    displayInfo_->SetDisplaySourceMode(DisplaySourceMode::NONE);
     return displayInfo_;
 }
 
@@ -46,7 +49,7 @@ FoldStatus DisplayInfoUtils::GetCurrentFoldStatus()
 
 DisplaySourceMode DisplayInfoUtils::GetDisplaySourceMode()
 {
-    return DisplaySourceMode::NONE;
+    return displayInfo_->GetDisplaySourceMode();
 }
 
 std::vector<Rect> DisplayInfoUtils::GetCurrentFoldCreaseRegion()
