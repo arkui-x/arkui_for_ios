@@ -22,6 +22,7 @@
 #import "Logger.h"
 #include <string>
 #include "app_main.h"
+#include "foundation/arkui/ace_engine/adapter/ios/osal/backtrace_handler.h"
 #include "foundation/arkui/ace_engine/adapter/ios/osal/high_contrast_observer.h"
 #include "stage_application_info_adapter.h"
 
@@ -49,6 +50,11 @@ static bool g_isOnBackground = false;
 }
 
 + (void)initApplication:(BOOL)isLoadArkUI {
+    // Install the async-signal-safe FP-chain crash handler early (caches the
+    // dyld image table, then registers sigaction handlers). No-op if already
+    // installed. Must run before any native code that might crash.
+    OHOS::Ace::Platform::InitBacktraceHandler();
+
     [self setPidAndUid];
     [self setLocale];
     [self setupNotificationCenterObservers];
