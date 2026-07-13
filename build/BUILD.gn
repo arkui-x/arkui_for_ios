@@ -212,6 +212,110 @@ ohos_shared_library("arkui_ios") {
       "arkui_ios exports are aligned to ICU 74; update libarkui_ios.txt when ICU version changes.")
 }
 
+# NDK on-demand-load shared library (stub + impl).
+# Mirrors host arkui_ios; loaded by app Xcode project.
+# See docs/superpowers/specs/2026-07-09-ndk-target-relocation-design.md.
+ohos_shared_library("ace_ndk") {
+  include_dirs = [
+    "$ace_root",
+    "$ace_root/frameworks",
+    "$ace_root/interfaces/native",
+    "$ace_root/interfaces/inner_api/ace_kit/include",
+    "//base/global/resource_management/interfaces/inner_api/include",
+    "//foundation/graphic/graphic_2d/rosen/modules/platform/ipc_core",
+    "//foundation/multimedia/image_framework/interfaces/kits/native/include/image",
+    "//foundation/distributeddatamgr/udmf/interfaces/innerkits/common",
+    "//foundation/distributeddatamgr/udmf/interfaces/innerkits/data",
+  ]
+
+  configs = [
+    "//arkcompiler/runtime_core/static_core/plugins/ets/runtime/ani:ani_config",
+    "//foundation/arkui/napi:ace_napi_config",
+    "//foundation/graphic/graphic_2d/rosen/modules/2d_graphics/drawing_ndk:export_config",
+    "//foundation/multimedia/image_framework/interfaces/innerkits:image_external_config",
+    "//foundation/distributeddatamgr/udmf/interfaces/innerkits:udmf_client_config",
+    "//foundation/appframework/ability/ability_runtime/cross_platform/interfaces/inner_api/want:want_params_config",
+  ]
+
+  sources = [
+    "$ace_root/frameworks/core/components/xcomponent/native_interface_xcomponent_impl.cpp",
+    "$ace_root/interfaces/native/native_error_message_wrapper.cpp",
+    "$ace_root/interfaces/native/native_interface_xcomponent_cross_platform.cpp",
+    "$ace_root/interfaces/native/native_styled_string_descriptor.cpp",
+    "$ace_root/interfaces/native/event/drag_and_drop_impl.cpp",
+    "$ace_root/interfaces/native/event/key_event_impl.cpp",
+    "$ace_root/interfaces/native/event/ui_input_event.cpp",
+    "$ace_root/interfaces/native/node/node_component_snapshot.cpp",
+    "$ace_root/interfaces/native/node/native_interface_focus.cpp",
+    "$ace_root/interfaces/native/node/drawable_descriptor.cpp",
+    "$ace_root/interfaces/native/node/native_node_ani.cpp",
+    "$ace_root/interfaces/native/node/native_node_napi.cpp",
+    "$ace_root/interfaces/native/node/node_utils.cpp",
+    "$ace_root/interfaces/native/node/render_node.cpp",
+    "$ace_root/interfaces/native/node/node_adapter_impl.cpp",
+    "$ace_root/interfaces/native/node/native_node_extented.cpp",
+    "$ace_root/interfaces/native/node/node_extened.cpp",
+    "$ace_root/interfaces/native/node/gesture_impl.cpp",
+    "$ace_root/interfaces/native/node/node_model.cpp",
+    "$ace_root/interfaces/native/node/event_converter.cpp",
+    "$ace_root/interfaces/native/node/node_model_safely.cpp",
+    "$ace_root/interfaces/native/node/container_picker_option.cpp",
+    "$ace_root/interfaces/native/node/textpicker_option.cpp",
+    "$ace_root/interfaces/native/node/frame_information.cpp",
+    "$ace_root/interfaces/native/node/dialog_option.cpp",
+    "$ace_root/interfaces/native/node/dialog_model.cpp",
+    "$ace_root/interfaces/native/node/swiper_option.cpp",
+    "$ace_root/interfaces/native/node/node_transition_imp.cpp",
+    "$ace_root/interfaces/native/node/node_visual_effect.cpp",
+    "$ace_root/interfaces/native/node/grid_layout_option.cpp",
+    "$ace_root/interfaces/native/node/list_option.cpp",
+    "$ace_root/interfaces/native/node/waterflow_section_option.cpp",
+    "$ace_root/interfaces/native/native_interface_accessibility.cpp",
+    "$ace_root/interfaces/native/node/text_native_impl.cpp",
+    "$ace_root/interfaces/native/node/native_impl.cpp",
+    "$ace_root/interfaces/native/node/animate_impl.cpp",
+    "$ace_root/interfaces/native/node/node_animate.cpp",
+    "$ace_root/interfaces/native/node/style_modifier.cpp",
+    "$ace_root/interfaces/native/node/node_transition.cpp",
+    "$ace_root/interfaces/native/node/native_material_impl.cpp",
+    "$ace_root/interfaces/native/node/progress_option.cpp",
+    "$ace_root/interfaces/native/node/rich_editor_native_impl.cpp",
+    "$ace_root/interfaces/native/node/node_node_relative_container.cpp",
+    "$ace_root/frameworks/core/accessibility/native_interface_accessibility_impl.cpp",
+    "$ace_root/frameworks/core/accessibility/native_interface_accessibility_provider.cpp",
+  ]
+
+  output_name = "ace_ndk"
+  cflags_cc += [ "-Wno-missing-braces" ]
+
+  deps = [
+    "//foundation/multimedia/image_framework/interfaces/innerkits:image_native",
+    "//third_party/bounds_checking_function:libsec_static",
+  ]
+  external_deps = [
+    "c_utils:utils",
+    "napi:ace_napi",
+    "runtime_core:ani",
+  ]
+
+  exported_symbols_list = "libace_ndk.txt"
+  ldflags = [
+    "-Wl",
+    "-install_name",
+    "@rpath/libace_ndk.framework/libace_ndk",
+    "-Wl,-undefined,dynamic_lookup",
+  ]
+
+  subsystem_name = "arkui"
+  part_name = "arkui-x"
+}
+
+ohos_combine_darwin_framework("libace_ndk") {
+  deps = [ ":ace_ndk" ]
+  subsystem_name = "arkui"
+  part_name = "arkui-x"
+}
+
 # napi target
 common_napi_modules = []
 foreach(module, common_napi_libs) {
@@ -448,7 +552,10 @@ foreach(module, component_modules) {
 
 # Install packages
 group("ace_packages") {
-  deps = [ ":libarkui_ios" ]
+  deps = [
+    ":libace_ndk",
+    ":libarkui_ios",
+  ]
   deps += common_napi_modules
   deps += common_plugin_modules
   deps += components_modules
