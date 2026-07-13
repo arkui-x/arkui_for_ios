@@ -145,6 +145,7 @@ public:
     void NotifySafeAreaChanged();
     void NotifySurfaceChanged(int32_t width, int32_t height, float density);
     void NotifyKeyboardHeightChanged(int32_t height);
+    void RestoreWindowPosition();
     uint32_t CalculateKeyboardAvoidHeight(uint32_t keyboardHeight);
     void NotifyTraitCollectionDidChange(bool isSplitScreen);
     void NotifyTouchOutside();
