@@ -1604,6 +1604,7 @@ SystemBarProperty Window::GetSystemBarPropertyByType(WindowType type) const
 void Window::ClearListenersById(uint32_t winId)
 {
     std::lock_guard<std::recursive_mutex> lock(globalMutex_);
+    ClearUselessListeners(occupiedAreaChangeListeners_, winId);
     ClearUselessListeners(lifecycleListeners_, winId);
     ClearUselessListeners(windowChangeListeners_, winId);
     ClearUselessListeners(touchOutsideListeners_, winId);
@@ -1631,14 +1632,21 @@ void Window::NotifySizeChange(Rect rect)
 
 void Window::NotifyKeyboardHeightChanged(int32_t height)
 {
-    if (keyBoardHieght_ == height) {
+    if (windowView_ == nullptr || !windowView_.isFocused) {
+        LOGD("NotifyKeyboardHeightChanged: windowView is null or not focused");
         return;
     }
-    keyBoardHieght_ = height;
+    uint32_t keyboardAvoidHeight = CalculateKeyboardAvoidHeight(height);
+    if (keyboardAvoidHeight == lastNotifiedKeyboardHeight_) {
+        LOGD("NotifyKeyboardHeightChanged: Keyboard height is the same as last notified");
+        return;
+    }
+    lastNotifiedKeyboardHeight_ = keyboardAvoidHeight;
+    keyBoardHieght_ = keyboardAvoidHeight;
     auto occupiedAreaChangeListeners = GetListeners<IOccupiedAreaChangeListener>();
     for (auto& listener : occupiedAreaChangeListeners) {
         if (listener != nullptr) {
-            Rect rect = { 0, 0, 0, height };
+            Rect rect = { 0, 0, 0, keyboardAvoidHeight };
             listener->OnSizeChange(rect, OccupiedAreaType::TYPE_INPUT);
         }
     }
@@ -1647,6 +1655,60 @@ void Window::NotifyKeyboardHeightChanged(int32_t height)
     auto avoidArea  = std::make_shared<Rosen::AvoidArea>();
     GetAvoidAreaByType(type, *avoidArea);
     UpdateAvoidArea(avoidArea, type);
+}
+
+uint32_t Window::CalculateKeyboardAvoidHeight(uint32_t keyboardHeight)
+{
+    if (windowView_ == nullptr || windowView_.window == nil) {
+        LOGD("CalculateKeyboardAvoidHeight: windowView is null or window is nil");
+        return 0;
+    }
+
+    if (keyboardHeight == 0) {
+        // Keyboard dismissed: restore original position
+        if (originWindowY_ > 0) {
+            if (!isFullScreen_) {
+                MoveWindowTo(rect_.posX_, originWindowY_);
+            }
+            originWindowY_ = 0;
+        }
+        return 0;
+    }
+
+    UIScreen *screen = windowView_.window.screen;
+    if (screen == nil) {
+        screen = [UIScreen mainScreen];
+    }
+    CGFloat scale = screen.scale;
+    if (scale <= 0) {
+        return 0;
+    }
+
+    CGRect windowRectInScreen = [windowView_ convertRect:windowView_.bounds toView:windowView_.window];
+    CGFloat screenHeight = CGRectGetHeight(screen.bounds) * scale;
+    CGFloat keyboardTop = screenHeight - static_cast<CGFloat>(keyboardHeight);
+    int32_t currentWindowY = rect_.posY_;
+    CGFloat windowHeight = CGRectGetHeight(windowRectInScreen) * scale;
+    CGFloat windowBottom = CGRectGetMinY(windowRectInScreen) * scale + windowHeight;
+    if (keyboardTop > windowBottom) {
+        LOGD("CalculateKeyboardAvoidHeight: keyboard and window do not overlap");
+        return 0;
+    }
+
+    CGFloat overlapHeight = std::max(0.0, windowBottom - keyboardTop);
+    CGFloat maxMoveHeight = std::min(overlapHeight, static_cast<CGFloat>(currentWindowY));
+    if (isFullScreen_) {
+        return static_cast<uint32_t>(std::max(0.0, maxMoveHeight));
+    }
+    int32_t finalTargetY = std::max(0, currentWindowY - static_cast<int32_t>(maxMoveHeight));
+    CGFloat reportHeight = std::max(0.0, overlapHeight - maxMoveHeight);
+    if (finalTargetY != currentWindowY) {
+        if (originWindowY_ == 0) {
+            originWindowY_ = currentWindowY;
+        }
+        MoveWindowTo(rect_.posX_, finalTargetY);
+    }
+    return static_cast<uint32_t>(reportHeight);
 }
 
 WMError Window::RegisterOccupiedAreaChangeListener(const sptr<IOccupiedAreaChangeListener>& listener)
