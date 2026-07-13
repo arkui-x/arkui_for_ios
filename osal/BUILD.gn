@@ -45,6 +45,7 @@ template("ace_osal_ios_source_set") {
       "advance/text_share_adapter.cpp",
       "advance/text_translation_adapter.cpp",
       "app_bar_helper_impl.cpp",
+      "backtrace_handler.cpp",
       "cpu_boost.cpp",
       "display_info_utils.cpp",
       "display_manager_ios.cpp",
