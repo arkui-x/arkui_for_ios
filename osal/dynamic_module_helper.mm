@@ -95,6 +95,7 @@ const std::unordered_map<std::string, std::string> soMap = {
  	{"TextArea", "textfield"},
     // Menu components are now statically linked, handled in GetDynamicModule
     {"TextClock", "textclock"},
+    {"Bubble", "bubble"},
     {"Toggle", "toggle"},
     {"Button", "button"},
     {"Dialog", "dialog" },
