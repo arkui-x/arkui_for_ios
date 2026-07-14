@@ -2773,6 +2773,7 @@ static NSString* const DOCUMENT_START_WRAPPER_SCRIPT_FORMAT =
 
 - (void)webView:(WKWebView *)webView didCommitNavigation:(WKNavigation *)navigation
 {
+    self.jsReady = false;
     NSString *param = [NSString stringWithFormat:@"%@",webView.URL];
     if (self.isLoadRichText) {
         return;
