@@ -517,6 +517,7 @@ component_modules = [
   "lazy_grid_layout",
   "refresh",
   "grid",
+  "bubble",
 ]
 component_modules_libs = []
 
