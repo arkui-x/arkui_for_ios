@@ -30,7 +30,7 @@ namespace OHOS::Ace::Platform {
  *  - No /proc/self/maps on Darwin; the loaded-image table is pre-cached at init
  *    via the dyld API (_dyld_image_count / _dyld_get_image_*). dyld is NOT
  *    async-signal-safe, so caching happens in normal context, not in the handler.
- *  - Each frame prints "<image>+0x<vaddr>" where vaddr = runtime_pc - the
+ *  - Each frame prints "<image> +0x<vaddr>" where vaddr = runtime_pc - the
  *    image's ASLR slide (the static/unslid address). Feed it to atos:
  *      atos -arch arm64 -o <image_binary_or_dsym> 0x<vaddr>
  *  - Output goes to write(STDERR_FILENO) (fd 2 -> syslog/Console.app); os_log is
