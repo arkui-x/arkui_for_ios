@@ -42,7 +42,6 @@ namespace {
 constexpr uint32_t MAX_STACK_DEPTH = 64;
 constexpr uintptr_t INSTRUCTION_LENGTH = 4; // aarch64 fixed-width instruction
 constexpr size_t MAX_IMAGES = 1024;
-constexpr size_t MAX_NAME_LEN = 128;
 constexpr size_t DUMP_BUF_SIZE = 8192;
 constexpr size_t ALT_STACK_SIZE = 64 * 1024;
 constexpr int DECIMAL_BASE = 10; // base for decimal formatting
@@ -54,7 +53,10 @@ constexpr int HEX_SHIFT = 4;     // bits per hex digit
 struct ImageRecord {
     uintptr_t loadAddr; // runtime load address = vmaddr + slide
     intptr_t slide;     // ASLR slide
-    char name[MAX_NAME_LEN];
+    // Points into dyld's image table; valid for the image's lifetime (the same
+    // lifetime assumption as loadAddr above). Stored directly (no copy, no
+    // truncation) so the full image path is available to PrintFrame.
+    const char* name;
 };
 
 ImageRecord g_images[MAX_IMAGES];
@@ -76,11 +78,7 @@ void LoadImages()
         ImageRecord& img = g_images[g_imageCount];
         img.loadAddr = reinterpret_cast<uintptr_t>(header);
         img.slide = _dyld_get_image_vmaddr_slide(i);
-        size_t nameIdx = 0;
-        for (; nameIdx + 1 < MAX_NAME_LEN && name[nameIdx] != '\0'; ++nameIdx) {
-            img.name[nameIdx] = name[nameIdx];
-        }
-        img.name[nameIdx] = '\0';
+        img.name = name; // full path, no truncation (dyld keeps it valid)
         ++g_imageCount;
     }
 }
@@ -122,13 +120,15 @@ void AppendLit(DumpBuffer& buf, const char* text)
     }
 }
 
-void AppendStrN(DumpBuffer& buf, const char* text, size_t len)
+// Appends a NUL-terminated string (null-safe). Used for the full image path,
+// which is never truncated.
+void AppendStr(DumpBuffer& buf, const char* text)
 {
-    for (size_t i = 0; i < len; ++i) {
-        if (text[i] == '\0') {
-            break;
-        }
-        AppendCh(buf, text[i]);
+    if (text == nullptr) {
+        return;
+    }
+    while (*text != '\0') {
+        AppendCh(buf, *text++);
     }
 }
 
@@ -210,7 +210,7 @@ void FlushDump(DumpBuffer& buf)
 }
 
 // ---------------------------------------------------------------------------
-// Frame printing: "<image>+0x<vaddr>" where vaddr = pc - slide (static/unslid
+// Frame printing: "<image> +0x<vaddr>" where vaddr = pc - slide (static/unslid
 // address consumable by `atos`).
 // ---------------------------------------------------------------------------
 void PrintFrame(DumpBuffer& buf, uint32_t idx, uintptr_t pc)
@@ -222,8 +222,8 @@ void PrintFrame(DumpBuffer& buf, uint32_t idx, uintptr_t pc)
     const ImageRecord* img = FindImage(pc);
     if (img != nullptr) {
         AppendLit(buf, " ");
-        AppendStrN(buf, img->name, MAX_NAME_LEN);
-        AppendLit(buf, "+0x");
+        AppendStr(buf, img->name);
+        AppendLit(buf, " +0x");
         AppendHex(buf, pc - static_cast<uintptr_t>(img->slide));
     }
     AppendCh(buf, '\n');
