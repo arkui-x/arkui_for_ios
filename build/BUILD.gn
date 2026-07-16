@@ -502,6 +502,7 @@ component_modules = [
   "symbol",
   "rich_editor",
   "search",
+  "sheet",
   "text_clock",
   "text_field",
   "toggle",
@@ -514,9 +515,11 @@ component_modules = [
   "span",
   "select",
   "navigator",
+  "tabswiper",
   "lazy_grid_layout",
   "refresh",
   "grid",
+  "panel",
   "bubble",
 ]
 component_modules_libs = []
