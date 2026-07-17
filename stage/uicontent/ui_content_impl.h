@@ -43,7 +43,7 @@ public:
     ~UIContentImpl()
     {
         DestroyCallback();
-        Ace::Platform::UIContent::RemoveUIContent(uiContentInstanceId_);
+        Ace::Platform::UIContent::RemoveUIContent(instanceId_);
     }
     std::unique_ptr<NativeEngine> nativeEngine_;
     // UI content lifecycles
@@ -121,7 +121,6 @@ private:
     std::string startUrl_;
     std::string lastConfig_;
     int32_t instanceId_ = -1;
-    int32_t uiContentInstanceId_ = -1;
     OHOS::Rosen::IOccupiedAreaChangeListener *occupiedAreaChangeListener_ = nullptr;
     OHOS::sptr<OHOS::Rosen::IAvoidAreaChangedListener> avoidAreaChangedListener_ = nullptr;
     OHOS::Rosen::ITouchOutsideListener* touchOutsideListener_ = nullptr;
