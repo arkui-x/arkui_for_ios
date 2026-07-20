@@ -59,6 +59,8 @@ void InitializeStaticModules()
 }
 
 const std::unordered_map<std::string, std::string> soMap = {
+    {"Canvas", "canvas"},
+    {"Video", "video"},
     {"Marquee", "marquee"},
     {"Stepper", "stepper" },
     {"StepperItem", "stepper" },
