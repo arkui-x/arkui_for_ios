@@ -91,7 +91,6 @@ const std::unordered_map<std::string, std::string> soMap = {
     {"DataPanel", "datapanel"},
     {"Richeditor", "richeditor"},
     {"Search", "search"},
-    {"Sheet", "sheet"},
     {"TextInput", "textfield"},
  	{"TextArea", "textfield"},
     // Menu components are now statically linked, handled in GetDynamicModule
@@ -108,16 +107,10 @@ const std::unordered_map<std::string, std::string> soMap = {
     {"ImageSpan", "span"},
  	{"SymbolSpan", "span"},
     {"Select", "select"},
-    {"Navigator", "navigator"},
-    {"Swiper", "tabswiper"},
-    {"IndicatorComponent", "tabswiper"},
-    {"Tabs", "tabswiper"},
-    {"TabContent", "tabswiper"},
     { "LazyVGridLayout", "lazygridlayout" },
     { "Refresh", "refresh" },
     { "Grid", "grid" },
     { "GridItem", "grid" },
-    { "Panel", "panel" },
 };
 } // namespace
 DynamicModuleHelper& DynamicModuleHelper::GetInstance()
