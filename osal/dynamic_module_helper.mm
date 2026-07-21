@@ -104,6 +104,7 @@ const std::unordered_map<std::string, std::string> soMap = {
     {"TextClock", "textclock"},
     {"Bubble", "bubble"},
     {"Toggle", "toggle"},
+    {"ToolBarItem", "toolbaritem"},
     {"Button", "button"},
     {"Dialog", "dialog" },
     {"DynamicLayout", "dynamiclayout"},
