@@ -880,6 +880,7 @@ component_modules = [
   "rich_editor",
   "search",
   "sheet",
+  "toolbaritem",
   "text_clock",
   "text_field",
   "toggle",
