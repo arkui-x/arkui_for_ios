@@ -135,7 +135,6 @@ const std::unordered_map<std::string, std::string> soMap = {
     { "Line", "shape" },
     { "Polyline", "shape" },
     { "Polygon", "shape" },
-    { "ToolBarItem", "toolbaritem" },
     { "XComponent", "xcomponent" },
 };
 } // namespace
