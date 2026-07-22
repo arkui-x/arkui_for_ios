@@ -899,7 +899,6 @@ component_modules = [
   "grid",
   "panel",
   "bubble",
-  "toolbaritem",
   "xcomponent",
 ]
 component_modules_libs = []
