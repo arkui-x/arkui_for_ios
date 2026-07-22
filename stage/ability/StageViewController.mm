@@ -330,6 +330,7 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
         isSplitScreen = YES;
     }
     [_windowView notifyTraitCollectionDidChange:isSplitScreen];
+    [_windowView notifyWindowRectChanged];
     if ([UIApplication sharedApplication].applicationState == UIApplicationStateBackground) {
         return;
     }
@@ -346,6 +347,11 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
     UIInterfaceOrientation currentOrientation = [UIApplication sharedApplication].statusBarOrientation;
     [[StageConfigurationManager configurationManager] directionUpdate:currentOrientation];
     [_platformPlugin notifyOrientationDidChange];
+    [_windowView notifyWindowRectChanged];
+    [coordinator animateAlongsideTransition:nil completion:^(
+        __unused id<UIViewControllerTransitionCoordinatorContext> context) {
+        [_windowView notifyWindowRectChanged];
+    }];
 }
 
 - (int32_t)getInstanceId {
