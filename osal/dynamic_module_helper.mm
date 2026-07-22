@@ -136,6 +136,7 @@ const std::unordered_map<std::string, std::string> soMap = {
     { "Line", "shape" },
     { "Polyline", "shape" },
     { "Polygon", "shape" },
+    { "XComponent", "xcomponent" },
 };
 } // namespace
 DynamicModuleHelper& DynamicModuleHelper::GetInstance()
