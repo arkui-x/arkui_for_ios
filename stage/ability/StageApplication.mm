@@ -260,12 +260,18 @@ static bool g_isOnBackground = false;
 }
 
 + (BOOL)handleSingleton:(NSString *)bundleName moduleName:(NSString *)moduleName abilityName:(NSString *)abilityName {
+    return [self handleSingleton:bundleName moduleName:moduleName abilityName:abilityName params:@""];
+}
+
++ (BOOL)handleSingleton:(NSString *)bundleName moduleName:(NSString *)moduleName
+            abilityName:(NSString *)abilityName params:(NSString *)params {
     bool isSingle = AppMain::GetInstance()->IsSingleton([moduleName UTF8String], [abilityName UTF8String]);
     if (!isSingle) {
         return NO;
     }
     NSString *singleName = [NSString stringWithFormat:@"%@:%@:%@", bundleName, moduleName, abilityName];
     LOGI("%{public}s, singleName is %{public}s", __func__, [singleName UTF8String]);
+    std::string cppParams = (params != nil && params.length > 0) ? [params UTF8String] : "";
     StageViewController *topVC = [self getApplicationTopViewController];
     if (![topVC isKindOfClass:[StageViewController class]]) {
         LOGI("handleSingleton is Not StageVC");
@@ -273,7 +279,8 @@ static bool g_isOnBackground = false;
     }
     if ([topVC.instanceName containsString:singleName]) {
         std::string instanceName = [topVC.instanceName UTF8String];
-        AppMain::GetInstance()->DispatchOnNewWant(instanceName);
+        topVC.params = params;
+        AppMain::GetInstance()->DispatchOnNewWant(instanceName, cppParams);
         return YES;
     }
 
@@ -287,7 +294,8 @@ static bool g_isOnBackground = false;
                 [controllerArr addObject:tempVC];
                 [topVC.navigationController setViewControllers:controllerArr.copy];
                 std::string instanceName = [tempVC.instanceName UTF8String];
-                AppMain::GetInstance()->DispatchOnNewWant(instanceName);
+                tempVC.params = params;
+                AppMain::GetInstance()->DispatchOnNewWant(instanceName, cppParams);
                 return YES;
             }
         }
