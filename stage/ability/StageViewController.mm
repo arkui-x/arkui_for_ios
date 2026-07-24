@@ -273,7 +273,6 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
     }
     _needOnForeground = true;
     [_stageContainerView notifyForeground];
-    [_stageContainerView notifyActiveChanged:YES];
 }
 
 - (void)viewDidDisappear:(BOOL)animated {
@@ -285,7 +284,6 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
         [_platformPlugin notifyLifecycleChanged:true];
     }
     [_stageContainerView notifyBackground];
-    [_stageContainerView notifyActiveChanged:NO];
 }
 
 - (void)didReceiveMemoryWarning {
