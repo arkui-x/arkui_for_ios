@@ -33,6 +33,11 @@ NS_ASSUME_NONNULL_BEGIN
 
 + (BOOL)handleSingleton:(NSString *)bundleName moduleName:(NSString *)moduleName abilityName:(NSString *)abilityName;
 
++ (BOOL)handleSingleton:(NSString *)bundleName
+             moduleName:(NSString *)moduleName
+             abilityName:(NSString *)abilityName
+             params:(NSString *)params;
+
 + (void)releaseViewControllers;
 
 + (StageViewController *)getApplicationTopViewController;
