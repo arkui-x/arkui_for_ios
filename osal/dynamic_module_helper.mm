@@ -109,6 +109,7 @@ const std::unordered_map<std::string, std::string> soMap = {
     {"ToolBarItem", "toolbaritem"},
     {"Button", "button"},
     {"Dialog", "dialog" },
+    {"ContainerReader", "containerreader"},
     {"DynamicLayout", "dynamiclayout"},
     {"Progress", "progress"},
     {"LoadingProgress", "loadingprogress"},
