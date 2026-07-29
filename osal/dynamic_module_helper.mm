@@ -99,10 +99,6 @@ const std::unordered_map<std::string, std::string> soMap = {
     {"Dialog", "dialog" },
     {"DynamicLayout", "dynamiclayout"},
     {"Select", "select"},
-    { "LazyVGridLayout", "lazygridlayout" },
-    { "Refresh", "refresh" },
-    { "Grid", "grid" },
-    { "GridItem", "grid" },
 };
 } // namespace
 DynamicModuleHelper& DynamicModuleHelper::GetInstance()

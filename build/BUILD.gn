@@ -164,6 +164,10 @@ ohos_shared_library("arkui_ios") {
     # ColorManager symbols referenced by libace_ndk via dynamic_lookup.
     "-Wl,-u,__ZN4OHOS12ColorManager23GetColorSpaceByJSObjectEP10napi_env__P12napi_value__",
     "-Wl,-u,__ZN4OHOS12ColorManager24CreateJsColorSpaceObjectEP10napi_env__RNSt3__110shared_ptrINS0_10ColorSpaceEEE",
+
+    # Base symbols referenced by component dylibs such as libarkui_bubble.
+    "-Wl,-u,__ZN4OHOS3Ace22ResourceParseUtilsBase12ParseResBoolERKNS0_6RefPtrINS0_14ResourceObjectEEERb",
+    "-Wl,-u,__ZN4OHOS3Ace5Color10FromStringENSt3__112basic_stringIcNS2_11char_traitsIcEENS2_9allocatorIcEEEEjS1_",
   ]
 
   if (ace_engine_enable_reduce_eh_frame) {
@@ -507,9 +511,6 @@ component_modules = [
   "button",
   "dialog",
   "select",
-  "lazy_grid_layout",
-  "refresh",
-  "grid",
   "bubble",
 ]
 component_modules_libs = []
