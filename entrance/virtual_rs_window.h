@@ -178,6 +178,7 @@ public:
     }
 
     WMError SetBrightness(float brightness);
+    WMError GetWindowDensityInfo(WindowDensityInfo& densityInfo);
     float GetBrightness() const;
     WMError SetKeepScreenOn(bool keepScreenOn);
     bool IsKeepScreenOn();
