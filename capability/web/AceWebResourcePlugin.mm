@@ -26,6 +26,7 @@
 @interface AceWebResourcePlugin()
 @property (nonatomic, weak) UIViewController *target;
 @property (nonatomic, assign) int32_t instanceId;
+@property (nonatomic, strong) NSMutableDictionary<NSString*, AceWeb*> *instanceWebMap;
 @end
 
 @implementation AceWebResourcePlugin
@@ -38,7 +39,10 @@ static NSMutableDictionary<NSString*, AceWeb*> *objectMap;
 - (instancetype)initWithTarget:(UIViewController *)target abilityInstanceId:(int32_t)abilityInstanceId{
     self = [super init:@"web" version:1];
     if (self) {
-        objectMap = [[NSMutableDictionary alloc] init];
+        if (!objectMap) {
+            objectMap = [[NSMutableDictionary alloc] init];
+        }
+        self.instanceWebMap = [[NSMutableDictionary alloc] init];
         self.target = target;
         self.instanceId = abilityInstanceId;
     }
@@ -50,7 +54,9 @@ static NSMutableDictionary<NSString*, AceWeb*> *objectMap;
         LOGE("AceWebResourcePlugin addResource objectMap is empty");
         objectMap = [[NSMutableDictionary alloc] init];
     }
-    [objectMap setObject:web forKey:[NSString stringWithFormat:@"%lld", incId]];
+    NSString *key = [NSString stringWithFormat:@"%lld", incId];
+    [objectMap setObject:web forKey:key];
+    [self.instanceWebMap setObject:web forKey:key];
     NSDictionary *safeMethodMap = [[web getSyncCallMethod] copy];
     if (!safeMethodMap) {
         return;
@@ -96,6 +102,7 @@ static NSMutableDictionary<NSString*, AceWeb*> *objectMap;
         [self unregisterSyncCallMethod:[web getSyncCallMethod]];
         [web releaseObject];
         [objectMap removeObjectForKey:incId];
+        [self.instanceWebMap removeObjectForKey:incId];
         web = nil;
         return YES;
     }
@@ -104,21 +111,22 @@ static NSMutableDictionary<NSString*, AceWeb*> *objectMap;
 
 - (void)releaseObject{
     LOGI("AceWebResourcePlugin %{public}s", __func__);
-    if (objectMap) {
-        [objectMap enumerateKeysAndObjectsUsingBlock:^(NSString * _Nonnull key, AceWeb * _Nonnull web, BOOL * _Nonnull stop) {
+    if (self.instanceWebMap) {
+        NSArray<NSString *> *keys = [self.instanceWebMap allKeys];
+        for (NSString *key in keys) {
+            AceWeb *web = self.instanceWebMap[key];
             if (web) {
                 @try {
                     [web releaseObject];
-                    web = nil;
                 } @catch (NSException *exception) {
                     LOGE("AceWebResourcePlugin releaseObject releaseObject fail");
                 }
             } else {
                 LOGE("AceWebResourcePlugin releaseObject fail web is null");
             }
-        }];
-        [objectMap removeAllObjects];
-        objectMap = nil;
+            [objectMap removeObjectForKey:key];
+        }
+        [self.instanceWebMap removeAllObjects];
     }
     self.target = nil;
 }
