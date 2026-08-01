@@ -1757,7 +1757,6 @@ __ZNK4OHOS3Ace2NG8EventHub*
 __ZNK4OHOS3Ace2NG13RenderContext*
 __ZNK4OHOS3Ace2NG13PaintProperty*
 __ZNK4OHOS3Ace2NG12PageEventHub*
-__ZNK4OHOS3Ace2NG12PaintWrapper16GetRenderContextEv
 __ZN5panda9ObjectRef*
 __ZN5panda8ArrayRef*
 __ZN4OHOS3Ace6Curves*
