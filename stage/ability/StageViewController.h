@@ -93,6 +93,12 @@
 - (void)destroyData;
 
 /**
+ * Check whether all StageViewControllers have finished their destroy process.
+ * @return YES if every StageViewController's destroy has finished, NO otherwise.
+ */
++ (BOOL)isAllDestroyed;
+
+/**
  * Register the factory of platform view.
  * @return void
  */
