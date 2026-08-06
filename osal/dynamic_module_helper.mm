@@ -98,7 +98,7 @@ const std::unordered_map<std::string, std::string> soMap = {
     {"SymbolGlyph", "symbol"},
     {"DataPanel", "datapanel"},
     {"Richeditor", "richeditor"},
-    {"Search", "search"},
+    { "Search", "textfield" },
     {"Sheet", "sheet"},
     {"TextInput", "textfield"},
  	{"TextArea", "textfield"},
