@@ -215,7 +215,8 @@ public:
 
     bool IsSubWindow() const
     {
-        return windowType_  == OHOS::Rosen::WindowType::WINDOW_TYPE_APP_SUB_WINDOW;
+        return windowType_ == OHOS::Rosen::WindowType::WINDOW_TYPE_APP_SUB_WINDOW ||
+            windowType_ == OHOS::Rosen::WindowType::WINDOW_TYPE_DIALOG;
     }
 
     uint32_t GetWindowId() const
@@ -464,6 +465,18 @@ private:
     {
         auto lifecycleListeners = GetListeners<IWindowLifeCycle>();
         CALL_LIFECYCLE_LISTENER(AfterUnfocused, lifecycleListeners);
+    }
+
+    inline void NotifyAfterResumed()
+    {
+        auto lifecycleListeners = GetListeners<IWindowLifeCycle>();
+        CALL_LIFECYCLE_LISTENER(AfterActive, lifecycleListeners);
+    }
+
+    inline void NotifyAfterPaused()
+    {
+        auto lifecycleListeners = GetListeners<IWindowLifeCycle>();
+        CALL_LIFECYCLE_LISTENER(AfterInactive, lifecycleListeners);
     }
 
     inline void NotifyBeforeDestroy(std::string windowName)

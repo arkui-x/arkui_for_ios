@@ -362,7 +362,8 @@ std::shared_ptr<Window> Window::CreateSubWindow(
     }
 
     uint32_t windowId = GetWindowIdFromName(subWindowName);
-    if (option->GetWindowType() != OHOS::Rosen::WindowType::WINDOW_TYPE_APP_SUB_WINDOW) {
+    if (option->GetWindowType() != OHOS::Rosen::WindowType::WINDOW_TYPE_APP_SUB_WINDOW &&
+        option->GetWindowType() != OHOS::Rosen::WindowType::WINDOW_TYPE_DIALOG) {
         LOGI("Window::CreateSubWindow failed, window type error![windowType=%{public}d]", static_cast<int32_t>(option->GetWindowType()));
         return nullptr;
     }
@@ -460,8 +461,7 @@ void Window::AddToSubWindowMap(std::shared_ptr<Window> window)
         HILOG_ERROR("window is null");
         return;
     }
-    if (window->GetType() != OHOS::Rosen::WindowType::WINDOW_TYPE_APP_SUB_WINDOW ||
-        window->GetParentId() == INVALID_WINDOW_ID) {
+    if (!window->IsSubWindow() || window->GetParentId() == INVALID_WINDOW_ID) {
         HILOG_ERROR("window is not subwindow");
         return;
     }
@@ -1373,6 +1373,11 @@ void Window::WindowActiveChanged(bool isActive)
             uiContent_->UnFocus();
         }
     }
+    if (isActive) {
+        NotifyAfterResumed();
+    } else {
+        NotifyAfterPaused();
+    }
 }
 
 void Window::WindowFocusChanged(bool hasWindowFocus)
@@ -1754,7 +1759,17 @@ WMError Window::RegisterLifeCycleListener(const sptr<IWindowLifeCycle>& listener
 {
     LOGD("Start register");
     std::lock_guard<std::recursive_mutex> lock(globalMutex_);
-    return RegisterListener(lifecycleListeners_[GetWindowId()], listener);
+    WMError ret = RegisterListener(lifecycleListeners_[GetWindowId()], listener);
+    if (ret != WMError::WM_OK || listener == nullptr) {
+        return ret;
+    }
+    if (isWindowShow_) {
+        listener->AfterForeground();
+    }
+    if (isFocused_) {
+        listener->AfterFocused();
+    }
+    return ret;
 }
 
 WMError Window::UnregisterLifeCycleListener(const sptr<IWindowLifeCycle>& listener)
