@@ -16,6 +16,7 @@
 #ifndef FOUNDATION_ACE_ADAPTER_IOS_ENTRANCE_VIRTUAL_RS_WINDOW_H
 #define FOUNDATION_ACE_ADAPTER_IOS_ENTRANCE_VIRTUAL_RS_WINDOW_H
 
+#include <atomic>
 #include <memory>
 #include <map>
 
@@ -68,24 +69,6 @@ struct VsyncCallback {
     OnCallback onCallback;
 };
 class VSyncReceiver;
-
-enum class WindowSizeChangeReason : uint32_t {
-    UNDEFINED = 0,
-    MAXIMIZE,
-    RECOVER,
-    ROTATION,
-    DRAG,
-    DRAG_START,
-    DRAG_END,
-    RESIZE,
-    MOVE,
-    HIDE,
-    TRANSFORM,
-    CUSTOM_ANIMATION_SHOW,
-    FULL_TO_SPLIT,
-    SPLIT_TO_FULL,
-    END,
-};
 
 class Window : public RefBase {
 #define CALL_LIFECYCLE_LISTENER(windowLifecycleCb, listeners) \
@@ -205,6 +188,14 @@ public:
     WMError UnregisterAvoidAreaChangeListener(const sptr<IAvoidAreaChangedListener>& listener);
     WMError RegisterWindowStatusChangeListener(const sptr<IWindowStatusChangeListener>& listener);
     WMError UnregisterWindowStatusChangeListener(const sptr<IWindowStatusChangeListener>& listener);
+    WMError RegisterWindowRectChangeListener(const sptr<IWindowRectChangeListener>& listener);
+    WMError UnregisterWindowRectChangeListener(const sptr<IWindowRectChangeListener>& listener);
+    WMError RegisterWindowStatusDidChangeListener(const sptr<IWindowStatusDidChangeListener>& listener);
+    WMError UnregisterWindowStatusDidChangeListener(const sptr<IWindowStatusDidChangeListener>& listener);
+    WMError GetWindowStatus(WindowStatus& status);
+    void NotifyWindowRectChange(const Rect& rect,
+        WindowSizeChangeReason reason = WindowSizeChangeReason::UNDEFINED);
+    void NotifyWindowStatusDidChange(WindowStatus windowStatus);
 
     WMError SetColorSpace(ColorSpace colorSpace);
     ColorSpace GetColorSpace() const;
@@ -338,7 +329,9 @@ private:
     void ReleaseWindowView();
     void UpdateAvoidArea(const std::shared_ptr<Rosen::AvoidArea>& avoidArea, AvoidAreaType type);
     WindowStatus GetWindowStatusInner(WindowMode mode);
+    WindowStatus GetWindowStatusByScene();
     void UpdateWindowStatus();
+    void ScheduleWindowStatusDidChange();
     void DelayNotifyUIContentIfNeeded();
     bool IsWindowValid() const;
 
@@ -451,6 +444,33 @@ private:
         return windowStatusChangeListeners;
     }
 
+    template<typename T>
+    inline EnableIfSame<T, IWindowRectChangeListener, std::vector<sptr<IWindowRectChangeListener>>> GetListeners()
+    {
+        std::vector<sptr<IWindowRectChangeListener>> windowRectChangeListeners;
+        {
+            std::lock_guard<std::recursive_mutex> lock(globalMutex_);
+            for (auto& listener : windowRectChangeListeners_[GetWindowId()]) {
+                windowRectChangeListeners.push_back(listener);
+            }
+        }
+        return windowRectChangeListeners;
+    }
+
+    template<typename T>
+    inline EnableIfSame<T, IWindowStatusDidChangeListener,
+        std::vector<sptr<IWindowStatusDidChangeListener>>> GetListeners()
+    {
+        std::vector<sptr<IWindowStatusDidChangeListener>> windowStatusDidChangeListeners;
+        {
+            std::lock_guard<std::recursive_mutex> lock(globalMutex_);
+            for (auto& listener : windowStatusDidChangeListeners_[GetWindowId()]) {
+                windowStatusDidChangeListeners.push_back(listener);
+            }
+        }
+        return windowStatusDidChangeListeners;
+    }
+
     void NotifyAfterForeground(bool needNotifyListeners = true, bool needNotifyUiContent = true);
 
     void NotifyAfterBackground(bool needNotifyListeners = true, bool needNotifyUiContent = true);
@@ -537,6 +557,8 @@ private:
     int32_t originWindowY_ = 0;
     WindowState state_ { WindowState::STATE_INITIAL };
     WindowStatus status_ { WindowStatus::WINDOW_STATUS_UNDEFINED };
+    WindowStatus statusDidChange_ { WindowStatus::WINDOW_STATUS_UNDEFINED };
+    std::atomic<uint64_t> statusDidChangeGeneration_ = 0;
     bool applicationForeground_ = false;
     bool isModal_ = false;
     int32_t zLevel_ = 0;
@@ -557,6 +579,8 @@ private:
     static std::map<uint32_t, std::vector<sptr<ITouchOutsideListener>>> touchOutsideListeners_;
     static std::map<uint32_t, std::vector<sptr<IWindowSurfaceNodeListener>>> surfaceNodeListeners_;
     static std::map<uint32_t, std::vector<sptr<IWindowStatusChangeListener>>> windowStatusChangeListeners_;
+    static std::map<uint32_t, std::vector<sptr<IWindowRectChangeListener>>> windowRectChangeListeners_;
+    static std::map<uint32_t, std::vector<sptr<IWindowStatusDidChangeListener>>> windowStatusDidChangeListeners_;
     static std::map<uint32_t, std::vector<sptr<IAvoidAreaChangedListener>>> avoidAreaChangeListeners_;
 
     ACE_DISALLOW_COPY_AND_MOVE(Window);
