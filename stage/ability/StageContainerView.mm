@@ -44,6 +44,9 @@
         if (view == self.mainWindow) {
             continue;
         }
+        if (![view isKindOfClass:[WindowView class]]) {
+            continue;
+        }
         if (window.zOrder < ((WindowView *)view).zOrder) {
             aboveView = view;
             break;
