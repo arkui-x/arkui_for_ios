@@ -18,8 +18,9 @@
 #include <time.h>
 #include "base/log/dump_log.h"
 #include "base/log/log.h"
+#include "base/external_instance_id_mapper.h"
+#include "base/utils/utils.h"
 #include "core/common/ace_engine.h"
-#include "core/common/container.h"
 
 namespace OHOS::Ace::Platform {
 
@@ -43,12 +44,17 @@ void DumpHelper::Dump(int32_t instanceId, std::vector<std::string> dumpParamsVec
         return;
     }
     DumpLog::GetInstance().SetDumpFile(file);
-    auto container = AceEngine::Get().GetContainer(instanceId);
+    int32_t containerId = ExternalInstanceIdMapper::GetInstance().GetInstanceId(
+        static_cast<uint32_t>(instanceId));
+    if (containerId < 0) {
+        containerId = instanceId;
+    }
+    auto container = AceEngine::Get().GetContainer(containerId);
     CHECK_NULL_VOID(container);
-    std::vector<std::string> info;
     if (dumpParamsVector.empty()) {
         dumpParamsVector.push_back("-element");
     }
+    std::vector<std::string> info;
     container->Dump(dumpParamsVector, info);
     DumpLog::GetInstance().Reset();
 }

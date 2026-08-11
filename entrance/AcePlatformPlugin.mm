@@ -25,7 +25,7 @@
 
 #include "adapter/ios/entrance/ace_resource_register.h"
 #include "adapter/ios/entrance/ace_platform_plugin.h"
-#include "base/subwindow/subwindow_manager.h"
+#include "base/external_instance_id_mapper.h"
 #include "core/common/container_scope.h"
 #include "base/log/log.h"
 
@@ -123,7 +123,7 @@
 {
     auto resRegister = OHOS::Ace::Platform::AcePlatformPlugin::GetResRegister(self.instanceId);
 
-    int32_t containerId = OHOS::Ace::SubwindowManager::GetInstance()->GetContainerId(
+    int32_t containerId = OHOS::Ace::ExternalInstanceIdMapper::GetInstance().GetInstanceId(
         static_cast<uint32_t>(self.instanceId));
     int32_t scopeInstanceId = (containerId >= 0) ? containerId : self.instanceId;
     OHOS::Ace::ContainerScope scope(scopeInstanceId);
