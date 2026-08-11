@@ -1634,6 +1634,7 @@ void Window::NotifyKeyboardHeightChanged(int32_t height)
 {
     if (windowView_ == nullptr || !windowView_.isFocused) {
         LOGD("NotifyKeyboardHeightChanged: windowView is null or not focused");
+        RestoreWindowPosition();
         return;
     }
     uint32_t keyboardAvoidHeight = CalculateKeyboardAvoidHeight(height);
@@ -1656,6 +1657,14 @@ void Window::NotifyKeyboardHeightChanged(int32_t height)
     GetAvoidAreaByType(type, *avoidArea);
     UpdateAvoidArea(avoidArea, type);
 }
+void Window::RestoreWindowPosition()
+{
+    if (originWindowY_ > 0) {
+        int32_t targetY = originWindowY_;
+        originWindowY_ = 0;
+        MoveWindowTo(rect_.posX_, targetY);
+    }
+}
 
 uint32_t Window::CalculateKeyboardAvoidHeight(uint32_t keyboardHeight)
 {
@@ -1665,13 +1674,8 @@ uint32_t Window::CalculateKeyboardAvoidHeight(uint32_t keyboardHeight)
     }
 
     if (keyboardHeight == 0) {
-        // Keyboard dismissed: restore original position
-        if (originWindowY_ > 0) {
-            if (!isFullScreen_) {
-                MoveWindowTo(rect_.posX_, originWindowY_);
-            }
-            originWindowY_ = 0;
-        }
+        LOGD("CalculateKeyboardAvoidHeight: restore the window position");
+        RestoreWindowPosition();
         return 0;
     }
 
@@ -1688,20 +1692,23 @@ uint32_t Window::CalculateKeyboardAvoidHeight(uint32_t keyboardHeight)
     CGFloat screenHeight = CGRectGetHeight(screen.bounds) * scale;
     CGFloat keyboardTop = screenHeight - static_cast<CGFloat>(keyboardHeight);
     int32_t currentWindowY = rect_.posY_;
+    CGFloat windowTop = CGRectGetMinY(windowRectInScreen) * scale;
     CGFloat windowHeight = CGRectGetHeight(windowRectInScreen) * scale;
-    CGFloat windowBottom = CGRectGetMinY(windowRectInScreen) * scale + windowHeight;
-    if (keyboardTop > windowBottom) {
-        LOGD("CalculateKeyboardAvoidHeight: keyboard and window do not overlap");
-        return 0;
-    }
-
-    CGFloat overlapHeight = std::max(0.0, windowBottom - keyboardTop);
-    CGFloat maxMoveHeight = std::min(overlapHeight, static_cast<CGFloat>(currentWindowY));
-    if (isFullScreen_) {
-        return static_cast<uint32_t>(std::max(0.0, maxMoveHeight));
-    }
-    int32_t finalTargetY = std::max(0, currentWindowY - static_cast<int32_t>(maxMoveHeight));
-    CGFloat reportHeight = std::max(0.0, overlapHeight - maxMoveHeight);
+    // Upper limit of window movement
+    int32_t maxWindowPosY = originWindowY_ == 0 ? currentWindowY : originWindowY_;
+    CGFloat statusBarHeight = windowTop - currentWindowY;
+    int32_t minWindowPosY = static_cast<int32_t>(keyboardTop - statusBarHeight - windowHeight);
+    // Final Y clamped between [0, maxWindowPosY, minWindowPosY]:
+    //  - 0: cannot go above the screen top
+    //  - maxWindowPosY: cannot move downward past original position
+    //  - minWindowPosY: target to stay above the keyboard
+    int32_t finalTargetY = std::max(0, std::min(maxWindowPosY, minWindowPosY));
+    // movedWindowBottom = movedWindowY + currentWindowHeight + statusBarHeight
+    CGFloat movedWindowBottom = static_cast<CGFloat>(finalTargetY) + windowHeight + statusBarHeight;
+    // The part of the window still covered by the keyboard after max upward movement
+    CGFloat reportHeight = std::max(0.0, movedWindowBottom - keyboardTop);
+    // Clamp to keyboard height: the occupied area cannot exceed the keyboard itself
+    reportHeight = std::min(reportHeight, static_cast<CGFloat>(keyboardHeight));
     if (finalTargetY != currentWindowY) {
         if (originWindowY_ == 0) {
             originWindowY_ = currentWindowY;
