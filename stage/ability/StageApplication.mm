@@ -17,6 +17,7 @@
 #include <objc/objc.h>
 #import "StageAssetManager.h"
 #import "StageConfigurationManager.h"
+#import "StageViewController.h"
 #import "AceWebInfoManager.h"
 
 #import "Logger.h"
@@ -530,6 +531,10 @@ static bool g_isOnBackground = false;
 
 + (BOOL)destroyVm
 {
+    if (![StageViewController isAllDestroyed]) {
+        LOGE("destroyVm: some StageVC not finished, refuse to destroy VM.");
+        return NO;
+    }
     return AppMain::GetInstance()->DestroyVm() ? YES : NO;
 }
 
