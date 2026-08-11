@@ -57,6 +57,40 @@
 using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
 using WindowViwAdapter = OHOS::AbilityRuntime::Platform::WindowViewAdapter;
 int32_t CURRENT_STAGE_INSTANCE_Id = 0;
+static NSMutableDictionary<NSString*, NSNumber*>* g_destroyStateMap = nil;
+static NSLock* g_destroyStateLock = nil;
+
+static void EnsureDestroyStateMap(void)
+{
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        g_destroyStateMap = [[NSMutableDictionary alloc] init];
+        g_destroyStateLock = [[NSLock alloc] init];
+    });
+}
+
+static void SetDestroyState(NSString* instanceName, BOOL destroyed)
+{
+    if (instanceName == nil) {
+        return;
+    }
+    EnsureDestroyStateMap();
+    [g_destroyStateLock lock];
+    g_destroyStateMap[instanceName] = @(destroyed);
+    [g_destroyStateLock unlock];
+}
+
+static void RemoveDestroyState(NSString* instanceName)
+{
+    if (instanceName == nil) {
+        return;
+    }
+    EnsureDestroyStateMap();
+    [g_destroyStateLock lock];
+    [g_destroyStateMap removeObjectForKey:instanceName];
+    [g_destroyStateLock unlock];
+}
+
 @interface StageViewController () <UITraitEnvironment, WindowViewDelegate, UIDocumentPickerDelegate,
     UIImagePickerControllerDelegate, UINavigationControllerDelegate, PHPickerViewControllerDelegate> {
     int32_t _instanceId;
@@ -107,6 +141,7 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
             }
         }
         _cInstanceName = [self getCPPString:self.instanceName];
+        SetDestroyState(self.instanceName, NO);
         _pluginList = [[NSMutableArray alloc] init];
         [self initBridge];
         self.homeIndicatorHidden = NO;
@@ -307,7 +342,22 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
         AppMain::GetInstance()->DispatchOnDestroy(_cInstanceName);
         [self removeFromParentViewController];
         [[NSNotificationCenter defaultCenter] removeObserver:self];
+        SetDestroyState(self.instanceName, YES);
     }
+}
+
++ (BOOL)isAllDestroyed {
+    EnsureDestroyStateMap();
+    BOOL allDestroyed = YES;
+    [g_destroyStateLock lock];
+    for (NSString* instanceName in g_destroyStateMap) {
+        if (![g_destroyStateMap[instanceName] boolValue]) {
+            allDestroyed = NO;
+            break;
+        }
+    }
+    [g_destroyStateLock unlock];
+    return allDestroyed;
 }
 
 - (void)dealloc {
@@ -321,6 +371,8 @@ int32_t CURRENT_STAGE_INSTANCE_Id = 0;
     [self deallocArkUIXPlugin];
     [[NSNotificationCenter defaultCenter] removeObserver:self];
     AppMain::GetInstance()->DispatchOnDestroy(_cInstanceName);
+    SetDestroyState(self.instanceName, YES);
+    RemoveDestroyState(self.instanceName);
 }
 
 - (void)traitCollectionDidChange:(UITraitCollection *)previousTraitCollection {
