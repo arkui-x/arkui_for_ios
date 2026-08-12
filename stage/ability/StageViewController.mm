@@ -53,6 +53,7 @@
 #define PUBLIC_AUDIO @"public.audio"
 #define kOrientationMaskUpdateNotificationName "arkui_x.iosPlatform.setPreferredOrientationNotificationName"
 #define kOrientationMaskUpdateNotificationKey "arkui_x.iosPlatform.setPreferredOrientationNotificationKey"
+#define K_IS_TEMPORARY_ROTATION_KEY "arkui_x.iosPlatform.isTemporaryRotationKey"
 
 using AppMain = OHOS::AbilityRuntime::Platform::AppMain;
 using WindowViwAdapter = OHOS::AbilityRuntime::Platform::WindowViewAdapter;
@@ -103,6 +104,8 @@ static void RemoveDestroyState(NSString* instanceName)
     ArkUIXPluginRegistry* _arkUIXPluginRegistry;
     PluginContext* _pluginContext;
     StageContainerView* _stageContainerView;
+    BOOL _lastIsTemporaryRotation;
+    UIInterfaceOrientationMask _lastOrientationMask;
 }
 
 @property(nonatomic, strong, readwrite) NSString* instanceName;
@@ -167,17 +170,28 @@ static void RemoveDestroyState(NSString* instanceName)
 - (void)orientationMaskUpdate: (NSNotification *)notification {
     NSDictionary *dic = notification.userInfo;
     NSNumber *orientationMask = dic[@(kOrientationMaskUpdateNotificationKey)];
-    if (orientationMask == nil || self.interfaceOrientationMask == orientationMask.unsignedIntegerValue) {
+    if (orientationMask == nil) {
         return;
     }
-    self.interfaceOrientationMask = orientationMask.unsignedIntegerValue;
+    UIInterfaceOrientationMask newMask = orientationMask.unsignedIntegerValue;
+    NSNumber *isTemporary = dic[@(K_IS_TEMPORARY_ROTATION_KEY)];
+    BOOL isTemporaryRotation = (isTemporary && isTemporary.boolValue);
+    if (_lastOrientationMask == orientationMask.unsignedIntegerValue && _lastIsTemporaryRotation == isTemporaryRotation) {
+        return;
+    }
+    _lastOrientationMask = orientationMask.unsignedIntegerValue;
+    _lastIsTemporaryRotation = isTemporaryRotation;
+    if (isTemporaryRotation) {
+        newMask = UIInterfaceOrientationMaskAll;
+    }
+    self.interfaceOrientationMask = newMask;
     __weak StageViewController *weakSelf = self;
     dispatch_async(dispatch_get_main_queue(), ^{
         if (@available(iOS 16.0, *)) {
             [weakSelf setNeedsUpdateOfSupportedInterfaceOrientations];
             NSArray *array = [[[UIApplication sharedApplication] connectedScenes] allObjects];
             UIWindowScene *scene = [array firstObject];
-            UIInterfaceOrientationMask OrientationMask = weakSelf.interfaceOrientationMask;
+            UIInterfaceOrientationMask OrientationMask = orientationMask.unsignedIntegerValue;
             UIWindowSceneGeometryPreferencesIOS *geometryPreferencesIOS = 
                 [[UIWindowSceneGeometryPreferencesIOS alloc] initWithInterfaceOrientations:OrientationMask];
             /* start transform animation */
