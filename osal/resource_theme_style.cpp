@@ -42,8 +42,15 @@ DimensionUnit ParseDimensionUnit(const std::string& unit)
 {
     if (unit == "fp" || unit == "sp") {
         return DimensionUnit::FP;
+    } else if (unit == "px") {
+        return DimensionUnit::PX;
+    } else if (unit == "lpx") {
+        return DimensionUnit::LPX;
+    } else if (unit == "%") {
+        return DimensionUnit::PERCENT;
+    } else {
+        return DimensionUnit::VP;
     }
-    return DimensionUnit::VP;
 }
 }
 
