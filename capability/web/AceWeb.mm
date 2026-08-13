@@ -1749,6 +1749,10 @@ static NSString* const DOCUMENT_START_WRAPPER_SCRIPT_FORMAT =
     [self setRunJavaScriptOnDocumentStartCallback];
     // runJavaScriptOnDocumentEnd callback
     [self setRunJavaScriptOnDocumentEndCallback];
+    // onActive callback
+    [self setOnActiveCallback];
+    // onInactive callback
+    [self setOnInactiveCallback];
 
     [self enterFullScreenOrExitFullScreenNotifi];
 }
@@ -2051,6 +2055,42 @@ static NSString* const DOCUMENT_START_WRAPPER_SCRIPT_FORMAT =
             return FAIL;
         }
         [strongSelf setDocumentEndScripts:scripts];
+        return SUCCESS;
+    };
+    [self.callSyncMethodMap setObject:[callback copy] forKey:methodHash];
+}
+
+- (void)setOnActiveCallback
+{
+    __weak __typeof(self) weakSelf = self;
+    NSString* methodHash = [self method_hashFormat:@"onActive"];
+    IAceOnCallSyncResourceMethod callback = ^NSString*(NSDictionary* param)
+    {
+        __strong __typeof(weakSelf) strongSelf = weakSelf;
+        if (!strongSelf) {
+            return FAIL;
+        }
+        if (strongSelf.webView.hidden) {
+            strongSelf.webView.hidden = NO;
+        }
+        return SUCCESS;
+    };
+    [self.callSyncMethodMap setObject:[callback copy] forKey:methodHash];
+}
+
+- (void)setOnInactiveCallback
+{
+    __weak __typeof(self) weakSelf = self;
+    NSString* methodHash = [self method_hashFormat:@"onInactive"];
+    IAceOnCallSyncResourceMethod callback = ^NSString*(NSDictionary* param)
+    {
+        __strong __typeof(weakSelf) strongSelf = weakSelf;
+        if (!strongSelf) {
+            return FAIL;
+        }
+        if (!strongSelf.webView.hidden) {
+            strongSelf.webView.hidden = YES;
+        }
         return SUCCESS;
     };
     [self.callSyncMethodMap setObject:[callback copy] forKey:methodHash];
