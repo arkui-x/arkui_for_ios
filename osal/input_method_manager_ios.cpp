@@ -143,4 +143,6 @@ void InputMethodManager::FinishComposing(int32_t instanceId)
     CHECK_NULL_VOID(connection);
     connection->FinishComposing(instanceId);
 }
+
+void InputMethodManager::CloseKeyboardInProcess() {}
 } // namespace OHOS::Ace
