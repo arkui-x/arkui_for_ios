@@ -44,8 +44,7 @@ void DumpHelper::Dump(int32_t instanceId, std::vector<std::string> dumpParamsVec
         return;
     }
     DumpLog::GetInstance().SetDumpFile(file);
-    int32_t containerId = ExternalInstanceIdMapper::GetInstance().GetInstanceId(
-        static_cast<uint32_t>(instanceId));
+    int32_t containerId = ExternalInstanceIdMapper::GetInstance().GetInstanceIdByExternalResourceId(instanceId);
     if (containerId < 0) {
         containerId = instanceId;
     }

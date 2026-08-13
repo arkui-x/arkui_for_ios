@@ -433,6 +433,9 @@ void UIContentImpl::CommonInitialize(OHOS::Rosen::Window* window, const std::str
     container->SetWindowName(window_->GetWindowName());
     container->SetWindowId(window_->GetWindowId());
     ExternalInstanceIdMapper::GetInstance().Add(window_->GetWindowId(), instanceId_);
+    if (info) {
+        ExternalInstanceIdMapper::GetInstance().AddExternalResourceId(info->instanceId, instanceId_);
+    }
     Ace::Platform::UIContent::AddUIContent(instanceId_, info->instanceId, this);
     container->SetInstanceName(info->name);
     container->SetHostClassName(info->name);
@@ -705,10 +708,14 @@ void UIContentImpl::Destroy()
     OHOS::AbilityRuntime::Platform::ModuleLoadCallbackManager::GetInstance().UnregisterCallback(instanceId_);
     auto container = AceEngine::Get().GetContainer(instanceId_);
     CHECK_NULL_VOID(container);
-    if (window_) {
-        ExternalInstanceIdMapper::GetInstance().Remove(window_->GetWindowId());
-    }
-    Platform::AceContainerSG::DestroyContainer(instanceId_);
+    bool hasWindow = window_ != nullptr;
+    uint32_t windowId = hasWindow ? window_->GetWindowId() : 0;
+    Platform::AceContainerSG::DestroyContainer(instanceId_, [hasWindow, windowId, instanceId = instanceId_] {
+        if (hasWindow) {
+            ExternalInstanceIdMapper::GetInstance().Remove(windowId);
+        }
+        ExternalInstanceIdMapper::GetInstance().RemoveExternalResourceIdByInstanceId(instanceId);
+    });
     ContainerScope::RemoveAndCheck(instanceId_);
 }
 

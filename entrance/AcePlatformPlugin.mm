@@ -123,8 +123,8 @@
 {
     auto resRegister = OHOS::Ace::Platform::AcePlatformPlugin::GetResRegister(self.instanceId);
 
-    int32_t containerId = OHOS::Ace::ExternalInstanceIdMapper::GetInstance().GetInstanceId(
-        static_cast<uint32_t>(self.instanceId));
+    int32_t containerId = OHOS::Ace::ExternalInstanceIdMapper::GetInstance()
+        .GetInstanceIdByExternalResourceId(self.instanceId);
     int32_t scopeInstanceId = (containerId >= 0) ? containerId : self.instanceId;
     OHOS::Ace::ContainerScope scope(scopeInstanceId);
     const char* eventIdcString = [eventId UTF8String];
