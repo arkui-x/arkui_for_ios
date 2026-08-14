@@ -1763,6 +1763,9 @@ static UIInterfaceOrientationMask OrientationToMask(Orientation orientation, BOO
 
 void Window::SetRequestedOrientation(Orientation orientation)
 {
+    if (IsSubWindow() || GetMode() == WindowMode::WINDOW_MODE_FLOATING) {
+        return;
+    }
     BOOL isPad = ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad);
     bool isTemporaryRotation = false;
     UIInterfaceOrientationMask mask = OrientationToMask(orientation, isPad, isTemporaryRotation);
