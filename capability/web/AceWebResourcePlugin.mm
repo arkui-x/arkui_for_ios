@@ -25,10 +25,18 @@
 @interface AceWebResourcePlugin()
 @property (nonatomic, weak) UIViewController *target;
 @property (nonatomic, assign) int32_t instanceId;
+@property (nonatomic, strong) NSMutableSet<NSString*> *ownedIds;
 @end
 
 @implementation AceWebResourcePlugin
 static NSMutableDictionary<NSString*, AceWeb*> *objectMap;
++ (NSMutableDictionary<NSString*, AceWeb*>*)ensureObjectMap {
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        objectMap = [[NSMutableDictionary alloc] init];
+    });
+    return objectMap;
+}
 + (AceWebResourcePlugin *)createRegister:(UIViewController *)target abilityInstanceId:(int32_t)abilityInstanceId
 {
     return [[AceWebResourcePlugin alloc] initWithTarget:target abilityInstanceId:abilityInstanceId];
@@ -37,19 +45,19 @@ static NSMutableDictionary<NSString*, AceWeb*> *objectMap;
 - (instancetype)initWithTarget:(UIViewController *)target abilityInstanceId:(int32_t)abilityInstanceId{
     self = [super init:@"web" version:1];
     if (self) {
-        objectMap = [[NSMutableDictionary alloc] init];
+        [AceWebResourcePlugin ensureObjectMap];
         self.target = target;
         self.instanceId = abilityInstanceId;
+        self.ownedIds = [[NSMutableSet alloc] init];
     }
     return self;
 }
 
 - (void)addResource:(int64_t)incId web:(AceWeb *)web{
-    if (!objectMap) {
-        NSLog(@"AceWebResourcePlugin addResource objectMap is empty");
-        objectMap = [[NSMutableDictionary alloc] init];
-    }
-    [objectMap setObject:web forKey:[NSString stringWithFormat:@"%lld", incId]];
+    [AceWebResourcePlugin ensureObjectMap];
+    NSString *key = [NSString stringWithFormat:@"%lld", incId];
+    [objectMap setObject:web forKey:key];
+    [self.ownedIds addObject:key];
     NSDictionary *safeMethodMap = [[web getSyncCallMethod] copy];
     if (!safeMethodMap) {
         return;
@@ -95,6 +103,7 @@ static NSMutableDictionary<NSString*, AceWeb*> *objectMap;
         [self unregisterSyncCallMethod:[web getSyncCallMethod]];
         [web releaseObject];
         [objectMap removeObjectForKey:incId];
+        [self.ownedIds removeObject:incId];
         web = nil;
         return YES;
     }
@@ -104,9 +113,12 @@ static NSMutableDictionary<NSString*, AceWeb*> *objectMap;
 - (void)releaseObject{
     NSLog(@"AceWebResourcePlugin %s",__func__);
     if (objectMap) {
-        [objectMap enumerateKeysAndObjectsUsingBlock:^(NSString * _Nonnull key, AceWeb * _Nonnull web, BOOL * _Nonnull stop) {
+        NSArray<NSString*> *ids = [self.ownedIds allObjects];
+        for (NSString *key in ids) {
+            AceWeb *web = [objectMap objectForKey:key];
             if (web) {
                 @try {
+                    [self unregisterSyncCallMethod:[web getSyncCallMethod]];
                     [web releaseObject];
                     web = nil;
                 } @catch (NSException *exception) {
@@ -115,9 +127,9 @@ static NSMutableDictionary<NSString*, AceWeb*> *objectMap;
             }else {
                 NSLog(@"AceWebResourcePlugin releaseObject fail web is null");
             }
-        }];
-        [objectMap removeAllObjects];
-        objectMap = nil;
+            [objectMap removeObjectForKey:key];
+        }
+        [self.ownedIds removeAllObjects];
     }
     self.target = nil;
 }
