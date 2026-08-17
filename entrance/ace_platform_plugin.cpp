@@ -16,7 +16,7 @@
 #include "adapter/ios/entrance/ace_platform_plugin.h"
 
 #include "base/log/log.h"
-#include "base/subwindow/subwindow_manager.h"
+#include "base/external_instance_id_mapper.h"
 #include "base/utils/macros.h"
 #include "base/utils/utils.h"
 
@@ -25,9 +25,13 @@ using NativeLayerMap = std::unordered_map<int64_t, void*>;
 std::unordered_map<int, RefPtr<PlatformResRegister>> g_resRegisters;
 std::unordered_map<int, NativeLayerMap> g_nativeLayerMaps;
 
-static int32_t ResolveInstanceId(int32_t instanceId)
+static int32_t ResolveResourceId(int32_t instanceId)
 {
-    auto windowId = SubwindowManager::GetInstance()->GetWindowIdByContainerId(instanceId);
+    auto externalResourceId = ExternalInstanceIdMapper::GetInstance().GetExternalResourceId(instanceId);
+    if (externalResourceId >= 0) {
+        return externalResourceId;
+    }
+    auto windowId = ExternalInstanceIdMapper::GetInstance().GetWindowId(instanceId);
     return (windowId >= 0) ? windowId : instanceId;
 }
 
@@ -46,7 +50,7 @@ RefPtr<PlatformResRegister> AcePlatformPlugin::GetResRegister(int32_t instanceId
     if (it != g_resRegisters.end()) {
         return it->second;
     }
-    auto resolvedId = ResolveInstanceId(instanceId);
+    auto resolvedId = ResolveResourceId(instanceId);
     if (resolvedId != instanceId) {
         it = g_resRegisters.find(resolvedId);
         if (it != g_resRegisters.end()) {
@@ -83,7 +87,7 @@ void* AcePlatformPlugin::GetNativeWindow(int32_t instanceId, int64_t textureId)
 {
     auto iter = g_nativeLayerMaps.find(instanceId);
     if (iter == g_nativeLayerMaps.end()) {
-        auto resolvedId = ResolveInstanceId(instanceId);
+        auto resolvedId = ResolveResourceId(instanceId);
         if (resolvedId != instanceId) {
             iter = g_nativeLayerMaps.find(resolvedId);
         }
@@ -102,10 +106,15 @@ void AcePlatformPlugin::ReleaseInstance(int32_t instanceId)
 {
     g_nativeLayerMaps.erase(instanceId);
     g_resRegisters.erase(instanceId);
-    auto resolvedId = ResolveInstanceId(instanceId);
+    auto resolvedId = ResolveResourceId(instanceId);
     if (resolvedId != instanceId) {
         g_nativeLayerMaps.erase(resolvedId);
         g_resRegisters.erase(resolvedId);
+    }
+    auto windowId = ExternalInstanceIdMapper::GetInstance().GetWindowId(instanceId);
+    if (windowId >= 0 && windowId != instanceId && windowId != resolvedId) {
+        g_nativeLayerMaps.erase(windowId);
+        g_resRegisters.erase(windowId);
     }
 }
 

@@ -18,6 +18,7 @@
 #include "adapter/ios/stage/uicontent/ace_view_sg.h"
 #include "adapter/ios/entrance/display_info.h"
 #include "base/error/error_code.h"
+#include "base/external_instance_id_mapper.h"
 #include "core/accessibility/accessibility_manager.h"
 #include "core/components_ng/pattern/menu/wrapper/menu_wrapper_pattern.h"
 #include "display_manager.h"
@@ -61,7 +62,7 @@ void SubwindowIos::InitContainer()
     subSurface->SetShadowElevation(0.0f);
     window_->SetUIContent(
         url, reinterpret_cast<NativeEngine*>(parentContainer->GetSharedRuntime()), nullptr, false, nullptr, false);
-    childContainerId_ = SubwindowManager::GetInstance()->GetContainerId(window_->GetWindowId());
+    childContainerId_ = ExternalInstanceIdMapper::GetInstance().GetInstanceId(window_->GetWindowId());
     if (childContainerId_ < 0) {
         TAG_LOGE(AceLogTag::ACE_SUB_WINDOW, "Failed to get child container id for windowId %{public}u.",
             window_->GetWindowId());
