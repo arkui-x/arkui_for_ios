@@ -14,6 +14,7 @@
  */
 
 #import "MetalTextureRenderer.h"
+#include "UIViewMetalRenderTarget.h"
 
 #import <CoreVideo/CVPixelBufferIOSurface.h>
 #import <Metal/Metal.h>
@@ -104,6 +105,8 @@ NSString* const kFrameDiffShaderSource = @"using namespace metal;\n"
     NSUInteger _frameDiffSampleCounter;
     NSUInteger _nextDiffBufferIndex;
     NSUInteger _nextRenderTargetIndex;
+
+    BOOL useDrawHierarchy;
 }
 
 @property(nonatomic, strong) NSMutableArray<UIViewMetalRenderTarget*>* renderTargets;
@@ -164,6 +167,10 @@ NSString* const kFrameDiffShaderSource = @"using namespace metal;\n"
         [self setupMetal];
     }
     _canRenderUpdateBounds = ![view isKindOfClass:NSClassFromString(@"MKMapView")];
+    useDrawHierarchy = [self shouldUseDrawViewHierarchyForView:view];
+    if (useDrawHierarchy && self.renderTargets.count > 1) {
+        [self.renderTargets removeObjectsInRange:NSMakeRange(1, self.renderTargets.count - 1)];
+    }
 }
 
 - (void)setupMetal
@@ -282,6 +289,9 @@ NSString* const kFrameDiffShaderSource = @"using namespace metal;\n"
 
 - (UIViewMetalRenderTarget*)currentRenderTarget
 {
+    if (useDrawHierarchy && self.renderTargets.count > 0) {
+        return self.renderTargets.firstObject;
+    }
     if (_nextRenderTargetIndex >= self.renderTargets.count) {
         return nil;
     }
@@ -290,6 +300,9 @@ NSString* const kFrameDiffShaderSource = @"using namespace metal;\n"
 
 - (UIViewMetalRenderTarget*)publishedRenderTarget
 {
+    if (useDrawHierarchy && self.renderTargets.count > 0) {
+        return self.renderTargets.firstObject;
+    }
     if (self.renderTargets.count == 0) {
         return nil;
     }
@@ -381,7 +394,10 @@ NSString* const kFrameDiffShaderSource = @"using namespace metal;\n"
     NSUInteger threadHeight = MAX((NSUInteger)1, self.downsamplePipeline.maxTotalThreadsPerThreadgroup / threadWidth);
     threadHeight = MIN(threadHeight, (NSUInteger)MAX_THREADGROUP_HEIGHT);
     MTLSize threadgroupSize = MTLSizeMake(threadWidth, threadHeight, 1);
-    [encoder dispatchThreads:gridSize threadsPerThreadgroup:threadgroupSize];
+    MTLSize threadgroupCount = MTLSizeMake((gridSize.width + threadgroupSize.width - 1) / threadgroupSize.width,
+                                           (gridSize.height + threadgroupSize.height - 1) / threadgroupSize.height,
+                                           1);
+    [encoder dispatchThreadgroups:threadgroupCount threadsPerThreadgroup:threadgroupSize];
     [encoder endEncoding];
 }
 
@@ -400,7 +416,10 @@ NSString* const kFrameDiffShaderSource = @"using namespace metal;\n"
     NSUInteger threadHeight = MAX((NSUInteger)1, self.comparePipeline.maxTotalThreadsPerThreadgroup / threadWidth);
     threadHeight = MIN(threadHeight, (NSUInteger)MAX_THREADGROUP_HEIGHT);
     MTLSize threadgroupSize = MTLSizeMake(threadWidth, threadHeight, 1);
-    [encoder dispatchThreads:gridSize threadsPerThreadgroup:threadgroupSize];
+    MTLSize threadgroupCount = MTLSizeMake((gridSize.width + threadgroupSize.width - 1) / threadgroupSize.width,
+                                           (gridSize.height + threadgroupSize.height - 1) / threadgroupSize.height,
+                                           1);
+    [encoder dispatchThreadgroups:threadgroupCount threadsPerThreadgroup:threadgroupSize];
     [encoder endEncoding];
 }
 
@@ -591,15 +610,17 @@ NSString* const kFrameDiffShaderSource = @"using namespace metal;\n"
             return NO;
         }
     }
-    if (![self setupRenderDest:[self currentRenderTarget]]) {
-        LOGE("%{public}s error: failed to create renderer", __func__);
-        [self clearAllRenderTargets];
-        return NO;
+    if (!useDrawHierarchy) {
+        if (![self setupRenderDest:[self currentRenderTarget]]) {
+            LOGE("%{public}s error: failed to create renderer", __func__);
+            [self clearAllRenderTargets];
+            return NO;
+        }
+        _rendererLayerIdentity = nullptr;
+        _rendererBounds = CGRectNull;
+        [self syncRendererStateForView:view];
     }
     [self resetFrameDiffStateOnQueue];
-    _rendererLayerIdentity = nullptr;
-    _rendererBounds = CGRectNull;
-    [self syncRendererStateForView:view];
     return YES;
 }
 
@@ -617,12 +638,17 @@ NSString* const kFrameDiffShaderSource = @"using namespace metal;\n"
         return false;
     }
 
-    if (currentRenderTarget.pixelBuffer != nullptr && self.renderer != nullptr &&
+    if (currentRenderTarget.pixelBuffer != nullptr &&
         CGSizeEqualToSize(currentRenderTarget.size, CGSizeMake(width, height))) {
-        if (![self setupRenderDest:currentRenderTarget]) {
-            return false;
+        if (!useDrawHierarchy) {
+            if (self.renderer == nullptr) {
+                return false;
+            }
+            if (![self setupRenderDest:currentRenderTarget]) {
+                return false;
+            }
+            [self syncRendererStateForView:view];
         }
-        [self syncRendererStateForView:view];
         return true;
     }
     return [self recreateRenderTargetWithWidth:width height:height view:view];
@@ -648,7 +674,7 @@ NSString* const kFrameDiffShaderSource = @"using namespace metal;\n"
         return false;
     }
     BOOL publishCurrentFrame = _shouldPublish;
-    if (_canRenderUpdateBounds && !publishCurrentFrame) {
+    if (_canRenderUpdateBounds && !publishCurrentFrame && !useDrawHierarchy) {
         [self.renderer beginFrameAtTime:CACurrentMediaTime() timeStamp:nil];
         CGRect updateRect = [self.renderer updateBounds];
         if (!CGRectIsEmpty(updateRect) && !_resetBaseline ) {
@@ -656,7 +682,12 @@ NSString* const kFrameDiffShaderSource = @"using namespace metal;\n"
         }
         [self.renderer endFrame];
     } else if (publishCurrentFrame || _frameDiffSampleCounter < FRAME_DIFF_SAMPLE_INTERVAL) {
-        [self renderPlatformView:view publishCurrent:publishCurrentFrame currentRenderTarget:currentRenderTarget];
+        if (useDrawHierarchy) {
+            [self renderPlatformViewViaDrawHierarchy:view publishCurrent:publishCurrentFrame
+                                 currentRenderTarget:currentRenderTarget];
+        } else {
+            [self renderPlatformView:view publishCurrent:publishCurrentFrame currentRenderTarget:currentRenderTarget];
+        }
     }
     BOOL shouldPublishFrame = [self shouldPublishFrame];
     _resetBaseline = (publishCurrentFrame != shouldPublishFrame);
@@ -722,6 +753,57 @@ NSString* const kFrameDiffShaderSource = @"using namespace metal;\n"
         view.layer.geometryFlipped = savedGeometryFlipped;
         [CATransaction commit];
     }
+}
+
+- (BOOL)shouldUseDrawViewHierarchyForView:(UIView*)view
+{
+    if (@available(iOS 17.0, *)) {
+        return NO;
+    }
+    return [view isKindOfClass:[WKWebView class]];
+}
+
+- (void)renderPlatformViewViaDrawHierarchy:(UIView*)view
+                            publishCurrent:(BOOL)publishCurrent
+                       currentRenderTarget:(UIViewMetalRenderTarget*)currentRenderTarget
+{
+    if (!publishCurrent) {
+        currentRenderTarget.isScale = YES;
+    } else {
+        currentRenderTarget.isScale = NO;
+    }
+    CVPixelBufferRef pixelBuffer = [currentRenderTarget currentPixelBuffer];
+    if (pixelBuffer == nullptr) {
+        return;
+    }
+    CVPixelBufferLockBaseAddress(pixelBuffer, 0);
+    void* baseAddress = CVPixelBufferGetBaseAddress(pixelBuffer);
+    size_t bytesPerRow = CVPixelBufferGetBytesPerRow(pixelBuffer);
+    size_t width = CVPixelBufferGetWidth(pixelBuffer);
+    size_t height = CVPixelBufferGetHeight(pixelBuffer);
+    if (baseAddress == nullptr || bytesPerRow == 0 || width == 0 || height == 0) {
+        CVPixelBufferUnlockBaseAddress(pixelBuffer, 0);
+        return;
+    }
+    CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
+    if (colorSpace == nullptr) {
+        CVPixelBufferUnlockBaseAddress(pixelBuffer, 0);
+        return;
+    }
+    CGContextRef context = CGBitmapContextCreate(baseAddress, width, height, 8, bytesPerRow,
+                                                  colorSpace, kCGBitmapByteOrder32Little | kCGImageAlphaPremultipliedFirst);
+    CGColorSpaceRelease(colorSpace);
+    if (context == nullptr) {
+        CVPixelBufferUnlockBaseAddress(pixelBuffer, 0);
+        return;
+    }
+
+    UIGraphicsPushContext(context);
+    CGContextScaleCTM(context, _screenScale, _screenScale);
+    [view drawViewHierarchyInRect:view.bounds afterScreenUpdates:NO];
+    UIGraphicsPopContext();
+    CGContextRelease(context);
+    CVPixelBufferUnlockBaseAddress(pixelBuffer, 0);
 }
 
 - (void)destroy
