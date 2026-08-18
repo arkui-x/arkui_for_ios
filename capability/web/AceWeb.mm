@@ -321,11 +321,24 @@ using SslError = OHOS::Ace::NG::Converter::SslError;
         [consoleLevel isEqualToString:CONSOLEERROR]) {
         jsConsole = [NSString stringWithFormat:
             @"console.%@ = (function(oriLogFunc) {"
+             "  var bridgeErrorLogged = false;"
              "  return function(...args) {"
              "    oriLogFunc.apply(console, args);"
-             "    const msg = args.map(arg => typeof arg === 'object' && arg !== null ?"
-             "      JSON.stringify(arg) : String(arg)).join(' ');"
-             "    window.webkit.messageHandlers.%@.postMessage(msg);"
+             "    try {"
+             "      var msg = args.map(function(arg) {"
+             "        if (typeof arg === 'object' && arg !== null) {"
+             "          try { return JSON.stringify(arg); }"
+             "          catch(e) { return String(arg); }"
+             "        }"
+             "        return String(arg);"
+             "      }).join(' ');"
+             "      window.webkit.messageHandlers.%@.postMessage(msg);"
+             "    } catch(e) {"
+             "      if (!bridgeErrorLogged) {"
+             "        bridgeErrorLogged = true;"
+             "        oriLogFunc.call(console, '[console bridge error]', e && e.message);"
+             "      }"
+             "    }"
              "  }"
              "})(console.%@);",
             consoleLevel, consoleLevel, consoleLevel];
