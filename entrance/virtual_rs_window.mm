@@ -15,8 +15,7 @@
 
 #include "adapter/ios/entrance/virtual_rs_window.h"
 
-#include <cerrno>
-#include <cstdlib>
+#include <atomic>
 #include <__nullptr>
 #include <_types/_uint32_t.h>
 #include <memory>
@@ -35,7 +34,6 @@
 #include "window_view_adapter.h"
 #include "window_interface.h"
 #include "window_option.h"
-#include "InstanceIdGenerator.h"
 #include "hilog.h"
 #include "napi/native_api.h"
 #include "core/event/touch_event.h"
@@ -293,23 +291,14 @@ static WMError SetSpecificBar(WindowType type, const SystemBarProperty& property
     return WMError::WM_OK;
 }
 
-static uint32_t GetWindowIdFromName(const std::string& windowName)
+static uint32_t GenerateValidWindowId()
 {
-    auto pos = windowName.rfind(':');
-    if (pos != std::string::npos) {
-        std::string numStr = windowName.substr(pos + 1);
-        if (!numStr.empty()) {
-            const char* begin = numStr.c_str();
-            char* end = nullptr;
-            errno = 0;
-            unsigned long val = std::strtoul(begin, &end, 10);
-            if (end != begin && *end == '\0' && errno != ERANGE && val <= UINT32_MAX) {
-                return static_cast<uint32_t>(val);
-            }
-            LOGW("Failed to parse windowId from windowName: %{public}s", windowName.c_str());
-        }
+    static std::atomic<uint32_t> windowIdGenerator = 1;
+    auto windowId = windowIdGenerator.fetch_add(1);
+    if (windowId == INVALID_WINDOW_ID) {
+        windowId = windowIdGenerator.fetch_add(1);
     }
-    return static_cast<uint32_t>([InstanceIdGenerator getAndIncrement]);
+    return windowId;
 }
 
 Window::Window(std::shared_ptr<AbilityRuntime::Platform::Context> context, uint32_t windowId)
@@ -340,7 +329,7 @@ std::shared_ptr<Window> Window::Create(
         return nullptr;
     }
     
-    uint32_t windowId = GetWindowIdFromName(windowName);
+    uint32_t windowId = GenerateValidWindowId();
     auto window = std::shared_ptr<Window>(new Window(context, windowId), DummyWindowRelease);
     window->SetWindowView(validWindowView);
     window->SetWindowName(windowName);
@@ -361,7 +350,7 @@ std::shared_ptr<Window> Window::CreateSubWindow(
         return nullptr;
     }
 
-    uint32_t windowId = GetWindowIdFromName(subWindowName);
+    uint32_t windowId = GenerateValidWindowId();
     if (option->GetWindowType() != OHOS::Rosen::WindowType::WINDOW_TYPE_APP_SUB_WINDOW) {
         LOGI("Window::CreateSubWindow failed, window type error![windowType=%{public}d]", static_cast<int32_t>(option->GetWindowType()));
         return nullptr;
