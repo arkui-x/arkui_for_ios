@@ -14,6 +14,7 @@
  */
 
 #import "BridgePlugin+internal.h"
+#include "base/log/log.h"
 
 @interface BridgePlugin ()
 @property(nonatomic, assign) BOOL isAvailable;
@@ -23,5 +24,9 @@
 
 - (void)onRegisterResult:(BOOL)result {
     self.isAvailable = result;
+    if (result) {
+        LOGI("bridgePlugin onRegisterResult, bridgeName: %{public}s success", [self.bridgeName UTF8String]);
+        [self onPeerReady];
+    }
 }
 @end
