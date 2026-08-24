@@ -137,7 +137,7 @@ static char kBridgeQueueMapKey;
         bridgeType == bridgePlugin.type) {
         [bridgePlugin onRegisterResult:true];
     } else {
-        LOGE("BridgePluginManager innerRegisterBridgePlugin bridgePlugin type not match bridgeName: %{public}s",
+        LOGE("BridgePluginManager innerRegisterBridgePlugin js bridge not exists or type not match bridgeName: %{public}s",
             [bridgeName UTF8String]);
     }
     if (bridgePlugin.taskOption) {
