@@ -102,6 +102,7 @@ template("ace_osal_ios_source_set") {
       "view_data_wrap_impl.cpp",
       "want_wrap_ios.cpp",
       "websocket_manager.cpp",
+      "download_manager_ios.mm",
     ]
 
     cflags_cc = [
