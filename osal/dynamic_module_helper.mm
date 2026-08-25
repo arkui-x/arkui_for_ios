@@ -90,7 +90,9 @@ const std::unordered_map<std::string, std::string> soMap = {
     {"SymbolGlyph", "symbol"},
     {"DataPanel", "datapanel"},
     {"Richeditor", "richeditor"},
-    {"Search", "search"},
+    { "Search", "textfield" },
+    {"TextInput", "textfield"},
+ 	{"TextArea", "textfield"},
     // Menu components are now statically linked, handled in GetDynamicModule
     {"TextClock", "textclock"},
     {"Bubble", "bubble"},
@@ -98,6 +100,12 @@ const std::unordered_map<std::string, std::string> soMap = {
     {"Button", "button"},
     {"Dialog", "dialog" },
     {"DynamicLayout", "dynamiclayout"},
+    {"Progress", "progress"},
+    {"LoadingProgress", "loadingprogress"},
+    {"Badge", "badge"},
+    {"TextTimer", "texttimer"},
+    {"ImageSpan", "span"},
+ 	{"SymbolSpan", "span"},
     {"Select", "select"},
 };
 } // namespace
