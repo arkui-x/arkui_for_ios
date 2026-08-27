@@ -64,6 +64,8 @@ public:
         auto result = BufferMapping(reinterpret_cast<uint8_t*>(malloc(length)), length);
         if (result.GetMapping() != nullptr) {
             memcpy_s((void*)result.GetMapping(), length, begin, length);
+        } else {
+            LOGE("BufferMapping::Copy malloc failed, length: %{public}zu", length);
         }
         return result;
     }

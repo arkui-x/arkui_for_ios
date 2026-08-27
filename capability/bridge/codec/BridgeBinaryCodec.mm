@@ -15,6 +15,7 @@
 
 #import "BridgeBinaryCodec.h"
 #import "BridgeSerializer.h"
+#include "base/log/log.h"
 
 @implementation BridgeBinaryCodec {
     BridgeSerializer* _serializer;
@@ -64,6 +65,7 @@
     BridgeStreamWriter* writer = [_serializer writerWithData:data];
     BOOL success = [writer writeValue:message];
     if (!success){
+        LOGE("BridgeBinaryCodec encode writeValue failed");
         return nil;
     }
     return data;
