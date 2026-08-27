@@ -64,6 +64,7 @@
     BridgeStreamWriter* writer = [_serializer writerWithData:data];
     BOOL success = [writer writeValue:message];
     if (!success){
+        LOGE("BridgeBinaryCodec encode writeValue failed");
         return nil;
     }
     return data;

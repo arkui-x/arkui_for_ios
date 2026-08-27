@@ -17,6 +17,8 @@
 #include <stdint.h>
 #include <vector>
 
+#include "base/log/log.h"
+
 void BridgeCodecUtilWriteByte(CFMutableDataRef cData, uint8_t value) {
     CFDataAppendBytes(cData, &value, 1);
 }
@@ -348,6 +350,7 @@ CFTypeRef BridgeCodecUtilReadValueOfType(unsigned long* location,
             return CFAutorelease(ReadCompositeList(location, cData,
                 ReadValue, user_data));
         default:
+            LOGE("BridgeCodecUtilReadValueOfType unknown codec type: %{public}u", (unsigned)type);
             return nil;
     }
 }

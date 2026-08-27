@@ -130,7 +130,8 @@
             @throw exception;
         }
     } @catch (NSException* exception) {
-        NSLog(@"bridge callMethodSyncInner catch");
+        LOGE("bridge callMethodSyncInner catch, name: %{public}s, reason: %{public}s",
+            [exception.name ?: @"" UTF8String], [exception.reason ?: @"" UTF8String]);
         [exception raise];
     }
     return resultValue.result;
