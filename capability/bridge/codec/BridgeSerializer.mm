@@ -158,6 +158,7 @@ static bool WriteValueOfType(CFTypeRef writer,
             return false;
         }
         default:
+            LOGE("BridgeStreamWriter::WriteValueOfType unsupported type: %{public}u", (unsigned)type);
             return false;
         break;
     }

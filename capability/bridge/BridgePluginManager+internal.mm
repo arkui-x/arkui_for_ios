@@ -153,6 +153,7 @@ static char kBridgeQueueMapKey;
 
 - (BOOL)innerUnRegisterBridgePlugin:(NSString*)bridgeName {
     if (!bridgeName.length) {
+        LOGE("BridgePluginManager unregister failed, bridgename is empty");
         return false;
     }
     @synchronized(self) {
@@ -488,6 +489,7 @@ static char kBridgeQueueMapKey;
                         reultValueCallback:(void (^)(ResultValue* _Nullable reultValue))callback {
     ResultValue* resultValue = [[ResultValue alloc] init];
     if (!bridgeName.length) {
+        LOGW("platformCallMethod bridgeName is empty");
         resultValue.errorCode = BRIDGE_NAME_ERROR;
         resultValue.errorMessage = BRIDGE_NAME_ERROR_MESSAGE;
         if (callback) {
@@ -497,6 +499,7 @@ static char kBridgeQueueMapKey;
     }
 
     if (!methodName.length) {
+        LOGW("platformCallMethod methodName is empty");
         resultValue.errorCode = BRIDGE_METHOD_NAME_ERROR;
         resultValue.errorMessage = BRIDGE_METHOD_NAME_ERROR_MESSAGE;
         if (callback) {
@@ -524,11 +527,13 @@ static char kBridgeQueueMapKey;
                                        param:(NSArray* _Nullable)params {
     ResultValue* resultValue = [[ResultValue alloc] init];
     if (!bridgeName.length) {
+        LOGW("platformCallMethod bridgeName is empty");
         resultValue.errorCode = BRIDGE_NAME_ERROR;
         resultValue.errorMessage = BRIDGE_NAME_ERROR_MESSAGE;
         return resultValue;
     }
     if (!methodName.length) {
+        LOGW("platformCallMethod methodName is empty");
         resultValue.errorCode = BRIDGE_METHOD_NAME_ERROR;
         resultValue.errorMessage = BRIDGE_METHOD_NAME_ERROR_MESSAGE;
         return resultValue;
@@ -718,6 +723,7 @@ static char kBridgeQueueMapKey;
                                 reultValueCallback:(void (^)(ResultValue* _Nullable reultValue))callback {
     ResultValue* resultValue = [[ResultValue alloc] init];
     if (!bridgeName.length) {
+        LOGW("platformCallMethod bridgeName is empty");
         resultValue.errorCode = BRIDGE_NAME_ERROR;
         resultValue.errorMessage = BRIDGE_NAME_ERROR_MESSAGE;
         if (callback) {
@@ -727,6 +733,7 @@ static char kBridgeQueueMapKey;
     }
 
     if (!methodName.length) {
+        LOGW("platformCallMethod methodName is empty");
         resultValue.errorCode = BRIDGE_METHOD_NAME_ERROR;
         resultValue.errorMessage = BRIDGE_METHOD_NAME_ERROR_MESSAGE;
         if (callback) {
@@ -755,11 +762,13 @@ static char kBridgeQueueMapKey;
                                               param:(NSArray* _Nullable)params {
     ResultValue* resultValue = [[ResultValue alloc] init];
     if (!bridgeName.length) {
+        LOGW("platformCallMethod bridgeName is empty");
         resultValue.errorCode = BRIDGE_NAME_ERROR;
         resultValue.errorMessage = BRIDGE_NAME_ERROR_MESSAGE;
         return resultValue;
     }
     if (!methodName.length) {
+        LOGW("platformCallMethod methodName is empty");
         resultValue.errorCode = BRIDGE_METHOD_NAME_ERROR;
         resultValue.errorMessage = BRIDGE_METHOD_NAME_ERROR_MESSAGE;
         return resultValue;
@@ -857,6 +866,7 @@ ErrorCode SafeIntToErrorCode(int value) {
 
 - (void)dispatchTaskInQueueHandlerWithTaskInfo:(BridgeTaskInfo*)taskInfo {
     if (!taskInfo) {
+        LOGW("BridgePluginManager dispatchTaskInQueueHandlerWithTaskInfo taskInfo is null");
         return;
     }
     NSString* bridgeName = taskInfo.bridgeName;
