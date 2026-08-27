@@ -350,7 +350,6 @@ CFTypeRef BridgeCodecUtilReadValueOfType(unsigned long* location,
             return CFAutorelease(ReadCompositeList(location, cData,
                 ReadValue, user_data));
         default:
-            LOGE("BridgeCodecUtilReadValueOfType unknown codec type: %{public}u", (unsigned)type);
             return nil;
     }
 }
