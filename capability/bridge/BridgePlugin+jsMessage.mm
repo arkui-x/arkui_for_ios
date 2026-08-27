@@ -377,6 +377,7 @@ BOOL isNumberTypeMatch(id argument, const char *argumentType) {
     } else {
         void* returnValue = (void*)malloc(signature.methodReturnLength);
         if (!returnValue) {
+            LOGE("bridgePlugin handleReturnValue malloc failed, bridgeName: %{public}s", [self.bridgeName UTF8String]);
             return nil;
         }
         [invocation getReturnValue:returnValue];
