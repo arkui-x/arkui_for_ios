@@ -17,8 +17,6 @@
 #include <stdint.h>
 #include <vector>
 
-#include "base/log/log.h"
-
 void BridgeCodecUtilWriteByte(CFMutableDataRef cData, uint8_t value) {
     CFDataAppendBytes(cData, &value, 1);
 }
