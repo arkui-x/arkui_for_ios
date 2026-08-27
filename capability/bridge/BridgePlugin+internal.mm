@@ -26,7 +26,6 @@
     self.isAvailable = result;
     if (result) {
         LOGI("bridgePlugin onRegisterResult, bridgeName: %{public}s success", [self.bridgeName UTF8String]);
-        [self onPeerReady];
     }
 }
 @end
