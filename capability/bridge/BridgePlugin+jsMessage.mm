@@ -21,6 +21,7 @@
 #import "BridgePlugin+jsMessage.h"
 #import "BridgePluginManager+internal.h"
 #import "ResultValue.h"
+#include "base/log/log.h"
 
 @implementation BridgePlugin (jsMessage)
 

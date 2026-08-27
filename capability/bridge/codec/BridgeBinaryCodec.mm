@@ -15,6 +15,7 @@
 
 #import "BridgeBinaryCodec.h"
 #import "BridgeSerializer.h"
+#include "base/log/log.h"
 
 @implementation BridgeBinaryCodec {
     BridgeSerializer* _serializer;

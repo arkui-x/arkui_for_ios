@@ -23,6 +23,7 @@
 #import "BridgePluginManager+internal.h"
 #import "BridgeManagerHolder.h"
 #import "ResultValue.h"
+#include "base/log/log.h"
 
 @interface BridgePlugin () {
     BridgeType _bridgeType;
