@@ -46,6 +46,7 @@ NSData* convertToNSData(const std::vector<uint8_t>& data) {
 
 NSData* ConvertUniqueUNint8ToNSData(std::unique_ptr<std::vector<uint8_t>> result) {
     if (!result) {
+        LOGE("ConvertUniqueUNint8ToNSData result is null");
         return nil;
     }
     const uint8_t* bytes = result->data();
@@ -70,6 +71,7 @@ BridgePluginManager* getBridgePluginManager() {
 
 std::shared_ptr<BridgeReceiver> BridgeManager::FindReceiver(const std::string& bridgeName) {
     if (bridgeName.empty()) {
+        LOGE("FindReceiver bridgeName is empty");
         return nullptr;
     }
     std::lock_guard<std::mutex> lock(bridgeLock_);
@@ -120,6 +122,7 @@ void BridgeManager::jsOnRegisterResult(const std::string& bridgeName, bool avail
         NSString* oc_bridgeName = getOCstring(bridgeName);
         BridgePlugin* bridgePlugin = [bridgePluginManager getPluginWithBridgeName:oc_bridgeName];
         if (bridgePlugin == nil) {
+            LOGW("jsOnRegisterResult bridgePlugin is null, bridgeName: %{public}s", [oc_bridgeName UTF8String]);
             return;
         }
         if (!available) {
@@ -157,6 +160,7 @@ std::string BridgeManager::JSCallMethodSync(
                                                            param:oc_parameter];
         return std::string([result UTF8String]);
     }
+    LOGE("JSCallMethodSync bridgePluginManager is null, bridgeName: %{public}s", bridgeName.c_str());
     return "";
 }
 
@@ -225,6 +229,8 @@ std::string BridgeManager::PlatformCallMethodResult(const std::string& bridgeNam
         std::string result = receiver->callMethodSyncCallback_(methodName, parameter);
         return result;
     }
+    LOGE("PlatformCallMethodResult receiver or callback is null, bridgeName: %{public}s, method: %{public}s",
+        bridgeName.c_str(), methodName.c_str());
     return "";
 }
 
@@ -234,6 +240,9 @@ void BridgeManager::PlatformSendMethodResult(const std::string& bridgeName,
     auto receiver = FindReceiver(bridgeName);
     if (receiver && receiver->methodResultCallback_) {
         receiver->methodResultCallback_(methodName, result);
+    } else {
+        LOGW("PlatformSendMethodResult receiver or callback is null, bridgeName: %{public}s, method: %{public}s",
+            bridgeName.c_str(), methodName.c_str());
     }
 }
 
@@ -246,6 +255,8 @@ void BridgeManager::PlatformSendMessage(const std::string& bridgeName, const std
     auto receiver = FindReceiver(bridgeName);
     if (receiver && receiver->sendMessageCallback_) {
         receiver->sendMessageCallback_(data);
+    } else {
+        LOGW("PlatformSendMessage receiver or callback is null, bridgeName: %{public}s", bridgeName.c_str());
     }
 }
 
@@ -254,6 +265,9 @@ void BridgeManager::PlatformSendMessageResponse(const std::string& bridgeName,
     auto receiver = FindReceiver(bridgeName);
     if (receiver && receiver->sendMessageResponseCallback_) {
         receiver->sendMessageResponseCallback_(data);
+    } else {
+        LOGW("PlatformSendMessageResponse receiver or callback is null, bridgeName: %{public}s",
+            bridgeName.c_str());
     }
 }
 
@@ -337,6 +351,9 @@ void BridgeManager::PlatformSendMethodResultBinary(const std::string& bridgeName
     auto receiver = FindReceiver(bridgeName);
     if (receiver && receiver->methodResultBinaryCallback_) {
         receiver->methodResultBinaryCallback_(methodName, errorCode, errorMessage, std::move(result));
+    } else {
+        LOGW("PlatformSendMethodResultBinary receiver or callback is null, bridgeName: %{public}s, method: %{public}s",
+            bridgeName.c_str(), methodName.c_str());
     }
 }
 
@@ -346,6 +363,9 @@ void BridgeManager::PlatformCallMethodBinary(const std::string& bridgeName,
     auto receiver = FindReceiver(bridgeName);
     if (receiver && receiver->callMethodBinaryCallback_) {
         receiver->callMethodBinaryCallback_(methodName, std::move(parameter));
+    } else {
+        LOGW("PlatformCallMethodBinary receiver or callback is null, bridgeName: %{public}s, method: %{public}s",
+            bridgeName.c_str(), methodName.c_str());
     }
 }
 
@@ -366,6 +386,8 @@ void BridgeManager::PlatformSendMessageBinary(
     auto receiver = FindReceiver(bridgeName);
     if (receiver && receiver->sendMessageBinaryCallback_) {
         receiver->sendMessageBinaryCallback_(std::move(data));
+    } else {
+        LOGW("PlatformSendMessageBinary receiver or callback is null, bridgeName: %{public}s", bridgeName.c_str());
     }
 }
 
@@ -373,6 +395,7 @@ int32_t BridgeManager::GetBridgeType(const std::string& bridgeName)
 {
     auto receiver = FindReceiver(bridgeName);
     if (!receiver) {
+        LOGW("GetBridgeType receiver is null, bridgeName: %{public}s", bridgeName.c_str());
         return -1;
     }
     return receiver->bridgeType_;
