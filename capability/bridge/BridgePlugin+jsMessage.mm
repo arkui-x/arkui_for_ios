@@ -52,14 +52,14 @@
             } @catch (NSException* exception) {
                 errorCode = BRIDGE_METHOD_UNIMPL;
                 errorMessage = BRIDGE_METHOD_UNIMPL_MESSAGE;
-                LOGE("catch exception name : %{public}s, reason : %{public}s",
-                     [exception.name ?: @"" UTF8String],
-                     [exception.reason ?: @"" UTF8String]);
+                LOGE("BridgePlugin jsCallMethod bridgeName: %{public}s, catch exception name: %{public}s, reason: %{public}s",
+                    [self.bridgeName UTF8String], [exception.name ?: @"" UTF8String], [exception.reason ?: @"" UTF8String]);
             }
         } else {
             errorCode = BRIDGE_METHOD_UNIMPL;
             errorMessage = BRIDGE_METHOD_UNIMPL_MESSAGE;
-            LOGE("method error, message : %{public}s", (errorMessage ?: @"").UTF8String);
+            LOGE("BridgePlugin jsCallMethod error, bridgeName: %{public}s, message: %{public}s",
+                [self.bridgeName UTF8String], (errorMessage ?: @"").UTF8String);
         }
     }
 
@@ -72,6 +72,8 @@
     } else {
         // BINARY_TYPE
         if ([result isKindOfClass:[NSArray class]]) {
+            LOGE("BridgePlugin jsCallMethod result is array bridgeName: %{public}s, methodName: %{public}s",
+                [self.bridgeName UTF8String], (callMethod.methodName ?: @"").UTF8String);
             ResultValue* resultValue = [[ResultValue alloc] init];
             resultValue.errorCode = BRIDGE_DATA_ERROR;
             resultValue.errorMessage = BRIDGE_DATA_ERROR_MESSAGE;
@@ -101,7 +103,8 @@
     if (callMethod.methodName.length == 0) {
         errorCode = BRIDGE_METHOD_UNIMPL;
         errorMessage = BRIDGE_METHOD_UNIMPL_MESSAGE;
-        LOGE("method error, message : %{public}s", (errorMessage ?: @"").UTF8String);
+        LOGE("BridgePlugin jsCallMethodSync bridgeName: %{public}s, method error, message: %{public}s",
+            [self.bridgeName UTF8String], (errorMessage ?: @"").UTF8String);
         return [self createResultJson:errorCode errorMessage:errorMessage result:result];
     }
     @try {
@@ -119,9 +122,9 @@
     } @catch (NSException* exception) {
         errorCode = BRIDGE_METHOD_UNIMPL;
         errorMessage = BRIDGE_METHOD_UNIMPL_MESSAGE;
-        LOGE("catch exception name : %{public}s, reason : %{public}s",
-             [exception.name ?: @"" UTF8String],
-             [exception.reason ?: @"" UTF8String]);
+        LOGE("BridgePlugin jsCallMethodSync bridgeName: %{public}s, catch exception name: %{public}s, reason: %{public}s",
+            [self.bridgeName UTF8String], [exception.name ?: @"" UTF8String],
+            [exception.reason ?: @"" UTF8String]);
     }
     return [self createResultJson:errorCode errorMessage:errorMessage result:result];
 }
@@ -203,6 +206,9 @@
                             resultValue:object.result];
             }
         }
+    } else {
+        LOGE("bridgePlugin jsSendMethodResult failed methodResult is null, bridgeName: %{public}s, methodName: %{public}s",
+            [self.bridgeName UTF8String], [object.methodName ?: @"" UTF8String]);
     }
 }
 
@@ -211,18 +217,28 @@
         id object = [self.messageListener onMessage:data];
         [self.bridgeManager platformSendMessageResponse:self.bridgeName
                                                             data:object];
+    } else {
+        LOGE("bridgePlugin jsSendMessage back fail, bridgeName: %{public}s", [self.bridgeName UTF8String]);
     }
 }
 
 - (void)jsSendMessageResponse:(id)data {
     if (data && self.messageListener && [self.messageListener respondsToSelector:@selector(onMessageResponse:)]) {
         [self.messageListener onMessageResponse:data];
+    } else {
+        if (data) {
+            LOGE("bridgePlugin jsSendMessageResponse back fail, bridgeName: %{public}s",
+                [self.bridgeName UTF8String]);
+        }
     }
 }
 
 - (void)jsCancelMethod:(NSString*)bridgeName methodName:(NSString*)methodName {
     if (self.methodResult && [self.methodResult respondsToSelector:@selector(onMethodCancel:)]) {
         [self.methodResult onMethodCancel:methodName];
+    } else {
+        LOGE("bridgePlugin jsCancelMethod back fail, bridgeName: %{public}s, methodName: %{public}s",
+            [bridgeName ?: @"" UTF8String], [methodName ?: @"" UTF8String]);
     }
 }
 
@@ -279,12 +295,12 @@ BOOL isNumberTypeMatch(id argument, const char *argumentType) {
                 params:(NSArray*)params {
     int signatureDefaultArgsNum = 2;
     if (!signature || selector == nullptr) {
-        LOGE("signature nil");
+        LOGE("bridgePlugin handleMethodParam bridgeName: %{public}s, signature nil", [self.bridgeName UTF8String]);
         return @{@"errorCode": @(BRIDGE_METHOD_UNIMPL), @"errorMessage": BRIDGE_METHOD_UNIMPL_MESSAGE};
     }
     NSInteger paramsCount = signature.numberOfArguments - signatureDefaultArgsNum;
     if (paramsCount != params.count) {
-        LOGE("params count error");
+        LOGE("bridgePlugin handleMethodParam bridgeName: %{public}s, params count error", [self.bridgeName UTF8String]);
         return @{@"errorCode": @(BRIDGE_METHOD_PARAM_ERROR), @"errorMessage": BRIDGE_METHOD_PARAM_ERROR_MESSAGE};
     }
 
@@ -309,7 +325,7 @@ BOOL isNumberTypeMatch(id argument, const char *argumentType) {
     if (signature.methodReturnLength) {
         return [self handleReturnValue:signature invocation:invocation];
     }
-    LOGE("no returnValue");
+    LOGE("bridgePlugin handleMethodParam bridgeName: %{public}s, no returnValue", [self.bridgeName UTF8String]);
     return nil;
 }
 
@@ -367,7 +383,7 @@ BOOL isNumberTypeMatch(id argument, const char *argumentType) {
             invocation:(NSInvocation*)invocation {
     const char* returnType = signature.methodReturnType;
     if (!strcmp(returnType, @encode(void))) {
-        LOGE("no returnValue");
+        LOGE("bridgePlugin handleReturnValue bridgeName: %{public}s, no returnValue", [self.bridgeName UTF8String]);
         return nil;
     } else if (!strcmp(returnType, @encode(id))) {
         void* returnValue;
@@ -377,6 +393,7 @@ BOOL isNumberTypeMatch(id argument, const char *argumentType) {
     } else {
         void* returnValue = (void*)malloc(signature.methodReturnLength);
         if (!returnValue) {
+            LOGE("bridgePlugin handleReturnValue malloc failed, bridgeName: %{public}s", [self.bridgeName UTF8String]);
             return nil;
         }
         [invocation getReturnValue:returnValue];
