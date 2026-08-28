@@ -40,27 +40,23 @@
  
 - (instancetype)initBridgePlugin:(NSString* _Nonnull)bridgeName
                     instanceId:(int32_t)instanceId {
-    BridgePluginManager* bridgeManager = [BridgeManagerHolder getBridgePluginManager];
-    return [self initBridgePlugin:bridgeName bridgeManager:bridgeManager];
+    return [self initBridgePlugin:bridgeName bridgeManager:nil];
 }
 
 - (instancetype)initBridgePlugin:(NSString* _Nonnull)bridgeName
                     bridgeType:(BridgeType)type {
-    BridgePluginManager* bridgeManager = [BridgeManagerHolder getBridgePluginManager];
-    return [self initBridgePlugin:bridgeName bridgeManager:bridgeManager bridgeType:type taskOption:nil];
+    return [self initBridgePlugin:bridgeName bridgeManager:nil bridgeType:type taskOption:nil];
 }
 
 - (instancetype)initBridgePlugin:(NSString* _Nonnull)bridgeName
                     bridgeManager:(BridgePluginManager*)bridgeManager {
-    bridgeManager = [BridgeManagerHolder getBridgePluginManager];
-    return [self initBridgePlugin:bridgeName bridgeManager:bridgeManager bridgeType:JSON_TYPE taskOption:nil];
+    return [self initBridgePlugin:bridgeName bridgeManager:nil bridgeType:JSON_TYPE taskOption:nil];
 }
 
 - (instancetype)initBridgePlugin:(NSString* _Nonnull)bridgeName
                     bridgeManager:(BridgePluginManager*)bridgeManager
                     bridgeType:(BridgeType)type {
-    bridgeManager = [BridgeManagerHolder getBridgePluginManager];
-    return [self initBridgePlugin:bridgeName bridgeManager:bridgeManager bridgeType:type taskOption:nil];
+    return [self initBridgePlugin:bridgeName bridgeManager:nil bridgeType:type taskOption:nil];
 }
 
 - (instancetype)initBridgePlugin:(NSString* _Nonnull)bridgeName
@@ -84,7 +80,7 @@
 
 - (void)callMethod:(MethodData*)method {
     if (!_isAvailable) {
-        LOGE("bridgePlugin is available!");
+        LOGE("bridgePlugin callMethod, The bridge is not available, bridgeName: %{public}s", [self.bridgeName UTF8String]);
         return;
     }
 
@@ -110,6 +106,8 @@
     ResultValue* resultValue = [[ResultValue alloc] init];
     @try {
         if (!_isAvailable) {
+            LOGE("bridgePlugin callMethodSyncInner failed, the bridge is not available, bridgeName: %{public}s",
+                [self.bridgeName UTF8String]);
             NSString* strCode = [NSString stringWithFormat:@"%d", BRIDGE_INVALID];
             NSException* exception = [NSException exceptionWithName:strCode reason:BRIDGE_INVALID_MESSAGE userInfo:nil];
             @throw exception;
@@ -124,6 +122,8 @@
                                                                             param:method.parameter];
         }
         if (resultValue.errorCode != BRIDGE_ERROR_NO) {
+            LOGE("bridgePlugin callMethodSyncInner failed, code: %{public}d, bridgeName: %{public}s, method=%{public}s",
+                resultValue.errorCode, [self.bridgeName UTF8String], [method.methodName UTF8String]);
             NSString* strCode = [NSString stringWithFormat:@"%d", resultValue.errorCode];
             NSException* exception = [NSException exceptionWithName:strCode
                                                              reason:resultValue.errorMessage
@@ -169,7 +169,7 @@
 
 - (void)sendMessage:(id)data {
     if (!_isAvailable) {
-        LOGE("bridgePlugin is available!");
+        LOGE("bridgePlugin sendMessage the bridge is not available, bridgeName: %{public}s", [self.bridgeName UTF8String]);
         return;
     }
     if (self.type == JSON_TYPE) {
@@ -177,6 +177,7 @@
     } else {
         // BINARY_TYPE
         if ([data isKindOfClass:[NSArray class]]) {
+            LOGE("bridgePlugin sendMessage bridgeName: %{public}s data is array", [self.bridgeName UTF8String]);
             if (self.methodResult &&
                 [self.methodResult respondsToSelector:@selector(onError:errorCode:errorMessage:)]) {
                 [self.methodResult onError:@"please use BridgeArray"
@@ -211,6 +212,7 @@
     if (self.bridgeName && self.bridgeName.length != 0 && self.bridgeManager) {
         return true;
     }
+    LOGE("bridgePlugin checkBridgeInner failed: bridgeName: %{public}s", [self.bridgeName UTF8String]);
     return false;
 }
 

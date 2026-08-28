@@ -121,12 +121,13 @@ static char kBridgeQueueMapKey;
 - (BOOL)innerRegisterBridgePlugin:(NSString*)bridgeName
                 bridgePlugin:(BridgePlugin*)bridgePlugin {
     if (!bridgeName.length || !bridgePlugin) {
-        LOGE("register failed, bridgename : %{public}s", bridgeName.UTF8String);
+        LOGE("BridgePluginManager register failed, bridgename : %{public}s", bridgeName.UTF8String);
         return NO;
     }
     if ([self.bridgeMap.allKeys containsObject:bridgeName]) {
         if ([self innerUnRegisterBridgePlugin:bridgeName]) {
-            LOGI("%{public}s Duplicate registration, delete previously registered bridge", bridgeName.UTF8String);
+            LOGI("BridgePluginManager %{public}s Duplicate registration, delete previously registered bridge",
+                bridgeName.UTF8String);
         }
     }
     [self.bridgeMap setObject:bridgePlugin forKey:bridgeName];
@@ -135,6 +136,9 @@ static char kBridgeQueueMapKey;
     if (OHOS::Ace::Platform::BridgeManager::JSBridgeExists(c_bridgeName) &&
         bridgeType == bridgePlugin.type) {
         [bridgePlugin onRegisterResult:true];
+    } else {
+        LOGE("BridgePluginManager innerRegisterBridgePlugin js bridge not exists or type not match bridgeName: %{public}s",
+            [bridgeName UTF8String]);
     }
     if (bridgePlugin.taskOption) {
         if (![self.bridgeQueueMap.allKeys containsObject:bridgeName]) {
@@ -166,6 +170,8 @@ static char kBridgeQueueMapKey;
 }
 
 - (void)jsCallMethod:(NSString*)bridgeName methodName:(NSString*)methodName param:(NSString*)param {
+    LOGD("BridgePluginManager jsCallMethod enter, bridgeName: %{public}s methodName: %{public}s",
+        [bridgeName UTF8String], [methodName UTF8String]);
     __weak BridgePluginManager* weakSelf = self;
     BridgeTaskInfo* taskInfo = [BridgeTaskInfo bridgeTaskInfoFactory:bridgeName
                                         queueInOutType:INPUT handler:^{
@@ -175,9 +181,13 @@ static char kBridgeQueueMapKey;
 }
 
 - (NSString*)jsCallMethodSync:(NSString*)bridgeName methodName:(NSString*)methodName param:(NSString*)param {
+    LOGD("BridgePluginManager jsCallMethodSync enter, bridgeName: %{public}s methodName: %{public}s",
+        [bridgeName UTF8String], [methodName UTF8String]);
     @autoreleasepool {
         BridgePlugin* bridgePlugin = static_cast<BridgePlugin*>([self getPluginWithBridgeName:bridgeName]);
         if (!bridgePlugin || bridgePlugin.type != JSON_TYPE) {
+            LOGE("BridgePluginManager jsCallMethodSync failed: bridgeName: %{public}s methodName: %{public}s",
+                [bridgeName UTF8String], [methodName UTF8String]);
             NSNumber* numberErrorCode = [NSNumber numberWithInt:BRIDGE_INVALID];
             NSString* strErrorMessage = BRIDGE_INVALID_MESSAGE;
             NSString* strResult = @"";
@@ -377,10 +387,14 @@ static char kBridgeQueueMapKey;
     @autoreleasepool {
         BridgePlugin* bridgePlugin = static_cast<BridgePlugin*>([self getPluginWithBridgeName:bridgeName]);
         if (!bridgePlugin) {
+            LOGE("BridgePluginManager jsCallMethodInner failed: bridgePlugin is null bridgeName: %{public}s, methodName: %{public}s",
+                [bridgeName UTF8String], [methodName UTF8String]);
             [self platformSendMethodResultErrorInfo:bridgeName methodName:methodName errorCode:BRIDGE_INVALID];
             return;
         }
         if (bridgePlugin.type != JSON_TYPE) {
+            LOGE("BridgePluginManager jsCallMethodInner failed: bridge type mismatch, bridgeName: %{public}s, type: %{public}d",
+                [bridgeName UTF8String], bridgePlugin.type);
             [self platformSendMethodResultErrorInfo:bridgeName methodName:methodName
                                                     errorCode:BRIDGE_CODEC_TYPE_MISMATCH];
             return;
@@ -405,10 +419,14 @@ static char kBridgeQueueMapKey;
 - (void)jsSendMethodResultInner:(NSString*)bridgeName methodName:(NSString*)methodName result:(id)result {
     BridgePlugin* bridgePlugin = (BridgePlugin*)[self getPluginWithBridgeName:bridgeName];
     if (!bridgePlugin) {
+        LOGE("BridgePluginManager jsSendMethodResultInner bridgePlugin is null bridgeName: %{public}s, methodName: %{public}s",
+            [bridgeName UTF8String], [methodName UTF8String]);
         [self platformSendMethodResultErrorInfo:bridgeName methodName:methodName errorCode:BRIDGE_INVALID];
         return;
     }
     if (bridgePlugin.type != JSON_TYPE) {
+        LOGE("BridgePluginManager jsSendMethodResultInner bridge type mismatch, bridgeName: %{public}s, type: %{public}d",
+            bridgeName.UTF8String, bridgePlugin.type);
         [self platformSendMethodResultErrorInfo:bridgeName methodName:methodName 
                                                         errorCode:BRIDGE_CODEC_TYPE_MISMATCH];
         return;
@@ -426,10 +444,14 @@ static char kBridgeQueueMapKey;
 - (void)jsSendMessageInner:(NSString*)bridgeName data:(id)data {
     BridgePlugin* bridgePlugin = (BridgePlugin*)[self getPluginWithBridgeName:bridgeName];
     if (!bridgePlugin) {
+        LOGE("BridgePluginManager jsSendMessageInner bridgePlugin is null bridgeName: %{public}s",
+            bridgeName.UTF8String);
         [self platformSendMessageResponseErrorInfo:bridgeName errorCode:BRIDGE_NAME_ERROR];
         return;
     }
     if (bridgePlugin.type != JSON_TYPE) {
+        LOGE("BridgePluginManager jsSendMessageInner bridge type mismatch, bridgeName: %{public}s, type: %{public}d",
+            bridgeName.UTF8String, bridgePlugin.type);
         [self platformSendMessageResponseErrorInfo:bridgeName errorCode:BRIDGE_CODEC_TYPE_MISMATCH];
         return;
     }
@@ -442,6 +464,8 @@ static char kBridgeQueueMapKey;
     @autoreleasepool {
         BridgePlugin* bridgePlugin = static_cast<BridgePlugin*>([self getPluginWithBridgeName:bridgeName]);
         if (!bridgePlugin) {
+            LOGE("BridgePluginManager jsSendMessageResponseInner bridgePlugin is null bridgeName: %{public}s",
+                bridgeName.UTF8String);
             return;
         }
         RawValue* rawValue = [[BridgeJsonCodec sharedInstance] decode:data];
@@ -452,6 +476,8 @@ static char kBridgeQueueMapKey;
 - (void)jsCancelMethodInner:(NSString*)bridgeName methodName:(NSString*)methodName {
     BridgePlugin* bridgePlugin = (BridgePlugin*)[self getPluginWithBridgeName:bridgeName];
     if (!bridgePlugin) {
+        LOGE("BridgePluginManager jsCancelMethodInner bridgePlugin is null bridgeName: %{public}s, methodName: %{public}s",
+            bridgeName.UTF8String, methodName.UTF8String);
         return;
     }
     [bridgePlugin jsCancelMethod:bridgeName methodName:methodName];
@@ -537,7 +563,7 @@ static char kBridgeQueueMapKey;
 
 - (void)platformSendMessageInner:(NSString*)bridgeName data:(id)data {
     if (!bridgeName.length) {
-        LOGE("bridgeName is null");
+        LOGE("BridgePluginManager platformSendMessageInner bridgeName is null");
         return;
     }
     RawValue* rawValue = [RawValue rawValueResult:data errorCode:0];
@@ -553,7 +579,7 @@ static char kBridgeQueueMapKey;
 
 - (void)platformSendMessageResponseInner:(NSString*)bridgeName data:(id)data {
     if (!bridgeName.length) {
-        LOGE("bridgeName is null");
+        LOGE("BridgePluginManager platformSendMessageResponseInner bridgeName is null");
         return;
     }
     RawValue* rawValue = [RawValue rawValueResult:data errorCode:0];
@@ -569,7 +595,8 @@ static char kBridgeQueueMapKey;
 
 - (void)platformSendMethodResultInner:(NSString*)bridgeName methodName:(NSString*)methodName result:(NSString*)result {
     if (!bridgeName.length) {
-        LOGE("bridgeName is null");
+        LOGE("BridgePluginManager platformSendMethodResultInner bridgeName is null methodName: %{public}s",
+            [methodName ?: @"" UTF8String]);
         return;
     }
     std::string c_bridgeName = [bridgeName UTF8String];
@@ -584,10 +611,14 @@ static char kBridgeQueueMapKey;
 - (void)jsSendMessageBinaryInner:(NSString*)bridgeName data:(id)data {
     BridgePlugin* bridgePlugin = (BridgePlugin*)[self getPluginWithBridgeName:bridgeName];
     if (!bridgePlugin) {
+        LOGE("BridgePluginManager jsSendMessageBinaryInner bridgePlugin is null bridgeName: %{public}s",
+            bridgeName.UTF8String);
         [self platformSendMessageResponseErrorInfo:bridgeName errorCode:BRIDGE_NAME_ERROR];
         return;
     }
     if (bridgePlugin.type != BINARY_TYPE) {
+        LOGE("BridgePluginManager jsSendMessageBinaryInner bridge type mismatch, bridgeName: %{public}s, type: %{public}d",
+            bridgeName.UTF8String, bridgePlugin.type);
         [self platformSendMessageResponseErrorInfo:bridgeName errorCode:BRIDGE_CODEC_TYPE_MISMATCH];
         return;
     }
@@ -598,10 +629,14 @@ static char kBridgeQueueMapKey;
 - (void)jsCallMethodBinaryInner:(NSString*)bridgeName methodName:(NSString*)methodName param:(NSData*)data {
     BridgePlugin* bridgePlugin = (BridgePlugin*)[self getPluginWithBridgeName:bridgeName];
     if (!bridgePlugin) {
+        LOGE("BridgePluginManager jsCallMethodBinaryInner bridgePlugin is null bridgeName: %{public}s, methodName: %{public}s",
+            bridgeName.UTF8String, methodName.UTF8String);
         [self platformSendMethodResultErrorInfo:bridgeName methodName:methodName errorCode:BRIDGE_INVALID];
         return;
     }
     if (bridgePlugin.type != BINARY_TYPE) {
+        LOGE("BridgePluginManager jsCallMethodBinaryInner bridge type mismatch, bridgeName: %{public}s, type: %{public}d",
+            bridgeName.UTF8String, bridgePlugin.type);
         [self platformSendMethodResultErrorInfo:bridgeName
                 methodName:methodName errorCode:BRIDGE_CODEC_TYPE_MISMATCH];
         return;
@@ -626,6 +661,8 @@ static char kBridgeQueueMapKey;
 {
     BridgePlugin* bridgePlugin = (BridgePlugin*)[self getPluginWithBridgeName:bridgeName];
     if (!bridgePlugin || bridgePlugin.type != BINARY_TYPE) {
+        LOGE("BridgePluginManager jsCallMethodBinarySync bridgePlugin is null or type error bridgeName: %{public}s, methodName: %{public}s",
+            bridgeName.UTF8String, methodName.UTF8String);
         ResultValue* resultValue = [[ResultValue alloc] init];
         resultValue.errorCode = BRIDGE_INVALID;
         resultValue.errorMessage = BRIDGE_INVALID_MESSAGE;
@@ -651,7 +688,7 @@ static char kBridgeQueueMapKey;
                             errorMessage:(NSString*)errorMessage
                             result:(id)result {
     if (!bridgeName.length) {
-        LOGE("bridgeName is null");
+        LOGE("BridgePluginManager platformSendMethodResultBinaryInner bridgeName is null");
         return;
     }
 
@@ -670,7 +707,7 @@ static char kBridgeQueueMapKey;
 
 - (void)platformSendMessageBinaryInner:(NSString*)bridgeName data:(id)data {
     if (!bridgeName.length) {
-        LOGE("bridgeName is null");
+        LOGE("BridgePluginManager platformSendMessageBinaryInner bridgeName is null");
         return;
     }
 
@@ -797,11 +834,13 @@ ErrorCode SafeIntToErrorCode(int value) {
                     result:(id)result {
     BridgePlugin* bridgePlugin = (BridgePlugin*)[self getPluginWithBridgeName:bridgeName];
     if (!bridgePlugin) {
-        LOGE("bridgePlugin is null");
+        LOGE("BridgePluginManager jsSendMethodResultBinaryInner bridgePlugin is null bridgeName: %{public}s, methodName: %{public}s",
+            [bridgeName ?: @"" UTF8String], [methodName ?: @"" UTF8String]);
         return;
     }
     if (bridgePlugin.type != BINARY_TYPE) {
-        LOGE("bridgePlugin type not BINARY_TYPE");
+        LOGE("BridgePluginManager jsSendMethodResultBinaryInner bridgePlugin type not BINARY_TYPE bridgeName: %{public}s, methodName: %{public}s",
+            [bridgeName ?: @"" UTF8String], [methodName ?: @"" UTF8String]);
         return;
     }
     id oc_resultValue = [[BridgeBinaryCodec sharedInstance] decode:(NSData*)result];
@@ -816,7 +855,7 @@ ErrorCode SafeIntToErrorCode(int value) {
 
 - (BridgePlugin* _Nullable)getPluginWithBridgeName:(NSString*)bridgeName {
     if (!bridgeName.length) {
-        LOGE("bridgeName is null");
+        LOGE("BridgePluginManager getPluginWithBridgeName bridgeName is null");
         return nil;
     }
     @synchronized(self) {
@@ -832,7 +871,7 @@ ErrorCode SafeIntToErrorCode(int value) {
     }
     NSString* bridgeName = taskInfo.bridgeName;
     if (!bridgeName || bridgeName.length == 0) {
-        LOGE("no register bridge handler, %{public}s", bridgeName.UTF8String);
+        LOGE("BridgePluginManager dispatchTaskInQueueHandlerWithTaskInfo no register bridge handler");
         return;
     }
     BridgeTaskQueueHandler* handler = (BridgeTaskQueueHandler*)[self.bridgeQueueMap objectForKey: bridgeName];
