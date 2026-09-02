@@ -121,7 +121,6 @@ void TextInputConnectionImpl::Show(bool isFocusViewChanged, int32_t instanceId) 
         @"composingExtent":@(value.compose.extentOffset),
         @"selectionIsDirectional":@(0)
     };
-    LOGE("vailclientid->Show sb:%d,se:%d,cb:%d,ce:%d,text:%s",value.selection.baseOffset,value.selection.extentOffset,value.compose.baseOffset,value.compose.extentOffset,text.UTF8String);
     TextInputNoParamsBlock showCallback = ^{
         updateEditingClientBlock textInputCallback = ^(int client, NSDictionary *state){
             if(clientId == client && [state objectForKey:@"text"]){
@@ -131,7 +130,6 @@ void TextInputConnectionImpl::Show(bool isFocusViewChanged, int32_t instanceId) 
                 NSInteger selectionExtent = [state[@"selectionExtent"] intValue];
                 NSInteger composingBase = [state[@"composingBase"] intValue];
                 NSInteger composingExtent = [state[@"composingExtent"] intValue];
-                LOGE("vailclientid->Show textInputBlock ace:%d nav:%d text:%s",clientId,client,text.UTF8String);
                 LOGE("vailclientid->Show textInputBlock sb:%d se:%d cb:%d ce:%d",selectionBase,selectionExtent,composingBase,composingExtent);
                 auto textEditingValue = std::make_shared<TextEditingValue>();
                 textEditingValue->text = text.UTF8String;
@@ -212,7 +210,6 @@ void TextInputConnectionImpl::SetEditingState(const TextEditingValue& value, int
     if(value.selection.affinity == TextAffinity::UPSTREAM){
         selectionAffinity = @"TextAffinity.upstream";
     }
-    LOGE("vailclientid->SetEditingState sb:%d,se:%d,cb:%d,ce:%d,text:%s",value.selection.baseOffset,value.selection.extentOffset,value.compose.baseOffset,value.compose.extentOffset,text.UTF8String);
     NSDictionary *stateDict = @{
         @"text":text?:@"",
         @"selectionBase":@(value.selection.baseOffset),
