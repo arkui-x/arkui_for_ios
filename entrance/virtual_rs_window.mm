@@ -16,7 +16,6 @@
 #include "adapter/ios/entrance/virtual_rs_window.h"
 
 #include <atomic>
-#include <__nullptr>
 #include <_types/_uint32_t.h>
 #include <memory>
 #include <UIKit/UIKit.h>
@@ -380,7 +379,10 @@ std::shared_ptr<Window> Window::CreateSubWindow(
     AddToSubWindowMap(window);
     AddToWindowMap(window);
     ShowSubWindowMap("Window::CreateSubWindow", window->GetParentId());
-    
+
+    // Drop this function's own +1; the Window keeps the SetWindowView reference that
+    // Destroy releases.
+    [windowView release];
     return window;
 }
 
