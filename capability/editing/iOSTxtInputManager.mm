@@ -149,6 +149,14 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
     return self;
 }
 
+- (UITextSmartDashesType)smartDashesType API_AVAILABLE(ios(11.0)) {
+    return self.isSecureTextEntry ? UITextSmartDashesTypeNo : UITextSmartDashesTypeDefault;
+}
+
+- (UITextSmartQuotesType)smartQuotesType API_AVAILABLE(ios(11.0)) {
+    return self.isSecureTextEntry ? UITextSmartQuotesTypeNo : UITextSmartQuotesTypeDefault;
+}
+
 - (void)dealloc {
     [_text release];
     [_markedText release];
