@@ -24,7 +24,7 @@
 #include "ace_download_bridge.h"
 
 namespace OHOS::Ace {
-class DownloadManagerImpl final : public DownloadManager {
+class DownloadManagerImplBridge final : public DownloadManager {
 
 public:
     bool Download(const std::string& url, std::vector<uint8_t>& dataOut) override
@@ -86,14 +86,14 @@ public:
         return nullptr;
     }
 
-    DownloadManagerImpl() = default;
+    DownloadManagerImplBridge() = default;
 
-    ~DownloadManagerImpl() = default;
+    ~DownloadManagerImplBridge() = default;
 };
 
 DownloadManager* CreateIOSDownloadManager()
 {
-    return new DownloadManagerImpl();
+    return new DownloadManagerImplBridge();
 }
 
 } // namespace OHOS::Ace
