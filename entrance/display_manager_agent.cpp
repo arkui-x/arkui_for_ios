@@ -16,7 +16,6 @@
 #include "display_manager_agent.h"
 
 #include "display_info.h"
-#include <__nullptr>
 
 namespace OHOS::Rosen {
 std::shared_ptr<DisplayManagerAgent> DisplayManagerAgent::instance_ = nullptr;
