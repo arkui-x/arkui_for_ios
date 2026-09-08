@@ -184,12 +184,15 @@ std::map<uint32_t, std::vector<sptr<IWindowChangeListener>>> Window::windowChang
 std::map<uint32_t, std::vector<sptr<ITouchOutsideListener>>> Window::touchOutsideListeners_;
 std::map<uint32_t, std::vector<sptr<IWindowSurfaceNodeListener>>> Window::surfaceNodeListeners_;
 std::map<uint32_t, std::vector<sptr<IWindowStatusChangeListener>>> Window::windowStatusChangeListeners_;
+std::map<uint32_t, std::vector<sptr<IWindowRectChangeListener>>> Window::windowRectChangeListeners_;
+std::map<uint32_t, std::vector<sptr<IWindowStatusDidChangeListener>>> Window::windowStatusDidChangeListeners_;
 std::map<uint32_t, std::vector<sptr<IAvoidAreaChangedListener>>> Window::avoidAreaChangeListeners_;
 
 std::recursive_mutex Window::globalMutex_;
 std::map<uint32_t, std::vector<sptr<IOccupiedAreaChangeListener>>> Window::occupiedAreaChangeListeners_;
 std::map<uint32_t, std::vector<sptr<IAvoidAreaChangedListener>>> Window::avoidAreaChangedListeners_;
 constexpr Rect emptyRect = {0, 0, 0, 0};
+constexpr int64_t WINDOW_STATUS_DID_CHANGE_DELAY_MS = 200;
 
 static Rect MakeAvoidRect(float left, float top , float width, float height) {
     if (width <= 0 || height <= 0) {
@@ -413,6 +416,7 @@ std::shared_ptr<Window> Window::CreateDragWindow(
 
 void Window::AddToWindowMap(std::shared_ptr<Window> window)
 {
+    std::lock_guard<std::recursive_mutex> lock(globalMutex_);
     DeleteFromWindowMap(window);
     windowMap_.insert(std::make_pair(window->GetWindowName(), 
         std::pair<uint32_t, std::shared_ptr<Window>>(window->GetWindowId(), window)));
@@ -420,6 +424,7 @@ void Window::AddToWindowMap(std::shared_ptr<Window> window)
 
 bool Window::CheckWindowNameExist(const std::string& windowName)
 {
+    std::lock_guard<std::recursive_mutex> lock(globalMutex_);
     auto iter = windowMap_.find(windowName);
     if (iter == windowMap_.end()) {
         return false;
@@ -429,6 +434,7 @@ bool Window::CheckWindowNameExist(const std::string& windowName)
 
 void Window::DeleteFromWindowMap(std::shared_ptr<Window> window)
 {
+    std::lock_guard<std::recursive_mutex> lock(globalMutex_);
     auto iter = windowMap_.find(window->GetWindowName());
     if (iter != windowMap_.end()) {
         windowMap_.erase(iter);
@@ -439,6 +445,7 @@ void Window::DeleteFromWindowMap(Window* window)
     if (window == nullptr) {
         return;
     }
+    std::lock_guard<std::recursive_mutex> lock(globalMutex_);
     auto iter = windowMap_.find(window->GetWindowName());
     if (iter != windowMap_.end()) {
         windowMap_.erase(iter);
@@ -519,6 +526,7 @@ WMError Window::Destroy()
     NotifyBeforeDestroy(GetWindowName());
 
     if (windowView_ != nullptr) {
+        [windowView_ stopWindowRectChangeMonitor];
         [windowView_ hide];
         [windowView_ release];
         windowView_ = nullptr;
@@ -558,9 +566,7 @@ WMError Window::Destroy()
     }
 
     // Remove current window from windowMap_
-    if (windowMap_.count(GetWindowName()) > 0) {
-        DeleteFromWindowMap(this);
-    }
+    DeleteFromWindowMap(this);
 
     NotifyAfterBackground();
     return WMError::WM_OK;
@@ -581,6 +587,7 @@ void Window::NotifyApplicationForeground(bool applicationForeground)
 {
     LOGI("NotifyApplicationForeground: %{public}d", applicationForeground);
     applicationForeground_ = applicationForeground;
+    ScheduleWindowStatusDidChange();
 }
 
 std::vector<std::shared_ptr<Window>> Window::GetSubWindow(uint32_t parentId)
@@ -599,6 +606,7 @@ std::vector<std::shared_ptr<Window>> Window::GetSubWindow(uint32_t parentId)
 
 std::shared_ptr<Window> Window::FindWindow(const std::string& name)
 {
+    std::lock_guard<std::recursive_mutex> lock(globalMutex_);
     auto iter = windowMap_.find(name);
     if (iter == windowMap_.end()) {
         return nullptr;
@@ -608,6 +616,7 @@ std::shared_ptr<Window> Window::FindWindow(const std::string& name)
 
 std::shared_ptr<Window> Window::FindWindow(const int windowId)
 {
+    std::lock_guard<std::recursive_mutex> lock(globalMutex_);
     for (auto iter = windowMap_.begin(); iter != windowMap_.end(); iter++) {
         if (iter->second.first == windowId) {
             return iter->second.second;
@@ -657,6 +666,7 @@ WMError Window::ShowWindow()
         NotifyAfterForeground();
         isWindowShow_ = true;
         UpdateWindowStatus();
+        ScheduleWindowStatusDidChange();
         return WMError::WM_OK;
     }
     return WMError::WM_ERROR_INVALID_PARENT;
@@ -673,6 +683,7 @@ WMError Window::Hide()
         isWindowShow_ = false;
         NotifyAfterBackground();
         UpdateWindowStatus();
+        ScheduleWindowStatusDidChange();
         return WMError::WM_OK;
     }
 
@@ -935,6 +946,60 @@ WindowStatus Window::GetWindowStatusInner(WindowMode mode)
     return windowStatus;
 }
 
+WindowStatus Window::GetWindowStatusByScene()
+{
+    if (!isWindowShow_) {
+        return WindowStatus::WINDOW_STATUS_MINIMIZE;
+    }
+    UIWindow* uiWindow = windowView_ != nil ? windowView_.window : nil;
+    if (uiWindow == nil) {
+        return GetWindowStatusInner(windowMode_);
+    }
+
+    if (@available(iOS 13.0, *)) {
+        UIWindowScene* windowScene = uiWindow.windowScene;
+        if (windowScene != nil) {
+            UISceneActivationState state = windowScene.activationState;
+            if (state == UISceneActivationStateBackground || state == UISceneActivationStateUnattached) {
+                return WindowStatus::WINDOW_STATUS_MINIMIZE;
+            }
+        }
+    }
+
+    if (windowMode_ == WindowMode::WINDOW_MODE_FLOATING) {
+        return WindowStatus::WINDOW_STATUS_FLOATING;
+    }
+    if (windowMode_ == WindowMode::WINDOW_MODE_SPLIT_PRIMARY ||
+        windowMode_ == WindowMode::WINDOW_MODE_SPLIT_SECONDARY) {
+        return WindowStatus::WINDOW_STATUS_SPLITSCREEN;
+    }
+
+    UIScreen* screen = uiWindow.screen != nil ? uiWindow.screen : [UIScreen mainScreen];
+    CGRect screenBounds = screen.bounds;
+    CGRect windowBounds = uiWindow.bounds;
+    CGFloat screenWidth = CGRectGetWidth(screenBounds);
+    CGFloat screenHeight = CGRectGetHeight(screenBounds);
+    CGFloat windowWidth = CGRectGetWidth(windowBounds);
+    CGFloat windowHeight = CGRectGetHeight(windowBounds);
+    if (screenWidth <= 0 || screenHeight <= 0 || windowWidth <= 0 || windowHeight <= 0) {
+        return GetWindowStatusInner(windowMode_);
+    }
+
+    constexpr CGFloat ratioEpsilon = 0.01;
+    CGFloat widthRatio = windowWidth / screenWidth;
+    CGFloat heightRatio = windowHeight / screenHeight;
+    if (widthRatio < 1.0 - ratioEpsilon || heightRatio < 1.0 - ratioEpsilon) {
+        return WindowStatus::WINDOW_STATUS_SPLITSCREEN;
+    }
+    return WindowStatus::WINDOW_STATUS_FULLSCREEN;
+}
+
+WMError Window::GetWindowStatus(WindowStatus& status)
+{
+    status = GetWindowStatusByScene();
+    return WMError::WM_OK;
+}
+
 static void GetAvoidAreas(Window* window, std::map<AvoidAreaType, Rosen::AvoidArea>& avoidAreas) {
     for (AvoidAreaType type : { AvoidAreaType::TYPE_SYSTEM, AvoidAreaType::TYPE_CUTOUT,
                         AvoidAreaType::TYPE_NAVIGATION_INDICATOR, AvoidAreaType::TYPE_KEYBOARD }) {
@@ -992,6 +1057,7 @@ void Window::NotifyTraitCollectionDidChange(bool isSplitScreen)
         windowMode_ = WindowMode::WINDOW_MODE_FULLSCREEN;
     }
     UpdateWindowStatus();
+    ScheduleWindowStatusDidChange();
 }
 
 void Window::UpdateWindowStatus()
@@ -1009,6 +1075,36 @@ void Window::NotifyWindowStatusChange(WindowStatus windowStatus)
     for (auto& listener : windowStatusChangeListeners) {
         if (listener != nullptr) {
             listener->OnWindowStatusChange(windowStatus);
+        }
+    }
+}
+
+void Window::ScheduleWindowStatusDidChange()
+{
+    uint64_t generation = ++statusDidChangeGeneration_;
+    uint32_t windowId = GetWindowId();
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, WINDOW_STATUS_DID_CHANGE_DELAY_MS * NSEC_PER_MSEC),
+        dispatch_get_main_queue(), ^{
+            auto window = Window::FindWindow(static_cast<int>(windowId));
+            if (window == nullptr || window->statusDidChangeGeneration_.load() != generation) {
+                return;
+            }
+            WindowStatus windowStatus = window->GetWindowStatusByScene();
+            if (window->statusDidChange_ == windowStatus) {
+                return;
+            }
+            window->statusDidChange_ = windowStatus;
+            window->NotifyWindowStatusDidChange(windowStatus);
+        });
+}
+
+void Window::NotifyWindowStatusDidChange(WindowStatus windowStatus)
+{
+    LOGD("NotifyWindowStatusDidChange %d", windowStatus);
+    auto windowStatusDidChangeListeners = GetListeners<IWindowStatusDidChangeListener>();
+    for (auto& listener : windowStatusDidChangeListeners) {
+        if (listener != nullptr) {
+            listener->OnWindowStatusDidChange(windowStatus);
         }
     }
 }
@@ -1317,6 +1413,7 @@ void Window::SetWindowType(WindowType windowType)
 void Window::SetMode(WindowMode windowMode)
 {
     windowMode_ = windowMode;
+    ScheduleWindowStatusDidChange();
 }
 
 void Window::SetWindowModal(bool isModal)
@@ -1368,6 +1465,7 @@ void Window::WindowActiveChanged(bool isActive)
     } else {
         NotifyAfterPaused();
     }
+    ScheduleWindowStatusDidChange();
 }
 
 void Window::WindowFocusChanged(bool hasWindowFocus)
@@ -1400,6 +1498,7 @@ void Window::Foreground()
     NotifyAfterForeground();
     isWindowShow_ = true;
     UpdateWindowStatus();
+    ScheduleWindowStatusDidChange();
 }
 
 void Window::Background()
@@ -1408,6 +1507,7 @@ void Window::Background()
     isWindowShow_ = false;
     NotifyAfterBackground();
     UpdateWindowStatus();
+    ScheduleWindowStatusDidChange();
 }
 
 void Window::ReleaseWindowView()
@@ -1415,6 +1515,7 @@ void Window::ReleaseWindowView()
     if (windowView_ == nullptr) {
         return;
     }
+    [windowView_ stopWindowRectChangeMonitor];
     [windowView_ release];
 }
 
@@ -1671,6 +1772,8 @@ void Window::ClearListenersById(uint32_t winId)
     ClearUselessListeners(touchOutsideListeners_, winId);
     ClearUselessListeners(surfaceNodeListeners_, winId);
     ClearUselessListeners(windowStatusChangeListeners_, winId);
+    ClearUselessListeners(windowRectChangeListeners_, winId);
+    ClearUselessListeners(windowStatusDidChangeListeners_, winId);
     ClearUselessListeners(avoidAreaChangeListeners_, winId);
 }
 
@@ -1687,6 +1790,18 @@ void Window::NotifySizeChange(Rect rect)
     for (auto& listener : windowChangeListeners) {
         if (listener != nullptr) {
             listener->OnSizeChange(rect);
+        }
+    }
+}
+
+void Window::NotifyWindowRectChange(const Rect& rect, WindowSizeChangeReason reason)
+{
+    rect_ = rect;
+    ScheduleWindowStatusDidChange();
+    auto windowRectChangeListeners = GetListeners<IWindowRectChangeListener>();
+    for (auto& listener : windowRectChangeListeners) {
+        if (listener != nullptr) {
+            listener->OnRectChange(rect, reason);
         }
     }
 }
@@ -1846,6 +1961,51 @@ WMError Window::UnregisterWindowStatusChangeListener(const sptr<IWindowStatusCha
     std::lock_guard<std::recursive_mutex> lock(globalMutex_);
     return UnregisterListener(windowStatusChangeListeners_[GetWindowId()], listener);
 
+}
+
+WMError Window::RegisterWindowRectChangeListener(const sptr<IWindowRectChangeListener>& listener)
+{
+    LOGD("Start register WindowRectChangeListener");
+    WMError ret = WMError::WM_OK;
+    {
+        std::lock_guard<std::recursive_mutex> lock(globalMutex_);
+        ret = RegisterListener(windowRectChangeListeners_[GetWindowId()], listener);
+    }
+    if (ret == WMError::WM_OK && windowView_ != nullptr) {
+        [windowView_ startWindowRectChangeMonitor];
+    }
+    return ret;
+}
+
+WMError Window::UnregisterWindowRectChangeListener(const sptr<IWindowRectChangeListener>& listener)
+{
+    LOGD("Start unregister WindowRectChangeListener");
+    WMError ret = WMError::WM_OK;
+    bool needStopMonitor = false;
+    {
+        std::lock_guard<std::recursive_mutex> lock(globalMutex_);
+        auto& listeners = windowRectChangeListeners_[GetWindowId()];
+        ret = UnregisterListener(listeners, listener);
+        needStopMonitor = listeners.empty();
+    }
+    if (ret == WMError::WM_OK && needStopMonitor && windowView_ != nullptr) {
+        [windowView_ stopWindowRectChangeMonitor];
+    }
+    return ret;
+}
+
+WMError Window::RegisterWindowStatusDidChangeListener(const sptr<IWindowStatusDidChangeListener>& listener)
+{
+    LOGD("Start register WindowStatusDidChangeListener");
+    std::lock_guard<std::recursive_mutex> lock(globalMutex_);
+    return RegisterListener(windowStatusDidChangeListeners_[GetWindowId()], listener);
+}
+
+WMError Window::UnregisterWindowStatusDidChangeListener(const sptr<IWindowStatusDidChangeListener>& listener)
+{
+    LOGD("Start unregister WindowStatusDidChangeListener");
+    std::lock_guard<std::recursive_mutex> lock(globalMutex_);
+    return UnregisterListener(windowStatusDidChangeListeners_[GetWindowId()], listener);
 }
 
 WMError Window::RegisterWindowChangeListener(const sptr<IWindowChangeListener>& listener)
