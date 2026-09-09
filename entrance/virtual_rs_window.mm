@@ -170,6 +170,7 @@ const std::map<ColorSpace, GraphicColorGamut> COLOR_SPACE_JS_TO_GAMUT_MAP {
 
 const char* const kOrientationMaskUpdateNotificationName = "arkui_x.iosPlatform.setPreferredOrientationNotificationName";
 const char* const kOrientationMaskUpdateNotificationKey = "arkui_x.iosPlatform.setPreferredOrientationNotificationKey";
+const char* const K_IS_TEMPORARY_ROTATION_KEY = "arkui_x.iosPlatform.isTemporaryRotationKey";
 
 void DummyWindowRelease(Window* window)
 {
@@ -1553,26 +1554,92 @@ void Window::SetStatusBar(uint32_t titleColor, uint32_t backgroundColor, bool an
     [controller setNeedsStatusBarAppearanceUpdate];
 }
 
+static UIInterfaceOrientationMask LockedOrientationMask(UIInterfaceOrientation cur)
+{
+    switch (cur) {
+        case UIInterfaceOrientationPortraitUpsideDown:
+            return UIInterfaceOrientationMaskPortraitUpsideDown;
+        case UIInterfaceOrientationLandscapeLeft:
+            return UIInterfaceOrientationMaskLandscapeLeft;
+        case UIInterfaceOrientationLandscapeRight:
+            return UIInterfaceOrientationMaskLandscapeRight;
+        default:
+            return UIInterfaceOrientationMaskPortrait;
+    }
+}
+
+static UIInterfaceOrientation GetCurrentInterfaceOrientation()
+{
+    if (@available(iOS 13.0, *)) {
+        NSArray *scenes = [[[UIApplication sharedApplication] connectedScenes] allObjects];
+        UIWindowScene *scene = [scenes firstObject];
+        return scene.interfaceOrientation;
+    }
+    return UIInterfaceOrientationPortrait;
+}
+
+static UIInterfaceOrientationMask OrientationToMask(Orientation orientation, BOOL isPad, bool &isTemporaryRotation)
+{
+    UIInterfaceOrientationMask mask = UIInterfaceOrientationMaskPortrait;
+    switch (orientation) {
+        case Orientation::UNSPECIFIED:
+        case Orientation::FOLLOW_DESKTOP:
+            mask = isPad ? UIInterfaceOrientationMaskAll : UIInterfaceOrientationMaskPortrait;
+            break;
+        case Orientation::HORIZONTAL:
+        case Orientation::USER_ROTATION_LANDSCAPE:
+            mask = UIInterfaceOrientationMaskLandscapeRight;
+            isTemporaryRotation = (orientation == Orientation::USER_ROTATION_LANDSCAPE);
+            break;
+        case Orientation::REVERSE_VERTICAL:
+        case Orientation::USER_ROTATION_PORTRAIT_INVERTED:
+            mask = UIInterfaceOrientationMaskPortraitUpsideDown;
+            isTemporaryRotation = (orientation == Orientation::USER_ROTATION_PORTRAIT_INVERTED);
+            break;
+        case Orientation::REVERSE_HORIZONTAL:
+        case Orientation::USER_ROTATION_LANDSCAPE_INVERTED:
+            mask = UIInterfaceOrientationMaskLandscapeLeft;
+            isTemporaryRotation = (orientation == Orientation::USER_ROTATION_LANDSCAPE_INVERTED);
+            break;
+        case Orientation::SENSOR:
+        case Orientation::AUTO_ROTATION_RESTRICTED:
+        case Orientation::AUTO_ROTATION_UNSPECIFIED:
+            mask = UIInterfaceOrientationMaskAll;
+            break;
+        case Orientation::SENSOR_VERTICAL:
+        case Orientation::AUTO_ROTATION_PORTRAIT_RESTRICTED:
+            mask = UIInterfaceOrientationMaskPortrait | UIInterfaceOrientationMaskPortraitUpsideDown;
+            break;
+        case Orientation::SENSOR_HORIZONTAL:
+        case Orientation::AUTO_ROTATION_LANDSCAPE_RESTRICTED:
+            mask = UIInterfaceOrientationMaskLandscape;
+            break;
+        case Orientation::LOCKED:
+            mask = LockedOrientationMask(GetCurrentInterfaceOrientation());
+            break;
+        case Orientation::USER_ROTATION_PORTRAIT:
+        case Orientation::VERTICAL:
+        default:
+            isTemporaryRotation = (orientation == Orientation::USER_ROTATION_PORTRAIT);
+            break;
+    }
+    return mask;
+}
+
 void Window::SetRequestedOrientation(Orientation orientation)
 {
-    if (orientation == Orientation::UNSPECIFIED || orientation == Orientation::VERTICAL) {
-        windowView_.OrientationMask = UIInterfaceOrientationMaskPortrait;
-    } else if (orientation == Orientation::HORIZONTAL) {
-        windowView_.OrientationMask = UIInterfaceOrientationMaskLandscapeRight;
-    } else if (orientation == Orientation::REVERSE_HORIZONTAL) {
-        windowView_.OrientationMask = UIInterfaceOrientationMaskLandscapeLeft;
-    } else if (orientation == Orientation::REVERSE_VERTICAL) {
-        windowView_.OrientationMask = UIInterfaceOrientationMaskPortraitUpsideDown;
-    } else if (orientation == Orientation::SENSOR) {
-        windowView_.OrientationMask = UIInterfaceOrientationMaskAll;
-    } else if (orientation == Orientation::SENSOR_VERTICAL) {
-        windowView_.OrientationMask = UIInterfaceOrientationMaskPortrait | UIInterfaceOrientationMaskPortraitUpsideDown;
-    } else if (orientation == Orientation::SENSOR_HORIZONTAL) {
-        windowView_.OrientationMask = UIInterfaceOrientationMaskLandscape;
+    if (IsSubWindow() || GetMode() == WindowMode::WINDOW_MODE_FLOATING) {
+        return;
     }
-
-    [[NSNotificationCenter defaultCenter]postNotificationName:@(kOrientationMaskUpdateNotificationName)
-        object:nil userInfo:@{@(kOrientationMaskUpdateNotificationKey):@(windowView_.OrientationMask)}];
+    BOOL isPad = ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad);
+    bool isTemporaryRotation = false;
+    UIInterfaceOrientationMask mask = OrientationToMask(orientation, isPad, isTemporaryRotation);
+    windowView_.OrientationMask = mask;
+    [[NSNotificationCenter defaultCenter] postNotificationName:@(kOrientationMaskUpdateNotificationName)
+        object:nil userInfo:@{
+            @(kOrientationMaskUpdateNotificationKey): @(mask),
+            @(K_IS_TEMPORARY_ROTATION_KEY): @(isTemporaryRotation)
+        }];
     orientation_ = orientation;
 }
 
