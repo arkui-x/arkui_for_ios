@@ -322,7 +322,6 @@ static void RemoveDestroyState(NSString* instanceName)
     }
     _needOnForeground = true;
     [_stageContainerView notifyForeground];
-    [_stageContainerView notifyActiveChanged:YES];
 }
 
 - (void)viewDidDisappear:(BOOL)animated {
@@ -334,7 +333,6 @@ static void RemoveDestroyState(NSString* instanceName)
         [_platformPlugin notifyLifecycleChanged:true];
     }
     [_stageContainerView notifyBackground];
-    [_stageContainerView notifyActiveChanged:NO];
 }
 
 - (void)didReceiveMemoryWarning {
