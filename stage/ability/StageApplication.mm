@@ -76,6 +76,7 @@ static bool g_isOnBackground = false;
                 NSString *bundleName = [NSString new];
                 NSString *moduleName = [NSString new];
                 NSString *unittest = [NSString new];
+                NSString *testClassName = [NSString new];
                 NSString *timeout = [NSString new];
                 NSString *socket = [NSString new];
                 for (int i = 1; i < arguments.count; i++) {
@@ -91,6 +92,10 @@ static bool g_isOnBackground = false;
                         if (arguments.count > i+1) {
                             unittest = arguments[i+1];
                         }
+                    } else if ([arguments[i] isEqualToString:@"class"]) {
+                        if (arguments.count > i+1) {
+                            testClassName = arguments[i+1];
+                        }
                     } else if ([arguments[i] isEqualToString:@"timeout"]) {
                         if (arguments.count > i+1) {
                             timeout = arguments[i+1];
@@ -104,10 +109,11 @@ static bool g_isOnBackground = false;
                 std::string bundleNameString = [bundleName UTF8String];
                 std::string moduleNameString = [moduleName UTF8String];
                 std::string unittestString = [unittest UTF8String];
+                std::string testClassNameString = [testClassName UTF8String];
                 std::string timeoutString = [timeout UTF8String];
                 std::string socketString = [socket UTF8String];
-                AppMain::GetInstance()->PrepareAbilityDelegator(
-                    bundleNameString, moduleNameString, unittestString, timeoutString, socketString);
+                AppMain::GetInstance()->PrepareAbilityDelegator(bundleNameString, moduleNameString,
+                    unittestString, testClassNameString, timeoutString, socketString);
             } else {
                 LOGI("%{public}s, No need to start creating abilityDelegate", __FUNCTION__);
             }
