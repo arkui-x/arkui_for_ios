@@ -16,7 +16,6 @@
 #include "WindowView.h"
 #include "hilog.h"
 
-#include <__nullptr>
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
@@ -142,6 +141,17 @@ static bool IsWebScrollLocked(int64_t webId)
         _keyRepeatCount = 0;
         _isInitialDelay = NO;
         _keyRepeatGeneration = 0;
+#ifdef ACE_IOS_USE_CAMETAL_LAYER
+        // Set the layer scale at creation time: layoutSubviews only runs once the view joins the
+        // window hierarchy and lays out. Subwindows whose view never lays out (e.g. the drag
+        // preview) keep the default 1.0, which leaves the layer's natural extent permanently
+        // mismatched with drawableSize and MoltenVK reporting VK_SUBOPTIMAL_KHR on every frame.
+        if ([self.layer isKindOfClass:[CAMetalLayer class]]) {
+            CAMetalLayer* metalLayer = static_cast<CAMetalLayer*>(self.layer);
+            metalLayer.contentsScale = [UIScreen mainScreen].scale;
+            metalLayer.framebufferOnly = NO;
+        }
+#endif
     }
     return self;
 }
