@@ -514,7 +514,7 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
             return [self positionFromPosition:position offset:offset * -1];
         case UITextLayoutDirectionRight:
         case UITextLayoutDirectionDown:
-            return [self positionFromPosition:position offset:1];
+            return [self positionFromPosition:position offset:offset];
     }
 }
 
@@ -761,9 +761,6 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
 
 - (void)deleteBackward {
     _selectionAffinity = _kTextAffinityDownstream;
-    if ([self hasText]) {
-        _isDelete = YES;
-    }
     if (_selectedTextRange.isEmpty && [self hasText]) {
         NSRange oldRange = ((iOSTextRange*)_selectedTextRange).range;
         if (oldRange.location > 0) {
@@ -773,6 +770,7 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
         }
     }
     if (!_selectedTextRange.isEmpty) {
+        _isDelete = YES;
         [self replaceRange:_selectedTextRange withText:@""];
     }
 }
