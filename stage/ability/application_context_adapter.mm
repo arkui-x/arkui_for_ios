@@ -46,6 +46,11 @@ std::vector<RunningProcessInfo> ApplicationContextAdapter::GetRunningProcessInfo
     std::vector<RunningProcessInfo> infos {info};
     return infos;
 }
+
+std::string ApplicationContextAdapter::GetProcessName()
+{
+    return std::string([[NSProcessInfo processInfo].processName UTF8String]);
+}
 } // namespace Platform
 } // namespace AbilityRuntime
 } // namespace OHOS
