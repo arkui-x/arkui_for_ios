@@ -1461,6 +1461,24 @@ float Window::GetBrightness() const
     return [UIScreen mainScreen].brightness;
 }
 
+WMError Window::GetWindowDensityInfo(WindowDensityInfo& densityInfo)
+{
+    float scale = static_cast<float>([UIScreen mainScreen].scale);
+    if (scale <= 0.0f) {
+        LOGE("Window::GetWindowDensityInfo: invalid scale=%{public}f", scale);
+        return WMError::WM_ERROR_INVALID_WINDOW;
+    }
+    float nativeScale = static_cast<float>([UIScreen mainScreen].nativeScale);
+    if (nativeScale <= 0.0f) {
+        nativeScale = scale;
+    }
+    densityInfo.systemDensity = scale;
+    densityInfo.defaultDensity = nativeScale;
+    densityInfo.customDensity = scale;
+    LOGI("Window::GetWindowDensityInfo: scale=%{public}f, nativeScale=%{public}f", scale, nativeScale);
+    return WMError::WM_OK;
+}
+
 WMError Window::SetKeepScreenOn(bool keepScreenOn)
 {
     if (keepScreenOn) {
