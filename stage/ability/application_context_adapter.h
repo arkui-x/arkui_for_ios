@@ -31,6 +31,7 @@ public:
 
     static std::shared_ptr<ApplicationContextAdapter> GetInstance();
     std::vector<RunningProcessInfo> GetRunningProcessInformation();
+    std::string GetProcessName();
 
 private:
     static std::shared_ptr<ApplicationContextAdapter> instance_;
