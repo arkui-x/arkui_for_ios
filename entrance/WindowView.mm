@@ -50,6 +50,7 @@ static const uint64_t KEY_REPEAT_INTERVAL_MS = 100;
 static const uint64_t KEY_REPEAT_LEEWAY_MS = 5;
 static const int64_t MILLISECONDS_PER_SECOND = 1000;
 static const char* KEY_REPEAT_QUEUE_NAME = "com.ohos.ace.keyrepeat";
+static char g_windowSceneEffectiveGeometryContext;
 extern "C" void SetWebScrollLocked(int64_t webId, bool locked)
 {
     std::lock_guard<std::mutex> lock(g_webScrollLockedMutex);
@@ -72,6 +73,60 @@ static bool IsWebScrollLocked(int64_t webId)
     return g_webScrollLockedSet.find(webId) != g_webScrollLockedSet.end();
 }
 
+static CGRect GetWindowRectInCoordinateSpace(UIWindow* uiWindow)
+{
+    CGRect windowRect = uiWindow.bounds;
+    if (@available(iOS 8.0, *)) {
+        UIScreen* screen = uiWindow.screen != nil ? uiWindow.screen : [UIScreen mainScreen];
+        windowRect = [uiWindow convertRect:uiWindow.bounds toCoordinateSpace:screen.coordinateSpace];
+    }
+    return windowRect;
+}
+
+static bool TryReadSystemFrame(id geometry, CGRect& systemFrame)
+{
+    @try {
+        NSValue* value = [geometry valueForKey:@"systemFrame"];
+        if (![value isKindOfClass:[NSValue class]]) {
+            return false;
+        }
+        systemFrame = [value CGRectValue];
+    } @catch (NSException* exception) {
+        LOGW("TryReadSystemFrame failed: %{public}s", [exception.name UTF8String]);
+        return false;
+    }
+    return !CGRectIsEmpty(systemFrame);
+}
+
+static bool TryGetWindowSceneSystemFrame(UIWindow* uiWindow, CGRect& systemFrame)
+{
+    if (@available(iOS 16.0, *)) {
+        UIScene* scene = uiWindow.windowScene;
+        if (scene == nil || ![scene respondsToSelector:@selector(effectiveGeometry)]) {
+            return false;
+        }
+        id geometry = [scene performSelector:@selector(effectiveGeometry)];
+        if (geometry == nil || ![geometry respondsToSelector:@selector(systemFrame)]) {
+            return false;
+        }
+        return TryReadSystemFrame(geometry, systemFrame);
+    }
+    return false;
+}
+
+static CGRect GetWindowRectInScreen(UIWindow* uiWindow)
+{
+    if (uiWindow == nil) {
+        return CGRectZero;
+    }
+    CGRect systemFrame = CGRectZero;
+    if (TryGetWindowSceneSystemFrame(uiWindow, systemFrame)) {
+        return systemFrame;
+    }
+    CGRect windowRect = GetWindowRectInCoordinateSpace(uiWindow);
+    return windowRect;
+}
+
 @interface WindowView()
 
 @property (nonatomic, strong) CADisplayLink *displayLinkTouch;
@@ -90,12 +145,16 @@ static bool IsWebScrollLocked(int64_t webId)
     BOOL _needNotifyFocus;
     std::map<int64_t, int32_t> _deviceMap;
     std::map<int64_t, int32_t> _pointerMap;
+    OHOS::Rosen::Rect _lastWindowRect;
     int32_t _deviceId;
     int32_t _pointerId;
     BOOL _firstTouchFlag;
+    BOOL _hasLastWindowRect;
     std::vector<CGRect> hotAreas_;
     float _oldBrightness;
     NSTimer *_autoPausedTimer;
+    BOOL _isObservingWindowRectChange;
+    UIScene *_observedWindowScene;
 
     dispatch_source_t _keyRepeatTimer;
     dispatch_queue_t _keyRepeatQueue;
@@ -116,6 +175,22 @@ static bool IsWebScrollLocked(int64_t webId)
 #endif
 }
 
+- (void)setFrame:(CGRect)frame {
+    [super setFrame:frame];
+    [self notifyWindowRectChanged];
+}
+
+- (void)setBounds:(CGRect)bounds {
+    [super setBounds:bounds];
+    [self notifyWindowRectChanged];
+}
+
+- (void)didMoveToWindow {
+    [super didMoveToWindow];
+    [self refreshWindowSceneGeometryObserver];
+    [self notifyWindowRectChanged];
+}
+
 - (instancetype)init {
     if (self = [super init]) {
         LOGI("windowView init");
@@ -133,6 +208,11 @@ static bool IsWebScrollLocked(int64_t webId)
         _pointerMap = std::map<int64_t, int32_t>{};
         _deviceId = 0;
         _pointerId = 0;
+        _lastWindowRect.posX_ = 0;
+        _lastWindowRect.posY_ = 0;
+        _lastWindowRect.width_ = 0;
+        _lastWindowRect.height_ = 0;
+        _hasLastWindowRect = NO;
         _oldBrightness = - 1;
         _brightness = [UIScreen mainScreen].brightness;
 
@@ -185,6 +265,7 @@ static bool IsWebScrollLocked(int64_t webId)
     }
 #endif
     [self notifySurfaceChangedWithWidth:width height:height density:scale];
+    [self notifyWindowRectChanged];
 }
 - (void)setFullScreen:(BOOL)fullScreen {
     _fullScreen = fullScreen;
@@ -340,6 +421,7 @@ static bool IsWebScrollLocked(int64_t webId)
         _needNotifyFocus = NO;
         [self notifyFocusChanged:_isFocused];
     }
+    [self notifyWindowRectChanged];
 }
 
 - (std::shared_ptr<OHOS::Rosen::Window>)getWindow {
@@ -866,6 +948,119 @@ static int32_t GetModifierKeys(UIKeyModifierFlags modifierFlags) {
     }
 }
 
+- (void)notifyWindowRectChanged {
+    auto window = _windowDelegate.lock();
+    if (window == nullptr) {
+        return;
+    }
+    if (self.window == nil) {
+        return;
+    }
+    UIScreen* screen = self.window.screen != nil ? self.window.screen : [UIScreen mainScreen];
+    CGFloat scale = screen.scale;
+    if (scale <= 0) {
+        scale = 1.0;
+    }
+    CGRect rectInScreen = GetWindowRectInScreen(self.window);
+    if (window->IsSubWindow()) {
+        CGRect rectInWindow = [self convertRect:self.bounds toView:self.window];
+        rectInScreen.origin.x += CGRectGetMinX(rectInWindow);
+        rectInScreen.origin.y += CGRectGetMinY(rectInWindow);
+        rectInScreen.size = rectInWindow.size;
+    }
+    if (CGRectGetWidth(rectInScreen) <= 0 || CGRectGetHeight(rectInScreen) <= 0) {
+        return;
+    }
+    OHOS::Rosen::Rect rect = {
+        static_cast<int32_t>(CGRectGetMinX(rectInScreen) * scale),
+        static_cast<int32_t>(CGRectGetMinY(rectInScreen) * scale),
+        static_cast<uint32_t>(CGRectGetWidth(rectInScreen) * scale),
+        static_cast<uint32_t>(CGRectGetHeight(rectInScreen) * scale)
+    };
+    if (_hasLastWindowRect && _lastWindowRect == rect) {
+        return;
+    }
+    _lastWindowRect = rect;
+    _hasLastWindowRect = YES;
+    window->NotifyWindowRectChange(rect);
+}
+
+- (void)removeWindowSceneGeometryObserver {
+    if (_observedWindowScene == nil) {
+        return;
+    }
+    @try {
+        [_observedWindowScene removeObserver:self
+                                  forKeyPath:@"effectiveGeometry"
+                                     context:&g_windowSceneEffectiveGeometryContext];
+    } @catch (NSException* exception) {
+        LOGW("removeWindowSceneGeometryObserver failed: %{public}s", [exception.name UTF8String]);
+    }
+    [_observedWindowScene release];
+    _observedWindowScene = nil;
+}
+
+- (void)refreshWindowSceneGeometryObserver {
+    if (!_isObservingWindowRectChange) {
+        return;
+    }
+    if (@available(iOS 16.0, *)) {
+        UIScene* currentScene = self.window.windowScene;
+        if (_observedWindowScene == currentScene) {
+            return;
+        }
+        [self removeWindowSceneGeometryObserver];
+        if (currentScene == nil || ![currentScene respondsToSelector:@selector(effectiveGeometry)]) {
+            return;
+        }
+        @try {
+            [currentScene addObserver:self
+                           forKeyPath:@"effectiveGeometry"
+                              options:NSKeyValueObservingOptionNew
+                              context:&g_windowSceneEffectiveGeometryContext];
+            _observedWindowScene = [currentScene retain];
+        } @catch (NSException* exception) {
+            LOGW("refreshWindowSceneGeometryObserver failed: %{public}s", [exception.name UTF8String]);
+        }
+    } else {
+        [self removeWindowSceneGeometryObserver];
+    }
+}
+
+- (void)startWindowRectChangeMonitor {
+    if (![NSThread isMainThread]) {
+        dispatch_sync(dispatch_get_main_queue(), ^{
+            [self startWindowRectChangeMonitor];
+        });
+        return;
+    }
+    _isObservingWindowRectChange = YES;
+    [self refreshWindowSceneGeometryObserver];
+    [self notifyWindowRectChanged];
+}
+
+- (void)stopWindowRectChangeMonitor {
+    if (![NSThread isMainThread]) {
+        dispatch_sync(dispatch_get_main_queue(), ^{
+            [self stopWindowRectChangeMonitor];
+        });
+        return;
+    }
+    _isObservingWindowRectChange = NO;
+    [self removeWindowSceneGeometryObserver];
+}
+
+- (void)observeValueForKeyPath:(NSString*)keyPath
+                      ofObject:(id)object
+                        change:(NSDictionary*)change
+                       context:(void*)context {
+    if (context == &g_windowSceneEffectiveGeometryContext) {
+        [self notifyWindowRectChanged];
+        return;
+    }
+    [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
+}
+
 - (void)notifySurfaceDestroyed {
     if (_windowDelegate.lock() != nullptr) {
         _windowDelegate.lock()->NotifySurfaceDestroyed();
@@ -873,6 +1068,7 @@ static int32_t GetModifierKeys(UIKeyModifierFlags modifierFlags) {
 }
 
 - (void)notifyWindowDestroyed {
+    [self stopWindowRectChangeMonitor];
     if (_windowDelegate.lock() != nullptr) {
         _windowDelegate.lock()->Destroy();
     }
@@ -888,6 +1084,7 @@ static int32_t GetModifierKeys(UIKeyModifierFlags modifierFlags) {
     if (_windowDelegate.lock() != nullptr) {
         _windowDelegate.lock()->NotifySafeAreaChanged();
     }
+    [self notifyWindowRectChanged];
 }
 - (void)setupNotificationCenterObservers {
     NSNotificationCenter* center = [NSNotificationCenter defaultCenter];
@@ -910,6 +1107,7 @@ static int32_t GetModifierKeys(UIKeyModifierFlags modifierFlags) {
     } else {
         _needNotifyForground = YES;
     }
+    [self notifyWindowRectChanged];
 }
 - (void)notifyBackground {
     if (_windowDelegate.lock() != nullptr) {
@@ -922,6 +1120,7 @@ static int32_t GetModifierKeys(UIKeyModifierFlags modifierFlags) {
     if (_windowDelegate.lock() != nullptr) {
         _windowDelegate.lock()->WindowActiveChanged(isActive);
     }
+    [self notifyWindowRectChanged];
 }
 - (void)notifyFocusChanged:(BOOL)focus {
     if (_windowDelegate.lock() != nullptr) {
@@ -935,6 +1134,7 @@ static int32_t GetModifierKeys(UIKeyModifierFlags modifierFlags) {
     if (_windowDelegate.lock() != nullptr) {
         _windowDelegate.lock()->NotifyApplicationForeground(isForeground);
     }
+    [self notifyWindowRectChanged];
 }
 
 - (void)keyboardWillChangeFrame:(NSNotification*)notification {
@@ -962,6 +1162,7 @@ static int32_t GetModifierKeys(UIKeyModifierFlags modifierFlags) {
     if (_windowDelegate.lock() != nullptr) {
         _windowDelegate.lock()->NotifyTraitCollectionDidChange(isSplitScreen);
     }
+    [self notifyWindowRectChanged];
 }
 - (void)notifyHandleWillTerminate {
     if (_windowDelegate.lock() != nullptr) {
@@ -979,6 +1180,7 @@ static int32_t GetModifierKeys(UIKeyModifierFlags modifierFlags) {
 - (void)dealloc {
     LOGI("WindowView dealloc");
     [[NSNotificationCenter defaultCenter] removeObserver:self];
+    [self stopWindowRectChangeMonitor];
     [self stopKeyRepeatTimer];
     if (_keyRepeatQueue) {
         dispatch_release(_keyRepeatQueue);

@@ -396,6 +396,7 @@ static void RemoveDestroyState(NSString* instanceName)
         isSplitScreen = YES;
     }
     [_windowView notifyTraitCollectionDidChange:isSplitScreen];
+    [_windowView notifyWindowRectChanged];
     if ([UIApplication sharedApplication].applicationState == UIApplicationStateBackground) {
         return;
     }
@@ -412,6 +413,11 @@ static void RemoveDestroyState(NSString* instanceName)
     UIInterfaceOrientation currentOrientation = [UIApplication sharedApplication].statusBarOrientation;
     [[StageConfigurationManager configurationManager] directionUpdate:currentOrientation];
     [_platformPlugin notifyOrientationDidChange];
+    [_windowView notifyWindowRectChanged];
+    [coordinator animateAlongsideTransition:nil completion:^(
+        __unused id<UIViewControllerTransitionCoordinatorContext> context) {
+        [_windowView notifyWindowRectChanged];
+    }];
 }
 
 - (int32_t)getInstanceId {
