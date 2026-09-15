@@ -1755,6 +1755,7 @@ static UIInterfaceOrientationMask OrientationToMask(Orientation orientation, BOO
 void Window::SetRequestedOrientation(Orientation orientation)
 {
     if (IsSubWindow() || GetMode() == WindowMode::WINDOW_MODE_FLOATING) {
+        orientation_ = orientation;
         return;
     }
     BOOL isPad = ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad);
