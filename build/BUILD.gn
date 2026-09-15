@@ -169,6 +169,16 @@ ohos_shared_library("arkui_ios") {
     # Base symbols referenced by component dylibs such as libarkui_bubble.
     "-Wl,-u,__ZN4OHOS3Ace22ResourceParseUtilsBase12ParseResBoolERKNS0_6RefPtrINS0_14ResourceObjectEEERb",
     "-Wl,-u,__ZN4OHOS3Ace5Color10FromStringENSt3__112basic_stringIcNS2_11char_traitsIcEENS2_9allocatorIcEEEEjS1_",
+
+    # Base symbols referenced by component dylibs such as libarkui_folderstack.
+    "-Wl,-u,__ZN4OHOS3Ace2NG12StackPattern14CreateEventHubEv",
+    "-Wl,-u,__ZN4OHOS3Ace2NG12StackPattern34GetOrCreateVerticalOverflowHandlerERKNS0_7WeakPtrINS1_9FrameNodeEEE",
+    "-Wl,-u,__ZN4OHOS3Ace2NG12StackPattern8DumpInfoEv",
+    "-Wl,-u,__ZN4OHOS3Ace11EventReport23ReportHoverStatusChangeEiibii",
+    "-Wl,-u,__ZN4OHOS3Ace2NG20StackLayoutAlgorithmC1Ev",
+    "-Wl,-u,__ZN4OHOS3Ace2NG20StackLayoutAlgorithmC2Ev",
+    "-Wl,-u,__ZN4OHOS3Ace2NG20StackLayoutAlgorithm6LayoutEPNS1_13LayoutWrapperE",
+    "-Wl,-u,__ZTTN4OHOS3Ace2NG20StackLayoutAlgorithmE",
   ]
 
   if (ace_engine_enable_reduce_eh_frame) {
@@ -524,6 +534,7 @@ component_modules = [
   "span",
   "select",
   "bubble",
+  "folder_stack",
 ]
 component_modules_libs = []
 

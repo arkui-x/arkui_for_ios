@@ -114,6 +114,7 @@ const std::unordered_map<std::string, std::string> soMap = {
     {"ImageSpan", "span"},
  	{"SymbolSpan", "span"},
     {"Select", "select"},
+    { "FolderStack", "folderstack"},
 };
 } // namespace
 DynamicModuleHelper& DynamicModuleHelper::GetInstance()
