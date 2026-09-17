@@ -42,5 +42,7 @@ bool StylusDetectorDefault::Notify(const NotifyInfo& notifyInfo)
     return false;
 }
 
+void StylusDetectorDefault::InitImfHook() {}
+
 void StylusDetectorDefault::ExecuteCommand(const std::vector<std::string>& params) {}
 } // namespace OHOS::Ace
