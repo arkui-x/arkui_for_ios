@@ -35,6 +35,9 @@
     NSLog(@"showWindow");
    UIView* aboveView = nullptr;
     for (UIView* view in self.subviews.reverseObjectEnumerator) {
+        if (![view isKindOfClass:[WindowView class]]) {
+            continue;
+        }
         if (window.zOrder < ((WindowView *)view).zOrder) {
             aboveView = view;
         } else {
