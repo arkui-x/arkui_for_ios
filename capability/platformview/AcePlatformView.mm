@@ -751,10 +751,6 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
 {
     CGFloat scaledLeft = self.frameLeft / self.screenScale;
     CGFloat scaledTop = self.frameTop / self.screenScale;
-    StageViewController* controller = [StageApplication getApplicationTopViewController];
-    if (!controller.navigationController.navigationBarHidden) {
-        scaledTop += [self getSafeAreaHeight];
-    }
     CGFloat scaledWidth = self.frameWidth / self.screenScale;
     CGFloat scaledHeight = self.frameHeight / self.screenScale;
     return CGRectMake(scaledLeft, scaledTop, scaledWidth, scaledHeight);
