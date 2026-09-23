@@ -762,10 +762,17 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
     if (platformView == nullptr) {
         return;
     }
-    CGRect targetFrame = [self getTargetPlatformViewFrame];
     if (_metalTextureRenderer != nullptr) {
-        _metalTextureRenderer.frame = targetFrame;
+        StageViewController* controller = [StageApplication getApplicationTopViewController];
+        if (controller.navigationController.navigationBarHidden) {
+            _metalTextureRenderer.frame =
+                CGRectMake(0, 0, controller.view.bounds.size.width, controller.view.bounds.size.height);
+        } else {
+            _metalTextureRenderer.frame = CGRectMake(0, -[self getSafeAreaHeight], controller.view.bounds.size.width,
+                controller.view.bounds.size.height + [self getSafeAreaHeight]);
+        }
     }
+    CGRect targetFrame = [self getTargetPlatformViewFrame];
     if (!CGRectEqualToRect(platformView.frame, targetFrame)) {
         platformView.frame = targetFrame;
     }
