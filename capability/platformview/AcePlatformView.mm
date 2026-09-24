@@ -762,17 +762,10 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
     if (platformView == nullptr) {
         return;
     }
-    if (_metalTextureRenderer != nullptr) {
-        StageViewController* controller = [StageApplication getApplicationTopViewController];
-        if (controller.navigationController.navigationBarHidden) {
-            _metalTextureRenderer.frame =
-                CGRectMake(0, 0, controller.view.bounds.size.width, controller.view.bounds.size.height);
-        } else {
-            _metalTextureRenderer.frame = CGRectMake(0, -[self getSafeAreaHeight], controller.view.bounds.size.width,
-                controller.view.bounds.size.height + [self getSafeAreaHeight]);
-        }
-    }
     CGRect targetFrame = [self getTargetPlatformViewFrame];
+    if (_metalTextureRenderer != nullptr) {
+        _metalTextureRenderer.frame = targetFrame;
+    }
     if (!CGRectEqualToRect(platformView.frame, targetFrame)) {
         platformView.frame = targetFrame;
     }
@@ -945,23 +938,6 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
         UIView *windowView = [controller getWindowView];
         [windowView.superview insertSubview:_metalTextureRenderer belowSubview:windowView];
     }
-}
-
-- (CGFloat)getSafeAreaHeight
-{
-    CGFloat statusBarHeight = 0;
-    if (@available(iOS 13.0, *)) {
-        UIWindow* window = [UIApplication sharedApplication].windows.firstObject;
-        statusBarHeight = window.safeAreaInsets.top;
-    } else {
-        statusBarHeight = [UIApplication sharedApplication].statusBarFrame.size.height;
-    }
-    CGFloat navigationBarHeight = 0;
-    StageViewController* controller = [StageApplication getApplicationTopViewController];
-    if (controller.navigationController != nullptr) {
-        navigationBarHeight = controller.navigationController.navigationBar.frame.size.height;
-    }
-    return statusBarHeight + navigationBarHeight;
 }
 
 @end
