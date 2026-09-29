@@ -229,6 +229,7 @@ ohos_shared_library("arkui_ios") {
     "-Wl,-u,__ZN4OHOS5Rosen10TextEngine14FontConfigJson18ParseInstallConfigINSt3__113unordered_mapINS4_12basic_stringIcNS4_11char_traitsIcEENS4_9allocatorIcEEEENS4_4pairImSB_EENS4_4hashISB_EENS4_8equal_toISB_EENS9_INSC_IKSB_SD_EEEEEEEEiPKcRT_",
     "-Wl,-u,__ZN4OHOS5Rosen10TextEngine14FontConfigJson18ParseInstallConfigINSt3__16vectorINS4_12basic_stringIcNS4_11char_traitsIcEENS4_9allocatorIcEEEENS9_ISB_EEEEEEiPKcRT_",
     "-Wl,-u,__ZN4OHOS5Rosen10TextEngine14FontConfigJson9ParseFileEPKc",
+    "-Wl,-u,__ZN4OHOS5Rosen10TextShadowC1Ev",
     "-Wl,-u,__ZN4OHOS5Rosen11HMSymbolTxt12SetSymbolUidEm",
     "-Wl,-u,__ZN4OHOS5Rosen11HMSymbolTxt13SetRenderModeERKj",
     "-Wl,-u,__ZN4OHOS5Rosen11HMSymbolTxt14SetFirstActiveEb",
