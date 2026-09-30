@@ -95,6 +95,7 @@ ohos_shared_library("arkui_ios") {
     # them despite -exported_symbols_list. -u forces the linker to treat
     # each as undefined-from-outside, keeping them alive through dead_strip
     # so the matching libarkui_ios.txt entries can take effect.
+    "-Wl,-u,__ZN4OHOS3Ace12LogBacktraceEm",
     "-Wl,-u,__ZN4OHOS3Ace14CallbackLoggerC1ERKNSt3__112basic_stringIcNS2_11char_traitsIcEENS2_9allocatorIcEEEEm",
     "-Wl,-u,__ZN4OHOS3Ace14CallbackLoggerD1Ev",
     "-Wl,-u,__ZN4OHOS3Ace2V212FLEX_ETS_TAGE",
@@ -993,6 +994,7 @@ ohos_shared_library("ace_ndk") {
     "$ace_root/interfaces/native/node/native_node_extented.cpp",
     "$ace_root/interfaces/native/node/node_extened.cpp",
     "$ace_root/interfaces/native/node/gesture_impl.cpp",
+    "$ace_root/interfaces/native/node/config_manager.cpp",
     "$ace_root/interfaces/native/node/node_model.cpp",
     "$ace_root/interfaces/native/node/event_converter.cpp",
     "$ace_root/interfaces/native/node/node_model_safely.cpp",
