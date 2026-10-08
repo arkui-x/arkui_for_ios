@@ -67,7 +67,7 @@
         [self refreshUserAgentWithCompletion:^{
             dispatch_semaphore_signal(semaphore);
         }];
-        dispatch_semaphore_wait(semaphore, dispatch_time(DISPATCH_TIME_NOW, 500 * NSEC_PER_MEC));
+        dispatch_semaphore_wait(semaphore, dispatch_time(DISPATCH_TIME_NOW, 500 * NSEC_PER_MSEC));
     }
     return _userAgent ? _userAgent : [self fallbackUserAgent];
 }
