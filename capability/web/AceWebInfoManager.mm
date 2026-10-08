@@ -45,7 +45,7 @@
         _userAgent = [[NSUserDefaults standardUserDefaults] stringForKey:ARKUI_X_USER_AGENT];
         _lastUpdateSystemVersion = [[NSUserDefaults standardUserDefaults] 
                                         stringForKey:ARKUI_X_USER_AGENT_LAST_SYSTEM_VERSION];
-        [self.webView loadHTMLString:@"" baseURL:nil];
+        [self.webView loadHTMLString:@"<html></html>" baseURL:nil];
     }
     return self;
 }
@@ -86,21 +86,33 @@
 
 - (void)refreshUserAgentWithCompletion:(void (^)(void))completion {
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        [self.webView evaluateJavaScript:@"window.location.href='about:blank';" completionHandler:nil];
-        [self.webView evaluateJavaScript:@"navigator.userAgent" 
-            completionHandler:^(id _Nullable result, NSError * _Nullable error) {
-            if (error) {
-                NSString* desc = error.localizedDescription ?: @"";
-                LOGE("Error fetching UserAgent: %{public}s", desc.UTF8String);
-            } else {
-                if ([result isKindOfClass:[NSString class]]) {
-                    [self setUserAgent:[NSString stringWithFormat:@"%@", result]];
+        void (^queryUserAgent)(void) = ^{
+            [self.webView evaluateJavaScript:@"navigator.userAgent"
+                completionHandler:^(id _Nullable result, NSError * _Nullable error) {
+                if (error) {
+                    NSString* desc = error.localizedDescription ?: @"";
+                    LOGE("Error fetching UserAgent: %{public}s", desc.UTF8String);
+                } else {
+                    if ([result isKindOfClass:[NSString class]]) {
+                        [self setUserAgent:[NSString stringWithFormat:@"%@", result]];
+                    }
                 }
-            }
-            if (completion) {
-                completion();
-            }
-        }];
+                if (completion) {
+                    completion();
+                }
+            }];
+        };
+
+        NSOperatingSystemVersion osVersion = [[NSProcessInfo processInfo] operatingSystemVersion];
+        if (osVersion.majorVersion < 15) {
+            [self.webView evaluateJavaScript:@"window.location.href='about:blank';"
+                completionHandler:^(id _Nullable navResult, NSError * _Nullable navError) {
+                queryUserAgent();
+            }];
+        } else {
+            [self.webView evaluateJavaScript:@"window.location.href='about:blank';" completionHandler:nil];
+            queryUserAgent();
+        }
     });
 }
 
