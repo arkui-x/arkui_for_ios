@@ -763,11 +763,24 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
         return;
     }
     CGRect targetFrame = [self getTargetPlatformViewFrame];
-    if (_metalTextureRenderer != nullptr) {
-        _metalTextureRenderer.frame = targetFrame;
-    }
-    if (!CGRectEqualToRect(platformView.frame, targetFrame)) {
-        platformView.frame = targetFrame;
+    if (@available(iOS 17.0, *)) {
+        if (_metalTextureRenderer != nullptr) {
+            _metalTextureRenderer.frame = targetFrame;
+        }
+        if (!CGRectEqualToRect(platformView.frame, targetFrame)) {
+            platformView.frame = targetFrame;
+        }
+    } else {
+        if (_metalTextureRenderer != nullptr) {
+            _metalTextureRenderer.frame = targetFrame;
+            if (!CGRectEqualToRect(platformView.frame, _metalTextureRenderer.bounds)) {
+                platformView.frame = _metalTextureRenderer.bounds;
+            }
+        } else {
+            if (!CGRectEqualToRect(platformView.frame, targetFrame)) {
+                platformView.frame = targetFrame;
+            }
+        }
     }
     if (_isVideo && _playerLayer != nullptr) {
         _playerLayer.frame = platformView.bounds;
