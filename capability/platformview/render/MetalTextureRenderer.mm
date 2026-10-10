@@ -161,22 +161,6 @@ NSString* const kFrameDiffShaderSource = @"using namespace metal;\n"
     return self;
 }
 
-- (void)didAddSubview:(UIView *)subview {
-    LOGI("MetalTextureRenderer didAddSubview self=%{public}lld sub=%{public}s subSuper=%{public}s",
-        (long long)(__bridge void*)self,
-        NSStringFromClass([subview class]).UTF8String,
-        subview.superview ? NSStringFromClass([subview.superview class]).UTF8String : "(nil)");
-    [super didAddSubview:subview];
-}
-
-- (void)willRemoveSubview:(UIView *)subview {
-    LOGI("MetalTextureRenderer willRemoveSubview self=%{public}lld sub=%{public}s subSuper=%{public}s",
-        (long long)(__bridge void*)self,
-        NSStringFromClass([subview class]).UTF8String,
-        subview.superview ? NSStringFromClass([subview.superview class]).UTF8String : "(nil)");
-    [super willRemoveSubview:subview];
-}
-
 - (void)ensureMetalSetup:(UIView*)view
 {
     if (view == nullptr) {
@@ -883,7 +867,6 @@ NSString* const kFrameDiffShaderSource = @"using namespace metal;\n"
 
 - (void)dealloc
 {
-    LOGI("MetalTextureRenderer DEALLOC self=%{public}lld", (long long)(__bridge void*)self);
     self.renderer = nil;
     if (_frameDiffQueue != nullptr) {
 #if !OS_OBJECT_USE_OBJC
