@@ -512,6 +512,13 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
 
 - (void)setPlatformView:(NSObject<IPlatformView>*)platformView
 {
+    {
+        UIView* oldView = self.curPlatformView ? [self.curPlatformView view] : nil;
+        UIView* newView = platformView ? [platformView view] : nil;
+        LOGI("AcePlatformView setPlatformView oldPvSuper=%{public}s newPvSuper=%{public}s",
+            (oldView && oldView.superview) ? NSStringFromClass([oldView.superview class]).UTF8String : "(nil)",
+            (newView && newView.superview) ? NSStringFromClass([newView.superview class]).UTF8String : "(nil)");
+    }
     self.curPlatformView = platformView;
     UIView *view = [platformView view];
    if (view != nullptr && view.superview != nullptr) {
@@ -771,7 +778,7 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
             platformView.frame = targetFrame;
         }
     } else {
-        if (_metalTextureRenderer != nullptr) {
+        if (_metalTextureRenderer != nullptr && !_isVideo) {
             _metalTextureRenderer.frame = targetFrame;
             if (!CGRectEqualToRect(platformView.frame, _metalTextureRenderer.bounds)) {
                 platformView.frame = _metalTextureRenderer.bounds;
@@ -826,6 +833,9 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
                embeddedView:(NSObject<IPlatformView>*)embeddedView
                    renderer:(MetalTextureRenderer*)renderer
 {
+    LOGI("AcePlatformView disposePlatformView CALLED pvSuper=%{public}s renderer=%{public}d",
+        platformView.superview ? NSStringFromClass([platformView.superview class]).UTF8String : "(nil)",
+        renderer != nullptr);
     if (renderer != nullptr) {
         [renderer destroy];
     }
@@ -943,6 +953,10 @@ inline NSString *RunOnMainSync(NSString* (^block)(void))
     if (_metalTextureRenderer != nullptr) {
         [_metalTextureRenderer ensureMetalSetup:embeddedView];
         [_metalTextureRenderer addSubview:embeddedView];
+        LOGI("AcePlatformView initWithEmbeddedView addedToRenderer pvId=%{public}lld renderer=%{public}lld pvSuper=%{public}s pvSuperWindow=%{public}d",
+            (long long)self.id, (long long)(__bridge void*)_metalTextureRenderer,
+            embeddedView.superview ? NSStringFromClass([embeddedView.superview class]).UTF8String : "(nil)",
+            embeddedView.superview.window != nil);
         StageViewController* controller = [StageApplication getApplicationTopViewController];
         embeddedView.autoresizingMask =  (UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight);
         if (![controller isKindOfClass:[StageViewController class]]) {
