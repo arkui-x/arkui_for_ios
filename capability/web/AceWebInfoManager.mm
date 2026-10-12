@@ -85,9 +85,9 @@
 }
 
 - (void)refreshUserAgentWithCompletion:(void (^)(void))completion {
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+    dispatch_async(dispatch_get_main_queue(), ^{
         [self.webView evaluateJavaScript:@"window.location.href='about:blank';" completionHandler:nil];
-        [self.webView evaluateJavaScript:@"navigator.userAgent" 
+        [self.webView evaluateJavaScript:@"navigator.userAgent"
             completionHandler:^(id _Nullable result, NSError * _Nullable error) {
             if (error) {
                 NSString* desc = error.localizedDescription ?: @"";
