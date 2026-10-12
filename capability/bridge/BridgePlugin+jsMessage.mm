@@ -283,39 +283,42 @@ BOOL isNumberTypeMatch(id argument, const char *argumentType) {
         return NO;
     }
     const char* numberType = [argument objCType];
-    if (strcmp(numberType, "c") == 0 && strcmp(argumentType, "B") == 0) {
-        return YES;
+    if (strcmp(numberType, "c") == 0) {
+        return strcmp(argumentType, "B") == 0;
     }
     if (strcmp(argumentType, numberType) == 0) {
         return YES;
     }
-    if (strcmp(numberType, "i") == 0 &&
-        (strcmp(argumentType, "q") == 0 || strcmp(argumentType, "d") == 0)) {
-        return YES;
-    }
-    if (strcmp(numberType, "q") == 0 && strcmp(argumentType, "d") == 0) {
-        return YES;
-    }
-    if (strcmp(numberType, "q") == 0 && strcmp(argumentType, "i") == 0) {
-        int64_t val = [argument longLongValue];
-        if (val >= INT32_MIN && val <= INT32_MAX) {
-            return YES;
+
+    BOOL matched = NO;
+    if (strcmp(numberType, "i") == 0) {
+        matched = strcmp(argumentType, "q") == 0 ||
+                  strcmp(argumentType, "d") == 0 ||
+                  strcmp(argumentType, "f") == 0;
+    } else if (strcmp(numberType, "q") == 0) {
+        if (strcmp(argumentType, "d") == 0 || strcmp(argumentType, "f") == 0) {
+            matched = YES;
+        } else if (strcmp(argumentType, "i") == 0) {
+            int64_t val = [argument longLongValue];
+            matched = (val >= INT32_MIN && val <= INT32_MAX);
+        }
+    } else if (strcmp(numberType, "d") == 0) {
+        if (strcmp(argumentType, "f") == 0) {
+            matched = YES;
+        } else if (floor([argument doubleValue]) == [argument doubleValue]) {
+            double val = [argument doubleValue];
+            if (strcmp(argumentType, "q") == 0) {
+                matched = (val >= (double)INT64_MIN && val <= (double)INT64_MAX);
+            } else if (strcmp(argumentType, "i") == 0) {
+                matched = (val >= INT32_MIN && val <= INT32_MAX);
+            }
         }
     }
-    if (strcmp(numberType, "d") == 0 && strcmp(argumentType, "q") == 0) {
-        double val = [argument doubleValue];
-        if (floor(val) == val) {
-            return YES;
-        }
+
+    if (!matched) {
+        LOGE("isNumberTypeMatch: no match, numberType=%{public}s, argumentType=%{public}s", numberType, argumentType);
     }
-    if (strcmp(numberType, "d") == 0 && strcmp(argumentType, "i") == 0) {
-        double val = [argument doubleValue];
-        if (floor(val) == val && val >= INT32_MIN && val <= INT32_MAX) {
-            return YES;
-        }
-    }
-    LOGE("isNumberTypeMatch: no match, numberType=%{public}s, argumentType=%{public}s", numberType, argumentType);
-    return NO;
+    return matched;
 }
 
 - (id)handleMethodParam:(NSMethodSignature*)signature
