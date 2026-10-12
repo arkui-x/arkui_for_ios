@@ -302,6 +302,18 @@ BOOL isNumberTypeMatch(id argument, const char *argumentType) {
             return YES;
         }
     }
+    if (strcmp(numberType, "d") == 0 && strcmp(argumentType, "q") == 0) {
+        double val = [argument doubleValue];
+        if (floor(val) == val) {
+            return YES;
+        }
+    }
+    if (strcmp(numberType, "d") == 0 && strcmp(argumentType, "i") == 0) {
+        double val = [argument doubleValue];
+        if (floor(val) == val && val >= INT32_MIN && val <= INT32_MAX) {
+            return YES;
+        }
+    }
     LOGE("isNumberTypeMatch: no match, numberType=%{public}s, argumentType=%{public}s", numberType, argumentType);
     return NO;
 }
