@@ -38,6 +38,7 @@ constexpr NSUInteger RESET_BASELINE_COMPARE_FRAMES = 90;
 constexpr NSUInteger RESET_BASELINE_WARMUP_FRAMES = 2;
 constexpr NSUInteger FRAME_DIFF_SAMPLE_INTERVAL = 2;
 constexpr NSUInteger MAX_THREADGROUP_HEIGHT = 8;
+constexpr NSUInteger FORCE_RENDER_INTERVAL = 5;
 static char kFrameDiffQueueSpecificKeyVar;
 
 NSString* const kFrameDiffShaderSource = @"using namespace metal;\n"
@@ -105,6 +106,7 @@ NSString* const kFrameDiffShaderSource = @"using namespace metal;\n"
     NSUInteger _frameDiffSampleCounter;
     NSUInteger _nextDiffBufferIndex;
     NSUInteger _nextRenderTargetIndex;
+    NSUInteger _forceRenderSkipCount;
 
     BOOL useDrawHierarchy;
 }
@@ -154,6 +156,7 @@ NSString* const kFrameDiffShaderSource = @"using namespace metal;\n"
         _resetBaseline = NO;
         _canRenderUpdateBounds = NO;
         _nextRenderTargetIndex = RENDER_TARGET_COUNT - 1;
+        _forceRenderSkipCount = 0;
     }
     return self;
 }
@@ -660,7 +663,19 @@ NSString* const kFrameDiffShaderSource = @"using namespace metal;\n"
         return false;
     }
     UIViewMetalRenderTarget* currentRenderTarget = [self currentRenderTarget];
-    if (_shouldPublish && !currentRenderTarget.isScale) {
+    BOOL publishCurrentFrame = _shouldPublish;
+    BOOL isForceRender = NO;
+    if (!publishCurrentFrame) {
+        _forceRenderSkipCount++;
+        if (_forceRenderSkipCount >= FORCE_RENDER_INTERVAL) {
+            _forceRenderSkipCount = 0;
+            publishCurrentFrame = YES;
+            isForceRender = YES;
+        }
+    } else {
+        _forceRenderSkipCount = 0;
+    }
+    if (publishCurrentFrame && !currentRenderTarget.isScale) {
         if (self.renderTargets.count == 0) {
             return false;
         }
@@ -673,24 +688,27 @@ NSString* const kFrameDiffShaderSource = @"using namespace metal;\n"
     if (![self prepareRenderTargetForView:view]) {
         return false;
     }
-    BOOL publishCurrentFrame = _shouldPublish;
     if (_canRenderUpdateBounds && !publishCurrentFrame && !useDrawHierarchy) {
         [self.renderer beginFrameAtTime:CACurrentMediaTime() timeStamp:nil];
         CGRect updateRect = [self.renderer updateBounds];
-        if (!CGRectIsEmpty(updateRect) && !_resetBaseline ) {
+        if (!CGRectIsEmpty(updateRect) && !_resetBaseline) {
             _shouldPublishFrame.store(true, std::memory_order_release);
         }
         [self.renderer endFrame];
     } else if (publishCurrentFrame || _frameDiffSampleCounter < FRAME_DIFF_SAMPLE_INTERVAL) {
         if (useDrawHierarchy) {
             [self renderPlatformViewViaDrawHierarchy:view publishCurrent:publishCurrentFrame
-                                 currentRenderTarget:currentRenderTarget];
+                                  currentRenderTarget:currentRenderTarget];
         } else {
             [self renderPlatformView:view publishCurrent:publishCurrentFrame currentRenderTarget:currentRenderTarget];
         }
     }
     BOOL shouldPublishFrame = [self shouldPublishFrame];
-    _resetBaseline = (publishCurrentFrame != shouldPublishFrame);
+    if (isForceRender) {
+        _resetBaseline = NO;
+    } else {
+        _resetBaseline = (publishCurrentFrame != shouldPublishFrame);
+    }
     if (_resetBaseline) {
         _shouldPublish = shouldPublishFrame;
     }
