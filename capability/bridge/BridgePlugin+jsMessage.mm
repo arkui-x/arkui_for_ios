@@ -286,7 +286,24 @@ BOOL isNumberTypeMatch(id argument, const char *argumentType) {
     if (strcmp(numberType, "c") == 0 && strcmp(argumentType, "B") == 0) {
         return YES;
     }
-    return strcmp(argumentType, numberType) == 0;
+    if (strcmp(argumentType, numberType) == 0) {
+        return YES;
+    }
+    if (strcmp(numberType, "i") == 0 &&
+        (strcmp(argumentType, "q") == 0 || strcmp(argumentType, "d") == 0)) {
+        return YES;
+    }
+    if (strcmp(numberType, "q") == 0 && strcmp(argumentType, "d") == 0) {
+        return YES;
+    }
+    if (strcmp(numberType, "q") == 0 && strcmp(argumentType, "i") == 0) {
+        int64_t val = [argument longLongValue];
+        if (val >= INT32_MIN && val <= INT32_MAX) {
+            return YES;
+        }
+    }
+    LOGE("isNumberTypeMatch: no match, numberType=%{public}s, argumentType=%{public}s", numberType, argumentType);
+    return NO;
 }
 
 - (id)handleMethodParam:(NSMethodSignature*)signature
