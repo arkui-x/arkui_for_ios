@@ -88,7 +88,8 @@ void TextInputConnectionImpl::Show(bool isFocusViewChanged, int32_t instanceId) 
     int32_t maxLength = config_.maxLength;
 
     int32_t clientId = this->GetClientId();
-    LOGE("vailclientid->Show clientId:%d inputaction:%d inputType:%d",clientId,actionType,inputType);
+    LOGI("vailclientid->Show clientId:%{public}d inputaction:%{public}d inputType:%{public}d",
+        clientId,actionType,inputType);
     NSDictionary *configure = @{
         @"actionLabel" : @"",
         @"autocorrect" : @(1),
@@ -130,7 +131,8 @@ void TextInputConnectionImpl::Show(bool isFocusViewChanged, int32_t instanceId) 
                 NSInteger selectionExtent = [state[@"selectionExtent"] intValue];
                 NSInteger composingBase = [state[@"composingBase"] intValue];
                 NSInteger composingExtent = [state[@"composingExtent"] intValue];
-                LOGE("vailclientid->Show textInputBlock sb:%d se:%d cb:%d ce:%d",selectionBase,selectionExtent,composingBase,composingExtent);
+                LOGI("vailclientid->Show textInputBlock sb:%{public}d se:%{public}d cb:%{public}d ce:%{public}d",
+                    selectionBase,selectionExtent,composingBase,composingExtent);
                 auto textEditingValue = std::make_shared<TextEditingValue>();
                 textEditingValue->text = text.UTF8String;
                 textEditingValue->appendText = appendText.UTF8String;
