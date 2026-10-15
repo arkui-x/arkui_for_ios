@@ -308,7 +308,7 @@ BOOL isNumberTypeMatch(id argument, const char *argumentType) {
         } else if (floor([argument doubleValue]) == [argument doubleValue]) {
             double val = [argument doubleValue];
             if (strcmp(argumentType, "q") == 0) {
-                matched = (val >= (double)INT64_MIN && val <= (double)INT64_MAX);
+                matched = (val >= (double)INT64_MIN && val < (double)INT64_MAX);
             } else if (strcmp(argumentType, "i") == 0) {
                 matched = (val >= INT32_MIN && val <= INT32_MAX);
             }
