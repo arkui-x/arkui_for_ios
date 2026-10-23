@@ -102,6 +102,7 @@ template("ace_osal_ios_source_set") {
       "view_data_wrap_impl.cpp",
       "want_wrap_ios.cpp",
       "websocket_manager.cpp",
+      "download_manager_ios.mm",
     ]
 
     cflags_cc = [
@@ -136,6 +137,7 @@ template("ace_osal_ios_source_set") {
       "$app_framework_resource_path/interfaces/native/resource:rawfile",
       "$app_framework_window_path/dm:dm",
       "$app_framework_hiviewdfx_path/hilog:hiviewdfx_hilog_base",
+      "//plugins/request/cachedownload/framework/innerkits:cache_download_client",
     ]
 
     configs = [
