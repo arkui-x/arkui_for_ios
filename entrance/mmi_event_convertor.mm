@@ -279,6 +279,7 @@ void UpdateTouchEvent(std::vector<TouchEvent>& events)
         TouchPoint touchPoint;
         touchPoint.size = event.size;
         touchPoint.id = event.id;
+        touchPoint.originalId = event.originalId;
         touchPoint.force = event.force;
         touchPoint.downTime = event.time;
         touchPoint.x = event.x;
@@ -299,6 +300,7 @@ TouchPoint ConvertTouchPoint(const MMI::PointerEvent::PointerItem& pointerItem)
     // just get the max of width and height
     touchPoint.size = std::max(pointerItem.GetWidth(), pointerItem.GetHeight()) / SIZE_DIVIDE;
     touchPoint.id = pointerItem.GetPointerId();
+    touchPoint.originalId = pointerItem.GetOriginPointerId();
     touchPoint.downTime = TimeStamp(std::chrono::microseconds(pointerItem.GetDownTime()));
     touchPoint.x = pointerItem.GetWindowX();
     touchPoint.y = pointerItem.GetWindowY();
@@ -406,6 +408,7 @@ void ConvertTouchEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEvent, s
         }
         TouchEvent event;
         event.SetId(item.GetPointerId())
+            .SetOriginalId(item.GetOriginPointerId())
             .SetX(item.GetWindowX())
             .SetY(item.GetWindowY())
             .SetScreenX(item.GetDisplayX())
@@ -443,6 +446,7 @@ void ConvertSyntheticTouchEvent(const std::shared_ptr<MMI::PointerEvent>& pointe
         }
         TouchEvent event;
         event.SetId(item.GetPointerId())
+            .SetOriginalId(item.GetOriginPointerId())
             .SetX(item.GetWindowX())
             .SetY(item.GetWindowY())
             .SetScreenX(item.GetDisplayX())
@@ -479,6 +483,7 @@ TouchEvent ConvertTouchEvent(const std::shared_ptr<MMI::PointerEvent>& pointerEv
     }
     TouchEvent event;
     event.SetId(item.GetPointerId())
+        .SetOriginalId(item.GetOriginPointerId())
         .SetX(item.GetWindowX())
         .SetY(item.GetWindowY())
         .SetScreenX(item.GetDisplayX())
@@ -516,6 +521,7 @@ TouchEvent ConvertSyntheticTouchEvent(const std::shared_ptr<MMI::PointerEvent>& 
     }
     TouchEvent event;
     event.SetId(item.GetPointerId())
+        .SetOriginalId(item.GetOriginPointerId())
         .SetX(item.GetWindowX())
         .SetY(item.GetWindowY())
         .SetScreenX(item.GetDisplayX())
@@ -575,6 +581,7 @@ void ConvertMmiPointerEvent(std::shared_ptr<MMI::PointerEvent>& pointerEvent, co
     {
         OHOS::MMI::PointerEvent::PointerItem pointerItem;
         pointerItem.SetPointerId(static_cast<int32_t>(current->pointer_id));
+        pointerItem.SetOriginPointerId(static_cast<int32_t>(current->pointer_id));
         pointerItem.SetDeviceId(static_cast<int32_t>(current->device_id));
         pointerItem.SetDownTime(current->time_stamp);
         pointerItem.SetWindowX(static_cast<int32_t>(current->window_x));
@@ -586,6 +593,7 @@ void ConvertMmiPointerEvent(std::shared_ptr<MMI::PointerEvent>& pointerEvent, co
         pointerItem.SetPressure(current->pressure);
         pointerItem.SetTiltY(current->tilt);
         pointerItem.SetToolType(static_cast<int32_t>(SourceTypeFromToolType(current->tool_type)));
+        pointerItem.SetOriginPointerId(static_cast<int32_t>(current->pointer_id));
         pointerEvent->AddPointerItem(pointerItem);
         SetActionPoint(current->pointer_id, current->actionPoint);
         current++;
@@ -606,6 +614,7 @@ void ConvertMmiPointerEvent(
     {
         OHOS::MMI::PointerEvent::PointerItem pointerItem;
         pointerItem.SetPointerId(static_cast<int32_t>(current->pointer_id));
+        pointerItem.SetOriginPointerId(static_cast<int32_t>(current->pointer_id));
         pointerItem.SetDeviceId(static_cast<int32_t>(current->device_id));
         pointerItem.SetDownTime(current->time_stamp);
         pointerItem.SetWindowX(static_cast<int32_t>(current->window_x));
@@ -617,6 +626,7 @@ void ConvertMmiPointerEvent(
         pointerItem.SetPressure(current->pressure);
         pointerItem.SetTiltY(current->tilt);
         pointerItem.SetToolType(static_cast<int32_t>(SourceTypeFromToolType(current->tool_type)));
+        pointerItem.SetOriginPointerId(static_cast<int32_t>(current->pointer_id));
         SetPointerItemPressed(actionType, pointerItem);
         SetActionPoint(current->pointer_id, current->actionPoint);
         current++;
@@ -654,6 +664,7 @@ void ConvertSyntheticMmiPointerEvent(
         OHOS::MMI::PointerEvent::PointerItem pointerItem;
         const int64_t downTime = ResolveSyntheticDownTime(*current);
         pointerItem.SetPointerId(static_cast<int32_t>(current->pointer_id));
+        pointerItem.SetOriginPointerId(static_cast<int32_t>(current->pointer_id));
         pointerItem.SetDeviceId(static_cast<int32_t>(current->device_id));
         pointerItem.SetDownTime(downTime);
         pointerItem.SetWindowX(static_cast<int32_t>(current->window_x));
@@ -665,6 +676,7 @@ void ConvertSyntheticMmiPointerEvent(
         pointerItem.SetPressure(current->pressure);
         pointerItem.SetTiltY(current->tilt);
         pointerItem.SetToolType(static_cast<int32_t>(SourceTypeFromToolType(current->tool_type)));
+        pointerItem.SetOriginPointerId(static_cast<int32_t>(current->pointer_id));
         SetPointerItemPressed(actionType, pointerItem);
         SetActionPoint(current->pointer_id, current->actionPoint);
         current++;
