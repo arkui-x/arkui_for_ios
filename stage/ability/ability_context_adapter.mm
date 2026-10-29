@@ -66,7 +66,7 @@ std::shared_ptr<AbilityContextAdapter> AbilityContextAdapter::GetInstance()
 }
 
 void AbilityContextAdapter::print(const std::string& message) {
-    NSString * msg = [NSString stringWithCString:message.c_str() encoding:[NSString defaultCStringEncoding]];
+    NSString * msg = GetOCstring(message);
     LOGI("AbilityContextAdapter print, msg : %{public}s", [msg UTF8String]);
     StageApplication *application = [StageApplication new];
     [application print:msg];
