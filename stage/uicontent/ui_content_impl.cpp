@@ -433,7 +433,7 @@ void UIContentImpl::CommonInitialize(OHOS::Rosen::Window* window, const std::str
     container->SetWindowName(window_->GetWindowName());
     container->SetWindowId(window_->GetWindowId());
     ExternalInstanceIdMapper::GetInstance().Add(window_->GetWindowId(), instanceId_);
-    if (info) {
+    if (info && !window_->IsSubWindow()) {
         ExternalInstanceIdMapper::GetInstance().AddExternalResourceId(info->instanceId, instanceId_);
     }
     Ace::Platform::UIContent::AddUIContent(instanceId_, info->instanceId, this);
