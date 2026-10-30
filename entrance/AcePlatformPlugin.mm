@@ -122,6 +122,11 @@
 - (void)onEvent:(NSString *)eventId param:(NSString *)param
 {
     auto resRegister = OHOS::Ace::Platform::AcePlatformPlugin::GetResRegister(self.instanceId);
+    if (!resRegister) {
+        LOGE("AcePlatformPlugin onEvent: resRegister is null, instanceId: %{public}d, drop event: %{public}s",
+            self.instanceId, [eventId UTF8String]);
+        return;
+    }
 
     int32_t containerId = OHOS::Ace::ExternalInstanceIdMapper::GetInstance()
         .GetInstanceIdByExternalResourceId(self.instanceId);
