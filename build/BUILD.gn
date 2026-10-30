@@ -305,7 +305,6 @@ ohos_shared_library("arkui_ios") {
     "-Wl,-u,__ZN4OHOS3Ace2NG9FrameNode23AdjustLayoutWrapperTreeERKNS0_6RefPtrINS1_17LayoutWrapperNodeEEEbb",
     "-Wl,-u,__ZN4OHOS3Ace2NG9FrameNode23FlushUpdateAndMarkDirtyEv",
     "-Wl,-u,__ZN4OHOS3Ace2NG9FrameNode23GetAllChildrenWithBuildEb",
-    "-Wl,-u,__ZN4OHOS3Ace2NG9FrameNode23GetOrCreateChildByIndexEjbb",
     "-Wl,-u,__ZN4OHOS3Ace2NG9FrameNode23RemoveChildInRenderTreeEj",
     "-Wl,-u,__ZN4OHOS3Ace2NG9FrameNode24GetResponseRegionListRawERKNS1_5RectTIfEEi",
     "-Wl,-u,__ZN4OHOS3Ace2NG9FrameNode24OnMixedMountChildRemovedERKNS0_6RefPtrINS1_6UINodeEEE",
