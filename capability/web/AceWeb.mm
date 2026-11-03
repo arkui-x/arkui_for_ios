@@ -3911,15 +3911,22 @@ std::vector<std::string> convertCertificateChainToDer(NSArray *certificateChain)
 - (void)webView:(WKWebView *)webView didFailProvisionalNavigation:( WKNavigation *)navigation withError:(NSError *)error
 {
     NSString *errorStr = @"";
-    if(webView.URL.absoluteString) {
-        errorStr = webView.URL.absoluteString;
-    } else {
-        if (error) {
-            NSDictionary *userInfo = error.userInfo;
-            errorStr = userInfo[@"NSErrorFailingURLStringKey"];
+    if (error) {
+        NSDictionary *userInfo = error.userInfo;
+        id failingURLString = userInfo[NSURLErrorFailingURLStringErrorKey];
+        if ([failingURLString isKindOfClass:[NSString class]] && [(NSString *)failingURLString length] > 0) {
+            errorStr = failingURLString;
+        } else {
+            id failingURL = userInfo[NSURLErrorFailingURLErrorKey];
+            if ([failingURL isKindOfClass:[NSURL class]] && [(NSURL *)failingURL absoluteString].length > 0) {
+                errorStr = [(NSURL *)failingURL absoluteString];
+            }
         }
     }
-    
+    if (errorStr.length == 0 && webView.URL.absoluteString.length > 0) {
+        errorStr = webView.URL.absoluteString;
+    }
+
     if(errorStr && error.description) {
         AceWebErrorReceiveInfoObject *obj = new AceWebErrorReceiveInfoObject(std::string([errorStr UTF8String]),
                                                                              std::string([error.description UTF8String]), error.code);
