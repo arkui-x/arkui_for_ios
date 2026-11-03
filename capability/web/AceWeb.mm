@@ -2802,9 +2802,31 @@ static NSString* const DOCUMENT_START_WRAPPER_SCRIPT_FORMAT =
     return self.callSyncMethodMap;
 }
 
-- (void)webView:(WKWebView *)webView didFailNavigation:(WKNavigation *)navigation withError:(NSError *)error
+- (void)webView:(WKWebView *)webView didFailNavigation:( WKNavigation *)navigation withError:(NSError *)error
 {
     LOGE("didFailNavigation === ");
+    if (!error || error.code == NSURLErrorCancelled) {
+        return;
+    }
+    NSString *errorStr = @"";
+    NSDictionary *userInfo = error.userInfo;
+    id failingURLString = userInfo[NSURLErrorFailingURLStringErrorKey];
+    if ([failingURLString isKindOfClass:[NSString class]] && [(NSString *)failingURLString length] > 0) {
+        errorStr = failingURLString;
+    } else {
+        id failingURL = userInfo[NSURLErrorFailingURLErrorKey];
+        if ([failingURL isKindOfClass:[NSURL class]] && [(NSURL *)failingURL absoluteString].length > 0) {
+            errorStr = [(NSURL *)failingURL absoluteString];
+        }
+    }
+    if (errorStr.length == 0 && webView.URL.absoluteString.length > 0) {
+        errorStr = webView.URL.absoluteString;
+    }
+    if (errorStr.length > 0 && error.description) {
+        AceWebErrorReceiveInfoObject *obj = new AceWebErrorReceiveInfoObject(std::string([errorStr UTF8String]),
+                                                                             std::string([error.description UTF8String]), error.code);
+        AceWebObject([[self event_hashFormat:@"onErrorReceive"] UTF8String], [@"onErrorReceive" UTF8String], obj);
+    }
 }
 
 - (nullable WKWebView *)webView:(WKWebView *)webView
