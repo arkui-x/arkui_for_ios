@@ -36,6 +36,7 @@
 #import "AceWebView.h"
 
 #include "base/log/log.h"
+#include <unordered_map>
 
 #define WEBVIEW_WIDTH  @"width"
 #define WEBVIEW_HEIGHT  @"height"
@@ -378,6 +379,7 @@ static NSString* const DOCUMENT_START_WRAPPER_SCRIPT_FORMAT =
 @implementation AceWeb {
     dispatch_source_t _timer;
     dispatch_block_t _contentHeightDebounceBlock;
+    std::unordered_map<std::string, OHOS::Ace::RefPtr<OHOS::Ace::WebResponse>> interceptedResponses_;
 }
 
 - (void)debounceUpdateWebViewHeight
@@ -2997,7 +2999,16 @@ static NSString* const DOCUMENT_START_WRAPPER_SCRIPT_FORMAT =
 }
 
 - (void)handleAceWebResponse:(id<WKURLSchemeTask>)urlSchemeTask {
-    const auto& AceWebResponse = AceWebObjectGetResponse();
+    NSString* requestKey = urlSchemeTask.request.URL.absoluteString ?: @"";
+    auto responseIt = interceptedResponses_.find(std::string([requestKey UTF8String]));
+    if (responseIt == interceptedResponses_.end()) {
+        LOGE("AceWeb: onInterceptRequest fail");
+        NSError *error = [NSError errorWithDomain:@"onInterceptRequest fail" code:HTTP_STATUS_GATEWAY_TIMEOUT userInfo:nil];
+        [urlSchemeTask didFailWithError:error];
+        return;
+    }
+    auto AceWebResponse = responseIt->second;
+    interceptedResponses_.erase(responseIt);
     if (!AceWebResponse) {
         LOGE("AceWeb: onInterceptRequest fail");
         NSError *error = [NSError errorWithDomain:@"onInterceptRequest fail" code:HTTP_STATUS_GATEWAY_TIMEOUT userInfo:nil];
@@ -3148,6 +3159,10 @@ static NSString* const DOCUMENT_START_WRAPPER_SCRIPT_FORMAT =
     if (![requestURL hasPrefix:[NSString stringWithFormat:@"%@://", CUSTOM_SCHEME]] && AceWebObjectWithResponseReturn(
             [[self event_hashFormat:NTC_ONINTERCEPTREQUEST] UTF8String], [NTC_ONINTERCEPTREQUEST UTF8String], obj)) {
         NSString* customURL = [NSString stringWithFormat:@"%@://%@", CUSTOM_SCHEME, requestURL];
+        NSURL* customNSURL = [NSURL URLWithString:customURL];
+        if (customNSURL != nil) {
+            interceptedResponses_[std::string([[customNSURL absoluteString] UTF8String])] = AceWebObjectGetResponse();
+        }
         NSURLRequest* newRequest = [NSURLRequest requestWithURL:[NSURL URLWithString:customURL]];
         [webView loadRequest:newRequest];
         decisionHandler(WKNavigationActionPolicyCancel);
