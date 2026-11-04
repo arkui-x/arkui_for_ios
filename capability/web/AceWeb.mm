@@ -3157,9 +3157,15 @@ static NSString* const DOCUMENT_START_WRAPPER_SCRIPT_FORMAT =
     if (![requestURL hasPrefix:[NSString stringWithFormat:@"%@://", CUSTOM_SCHEME]] && AceWebObjectWithResponseReturn(
             [[self event_hashFormat:NTC_ONINTERCEPTREQUEST] UTF8String], [NTC_ONINTERCEPTREQUEST UTF8String], obj)) {
         NSString* customURL = [NSString stringWithFormat:@"%@://%@", CUSTOM_SCHEME, requestURL];
+        NSURL* customNSURL = [NSURL URLWithString:customURL];
+        if (customNSURL == nil) {
+            LOGE("AceWeb: onInterceptRequest rewrite url is invalid");
+            decisionHandler(WKNavigationActionPolicyAllow);
+            return;
+        }
         pendingInterceptResponses_.clear();
         pendingInterceptResponses_.push_back(AceWebObjectGetResponse());
-        NSURLRequest* newRequest = [NSURLRequest requestWithURL:[NSURL URLWithString:customURL]];
+        NSURLRequest* newRequest = [NSURLRequest requestWithURL:customNSURL];
         [webView loadRequest:newRequest];
         decisionHandler(WKNavigationActionPolicyCancel);
         return;
