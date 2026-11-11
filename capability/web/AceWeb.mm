@@ -2240,7 +2240,7 @@ static NSString* const DOCUMENT_START_WRAPPER_SCRIPT_FORMAT =
     return [UIColor colorWithRed:(hex >> 16 & 0xff) / 255.f
                            green:(hex >> 8 & 0xff) / 255.f
                             blue:(hex & 0xff) / 255.f
-                           alpha:1];
+                           alpha:(hex >> 24 & 0xff) / 255.f];
 }
 
 - (void)setBackGroundColorCallback
