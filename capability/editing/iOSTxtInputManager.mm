@@ -906,6 +906,7 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
     return [UIApplication sharedApplication].keyWindow;
 #pragma clang diagnostic pop
+}
 
 - (void)addToInputParentViewIfNeeded:(iOSTextInputView*)inputView {
     if ([inputView isDescendantOfView:_inputHider]) {
