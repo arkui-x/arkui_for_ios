@@ -295,6 +295,11 @@ void PixelMapIOS::SavePixelMapToFile(const std::string& dst) const {}
 
 void PixelMapIOS::SetMemoryName(std::string pixelMapName) const {}
 
+bool PixelMapIOS::ReadPixel(int32_t x, int32_t y, uint32_t& pixel) const
+{
+    return false;
+}
+
 Media::PixelFormat PixelMapIOS::ConvertToMediaPixelFormat(Ace::PixelFormat pixelFormat)
 {
     switch (pixelFormat) {
