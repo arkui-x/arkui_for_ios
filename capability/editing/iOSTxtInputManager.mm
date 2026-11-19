@@ -881,31 +881,31 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
     }
 }
 
-- (UIWindow*)keyWindow {
-    UIApplication *sharedApplication = [UIApplication sharedApplication];
-    UIWindow *keyWindow = nil;
-    if (@available(iOS 13.0, *)) {
-        for (UIWindowScene *windowScene in sharedApplication.connectedScenes) {
-            if (windowScene.activationState == UISceneActivationStateForegroundActive
-                && [windowScene isKindOfClass:UIWindowScene.class]) {
-                for (UIWindow *window in windowScene.windows) {
-                    if (!window.hidden && window.isKeyWindow) {
-                        keyWindow = window;
-                        break;
-                    }
-                }
-                if (keyWindow) {
-                    break;
+- (UIWindow*)keyWindowInSceneWithActivationState:(UISceneActivationState)state API_AVAILABLE(ios(13.0)) {
+    for (UIWindowScene *windowScene in [UIApplication sharedApplication].connectedScenes) {
+        if (windowScene.activationState == state && [windowScene isKindOfClass:UIWindowScene.class]) {
+            for (UIWindow *window in windowScene.windows) {
+                if (!window.hidden && window.isKeyWindow) {
+                    return window;
                 }
             }
         }
-    } else {
+    }
+    return nil;
+}
+ 
+- (UIWindow*)keyWindow {
+    if (@available(iOS 13.0, *)) {
+        UIWindow *keyWindow = [self keyWindowInSceneWithActivationState:UISceneActivationStateForegroundActive];
+        if (!keyWindow) {
+            keyWindow = [self keyWindowInSceneWithActivationState:UISceneActivationStateForegroundInactive];
+        }
+        return keyWindow;
+    }
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
-        keyWindow = sharedApplication.keyWindow;
+    return [UIApplication sharedApplication].keyWindow;
 #pragma clang diagnostic pop
-    }
-    return keyWindow;
 }
 
 - (void)addToInputParentViewIfNeeded:(iOSTextInputView*)inputView {
