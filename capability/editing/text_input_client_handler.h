@@ -48,7 +48,8 @@ public:
 
     void UpdateEditingValue(
         const int32_t clientId, const std::shared_ptr<TextEditingValue>& value, bool needFireChangeEvent = true);
-    void PerformAction(const int32_t clientId, const TextInputAction action);
+    void PerformAction(const int32_t clientId, const TextInputAction action, bool platformWillInsertNewline = false);
+    void UpdateFloatingCursor(const int32_t clientId, const int32_t state, const double x, const double y);
     void UpdateInputFilterErrorText(const int32_t clientId, const std::string& errorText);
 
 private:
