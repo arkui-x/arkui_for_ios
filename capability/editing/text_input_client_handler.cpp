@@ -46,12 +46,13 @@ void TextInputClientHandler::UpdateEditingValue(
     }
 }
 
-void TextInputClientHandler::PerformAction(const int32_t clientId, const TextInputAction action)
+void TextInputClientHandler::PerformAction(
+    const int32_t clientId, const TextInputAction action, bool platformWillInsertNewline)
 {
     if (currentConnection_ && currentConnection_->GetClientId() == clientId) {
         auto weak = AceType::WeakClaim(AceType::RawPtr(currentConnection_));
         currentConnection_->GetTaskExecutor()->PostTask(
-            [weak, action] {
+            [weak, action, platformWillInsertNewline] {
                 auto currentConnection = weak.Upgrade();
                 if (currentConnection == nullptr) {
                     LOGE("currentConnection is nullptr");
@@ -59,10 +60,33 @@ void TextInputClientHandler::PerformAction(const int32_t clientId, const TextInp
                 }
                 auto client = currentConnection->GetClient();
                 if (client) {
+                    client->SetPlatformWillInsertNewline(platformWillInsertNewline);
                     client->PerformAction(action, true);
                 }
             },
             TaskExecutor::TaskType::UI, "ArkUI-XTextInputClientHandlerPerformAction");
+    }
+}
+
+void TextInputClientHandler::UpdateFloatingCursor(
+    const int32_t clientId, const int32_t state, const double x, const double y)
+{
+    if (currentConnection_ && currentConnection_->GetClientId() == clientId) {
+        auto weak = AceType::WeakClaim(AceType::RawPtr(currentConnection_));
+        currentConnection_->GetTaskExecutor()->PostTask(
+            [weak, state, x, y] {
+                auto currentConnection = weak.Upgrade();
+                if (currentConnection == nullptr) {
+                    LOGE("currentConnection is nullptr");
+                    return;
+                }
+                auto client = currentConnection->GetClient();
+                if (client) {
+                    client->UpdateFloatingCursor(
+                        static_cast<TextInputClient::FloatingCursorState>(state), x, y);
+                }
+            },
+            TaskExecutor::TaskType::UI, "ArkUI-XTextInputClientHandlerUpdateFloatingCursor");
     }
 }
 

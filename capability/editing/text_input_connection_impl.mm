@@ -104,7 +104,8 @@ void TextInputConnectionImpl::Show(bool isFocusViewChanged, int32_t instanceId) 
         @"smartQuotesType":@(1),
         @"textCapitalization":@"TextCapitalization.none",
         @"inputFilter" : inputFilter,
-        @"maxLength" : [NSNumber numberWithInt:maxLength]
+        @"maxLength" : [NSNumber numberWithInt:maxLength],
+        @"insertNewlineOnEnter" : @(config_.insertNewlineOnEnter)
     };
 
     auto value = renderTextField->GetInputEditingValue();
@@ -122,6 +123,18 @@ void TextInputConnectionImpl::Show(bool isFocusViewChanged, int32_t instanceId) 
         @"composingExtent":@(value.compose.extentOffset),
         @"selectionIsDirectional":@(0)
     };
+    // Attach the caret rect so the adapter can anchor the floating cursor
+    // (caretRectForPosition:) right from the first focus. Show() is the only
+    // state push before the first text change; without this the magnifier
+    // anchors at the previous session's (or a zero) rect until SetEditingState
+    // first rides a text update.
+    Rect showCaretRect = renderTextField->GetCaretWindowRect();
+    NSMutableDictionary* showCaretDict = [stateDict mutableCopy];
+    showCaretDict[@"caretRectX"] = @(showCaretRect.Left());
+    showCaretDict[@"caretRectY"] = @(showCaretRect.Top());
+    showCaretDict[@"caretRectWidth"] = @(showCaretRect.Width());
+    showCaretDict[@"caretRectHeight"] = @(showCaretRect.Height());
+    stateDict = showCaretDict;
     TextInputNoParamsBlock showCallback = ^{
         updateEditingClientBlock textInputCallback = ^(int client, NSDictionary *state){
             if(clientId == client && [state objectForKey:@"text"]){
@@ -153,7 +166,7 @@ void TextInputConnectionImpl::Show(bool isFocusViewChanged, int32_t instanceId) 
             }
         };
         [iOSTxtInputManager sharedInstance].errorTextBlock = errorTextCallback;
-        performActionBlock textPerformCallback = ^(int action, int client){
+        performActionBlock textPerformCallback = ^(int action, int client, BOOL platformWillInsertNewline){
             if(clientId == client){
                 TextInputAction actionType = TextInputAction::DONE; 
                 switch (action) {
@@ -181,7 +194,8 @@ void TextInputConnectionImpl::Show(bool isFocusViewChanged, int32_t instanceId) 
                     default:
                         break;
                 }
-                TextInputClientHandler::GetInstance().PerformAction(client, actionType);
+                TextInputClientHandler::GetInstance().PerformAction(
+                    client, actionType, platformWillInsertNewline == YES);
                 if(action == iOSTextInputActionDone){
                     dispatch_async(dispatch_get_main_queue(), ^{
                         if ([iOSTxtInputManager sharedInstance]) {
@@ -195,6 +209,40 @@ void TextInputConnectionImpl::Show(bool isFocusViewChanged, int32_t instanceId) 
             }
         };
         [iOSTxtInputManager sharedInstance].textPerformBlock = textPerformCallback;
+        updateFloatingCursorBlock floatingCursorCallback = ^(int client, int state, double x, double y){
+            if(clientId == client){
+                TextInputClientHandler::GetInstance().UpdateFloatingCursor(client, state, x, y);
+            }
+        };
+        [iOSTxtInputManager sharedInstance].floatingCursorBlock = floatingCursorCallback;
+        // Synchronous engine query (tokenizer asks on the main thread); must not
+        // go through the posted-task handler.
+        auto weakClient = client_;
+        lineMoveBlock lineMoveCallback = ^(int client, int fromIndex, BOOL isUp, int lines){
+            if (clientId != client) {
+                return -1;
+            }
+            auto lineClient = weakClient.Upgrade();
+            if (!lineClient) {
+                return -1;
+            }
+            return lineClient->GetIndexAfterLineMove(fromIndex, isUp == YES, lines);
+        };
+        [iOSTxtInputManager sharedInstance].lineMoveBlock = lineMoveCallback;
+        // Synchronous engine query (UIKit asks closestPositionToPoint: /
+        // characterRangeAtPoint: on the main thread); must not go through the
+        // posted-task handler.
+        caretIndexAtPointBlock hitTestCallback = ^(int client, double x, double y){
+            if (clientId != client) {
+                return -1;
+            }
+            auto hitClient = weakClient.Upgrade();
+            if (!hitClient) {
+                return -1;
+            }
+            return hitClient->GetCaretIndexAtPoint(x, y);
+        };
+        [iOSTxtInputManager sharedInstance].caretIndexAtPointBlock = hitTestCallback;
         [iOSTxtInputManager sharedInstance].inputBoxY = renderTextField->GetEditingBoxY();
         [iOSTxtInputManager sharedInstance].inputBoxTopY = renderTextField->GetEditingBoxTopY();
         [iOSTxtInputManager sharedInstance].isDeclarative = renderTextField->GetEditingBoxModel();
@@ -221,6 +269,18 @@ void TextInputConnectionImpl::SetEditingState(const TextEditingValue& value, int
         @"composingExtent":@(value.compose.extentOffset),
         @"selectionIsDirectional":@(0)
     };
+    // Attach the caret rect so the adapter can anchor the floating cursor
+    // (caretRectForPosition:) at the real caret position.
+    auto client = client_.Upgrade();
+    if (client) {
+        Rect caretRect = client->GetCaretWindowRect();
+        NSMutableDictionary* caretDict = [stateDict mutableCopy];
+        caretDict[@"caretRectX"] = @(caretRect.Left());
+        caretDict[@"caretRectY"] = @(caretRect.Top());
+        caretDict[@"caretRectWidth"] = @(caretRect.Width());
+        caretDict[@"caretRectHeight"] = @(caretRect.Height());
+        stateDict = caretDict;
+    }
     dispatch_main_async_safe(^{
         [[iOSTxtInputManager sharedInstance] setTextInputEditingState:stateDict];
     });
