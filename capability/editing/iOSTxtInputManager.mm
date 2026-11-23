@@ -77,6 +77,18 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
 
 @interface iOSTextInputView : UIView <UITextInput>
 
+{
+    // YES while a keyboard trackpad floating-cursor drag is in flight; UIKit
+    // computes drag targets via characterRangeAtPoint:, which this adapter (no
+    // text layout) cannot answer, so selection echoes it derives from the stale
+    // answer are suppressed until the drag ends and the engine pushes the landed
+    // caret back.
+    BOOL _isFloatingCursorActive;
+    // Last caret rect (window coordinates) pushed by the engine; the view itself
+    // sits at the window origin, so window coordinates are view coordinates.
+    CGRect _lastCaretRect;
+}
+
 // UITextInput
 @property(nonatomic, readonly) NSMutableString* text;
 @property(nonatomic, readonly) NSMutableString* markedText;
@@ -90,6 +102,7 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
 @property(nonatomic) NSUInteger markedTextLocation;
 @property(nonatomic) NSUInteger markedTextLength;
 @property(nonatomic) NSUInteger textLength;
+@property(nonatomic) BOOL insertNewlineOnEnter;
 
 // UITextInputTraits
 @property(nonatomic) UITextAutocapitalizationType autocapitalizationType;
@@ -104,7 +117,26 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
 @property (nonatomic, copy) updateEditingClientBlock textInputBlock;
 @property (nonatomic, copy) updateErrorTextBlock errorTextBlock;
 @property (nonatomic, copy) performActionBlock textPerformBlock;
+@property (nonatomic, copy) updateFloatingCursorBlock floatingCursorBlock;
+@property (nonatomic, copy) lineMoveBlock lineMoveBlock;
+@property (nonatomic, copy) caretIndexAtPointBlock caretIndexAtPointBlock;
+- (int)lineMoveIndexFrom:(int)fromIndex isUp:(BOOL)isUp lines:(int)lines;
+- (int)hitTestCaretIndexAtPoint:(CGPoint)point;
+// Reset the floating-cursor drag state; called by the manager on teardown paths
+// (hideTextInput) because UIKit does not guarantee endFloatingCursor when the
+// drag is interrupted (e.g. keyboard dismissed mid-drag) - a stuck YES would
+// permanently drop UIKit selections and freeze caretRect updates.
+- (void)resetFloatingCursorState;
 
+@end
+
+// Line-granularity moves need glyph layout, which only the engine has; the stock
+// string tokenizer degrades them to character moves computed from empty
+// selection rects, which made hardware up/down arrows walk the caret sideways
+// and then jump to random positions. Delegate line moves to the engine and keep
+// the string tokenizer's character/word behavior for everything else.
+@interface iOSTextLineTokenizer : UITextInputStringTokenizer
+@property (nonatomic, weak) iOSTextInputView* owner;
 @end
 
 @implementation iOSTextInputView {
@@ -115,6 +147,12 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
     BOOL _unmarkText;
     BOOL _discardedMarkedText;
     BOOL _isSetSelectedTextRange;
+}
+
+// The view spans the window so UIKit's floating cursor is clamped to the
+// visible area; it must not intercept touches meant for the ArkUI content.
+- (UIView*)hitTest:(CGPoint)point withEvent:(UIEvent*)event {
+    return nil;
 }
 
 @synthesize tokenizer = _tokenizer;
@@ -172,6 +210,18 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
 }
 
 - (void)setTextInputState:(NSDictionary*)state {
+    // Latest caret rect in window coordinates, pushed by the engine with every
+    // editing state. Used by caretRectForPosition: to anchor the floating cursor.
+    // Frozen while a trackpad drag is in flight: UIKit magnets the lens to the
+    // rect answered by caretRectForPosition:, so feeding it the LIVE caret turns
+    // the drag into a lens<->caret feedback loop - the lens can never lead the
+    // caret by a full glyph, and the caret stalls partway (observed: cannot reach
+    // the text start when dragging left). Anchoring at the pre-drag caret keeps
+    // the magnet static and lets the lens track the finger freely.
+    if (state[@"caretRectX"] != nil && !_isFloatingCursorActive) {
+        _lastCaretRect = CGRectMake([state[@"caretRectX"] doubleValue], [state[@"caretRectY"] doubleValue],
+            [state[@"caretRectWidth"] doubleValue], [state[@"caretRectHeight"] doubleValue]);
+    }
     if (self.markedTextRange != nil) {
         return;
     }
@@ -215,7 +265,9 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
 
 - (id<UITextInputTokenizer>)tokenizer {
     if (_tokenizer == nil) {
-        _tokenizer = [[UITextInputStringTokenizer alloc] initWithTextInput:self];
+        iOSTextLineTokenizer* lineTokenizer = [[iOSTextLineTokenizer alloc] initWithTextInput:self];
+        lineTokenizer.owner = self;
+        _tokenizer = lineTokenizer;
     }
     return _tokenizer;
 }
@@ -225,6 +277,11 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
 }
 
 - (void)setSelectedTextRange:(UITextRange*)selectedTextRange {
+    if (_isFloatingCursorActive) {
+        // Trackpad drag in flight: the engine owns the caret; drop UIKit's
+        // echo selections derived from the stale characterRangeAtPoint: answer.
+        return;
+    }
     _isSetSelectedTextRange = YES;
     [self setSelectedTextRange:selectedTextRange updateEditingState:YES];
 }
@@ -300,9 +357,12 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
 }
 
 - (void)replaceRange:(UITextRange*)range withText:(NSString*)text {
-    if (self.returnKeyType == UIReturnKeyDefault && [text isEqualToString:@"\n"]) {
-        return;
-    }
+    // Note: do NOT block '\n' here. The keyboard's autocorrect/candidate-commit replay
+    // re-inserts the whole text (including newlines) via replaceRange on an internal
+    // path that bypasses shouldChangeTextInRange; dropping the newline desyncs the
+    // adapter text and the keyboard replaces the content with a fused string.
+    // The Enter key is handled in shouldChangeTextInRange (local mirror + return NO),
+    // so '\n' reaching this method must be applied.
     NSRange replaceRange = ((iOSTextRange*)range).range;
     NSRange selectedRange = _selectedTextRange.range;
     // Adjust the text selection:
@@ -372,9 +432,14 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
 
     if (self.returnKeyType == UIReturnKeyDefault && [text isEqualToString:@"\n"]) {
         if (self.textPerformBlock) {
-            self.textPerformBlock(iOSTextInputActionNewline, _textInputClient);
+            self.textPerformBlock(iOSTextInputActionNewline, _textInputClient, self.insertNewlineOnEnter);
         }
-        return YES;
+        // Let the keyboard execute insertText("\n") when a newline should be inserted:
+        // if the insert is rejected the keyboard keeps its autocorrect session across
+        // the line break and later rolls back/rebuilds text from the previous line,
+        // dropping the newline. The engine receives '\n' through the appendText event
+        // (replaceRange below), so PerformAction must not insert it again.
+        return self.insertNewlineOnEnter;
     }
 
     if ([text isEqualToString:@"\n"]) {
@@ -414,7 +479,9 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
                 break;
         }
         if (self.textPerformBlock) {
-            self.textPerformBlock(action, _textInputClient);
+            // This branch returns NO below: the native editor never inserts the
+            // newline, so the engine must not be told otherwise.
+            self.textPerformBlock(action, _textInputClient, NO);
         }
         return NO;
     }
@@ -510,11 +577,31 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
                                  offset:(NSInteger)offset {
     switch (direction) {
         case UITextLayoutDirectionLeft:
-        case UITextLayoutDirectionUp:
             return [self positionFromPosition:position offset:offset * -1];
         case UITextLayoutDirectionRight:
-        case UITextLayoutDirectionDown:
             return [self positionFromPosition:position offset:offset];
+        case UITextLayoutDirectionUp:
+        case UITextLayoutDirectionDown: {
+            // The adapter owns no text layout, so up/down must not degrade to
+            // character moves (that made hardware arrows walk the caret sideways).
+            // Delegate the line-granularity move to the engine, anchored at the
+            // queried position (UIKit accumulates consecutive presses as growing
+            // offsets from the pre-gesture caret, so the answer must be relative
+            // to the anchor, not to the already-moved caret).
+            if (self.lineMoveBlock && offset >= 1) {
+                BOOL isUp = (direction == UITextLayoutDirectionUp);
+                int fromIndex = static_cast<int>(static_cast<iOSTextPosition*>(position).index);
+                int index = self.lineMoveBlock(_textInputClient, fromIndex, isUp, static_cast<int>(offset));
+                if (index >= 0) {
+                    return [iOSTextPosition positionWithIndex:index];
+                }
+            }
+            // offset 0 (gesture counter back at the anchor) and unanswerable
+            // queries keep the queried position: this matches the native iOS
+            // behavior where reversing direction returns to the pre-gesture
+            // caret (verified against Apple Notes).
+            return position;
+        }
     }
 }
 
@@ -600,12 +687,20 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
 }
 
 - (CGRect)caretRectForPosition:(UITextPosition*)position {
-    return CGRectZero;
+    // UIKit anchors the floating cursor here at trackpad-drag start; the engine
+    // keeps this rect in sync with the real caret via the editing state push.
+    return _lastCaretRect;
 }
 
 - (UITextPosition*)closestPositionToPoint:(CGPoint)point {
-    NSUInteger currentIndex = ((iOSTextPosition*)_selectedTextRange.start).index;
-    return [iOSTextPosition positionWithIndex:currentIndex];
+    // Real layout hit test: echoing the current selection here left UIKit's
+    // floating cursor magnet/target planning blind (a real UITextView answers
+    // with the character actually under the point).
+    int index = [self hitTestCaretIndexAtPoint:point];
+    if (index < 0) {
+        index = static_cast<int>(static_cast<iOSTextPosition*>(_selectedTextRange.start).index);
+    }
+    return [iOSTextPosition positionWithIndex:index];
 }
 
 - (NSArray*)selectionRectsForRange:(UITextRange*)range {
@@ -613,19 +708,59 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
 }
 
 - (UITextPosition*)closestPositionToPoint:(CGPoint)point withinRange:(UITextRange*)range {
-    return range.start;
+    int index = [self hitTestCaretIndexAtPoint:point];
+    if (index < 0) {
+        return range.start;
+    }
+    NSUInteger lo = static_cast<iOSTextPosition*>(range.start).index;
+    NSUInteger hi = static_cast<iOSTextPosition*>(range.end).index;
+    NSUInteger clamped = MIN(MAX(static_cast<NSUInteger>(index), lo), hi);
+    return [iOSTextPosition positionWithIndex:clamped];
 }
 
 - (UITextRange*)characterRangeAtPoint:(CGPoint)point {
-    NSUInteger currentIndex = ((iOSTextPosition*)_selectedTextRange.start).index;
-    return [iOSTextRange rangeWithNSRange:[self RangeForCharacterAtIndex:self.text index:currentIndex]];
+    int index = [self hitTestCaretIndexAtPoint:point];
+    if (index < 0) {
+        index = static_cast<int>(static_cast<iOSTextPosition*>(_selectedTextRange.start).index);
+    }
+    // RangeForCharacterAtIndex: answers NSNotFound for index == length; at the
+    // text end report the last character instead.
+    if (self.text.length > 0 && index >= static_cast<int>(self.text.length)) {
+        index = static_cast<int>(self.text.length) - 1;
+    }
+    return [iOSTextRange rangeWithNSRange:[self RangeForCharacterAtIndex:self.text index:index]];
 }
 
-- (void)beginFloatingCursorAtPoint:(CGPoint)point {}
+// iOS keyboard trackpad caret drag. The adapter owns no text layout so it cannot
+// answer characterRangeAtPoint:; forward the drag to the engine, which hit-tests
+// the point against its own text layout and moves the caret.
+- (void)beginFloatingCursorAtPoint:(CGPoint)point {
+    _isFloatingCursorActive = YES;
+    if (self.floatingCursorBlock) {
+        CGPoint windowPoint = [self convertPoint:point toView:nil];
+        self.floatingCursorBlock(_textInputClient, 0, windowPoint.x, windowPoint.y);
+    }
+}
 
-- (void)updateFloatingCursorAtPoint:(CGPoint)point {}
+- (void)updateFloatingCursorAtPoint:(CGPoint)point {
+    if (self.floatingCursorBlock) {
+        CGPoint windowPoint = [self convertPoint:point toView:nil];
+        self.floatingCursorBlock(_textInputClient, 1, windowPoint.x, windowPoint.y);
+    }
+}
 
-- (void)endFloatingCursor {}
+- (void)endFloatingCursor {
+    _isFloatingCursorActive = NO;
+    if (self.floatingCursorBlock) {
+        self.floatingCursorBlock(_textInputClient, 2, 0.0, 0.0);
+    }
+}
+
+- (void)resetFloatingCursorState {
+    // Bare reset, no endFloatingCursor callback: the connection may already be
+    // detached when the manager tears the input down mid-drag.
+    _isFloatingCursorActive = NO;
+}
 
 #pragma mark - UIKeyInput Overrides
 
@@ -641,7 +776,7 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
         composingExtent = ((iOSTextPosition*)self.markedTextRange.end).index;
     }
 
-    NSRange markedTextRange = ((iOSTextRange*)self.markedTextRange).range;          
+    NSRange markedTextRange = ((iOSTextRange*)self.markedTextRange).range;
     if (markedTextRange.length == 0) {
         if (self.text.length > self.maxLength) {
             if (self.markedTextLength > 0) {
@@ -703,7 +838,7 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
     } else {
         self.textLength = self.text.length - self.markedTextLength;
     }
-    if  (_isDelete) { 
+    if  (_isDelete) {
         _isDelete = NO;
         self.textLength = self.text.length;
     }
@@ -785,6 +920,47 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
     [self.inputDelegate textDidChange:self];
 }
 
+// Line-granularity caret move, delegated to the engine (which owns the text
+// layout) through the connection's block; -1 when no engine is attached.
+- (int)lineMoveIndexFrom:(int)fromIndex isUp:(BOOL)isUp lines:(int)lines {
+    if (self.lineMoveBlock) {
+        return self.lineMoveBlock(_textInputClient, fromIndex, isUp, lines);
+    }
+    return -1;
+}
+
+// Caret hit test, delegated to the engine (which owns the text layout) through
+// the connection's block; -1 when no engine is attached. Called synchronously
+// from UIKit (tokenizer/floating cursor queries on the main thread). `point`
+// arrives in view coordinates; the block contract is window coordinates (the
+// engine hit-tests against the window space), so convert here once for every
+// caller instead of relying on the view happening to span the window at origin.
+- (int)hitTestCaretIndexAtPoint:(CGPoint)point {
+    if (self.caretIndexAtPointBlock) {
+        CGPoint windowPoint = [self convertPoint:point toView:nil];
+        return self.caretIndexAtPointBlock(_textInputClient, windowPoint.x, windowPoint.y);
+    }
+    return -1;
+}
+
+@end
+
+@implementation iOSTextLineTokenizer
+
+- (UITextPosition*)positionFromPosition:(UITextPosition*)position
+                     toLineGranularity:(UITextLayoutDirection)direction {
+    if (self.owner != nil && (direction == UITextLayoutDirectionUp ||
+        direction == UITextLayoutDirectionDown)) {
+        int fromIndex = static_cast<int>(static_cast<iOSTextPosition*>(position).index);
+        int index = [self.owner lineMoveIndexFrom:fromIndex
+            isUp:(direction == UITextLayoutDirectionUp) lines:1];
+        if (index >= 0) {
+            return [iOSTextPosition positionWithIndex:index];
+        }
+    }
+    return [super positionFromPosition:position toLineGranularity:direction];
+}
+
 @end
 
 @interface TextInputHideView : UIView
@@ -795,6 +971,12 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
 
 - (BOOL)accessibilityElementsHidden {
     return YES;
+}
+
+// The hider spans the window so the input view's frame can track window bounds
+// changes via autoresizing; claim no touches, they belong to the ArkUI content.
+- (UIView*)hitTest:(CGPoint)point withEvent:(UIEvent*)event {
+    return nil;
 }
 
 @end
@@ -809,6 +991,9 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
 @synthesize textInputBlock = _textInputBlock;
 @synthesize errorTextBlock = _errorTextBlock;
 @synthesize textPerformBlock = _textPerformBlock;
+@synthesize floatingCursorBlock = _floatingCursorBlock;
+@synthesize lineMoveBlock = _lineMoveBlock;
+@synthesize caretIndexAtPointBlock = _caretIndexAtPointBlock;
 
 + (instancetype)sharedInstance {
     static dispatch_once_t onceToken;
@@ -875,6 +1060,15 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
     if (self.textPerformBlock) {
         _activeView.textPerformBlock = self.textPerformBlock;
     }
+    if (self.floatingCursorBlock) {
+        _activeView.floatingCursorBlock = self.floatingCursorBlock;
+    }
+    if (self.lineMoveBlock) {
+        _activeView.lineMoveBlock = self.lineMoveBlock;
+    }
+    if (self.caretIndexAtPointBlock) {
+        _activeView.caretIndexAtPointBlock = self.caretIndexAtPointBlock;
+    }
     if (![_activeView isFirstResponder]) {
         [self addToInputParentViewIfNeeded:_activeView];
         [_activeView becomeFirstResponder];
@@ -893,7 +1087,7 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
     }
     return nil;
 }
- 
+
 - (UIWindow*)keyWindow {
     if (@available(iOS 13.0, *)) {
         UIWindow *keyWindow = [self keyWindowInSceneWithActivationState:UISceneActivationStateForegroundActive];
@@ -921,9 +1115,23 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
         [_inputHider removeFromSuperview];
     }
     [parentView addSubview:_inputHider];
+    // Span the window so UIKit clamps the floating cursor to the visible area
+    // (a zero-size frame biases its coordinate math); hitTest: passes touches
+    // through to the ArkUI content below. Track window bounds changes (rotation,
+    // split screen) via autoresizing so the floating-cursor clamp never relies
+    // on a stale frame: the hider follows the window, the input view follows
+    // the hider.
+    _inputHider.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+    _inputHider.frame = parentView.bounds;
+    inputView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+    inputView.frame = parentView.bounds;
 }
 
 - (void)hideTextInput {
+    // Fallback reset: a trackpad drag interrupted by keyboard teardown never
+    // receives endFloatingCursor, which would leave the drag flag stuck and
+    // permanently suppress UIKit selections and caretRect updates.
+    [_activeView resetFloatingCursorState];
     [_activeView resignFirstResponder];
     [_activeView removeFromSuperview];
     [_inputHider removeFromSuperview];
@@ -967,6 +1175,7 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
     [_activeView reloadInputViews];
     _activeView.inputFilter = configuration[@"inputFilter"];
     _activeView.maxLength = [configuration[@"maxLength"] intValue];
+    _activeView.insertNewlineOnEnter = [configuration[@"insertNewlineOnEnter"] boolValue];
 }
 
 - (void)setTextInputEditingState:(NSDictionary*)state {
@@ -974,10 +1183,14 @@ static const char _kTextAffinityUpstream[] = "TextAffinity.upstream";
 }
 
 - (void)clearTextInputClient {
+    [_activeView resetFloatingCursorState];
     [_activeView setTextInputClient:0];
     _activeView.textInputBlock = NULL;
     _activeView.errorTextBlock = NULL;
     _activeView.textPerformBlock = NULL;
+    _activeView.floatingCursorBlock = NULL;
+    _activeView.lineMoveBlock = NULL;
+    _activeView.caretIndexAtPointBlock = NULL;
 }
 
 - (void)finishComposing {
