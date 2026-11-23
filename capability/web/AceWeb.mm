@@ -36,7 +36,7 @@
 #import "AceWebView.h"
 
 #include "base/log/log.h"
-#include <deque>
+
 
 #define WEBVIEW_WIDTH  @"width"
 #define WEBVIEW_HEIGHT  @"height"
@@ -379,7 +379,7 @@ static NSString* const DOCUMENT_START_WRAPPER_SCRIPT_FORMAT =
 @implementation AceWeb {
     dispatch_source_t _timer;
     dispatch_block_t _contentHeightDebounceBlock;
-    std::deque<OHOS::Ace::RefPtr<OHOS::Ace::WebResponse>> pendingInterceptResponses_;
+    OHOS::Ace::RefPtr<OHOS::Ace::WebResponse> pendingInterceptResponse_;
 }
 
 - (void)debounceUpdateWebViewHeight
@@ -2825,15 +2825,12 @@ static NSString* const DOCUMENT_START_WRAPPER_SCRIPT_FORMAT =
 
 - (void)dispatchOnErrorReceive:(NSString*)errorStr error:(NSError*)error
 {
-    if (errorStr.length == 0) {
-        return;
-    }
     AceWebErrorReceiveInfoObject *obj = new AceWebErrorReceiveInfoObject(std::string([errorStr UTF8String]),
                                                                          std::string([error.description UTF8String]), error.code);
     AceWebObject([[self event_hashFormat:@"onErrorReceive"] UTF8String], [@"onErrorReceive" UTF8String], obj);
 }
 
-- (void)webView:(WKWebView *)webView didFailNavigation:( WKNavigation *)navigation withError:(NSError *)error
+- (void)webView:(WKWebView *)webView didFailNavigation:(WKNavigation *)navigation withError:(NSError *)error
 {
     LOGE("didFailNavigation === ");
     if (!error || error.code == NSURLErrorCancelled) {
@@ -3011,14 +3008,7 @@ static NSString* const DOCUMENT_START_WRAPPER_SCRIPT_FORMAT =
 }
 
 - (void)handleAceWebResponse:(id<WKURLSchemeTask>)urlSchemeTask {
-    if (pendingInterceptResponses_.empty()) {
-        LOGE("AceWeb: onInterceptRequest fail");
-        NSError *error = [NSError errorWithDomain:@"onInterceptRequest fail" code:HTTP_STATUS_GATEWAY_TIMEOUT userInfo:nil];
-        [urlSchemeTask didFailWithError:error];
-        return;
-    }
-    auto AceWebResponse = pendingInterceptResponses_.front();
-    pendingInterceptResponses_.pop_front();
+    auto AceWebResponse = pendingInterceptResponse_;
     if (!AceWebResponse) {
         LOGE("AceWeb: onInterceptRequest fail");
         NSError *error = [NSError errorWithDomain:@"onInterceptRequest fail" code:HTTP_STATUS_GATEWAY_TIMEOUT userInfo:nil];
@@ -3175,8 +3165,7 @@ static NSString* const DOCUMENT_START_WRAPPER_SCRIPT_FORMAT =
             decisionHandler(WKNavigationActionPolicyAllow);
             return;
         }
-        pendingInterceptResponses_.clear();
-        pendingInterceptResponses_.push_back(AceWebObjectGetResponse());
+        pendingInterceptResponse_ = AceWebObjectGetResponse();
         NSURLRequest* newRequest = [NSURLRequest requestWithURL:customNSURL];
         [webView loadRequest:newRequest];
         decisionHandler(WKNavigationActionPolicyCancel);
