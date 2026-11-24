@@ -37,6 +37,7 @@
 
 #include "base/log/log.h"
 
+
 #define WEBVIEW_WIDTH  @"width"
 #define WEBVIEW_HEIGHT  @"height"
 #define WEBVIEW_POSITION_LEFT  @"left"
@@ -378,6 +379,7 @@ static NSString* const DOCUMENT_START_WRAPPER_SCRIPT_FORMAT =
 @implementation AceWeb {
     dispatch_source_t _timer;
     dispatch_block_t _contentHeightDebounceBlock;
+    OHOS::Ace::RefPtr<OHOS::Ace::WebResponse> pendingInterceptResponse_;
 }
 
 - (void)debounceUpdateWebViewHeight
@@ -2802,9 +2804,40 @@ static NSString* const DOCUMENT_START_WRAPPER_SCRIPT_FORMAT =
     return self.callSyncMethodMap;
 }
 
+- (NSString*)extractFailingURLString:(NSError*)error webView:(WKWebView*)webView
+{
+    NSString *errorStr = @"";
+    NSDictionary *userInfo = error.userInfo;
+    id failingURLString = userInfo[NSURLErrorFailingURLStringErrorKey];
+    if ([failingURLString isKindOfClass:[NSString class]] && [(NSString *)failingURLString length] > 0) {
+        errorStr = failingURLString;
+    } else {
+        id failingURL = userInfo[NSURLErrorFailingURLErrorKey];
+        if ([failingURL isKindOfClass:[NSURL class]] && [(NSURL *)failingURL absoluteString].length > 0) {
+            errorStr = [(NSURL *)failingURL absoluteString];
+        }
+    }
+    if (errorStr.length == 0 && webView.URL.absoluteString.length > 0) {
+        errorStr = webView.URL.absoluteString;
+    }
+    return errorStr;
+}
+
+- (void)dispatchOnErrorReceive:(NSString*)errorStr error:(NSError*)error
+{
+    AceWebErrorReceiveInfoObject *obj = new AceWebErrorReceiveInfoObject(std::string([errorStr UTF8String]),
+                                                                         std::string([error.description UTF8String]), error.code);
+    AceWebObject([[self event_hashFormat:@"onErrorReceive"] UTF8String], [@"onErrorReceive" UTF8String], obj);
+}
+
 - (void)webView:(WKWebView *)webView didFailNavigation:(WKNavigation *)navigation withError:(NSError *)error
 {
     LOGE("didFailNavigation === ");
+    if (!error || error.code == NSURLErrorCancelled) {
+        return;
+    }
+    NSString *errorStr = [self extractFailingURLString:error webView:webView];
+    [self dispatchOnErrorReceive:errorStr error:error];
 }
 
 - (nullable WKWebView *)webView:(WKWebView *)webView
@@ -2975,7 +3008,8 @@ static NSString* const DOCUMENT_START_WRAPPER_SCRIPT_FORMAT =
 }
 
 - (void)handleAceWebResponse:(id<WKURLSchemeTask>)urlSchemeTask {
-    const auto& AceWebResponse = AceWebObjectGetResponse();
+    auto AceWebResponse = pendingInterceptResponse_;
+    pendingInterceptResponse_ = nullptr;
     if (!AceWebResponse) {
         LOGE("AceWeb: onInterceptRequest fail");
         NSError *error = [NSError errorWithDomain:@"onInterceptRequest fail" code:HTTP_STATUS_GATEWAY_TIMEOUT userInfo:nil];
@@ -3126,7 +3160,14 @@ static NSString* const DOCUMENT_START_WRAPPER_SCRIPT_FORMAT =
     if (![requestURL hasPrefix:[NSString stringWithFormat:@"%@://", CUSTOM_SCHEME]] && AceWebObjectWithResponseReturn(
             [[self event_hashFormat:NTC_ONINTERCEPTREQUEST] UTF8String], [NTC_ONINTERCEPTREQUEST UTF8String], obj)) {
         NSString* customURL = [NSString stringWithFormat:@"%@://%@", CUSTOM_SCHEME, requestURL];
-        NSURLRequest* newRequest = [NSURLRequest requestWithURL:[NSURL URLWithString:customURL]];
+        NSURL* customNSURL = [NSURL URLWithString:customURL];
+        if (customNSURL == nil) {
+            LOGE("AceWeb: onInterceptRequest rewrite url is invalid");
+            decisionHandler(WKNavigationActionPolicyAllow);
+            return;
+        }
+        pendingInterceptResponse_ = AceWebObjectGetResponse();
+        NSURLRequest* newRequest = [NSURLRequest requestWithURL:customNSURL];
         [webView loadRequest:newRequest];
         decisionHandler(WKNavigationActionPolicyCancel);
         return;
@@ -3910,21 +3951,11 @@ std::vector<std::string> convertCertificateChainToDer(NSArray *certificateChain)
 
 - (void)webView:(WKWebView *)webView didFailProvisionalNavigation:( WKNavigation *)navigation withError:(NSError *)error
 {
-    NSString *errorStr = @"";
-    if(webView.URL.absoluteString) {
-        errorStr = webView.URL.absoluteString;
-    } else {
-        if (error) {
-            NSDictionary *userInfo = error.userInfo;
-            errorStr = userInfo[@"NSErrorFailingURLStringKey"];
-        }
+    if (!error || error.code == NSURLErrorCancelled) {
+        return;
     }
-    
-    if(errorStr && error.description) {
-        AceWebErrorReceiveInfoObject *obj = new AceWebErrorReceiveInfoObject(std::string([errorStr UTF8String]),
-                                                                             std::string([error.description UTF8String]), error.code);
-        AceWebObject([[self event_hashFormat:@"onErrorReceive"] UTF8String], [@"onErrorReceive" UTF8String], obj);
-    }
+    NSString *errorStr = [self extractFailingURLString:error webView:webView];
+    [self dispatchOnErrorReceive:errorStr error:error];
 }
 
 - (void)cookiesDidChangeInCookieStore:(WKHTTPCookieStore *)cookieStore
