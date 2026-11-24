@@ -3009,6 +3009,7 @@ static NSString* const DOCUMENT_START_WRAPPER_SCRIPT_FORMAT =
 
 - (void)handleAceWebResponse:(id<WKURLSchemeTask>)urlSchemeTask {
     auto AceWebResponse = pendingInterceptResponse_;
+    pendingInterceptResponse_ = nullptr;
     if (!AceWebResponse) {
         LOGE("AceWeb: onInterceptRequest fail");
         NSError *error = [NSError errorWithDomain:@"onInterceptRequest fail" code:HTTP_STATUS_GATEWAY_TIMEOUT userInfo:nil];
