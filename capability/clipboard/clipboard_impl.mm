@@ -86,7 +86,7 @@ void ClipboardImpl::SetData(const RefPtr<PasteDataMix>& pasteData, CopyOptions c
             UIPasteboard *pasteboard = [UIPasteboard generalPasteboard];
             NSMutableArray<NSDictionary<NSString *, id> *> *items = [NSMutableArray array];
             for (auto it = records.rbegin(); it != records.rend(); ++it) {
-                auto multiTypeRecord = AceType::DynamicCast<MultiTypeRecordImpl>(*it);
+                auto multiTypeRecord = *it;
                 if (!multiTypeRecord) {
                     continue;
                 }
