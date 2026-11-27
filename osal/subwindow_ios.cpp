@@ -586,7 +586,7 @@ RefPtr<NG::FrameNode> SubwindowIos::ShowDialogNG(
         CHECK_NULL_RETURN(parentcontext, nullptr);
         auto parentOverlay = parentcontext->GetOverlayManager();
         CHECK_NULL_RETURN(parentOverlay, nullptr);
-        parentOverlay->SetSubWindowId(SubwindowManager::GetInstance()->GetDialogSubwindowInstanceId(GetSubwindowId()));
+        parentOverlay->SetSubWindowId(childContainerId_);
     }
     window_->SetFullScreen(true);
     window_->SetWindowModal(dialogProps.isModal);
@@ -632,7 +632,7 @@ void SubwindowIos::OpenCustomDialogNG(const DialogProperties& dialogProps, std::
         CHECK_NULL_VOID(parentcontext);
         auto parentOverlay = parentcontext->GetOverlayManager();
         CHECK_NULL_VOID(parentOverlay);
-        parentOverlay->SetSubWindowId(SubwindowManager::GetInstance()->GetDialogSubwindowInstanceId(GetSubwindowId()));
+        parentOverlay->SetSubWindowId(childContainerId_);
     }
     window_->SetFullScreen(true);
     window_->SetWindowModal(dialogProps.isModal);
